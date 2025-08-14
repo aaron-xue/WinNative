@@ -39,7 +39,7 @@ public class GraphicsDriverConfigDialog extends ContentDialog {
     private static String selectedVersion;
     private static String blacklistedExtensions = "";
     private static String selectedDeviceMemory;
-    private static String isAdrenotoolsTurnip = "1";
+    private static String isAdrenotoolsTurnip;
     private static String selectedPresentMode;
 
     public static HashMap<String, String> parseGraphicsDriverConfig(String graphicsDriverConfig) {
@@ -179,8 +179,9 @@ public class GraphicsDriverConfigDialog extends ContentDialog {
             }
         });
 
-        cbAdrenotoolsTurnip.setOnCheckedChangeListener(null);
-        cbAdrenotoolsTurnip.setChecked(adrenotoolsTurnip.equals("1") ? true : false);
+        isAdrenotoolsTurnip = adrenotoolsTurnip;
+
+        cbAdrenotoolsTurnip.setChecked(isAdrenotoolsTurnip.equals("1") ? true : false);
         cbAdrenotoolsTurnip.setOnCheckedChangeListener((buttonView, isChecked) ->  {
             isAdrenotoolsTurnip = isChecked ? "1" : "0";
         });
