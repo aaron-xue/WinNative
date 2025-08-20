@@ -141,6 +141,26 @@ VkResult get_physical_devices(VkInstance instance, std::vector<VkPhysicalDevice>
     return result;
 }
 
+extern "C" JNIEXPORT jboolean  JNICALL
+Java_com_winlator_cmod_core_GPUInformation_isDriverSupported(JNIEnv *env, jclass obj, jstring driverName, jobject context) {
+    VkResult result;
+    VkInstance instance;
+    PFN_vkDestroyInstance destroyInstance;
+    jboolean isSupported = false;
+
+    result = create_instance(driverName, env, context, &instance);
+
+    if (result == VK_SUCCESS) {
+        isSupported = true;
+        destroyInstance = (PFN_vkDestroyInstance)gip(instance, "vkDestroyInstance");
+        destroyInstance(instance, nullptr);
+    }
+
+    dlclose(vulkan_handle);
+
+    return isSupported;
+}
+
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_winlator_cmod_core_GPUInformation_getVersion(JNIEnv *env, jclass obj, jstring driverName, jobject context) {
     VkPhysicalDeviceProperties props = {};
