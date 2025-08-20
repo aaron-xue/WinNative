@@ -855,7 +855,7 @@ public class ContainerDetailFragment extends Fragment {
     }
 
     public static void setupDXWrapperSpinner(final Spinner sDXWrapper, final View vDXWrapperConfig, boolean isARM64EC) {
-        sDXWrapper.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        AdapterView.OnItemSelectedListener listener = new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String dxwrapper = StringUtils.parseIdentifier(sDXWrapper.getSelectedItem());
@@ -871,7 +871,19 @@ public class ContainerDetailFragment extends Fragment {
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
-        });
+        };
+
+        sDXWrapper.setOnItemSelectedListener(listener);
+
+        int selectedPosition = sDXWrapper.getSelectedItemPosition();
+        if (selectedPosition >= 0) {
+            listener.onItemSelected(
+                    sDXWrapper,
+                    sDXWrapper.getSelectedView(),
+                    selectedPosition,
+                    sDXWrapper.getSelectedItemId()
+            );
+        }
     }
 
     public static void setupDDrawSpinner(final Spinner sDDrawspinner, String selectedDDrawrapper) {
