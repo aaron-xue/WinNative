@@ -164,7 +164,10 @@ public class ShortcutsFragment extends Fragment {
                 else if (itemId == R.id.shortcut_remove) {
                     ContentDialog.confirm(context, R.string.do_you_want_to_remove_this_shortcut, () -> {
                         boolean fileDeleted = shortcut.file.delete();
-                        boolean iconFileDeleted = shortcut.iconFile != null && shortcut.iconFile.delete();
+                        File lnkFile = new File(shortcut.file.getPath().substring(0, shortcut.file.getPath().lastIndexOf(".")) + ".lnk");
+                        if (lnkFile.exists()) {
+                            lnkFile.delete();
+                        }
 
                         if (fileDeleted) {
                             disableShortcutOnScreen(requireContext(), shortcut);
