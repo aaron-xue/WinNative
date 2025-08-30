@@ -214,13 +214,11 @@ public class ShortcutSettingsDialog extends ContentDialog {
         Box64PresetManager.loadSpinner("box64", sBox64Preset, shortcut.getExtra("box64Preset", shortcut.container.getBox64Preset()));
 
         final Spinner sFEXCoreVersion = findViewById(R.id.SFEXCoreVersion);
-        FEXCoreManager.loadFEXCoreVersion(context, contentsManager, sFEXCoreVersion, shortcut);
-        
         final Spinner sFEXCoreTSOPreset = findViewById(R.id.SFEXCoreTSOPreset);
         final Spinner sFEXCoreMultiBlock = findViewById(R.id.SFEXCoreMultiblock);
         final Spinner sFEXCoreX87ReducedPrecision = findViewById(R.id.SFEXCoreX87ReducedPrecision);
         
-        FEXCoreManager.loadFEXCoreSettings(context, shortcut, sFEXCoreTSOPreset, sFEXCoreMultiBlock, sFEXCoreX87ReducedPrecision);
+        FEXCoreManager.loadFEXCoreSpinners(context, contentsManager, sFEXCoreTSOPreset, sFEXCoreMultiBlock, sFEXCoreX87ReducedPrecision, sFEXCoreVersion, shortcut.getExtra("fexConfig", shortcut.container.getFEXConfig()));
 
         final Spinner sControlsProfile = findViewById(R.id.SControlsProfile);
         loadControlsProfileSpinner(sControlsProfile, shortcut.getExtra("controlsProfile", "0"));
@@ -374,12 +372,11 @@ public class ShortcutSettingsDialog extends ContentDialog {
                 String envVars = envVarsView.getEnvVars();
                 shortcut.putExtra("envVars", !envVars.isEmpty() ? envVars : null);
 
+                String fexConfig = FEXCoreManager.saveFEXCoreConfig(sFEXCoreTSOPreset, sFEXCoreMultiBlock, sFEXCoreX87ReducedPrecision, sFEXCoreVersion);
+                shortcut.putExtra("fexConfig", !fexConfig.equals(shortcut.container.getFEXConfig()) ? fexConfig : null);
+
                 String box64Preset = Box64PresetManager.getSpinnerSelectedId(sBox64Preset);
                 shortcut.putExtra("box64Preset", !box64Preset.equals(shortcut.container.getBox64Preset()) ? box64Preset : null);
-
-
-                String fexcoreVersion = sFEXCoreVersion.getSelectedItem().toString();
-                shortcut.putExtra("fexcoreVersion", !fexcoreVersion.equals(shortcut.container.getFEXCoreVersion()) ? fexcoreVersion : null);
 
                 byte startupSelection = (byte)sStartupSelection.getSelectedItemPosition();
                 shortcut.putExtra("startupSelection", (startupSelection != shortcut.container.getStartupSelection()) ? String.valueOf(startupSelection) : null);
@@ -400,8 +397,6 @@ public class ShortcutSettingsDialog extends ContentDialog {
 
                 // Save all changes to the shortcut
                 shortcut.saveData();
-//
-                FEXCoreManager.saveFEXCoreSpinners(shortcut.container, sFEXCoreTSOPreset, sFEXCoreMultiBlock, sFEXCoreX87ReducedPrecision); 
             }
         });
     }
