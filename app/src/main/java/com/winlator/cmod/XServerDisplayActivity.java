@@ -1477,8 +1477,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         if (maxDeviceMemory != null && Integer.parseInt(maxDeviceMemory) > 0)
             envVars.put("WRAPPER_VMEM_MAX_SIZE", maxDeviceMemory);
 
-        String presentMode = graphicsDriverConfig.get("presentMode");
-        envVars.put("WRAPPER_PRESENT_MODE", presentMode);
+        envVars.put("MESA_VK_WSI_PRESENT_MODE", presentMode);
 
         String resourceType = graphicsDriverConfig.get("resourceType");
         envVars.put("WRAPPER_RESOURCE_TYPE", resourceType);
@@ -1851,3 +1850,4 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     }
 
 }
+
