@@ -139,28 +139,6 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         if (containerDataChanged) container.saveData();
     }
 
-    private void extractLayers(File libDir) {
-        String[] libs = new String[] { "libVkLayer_khronos_validation.so" };
-        for (int i = 0; i < libs.length; i++) {
-            String path = "lib/" + "arm64-v8a" + "/" + libs[i];
-            ClassLoader loader = PulseAudioComponent.class.getClassLoader();
-            URL res = loader != null ? loader.getResource(path) : null;
-            Path dstFile = Paths.get(libDir.getAbsolutePath() + "/" + libs[i]);
-            if (dstFile.toFile().exists())
-                continue;
-            try {
-                InputStream is = res != null ? res.openStream() : null;
-                if (is != null) {
-                    Files.copy(is, dstFile, StandardCopyOption.REPLACE_EXISTING);
-                    FileUtils.chmod(dstFile.toFile(), 0771);
-                }
-            }
-            catch (IOException e) {
-                Log.e("GuestProgramLauncherComponent", "Failed to extract layer " + libs[i]);
-            }
-        }
-    }
-
     public GuestProgramLauncherComponent(ContentsManager contentsManager, ContentProfile wineProfile, Shortcut shortcut) {
         this.contentsManager = contentsManager;
         this.wineProfile = wineProfile;
@@ -319,8 +297,6 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         envVars.put("PROTON_AUDIO_CONVERT", "0");
         envVars.put("PROTON_VIDEO_CONVERT", "0");
         envVars.put("PROTON_DEMUX", "0");
-
-        extractLayers(new File(rootDir.getPath(), "usr/lib"));
 
         String winePath = imageFs.getWinePath() + "/bin";
 
