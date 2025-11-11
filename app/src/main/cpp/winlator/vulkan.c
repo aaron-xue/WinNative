@@ -218,33 +218,30 @@ Java_com_winlator_cmod_core_GPUInformation_enumerateExtensions(JNIEnv *env, jcla
 
     if  (create_instance(driverName, env, context) != VK_SUCCESS) {
         printf("Failed to create instance");
-        return (*env)->NewObjectArray(env, 0, (*env)->FindClass(env, "java/lang/String"), (*env)->NewStringUTF(env, ""));
+        return (*env)->NewObjectArray(env, 0, (*env)->FindClass(env, "java/lang/String"), NULL);
     }
 
     if (enumerate_physical_devices() != VK_SUCCESS) {
         printf("Failed to query physical devices");
-        return (*env)->NewObjectArray(env, 0, (*env)->FindClass(env, "java/lang/String"), (*env)->NewStringUTF(env, ""));
+        return (*env)->NewObjectArray(env, 0, (*env)->FindClass(env, "java/lang/String"), NULL);
     }
 
     result = enumerateDeviceExtensionProperties(physicalDevice, NULL, &extensionCount, NULL);
 
-    if (result == VK_SUCCESS && extensionCount > 0) {
-        VkExtensionProperties extensionProperties[extensionCount];
-        enumerateDeviceExtensionProperties(physicalDevice, NULL, &extensionCount,
-                                           extensionProperties);
-        extensions = (jobjectArray) (*env)->NewObjectArray(env, extensionCount,
-                                                           (*env)->FindClass(env, "java/lang/String"),
-                                                           (*env)->NewStringUTF(env, ""));
-
-        for (int i = 0; i < extensionCount; i++) {
-            (*env)->SetObjectArrayElement(env, extensions, i,
-                                          (*env)->NewStringUTF(env, extensionProperties[i].extensionName));
-        }
-    }
-    else {
-        printf("Failed to enumerate device extensions");
-        return (*env)->NewObjectArray(env, 0, (*env)->FindClass(env, "java/lang/String"), (*env)->NewStringUTF(env, ""));
-
+    if (result != VK_SUCCESS || extensionCount < 1) {
+        printf("Failed to query extension count");
+        return (*env)->NewObjectArray(env, 0, (*env)->FindClass(env, "java/lang/String"), NULL);
+    }    
+    
+    VkExtensionProperties *extensionProperties = malloc(sizeof(VkExtensionProperties) * extensionCount);
+    enumerateDeviceExtensionProperties(physicalDevice, NULL, &extensionCount,
+                                       extensionProperties);
+    extensions = (jobjectArray) (*env)->NewObjectArray(env, extensionCount,
+                                                       (*env)->FindClass(env, "java/lang/String"),
+                                                       NULL);
+    for (int i = 0; i < extensionCount; i++) {
+        (*env)->SetObjectArrayElement(env, extensions, i,
+                                      (*env)->NewStringUTF(env, extensionProperties[i].extensionName));
     }
 
     destroyInstance(instance, NULL);
