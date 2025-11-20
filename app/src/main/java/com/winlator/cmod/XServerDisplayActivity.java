@@ -1529,7 +1529,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             default -> envVars.put("WRAPPER_EMULATE_BCN", "1");
         }
 
-        String bcnEmulationCache = graphicsDriverConfig.get("bcnEmulationType");
+        String bcnEmulationCache = graphicsDriverConfig.get("bcnEmulationCache");
         envVars.put("WRAPPER_USE_BCN_CACHE", bcnEmulationCache);
 
         if (!vkbasaltConfig.isEmpty()) {
