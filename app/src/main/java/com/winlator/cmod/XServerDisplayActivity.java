@@ -1506,6 +1506,13 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         String blacklistedExtensions = graphicsDriverConfig.get("blacklistedExtensions");
         envVars.put("WRAPPER_EXTENSION_BLACKLIST", blacklistedExtensions);
 
+        String gpuName = graphicsDriverConfig.get("gpuName");
+        if (!gpuName.equals("Device")) {
+            envVars.put("WRAPPER_DEVICE_NAME", gpuName);
+            envVars.put("WRAPPER_DEVICE_ID", WineD3DConfigDialog.getDeviceIdFromGPUName(this, gpuName));
+            envVars.put("WRAPPER_VENDOR_ID", WineD3DConfigDialog.getVendorIdFromGPUName(this, gpuName));
+        }
+
         String maxDeviceMemory = graphicsDriverConfig.get("maxDeviceMemory");
         if (maxDeviceMemory != null && Integer.parseInt(maxDeviceMemory) > 0)
             envVars.put("WRAPPER_VMEM_MAX_SIZE", maxDeviceMemory);
