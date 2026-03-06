@@ -68,7 +68,11 @@ You can find updated components (known as `wcps`) to improve compatibility and p
 
 Many thanks to [ptitseb](https://github.com/ptitSeb) (Box86/Box64), [Danylo](https://blogs.igalia.com/dpiliaiev/tags/mesa/) (Turnip), [alexvorxx](https://github.com/alexvorxx) (Mods/Tips) and others.
 
+
+
+
 if you like my work you can buy me a [coffee](https://ko-fi.com/A0A51VGU2B) 
+
 
 
 
