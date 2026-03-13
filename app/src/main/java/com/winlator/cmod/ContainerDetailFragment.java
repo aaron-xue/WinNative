@@ -95,6 +95,7 @@ public class ContainerDetailFragment extends Fragment {
     private PreloaderDialog preloaderDialog;
     private JSONArray gpuCards;
     private Callback<String> openDirectoryCallback;
+    private Callback<String> openFileCallback;
     private int createShortcutForAppId = 0;
     private String createShortcutForAppName = "";
     private String createShortcutForSource = "STEAM";
@@ -269,7 +270,25 @@ public class ContainerDetailFragment extends Fragment {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (requestCode == MainActivity.OPEN_DIRECTORY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+        if (requestCode == MainActivity.OPEN_FILE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            if (data != null) {
+                Uri uri = data.getData();
+                String path = uri != null ? FileUtils.getFilePathFromUri(getContext(), uri) : null;
+                String fileName = uri != null ? FileUtils.getUriFileName(getContext(), uri) : null;
+                if (path != null && path.toLowerCase(Locale.ENGLISH).endsWith(".exe")) {
+                    if (openFileCallback != null) {
+                        openFileCallback.call(path);
+                    }
+                } else if (path != null && fileName != null && fileName.toLowerCase(Locale.ENGLISH).endsWith(".exe")) {
+                    if (openFileCallback != null) {
+                        openFileCallback.call(path);
+                    }
+                } else {
+                    Toast.makeText(getContext(), R.string.select_valid_exe_file, Toast.LENGTH_SHORT).show();
+                }
+            }
+            openFileCallback = null;
+        } else if (requestCode == MainActivity.OPEN_DIRECTORY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             if (data != null) {
                 Uri uri = data.getData();
                 Log.d(TAG, "URI obtained in onActivityResult: " + uri.toString());
@@ -351,6 +370,10 @@ public class ContainerDetailFragment extends Fragment {
         Log.d(TAG, "onCreateView: step 3 - contentsManager synced");
 
         final EditText etName = view.findViewById(R.id.ETName);
+        final View llLaunchExe = view.findViewById(R.id.LLLaunchExe);
+        final TextView btSelectExe = view.findViewById(R.id.BTSelectExe);
+        final boolean showLaunchExeSelector = isShortcutMode() || createShortcutForAppId > 0;
+        final String[] selectedExePath = new String[]{resolveInitialLaunchExePath()};
 
         final Spinner sWineVersion = view.findViewById(R.id.SWineVersion);
 
@@ -368,6 +391,22 @@ public class ContainerDetailFragment extends Fragment {
             etName.setText(createShortcutForAppName);
         } else {
             etName.setText(getString(R.string.container) + "-" + manager.getNextContainerId());
+        }
+
+        llLaunchExe.setVisibility(showLaunchExeSelector ? View.VISIBLE : View.GONE);
+        if (showLaunchExeSelector) {
+            updateLaunchExeButton(btSelectExe, selectedExePath[0]);
+            btSelectExe.setOnClickListener((v) -> {
+                openFileCallback = (path) -> {
+                    selectedExePath[0] = path;
+                    updateLaunchExeButton(btSelectExe, path);
+                };
+
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("*/*");
+                getActivity().startActivityFromFragment(this, intent, MainActivity.OPEN_FILE_REQUEST_CODE);
+            });
         }
 
         final Spinner sBox64Version = view.findViewById(R.id.SBox64Version);
@@ -614,6 +653,15 @@ public class ContainerDetailFragment extends Fragment {
                 }
 
                 if (isShortcutMode()) {
+                    String gameSource = shortcut.getExtra("game_source", createShortcutForSource);
+                    if (showLaunchExeSelector && selectedExePath[0] != null && !selectedExePath[0].isEmpty()) {
+                        shortcut.putExtra("launch_exe_path", selectedExePath[0]);
+                        if ("CUSTOM".equals(gameSource)) {
+                            shortcut.putExtra("custom_exe", selectedExePath[0]);
+                        }
+                        rewriteShortcutExecLine(shortcut.file, buildExecCommandForSource(gameSource, shortcutAppId(), shortcut, selectedExePath[0]));
+                    }
+
                     // Save overrides to Shortcut extraData
                     shortcut.putExtra("screenSize", screenSize);
                     shortcut.putExtra("envVars", envVars);
@@ -744,6 +792,15 @@ public class ContainerDetailFragment extends Fragment {
                     data.put("lc_all", lc_all);
                     data.put("primaryController", primaryController);
                     data.put("controllerMapping", controllerMapping);
+                    if (showLaunchExeSelector && selectedExePath[0] != null && !selectedExePath[0].isEmpty()) {
+                        data.put("launchExePath", selectedExePath[0]);
+                        if ("EPIC".equals(createShortcutForSource)) {
+                            String gameInstallPath = resolveBaseGameDirectory(createShortcutForSource, createShortcutForAppId, null, selectedExePath[0]);
+                            if (!gameInstallPath.isEmpty()) {
+                                data.put("game_install_path", gameInstallPath);
+                            }
+                        }
+                    }
 
                     // Start by picking the selected container
                     Container targetContainer = null;
@@ -1563,6 +1620,155 @@ public class ContainerDetailFragment extends Fragment {
         fexcoreFrame.setVisibility(useFexcore ? View.VISIBLE : View.GONE);
     }
 
+    private void updateLaunchExeButton(TextView button, String fullPath) {
+        if (button == null) return;
+        button.setText(fullPath == null || fullPath.isEmpty() ? getString(R.string.select_exe) : fullPath);
+    }
+
+    private int shortcutAppId() {
+        if (!isShortcutMode()) return createShortcutForAppId;
+        String appId = shortcut.getExtra("app_id");
+        if (appId.isEmpty()) return 0;
+        try {
+            return Integer.parseInt(appId);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private String resolveInitialLaunchExePath() {
+        if (!isShortcutMode()) return "";
+
+        String storedPath = shortcut.getExtra("launch_exe_path");
+        if (!storedPath.isEmpty()) return storedPath;
+
+        String gameSource = shortcut.getExtra("game_source", createShortcutForSource);
+        if ("CUSTOM".equals(gameSource)) {
+            String customExe = shortcut.getExtra("custom_exe");
+            if (!customExe.isEmpty()) return customExe;
+        }
+
+        return resolveAbsolutePathFromShortcut(gameSource, shortcutAppId(), shortcut, shortcut.path);
+    }
+
+    private String resolveAbsolutePathFromShortcut(String gameSource, int appId, @Nullable Shortcut shortcut, @Nullable String shortcutPath) {
+        if (shortcutPath == null || shortcutPath.isEmpty()) return "";
+
+        if ("C:\\Program Files (x86)\\Steam\\steamclient_loader_x64.exe".equalsIgnoreCase(shortcutPath)) {
+            return "";
+        }
+
+        if (shortcutPath.regionMatches(true, 0, "A:\\", 0, 3)) {
+            String baseDir = resolveBaseGameDirectory(gameSource, appId, shortcut, "");
+            if (baseDir.isEmpty()) return "";
+            String relativePath = shortcutPath.substring(3).replace("\\", File.separator);
+            return new File(baseDir, relativePath).getAbsolutePath();
+        }
+
+        if (shortcutPath.regionMatches(true, 0, "Z:\\", 0, 3)) {
+            String hostPath = shortcutPath.substring(2).replace("\\", File.separator);
+            if (!hostPath.startsWith(File.separator)) {
+                hostPath = File.separator + hostPath;
+            }
+            return hostPath;
+        }
+
+        return "";
+    }
+
+    private String resolveBaseGameDirectory(String gameSource, int appId, @Nullable Shortcut shortcut, @Nullable String fallbackExePath) {
+        if ("STEAM".equals(gameSource) && appId > 0) {
+            String installPath = SteamBridge.getAppDirPath(appId);
+            if (installPath != null && !installPath.isEmpty()) return installPath;
+        } else if ("EPIC".equals(gameSource) && appId > 0) {
+            if (shortcut != null) {
+                String installPath = shortcut.getExtra("game_install_path");
+                if (!installPath.isEmpty()) return installPath;
+            }
+
+            com.winlator.cmod.epic.data.EpicGame epicGame = com.winlator.cmod.epic.service.EpicService.Companion.getEpicGameOf(appId);
+            if (epicGame != null) {
+                String installPath = epicGame.getInstallPath();
+                if ((installPath == null || installPath.isEmpty()) && getContext() != null) {
+                    installPath = com.winlator.cmod.epic.service.EpicConstants.INSTANCE.getGameInstallPath(getContext(), epicGame.getAppName());
+                }
+                if (installPath != null && !installPath.isEmpty()) return installPath;
+            }
+        } else if ("CUSTOM".equals(gameSource)) {
+            if (shortcut != null) {
+                String gameFolder = shortcut.getExtra("custom_game_folder");
+                if (!gameFolder.isEmpty()) return gameFolder;
+            }
+        }
+
+        if (fallbackExePath != null && !fallbackExePath.isEmpty()) {
+            File parentFile = new File(fallbackExePath).getParentFile();
+            if (parentFile != null) return parentFile.getAbsolutePath();
+        }
+
+        return "";
+    }
+
+    private String buildExecCommandForSource(String gameSource, int appId, @Nullable Shortcut shortcut, @Nullable String selectedExePath) {
+        if (selectedExePath == null || selectedExePath.isEmpty()) {
+            if ("EPIC".equals(gameSource)) {
+                return "wine \"A:\\\\\"";
+            }
+            return "wine \"C:\\\\Program Files (x86)\\\\Steam\\\\steamclient_loader_x64.exe\"";
+        }
+
+        File exeFile = new File(selectedExePath);
+        String absoluteExePath = exeFile.getAbsolutePath();
+        String baseDir = resolveBaseGameDirectory(gameSource, appId, shortcut, absoluteExePath);
+        String normalizedBaseDir = baseDir.isEmpty() ? "" : StringUtils.removeEndSlash(new File(baseDir).getAbsolutePath());
+        String normalizedExePath = absoluteExePath;
+        String winPath;
+
+        if (!normalizedBaseDir.isEmpty() && (normalizedExePath.equals(normalizedBaseDir) || normalizedExePath.startsWith(normalizedBaseDir + File.separator))) {
+            String relativePath = FileUtils.toRelativePath(normalizedBaseDir, normalizedExePath).replace("/", "\\");
+            while (relativePath.startsWith("\\")) relativePath = relativePath.substring(1);
+            winPath = "A:\\" + relativePath;
+        } else {
+            String hostPath = normalizedExePath.replace("/", "\\");
+            if (!hostPath.startsWith("\\")) hostPath = "\\" + hostPath;
+            winPath = "Z:" + hostPath;
+        }
+
+        return "wine \"" + winPath + "\"";
+    }
+
+    private void rewriteShortcutExecLine(File shortcutFile, String execCommand) {
+        List<String> lines = FileUtils.readLines(shortcutFile);
+        StringBuilder content = new StringBuilder();
+        boolean execReplaced = false;
+        boolean insertedBeforeExtraData = false;
+
+        for (String line : lines) {
+            if (line.startsWith("Exec=")) {
+                content.append("Exec=").append(execCommand).append("\n");
+                execReplaced = true;
+                continue;
+            }
+
+            if (!execReplaced && line.startsWith("[Extra Data]")) {
+                content.append("Exec=").append(execCommand).append("\n");
+                execReplaced = true;
+                insertedBeforeExtraData = true;
+            }
+
+            content.append(line).append("\n");
+        }
+
+        if (!execReplaced) {
+            if (!insertedBeforeExtraData && content.length() > 0 && content.charAt(content.length() - 1) != '\n') {
+                content.append("\n");
+            }
+            content.append("Exec=").append(execCommand).append("\n");
+        }
+
+        FileUtils.writeString(shortcutFile, content.toString());
+    }
+
     private void createShortcutOnContainer(Container container, JSONObject data) throws Exception {
         File desktopDir = container.getDesktopDir();
         if (!desktopDir.exists()) desktopDir.mkdirs();
@@ -1572,11 +1778,11 @@ public class ContainerDetailFragment extends Fragment {
         content.append("[Desktop Entry]\n");
         content.append("Type=Application\n");
         content.append("Name=").append(createShortcutForAppName).append("\n");
+        String execCommand = buildExecCommandForSource(createShortcutForSource, createShortcutForAppId, null, data.optString("launchExePath", ""));
+        content.append("Exec=").append(execCommand).append("\n");
         if (createShortcutForSource.equals("EPIC")) {
-            content.append("Exec=wine \"A:\\\\\"\n"); // Epic games usually don't have a loader like Steam
             content.append("Icon=epic_icon_").append(createShortcutForAppId).append("\n");
         } else {
-            content.append("Exec=wine \"C:\\\\Program Files (x86)\\\\Steam\\\\steamclient_loader_x64.exe\"\n");
             content.append("Icon=steam_icon_").append(createShortcutForAppId).append("\n");
         }
         content.append("\n[Extra Data]\n");

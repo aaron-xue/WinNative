@@ -23,8 +23,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.PointerIcon;
 import android.view.View;
@@ -43,14 +41,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.core.content.ContextCompat;
+import androidx.compose.ui.platform.ComposeView;
 import androidx.core.view.GravityCompat;
 import com.winlator.cmod.steam.utils.SteamUtils;
 
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.preference.PreferenceManager;
-
-import com.google.android.material.navigation.NavigationView;
 import com.winlator.cmod.container.Container;
 import com.winlator.cmod.container.ContainerManager;
 import com.winlator.cmod.container.Shortcut;
@@ -137,7 +133,7 @@ import java.util.regex.Pattern;
 
 import cn.sherlock.com.sun.media.sound.SF2Soundbank;
 
-public class XServerDisplayActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class XServerDisplayActivity extends AppCompatActivity {
     public static String NOTIFICATION_CHANNEL_ID = "Winlator";
     public static int NOTIFICATION_ID = -1;
     private XServerView xServerView;
@@ -205,6 +201,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     private Runnable hideControlsRunnable;
 
     private boolean isDarkMode;
+    private boolean enableLogsMenu;
 
     private String screenEffectProfile;
 
@@ -359,25 +356,17 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         drawerLayout.setOnApplyWindowInsetsListener((view, windowInsets) -> windowInsets.replaceSystemWindowInsets(0, 0, 0, 0));
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
 
-        NavigationView navigationView = findViewById(R.id.NavigationView);
-
-        if (isDarkMode) {
-            navigationView.setItemTextColor(ContextCompat.getColorStateList(this, R.color.white));
-            navigationView.setBackgroundResource(R.color.content_dialog_background_dark);
-        }
-
-        boolean enableLogs = preferences.getBoolean("enable_wine_debug", false) || preferences.getBoolean("enable_box64_logs", false);
-        Menu menu = navigationView.getMenu();
-        menu.findItem(R.id.main_menu_logs).setVisible(enableLogs);
-        if (XrActivity.isEnabled(this)) menu.findItem(R.id.main_menu_magnifier).setVisible(false);
-        navigationView.setNavigationItemSelectedListener(this);
-        navigationView.setPointerIcon(PointerIcon.getSystemIcon(this, PointerIcon.TYPE_ARROW));
-        navigationView.setOnFocusChangeListener((v, hasFocus) -> navigationFocused = hasFocus);
+        ComposeView navigationComposeView = findViewById(R.id.NavigationComposeView);
+        enableLogsMenu = preferences.getBoolean("enable_wine_debug", false) || preferences.getBoolean("enable_box64_logs", false);
+        navigationComposeView.setPointerIcon(PointerIcon.getSystemIcon(this, PointerIcon.TYPE_ARROW));
+        navigationComposeView.setOnFocusChangeListener((v, hasFocus) -> navigationFocused = hasFocus);
+        renderDrawerMenu();
         drawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
             @Override
             public void onDrawerOpened(View drawerView) {
                 super.onDrawerOpened(drawerView);
-                navigationView.requestFocus();
+                renderDrawerMenu();
+                navigationComposeView.requestFocus();
             }
         });
 
@@ -471,7 +460,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         imageFs.setWinePath(wineInfo.path);
 
         ProcessHelper.removeAllDebugCallbacks();
-        if (enableLogs) {
+        if (enableLogsMenu) {
             LogView.setFilename(getExecutable());
             ProcessHelper.addDebugCallback(debugDialog = new DebugDialog(this));
         }
@@ -1012,17 +1001,36 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     public void onBackPressed() {
         if (environment != null) {
             if (!drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                renderDrawerMenu();
                 drawerLayout.openDrawer(GravityCompat.START);
             }
             else drawerLayout.closeDrawers();
         }
     }
 
+    private void renderDrawerMenu() {
+        ComposeView navigationComposeView = findViewById(R.id.NavigationComposeView);
+        if (navigationComposeView == null) return;
+
+        XServerDrawerState state = XServerDrawerMenuKt.buildXServerDrawerState(
+                isRelativeMouseMovement,
+                isMouseDisabled,
+                isPaused,
+                !XrActivity.isEnabled(this),
+                enableLogsMenu
+        );
+        XServerDrawerMenuKt.setupXServerDrawerComposeView(
+                navigationComposeView,
+                state,
+                this,
+                itemId -> handleDrawerAction(itemId)
+        );
+    }
+
     @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+    private boolean handleDrawerAction(int itemId) {
         final GLRenderer renderer = xServerView.getRenderer();
-        switch (item.getItemId()) {
+        switch (itemId) {
             case R.id.main_menu_keyboard:
                 AppUtils.showKeyboard(this);
                 drawerLayout.closeDrawers();
@@ -1049,11 +1057,9 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             case R.id.main_menu_pause:
                 if (isPaused) {
                     ProcessHelper.resumeAllWineProcesses();
-                    item.setIcon(R.drawable.icon_pause);
                 }
                 else {
                     ProcessHelper.pauseAllWineProcesses();
-                    item.setIcon(R.drawable.icon_play);
                 }
                 isPaused = !isPaused;
                 drawerLayout.closeDrawers();
@@ -1447,7 +1453,10 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         touchpadView.setSensitivity(globalCursorSpeed);
         touchpadView.setMouseEnabled(!isMouseDisabled);
         touchpadView.setFourFingersTapCallback(() -> {
-            if (!drawerLayout.isDrawerOpen(GravityCompat.START)) drawerLayout.openDrawer(GravityCompat.START);
+            if (!drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                renderDrawerMenu();
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
         });
         rootView.addView(touchpadView);
 
@@ -2130,7 +2139,32 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
             if (gameSource.equals("STEAM")) {
                 int appId = Integer.parseInt(shortcut.getExtra("app_id"));
-                if (!container.isUseLegacyDRM()) {
+                boolean hasCustomSteamExe = path != null &&
+                        !path.isEmpty() &&
+                        !path.equalsIgnoreCase("C:\\Program Files (x86)\\Steam\\steamclient_loader_x64.exe");
+
+                if (hasCustomSteamExe) {
+                    int lastBackslash = path.lastIndexOf("\\");
+                    if (lastBackslash >= 0) {
+                        String dir = path.substring(0, lastBackslash);
+                        if (dir.endsWith(":")) dir += "\\";
+                        String file = path.substring(lastBackslash + 1);
+
+                        File nativeDir = com.winlator.cmod.core.WineUtils.getNativePath(imageFs, dir);
+                        if (nativeDir != null && nativeDir.exists()) {
+                            launcherComponent.setWorkingDir(nativeDir);
+                            Log.d("XServerDisplayActivity", "Set native working dir for Steam override: " + nativeDir.getPath());
+                        }
+
+                        if (wineInfo != null && wineInfo.isArm64EC()) {
+                            args = "\"" + path + "\"";
+                        } else {
+                            args = "/dir \"" + dir + "\" \"" + file + "\"";
+                        }
+                    } else {
+                        args = "\"" + path + "\"";
+                    }
+                } else if (!container.isUseLegacyDRM()) {
                     args = "/dir \"C:\\Program Files (x86)\\Steam\" \"steamclient_loader_x64.exe\"";
                     File nativeDir = com.winlator.cmod.core.WineUtils.getNativePath(imageFs, "C:\\Program Files (x86)\\Steam");
                     if (nativeDir != null && nativeDir.exists()) launcherComponent.setWorkingDir(nativeDir);

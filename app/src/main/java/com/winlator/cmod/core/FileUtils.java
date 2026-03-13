@@ -399,7 +399,35 @@ public abstract class FileUtils {
 
     public static String getFilePathFromUri(Context context, Uri uri) {
         Log.d(TAG, "getFilePathFromUri called with URI: " + uri.toString());
-        String filePath = getFilePathFromUriUsingSAF(context, uri);
+        String filePath = null;
+
+        try {
+            if (DocumentsContract.isDocumentUri(context, uri)) {
+                String docId = DocumentsContract.getDocumentId(uri);
+                String[] split = docId.split(":", 2);
+                String volume = split[0];
+                String path = split.length > 1 ? split[1] : "";
+
+                if ("primary".equalsIgnoreCase(volume)) {
+                    filePath = Environment.getExternalStorageDirectory() + (path.isEmpty() ? "" : "/" + path);
+                } else if (docId.startsWith("raw:")) {
+                    filePath = docId.substring(4);
+                } else if (split.length == 2) {
+                    filePath = "/storage/" + volume + (path.isEmpty() ? "" : "/" + path);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Document URI resolution failed for: " + uri, e);
+        }
+
+        if (filePath == null) {
+            filePath = getFilePathFromUriUsingSAF(context, uri);
+        }
+
+        if (filePath == null && "file".equalsIgnoreCase(uri.getScheme())) {
+            filePath = uri.getPath();
+        }
+
         Log.d(TAG, "File path obtained: " + filePath);
         return filePath;
     }

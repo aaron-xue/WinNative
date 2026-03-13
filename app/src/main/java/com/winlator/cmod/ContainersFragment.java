@@ -143,6 +143,7 @@ public class ContainersFragment extends Fragment {
         private class ContainerViewHolder extends RecyclerView.ViewHolder {
             private final ImageView runButton;
             private final ImageView editButton;
+            private final ImageView duplicateButton;
             private final ImageView menuButton;
             private final ImageView imageView;
             private final TextView title;
@@ -151,6 +152,7 @@ public class ContainersFragment extends Fragment {
                 super(view);
                 this.runButton = view.findViewById(R.id.BTRun);
                 this.editButton = view.findViewById(R.id.BTEdit);
+                this.duplicateButton = view.findViewById(R.id.BTDuplicate);
                 this.imageView = view.findViewById(R.id.ImageView);
                 this.title = view.findViewById(R.id.TVTitle);
                 this.menuButton = view.findViewById(R.id.BTMenu);
@@ -189,6 +191,7 @@ public class ContainersFragment extends Fragment {
                 ContainerViewHolder ch = (ContainerViewHolder) holder;
                 ch.runButton.setOnClickListener(null);
                 ch.editButton.setOnClickListener(null);
+                ch.duplicateButton.setOnClickListener(null);
                 ch.menuButton.setOnClickListener(null);
             }
             super.onViewRecycled(holder);
@@ -204,6 +207,7 @@ public class ContainersFragment extends Fragment {
 
                 ch.runButton.setOnClickListener(view -> runContainer(item));
                 ch.editButton.setOnClickListener(view -> editContainer(item));
+                ch.duplicateButton.setOnClickListener(view -> duplicateContainer(item));
                 ch.menuButton.setOnClickListener(view -> showListItemMenu(view, item));
             }
         }
@@ -228,6 +232,19 @@ public class ContainersFragment extends Fragment {
                     .commit();
         }
 
+        private void duplicateContainer(Container container) {
+            ContentDialog.confirm(getContext(), R.string.do_you_want_to_duplicate_this_container, () -> {
+                preloaderDialog.show(R.string.duplicating_container, false);
+                manager.duplicateContainerAsync(container, progress -> {
+                    preloaderDialog.setProgress(progress);
+                }, () -> {
+                    preloaderDialog.setProgress(100);
+                    preloaderDialog.closeWithDelay(600);
+                    new android.os.Handler().postDelayed(() -> loadContainersList(), 600);
+                });
+            });
+        }
+
         private void showListItemMenu(View anchorView, Container container) {
             final Context context = getContext();
             Context popupContext = new ContextThemeWrapper(context, R.style.ThemeOverlay_ContentPopupMenu);
@@ -238,16 +255,7 @@ public class ContainersFragment extends Fragment {
             listItemMenu.setOnMenuItemClickListener((menuItem) -> {
                 switch (menuItem.getItemId()) {
                     case R.id.container_duplicate:
-                        ContentDialog.confirm(getContext(), R.string.do_you_want_to_duplicate_this_container, () -> {
-                            preloaderDialog.show(R.string.duplicating_container, false);
-                            manager.duplicateContainerAsync(container, progress -> {
-                                preloaderDialog.setProgress(progress);
-                            }, () -> {
-                                preloaderDialog.setProgress(100);
-                                preloaderDialog.closeWithDelay(600);
-                                new android.os.Handler().postDelayed(() -> loadContainersList(), 600);
-                            });
-                        });
+                        duplicateContainer(container);
                         break;
                     case R.id.container_remove:
                         ContentDialog.confirm(getContext(), R.string.do_you_want_to_remove_this_container, () -> {
