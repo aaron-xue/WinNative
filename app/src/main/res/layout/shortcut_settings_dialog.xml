@@ -21,35 +21,6 @@
             android:id="@+id/ETName"
             android:inputType="textCapSentences" />
 
-        <TextView
-            android:id="@+id/TVSelectExeLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/select_exe" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <EditText
-                style="@style/EditText"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:id="@+id/ETExecPath"
-                android:focusable="false"
-                android:clickable="true" />
-
-            <ImageButton
-                style="@style/ListMenuButton"
-                android:id="@+id/BTSelectEXE"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:padding="8dp"
-                android:src="@drawable/ic_content_folder" />
-        </LinearLayout>
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

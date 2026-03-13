@@ -21,7 +21,7 @@ import java.nio.file.Files;
     public class Shortcut {
         public final Container container;
         public final String name;
-        public String path;
+        public final String path;
         public final Bitmap icon;
         public final File file;
         public final File iconFile;

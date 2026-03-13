@@ -47,8 +47,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalContext
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
@@ -557,7 +555,7 @@ class UnifiedActivity : ComponentActivity() {
                 val key = tabs.getOrNull(selectedIdx)?.key ?: "library"
 
                 when (key) {
-                    "library" -> LibraryCarousel(isLoggedIn, filteredSteamApps, epicApps, libraryRefreshKey, onRefreshLibrary = { libraryRefreshKey++ })
+                    "library" -> LibraryCarousel(isLoggedIn, filteredSteamApps, epicApps, libraryRefreshKey)
                     "downloads" -> DownloadsTab(selectedDownloadId, onSelectDownload = { selectedDownloadId = it })
                     "steam", "store" -> SteamStoreTab(isLoggedIn, filteredSteamApps)
 
@@ -648,8 +646,7 @@ class UnifiedActivity : ComponentActivity() {
         if (globalSettingsApp != null) {
             GameSettingsDialog(
                 app = globalSettingsApp!!,
-                onDismissRequest = { globalSettingsApp = null },
-                onRefreshLibrary = { libraryRefreshKey++ }
+                onDismissRequest = { globalSettingsApp = null }
             )
         }
 
@@ -742,19 +739,6 @@ class UnifiedActivity : ComponentActivity() {
     ) {
         var showStatusMenu by remember { mutableStateOf(false) }
         val currentState = persona?.state ?: EPersonaState.Online
-        val tabScrollState = rememberScrollState()
-        val tabPositions = remember { mutableStateMapOf<Int, Pair<Float, Int>>() } // index -> (offset, width)
-        var viewportWidth by remember { mutableStateOf(0) }
-
-        // ── Center selected tab ──
-        LaunchedEffect(selectedIdx, viewportWidth, tabPositions.toMap()) {
-            if (tabs.isNotEmpty() && viewportWidth > 0) {
-                tabPositions[selectedIdx]?.let { (offset, width) ->
-                    val target = offset - (viewportWidth / 2f) + (width / 2f)
-                    tabScrollState.animateScrollTo(target.toInt().coerceAtLeast(0).coerceAtMost(tabScrollState.maxValue))
-                }
-            }
-        }
 
         Row(
             modifier = Modifier
@@ -853,8 +837,7 @@ class UnifiedActivity : ComponentActivity() {
                         .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.4f))
                         .clip(RoundedCornerShape(24.dp))
                         .background(SurfaceDark.copy(alpha = 0.85f))
-                        .onGloballyPositioned { viewportWidth = it.size.width }
-                        .horizontalScroll(tabScrollState)
+                        .horizontalScroll(rememberScrollState())
                         .padding(horizontal = 12.dp)
                         .focusProperties { canFocus = !isLibraryTab },
                     horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
@@ -870,9 +853,6 @@ class UnifiedActivity : ComponentActivity() {
                         Box(
                             modifier = Modifier
                                 .graphicsLayer { scaleX = scale; scaleY = scale }
-                                .onGloballyPositioned { coords ->
-                                    tabPositions[index] = coords.positionInParent().x to coords.size.width
-                                }
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(if (selected) Accent.copy(alpha = 0.15f) else Color.Transparent)
                                 .clickable { onSelect(index) }
@@ -1012,17 +992,28 @@ class UnifiedActivity : ComponentActivity() {
 
     // ─── PS5-style Library Carousel ───────────────────────────────────
     @Composable
-    fun LibraryCarousel(isLoggedIn: Boolean, steamApps: List<SteamApp>, epicApps: List<EpicGame>, libraryRefreshKey: Int = 0, onRefreshLibrary: () -> Unit) {
+    fun LibraryCarousel(isLoggedIn: Boolean, steamApps: List<SteamApp>, epicApps: List<EpicGame>, libraryRefreshKey: Int = 0) {
         val context = LocalContext.current
 
-        // Load all shortcuts from containers to ensure no game is forgotten
-        var allShortcuts by remember { mutableStateOf<List<Shortcut>>(emptyList()) }
+        // Load custom game shortcuts from containers
+        var customApps by remember { mutableStateOf<List<SteamApp>>(emptyList()) }
         LaunchedEffect(libraryRefreshKey) {
             withContext(Dispatchers.IO) {
                 try {
                     val cm = ContainerManager(context)
-                    val shortcuts = cm.loadShortcuts()
-                    withContext(Dispatchers.Main) { allShortcuts = shortcuts }
+                    val apps = cm.loadShortcuts()
+                        .filter { it.getExtra("game_source") == "CUSTOM" }
+                        .map { shortcut ->
+                            val displayName = shortcut.getExtra("custom_name", shortcut.name)
+                            val customId = -(displayName.hashCode().and(0x7FFFFFFF) + 1)
+                            SteamApp(
+                                id = customId,
+                                name = displayName,
+                                developer = "Custom",
+                                gameDir = shortcut.getExtra("custom_game_folder", "")
+                            )
+                        }
+                    withContext(Dispatchers.Main) { customApps = apps }
                 } catch (_: Exception) {}
             }
         }
@@ -1035,14 +1026,9 @@ class UnifiedActivity : ComponentActivity() {
             epicApps.filter { it.isInstalled }
         }
 
-        val installedApps = remember(steamInstalled, allShortcuts, epicInstalled, libraryRefreshKey) {
+        val installedApps = remember(steamInstalled, customApps, epicInstalled, libraryRefreshKey) {
             val playtimePrefs = context.getSharedPreferences("playtime_stats", android.content.Context.MODE_PRIVATE)
-            
-            // Map Steam apps to a dictionary for easy lookup
-            val steamMap = steamApps.associateBy { it.id }
-            val epicMap = epicApps.associateBy { it.id }
-
-            // Map Epic games to pseudo SteamApp objects
+            // Map Epic games to pseudo SteamApp objects with large ID offset
             val mappedEpic = epicInstalled.map { epic ->
                 SteamApp(
                     id = 2000000000 + epic.id,
@@ -1051,78 +1037,8 @@ class UnifiedActivity : ComponentActivity() {
                     gameDir = epic.installPath
                 )
             }
-
-            // Map ALL shortcuts to SteamApp objects to ensure they are never forgotten
-            val mappedShortcuts = allShortcuts.map { shortcut ->
-                val gameSource = shortcut.getExtra("game_source", "CUSTOM")
-                val appIdStr = shortcut.getExtra("app_id", "0")
-                val appId = appIdStr.toIntOrNull() ?: 0
-                
-                when (gameSource) {
-                    "STEAM" -> {
-                        // If we have full metadata from the store, use it.
-                        // Otherwise, create a basic object but with the correct ID for artwork loading.
-                        steamMap[appId] ?: SteamApp(
-                            id = appId,
-                            name = shortcut.name,
-                            developer = "Steam",
-                            gameDir = ""
-                        )
-                    }
-                    "EPIC" -> {
-                        val epic = epicMap[appId]
-                        SteamApp(
-                            id = 2000000000 + appId,
-                            name = epic?.title ?: shortcut.name,
-                            developer = epic?.developer ?: "Epic Games",
-                            gameDir = epic?.installPath ?: ""
-                        )
-                    }
-                    "GOG" -> {
-                        SteamApp(
-                            id = 3000000000.toInt() + appId,
-                            name = shortcut.name,
-                            developer = "GOG",
-                            gameDir = ""
-                        )
-                    }
-                    "AMAZON" -> {
-                        SteamApp(
-                            id = 4000000000.toInt() + appId,
-                            name = shortcut.name,
-                            developer = "Amazon Games",
-                            gameDir = ""
-                        )
-                    }
-                    "MICROSOFT" -> {
-                        SteamApp(
-                            id = 5000000000.toInt() + appId,
-                            name = shortcut.name,
-                            developer = "Microsoft Store",
-                            gameDir = ""
-                        )
-                    }
-                    else -> {
-                        val displayName = shortcut.getExtra("custom_name", shortcut.name)
-                        val customId = -(displayName.hashCode().and(0x7FFFFFFF) + 1)
-                        SteamApp(
-                            id = customId,
-                            name = displayName,
-                            developer = "Custom",
-                            gameDir = shortcut.getExtra("custom_game_folder", "")
-                        )
-                    }
-                }
-            }
-
-            // Merge everything and de-duplicate by ID, prioritizing the version from mappedShortcuts
-            // which represents the actual .desktop file on disk.
-            val combined = (steamInstalled + mappedEpic + mappedShortcuts)
-                .associateBy { it.id }
-                .values
-                .toList()
-
-            combined.sortedByDescending { app ->
+            val merged = steamInstalled + customApps + mappedEpic
+            merged.sortedByDescending { app ->
                 val searchKey = if (app.id >= 2000000000) {
                     app.name
                 } else if (app.id < 0) {
@@ -1367,15 +1283,14 @@ class UnifiedActivity : ComponentActivity() {
         if (selectedAppForSettings != null) {
             GameSettingsDialog(
                 app = selectedAppForSettings!!,
-                onDismissRequest = { selectedAppForSettings = null },
-                onRefreshLibrary = onRefreshLibrary
+                onDismissRequest = { selectedAppForSettings = null }
             )
         }
     }
 
     // ─── Game Settings Dialog ─────────────────────────────────────────
     @Composable
-    private fun GameSettingsDialog(app: SteamApp, onDismissRequest: () -> Unit, onRefreshLibrary: () -> Unit) {
+    private fun GameSettingsDialog(app: SteamApp, onDismissRequest: () -> Unit) {
         val context = LocalContext.current
         var currentTab by remember { mutableStateOf("Menu") }
         val scope = rememberCoroutineScope()
@@ -1640,86 +1555,44 @@ class UnifiedActivity : ComponentActivity() {
                                     Button(
                                         onClick = {
                                             isUninstalling = true
-                                            scope.launch(Dispatchers.IO) {
-                                                try {
+                                            if (isCustom) {
+                                                // Remove custom game shortcut + icon
+                                                scope.launch(Dispatchers.IO) {
                                                     val cm = ContainerManager(context)
-                                                    val allShortcuts = cm.loadShortcuts()
-
-                                                    // Find the matching shortcut for this game
-                                                    val sc = allShortcuts.find { shortcut ->
-                                                        if (isCustom) {
-                                                            shortcut.getExtra("game_source") == "CUSTOM" && (shortcut.getExtra("custom_name") == app.name || shortcut.name == app.name)
-                                                        } else if (isEpic) {
-                                                            shortcut.getExtra("game_source") == "EPIC" && shortcut.getExtra("app_id") == epicId.toString()
-                                                        } else {
-                                                            val src = shortcut.getExtra("game_source", "CUSTOM")
-                                                            val id = shortcut.getExtra("app_id", "0")
-                                                            when (src) {
-                                                                "STEAM" -> id == app.id.toString()
-                                                                "EPIC" -> id == epicId.toString()
-                                                                "GOG", "AMAZON", "MICROSOFT" -> id == (app.id % 1000000000).toString()
-                                                                else -> shortcut.getExtra("custom_name") == app.name || shortcut.name == app.name
-                                                            }
-                                                        }
+                                                    val sc = cm.loadShortcuts().find {
+                                                        it.getExtra("game_source") == "CUSTOM" && (it.getExtra("custom_name") == app.name || it.name == app.name)
                                                     }
-
-                                                    // Remove custom cover art if the shortcut has one
-                                                    if (sc != null) {
-                                                        val coverArtPath = sc.getExtra("customCoverArtPath")
-                                                        if (!coverArtPath.isNullOrEmpty()) {
-                                                            java.io.File(coverArtPath).delete()
-                                                        }
-                                                    }
-
-                                                    // Delete the .desktop shortcut file
                                                     sc?.file?.delete()
-
-                                                    // Game-type specific cleanup
-                                                    if (isCustom) {
-                                                        // Remove saved icon
-                                                        val iconFile = java.io.File(context.filesDir, "custom_icons/${app.name.replace("/", "_")}.png")
-                                                        iconFile.delete()
-                                                    } else if (isEpic) {
-                                                        // Try EpicService cleanup (delete game files + DB entry)
-                                                        try {
-                                                            EpicService.deleteGame(context, epicId)
-                                                        } catch (_: Exception) {
-                                                            // Shortcut already deleted above, game is removed from library regardless
-                                                        }
-                                                    } else {
-                                                        val gameSource = sc?.getExtra("game_source", "CUSTOM") ?: "CUSTOM"
-                                                        if (gameSource == "STEAM") {
-                                                            // Delete game files and mark as not downloaded in DB
-                                                            // Wait for completion before refreshing library
-                                                            kotlinx.coroutines.suspendCancellableCoroutine { cont ->
-                                                                SteamService.uninstallApp(app.id) {
-                                                                    if (cont.isActive) cont.resume(Unit) {}
-                                                                }
-                                                            }
+                                                    // Remove saved icon
+                                                    val iconFile = java.io.File(context.filesDir, "custom_icons/${app.name.replace("/", "_")}.png")
+                                                    iconFile.delete()
+                                                    withContext(Dispatchers.Main) {
+                                                        android.widget.Toast.makeText(context, "${app.name} removed.", android.widget.Toast.LENGTH_SHORT).show()
+                                                        onDismissRequest()
+                                                    }
+                                                }
+                                            } else if (isEpic) {
+                                                scope.launch(Dispatchers.IO) {
+                                                    val result = EpicService.deleteGame(context, epicId)
+                                                    withContext(Dispatchers.Main) {
+                                                        if (result.isSuccess) {
+                                                            android.widget.Toast.makeText(context, "${app.name} uninstalled.", android.widget.Toast.LENGTH_SHORT).show()
+                                                            // Trigger a local refresh of the list if needed, although the Flow should handle it
                                                         } else {
-                                                            // GOG/Amazon/Microsoft/other: try deleting game directory if set
-                                                            if (app.gameDir.isNotEmpty()) {
-                                                                val gameDir = java.io.File(app.gameDir)
-                                                                if (gameDir.exists()) {
-                                                                    gameDir.deleteRecursively()
-                                                                }
-                                                            }
+                                                            val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                                                            android.widget.Toast.makeText(context, "Failed to uninstall: $error", android.widget.Toast.LENGTH_LONG).show()
                                                         }
-                                                    }
-
-                                                    withContext(Dispatchers.Main) {
-                                                        android.widget.Toast.makeText(context, "${app.name} removed.", android.widget.Toast.LENGTH_SHORT).show()
-                                                        onRefreshLibrary()
                                                         onDismissRequest()
                                                     }
-                                                } catch (e: Exception) {
-                                                    e.printStackTrace()
-                                                    withContext(Dispatchers.Main) {
-                                                        // Still refresh and dismiss — the shortcut was likely already deleted
-                                                        android.widget.Toast.makeText(context, "${app.name} removed.", android.widget.Toast.LENGTH_SHORT).show()
-                                                        onRefreshLibrary()
-                                                        onDismissRequest()
+                                                }
+                                            } else {
+                                                SteamService.uninstallApp(app.id) { success ->
+                                                    if (success) {
+                                                        android.widget.Toast.makeText(context, "${app.name} uninstalled.", android.widget.Toast.LENGTH_SHORT).show()
+                                                    } else {
+                                                        android.widget.Toast.makeText(context, "Failed to uninstall.", android.widget.Toast.LENGTH_SHORT).show()
                                                     }
+                                                    onDismissRequest()
                                                 }
                                             }
                                         },

@@ -35,8 +35,6 @@ import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 
 import com.winlator.cmod.R;
 import com.winlator.cmod.container.Container;
@@ -64,27 +62,9 @@ import java.util.Collections;
 import java.util.List;
 
 public class ShortcutsFragment extends Fragment {
-    public static final int OPEN_DIRECTORY_REQUEST_CODE = 1;
     private RecyclerView recyclerView;
     private TextView emptyTextView;
     private ContainerManager manager;
-    private ShortcutSettingsDialog currentShortcutSettingsDialog;
-
-    private final ActivityResultLauncher<String[]> exePickerLauncher = registerForActivityResult(
-        new ActivityResultContracts.OpenDocument(),
-        uri -> {
-            if (uri != null && currentShortcutSettingsDialog != null) {
-                String path = FileUtils.getFilePathFromUri(getContext(), uri);
-                if (path != null) {
-                    currentShortcutSettingsDialog.setExecPath(path);
-                }
-            }
-        }
-    );
-
-    public void pickExe() {
-        exePickerLauncher.launch(new String[]{"application/x-msdownload", "application/octet-stream"});
-    }
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -196,8 +176,7 @@ public class ShortcutsFragment extends Fragment {
                 }
                 else if (itemId == R.id.shortcut_settings) {
                     try {
-                        currentShortcutSettingsDialog = new ShortcutSettingsDialog(ShortcutsFragment.this, shortcut);
-                        currentShortcutSettingsDialog.show();
+                        (new ShortcutSettingsDialog(ShortcutsFragment.this, shortcut)).show();
                     } catch (Throwable e) {
                         Log.e("ShortcutsFragment", "Error opening shortcut settings", e);
                         Toast.makeText(getContext(), "Error opening shortcut settings", Toast.LENGTH_SHORT).show();

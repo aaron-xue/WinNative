@@ -269,7 +269,7 @@ public class ContainerDetailFragment extends Fragment {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (requestCode == ShortcutsFragment.OPEN_DIRECTORY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+        if (requestCode == MainActivity.OPEN_DIRECTORY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             if (data != null) {
                 Uri uri = data.getData();
                 Log.d(TAG, "URI obtained in onActivityResult: " + uri.toString());
@@ -285,106 +285,6 @@ public class ContainerDetailFragment extends Fragment {
             }
             openDirectoryCallback = null;
         }
-    }
-
-    private String toWinePath(String path) {
-        if (path == null) return null;
-        Container targetContainer = container;
-        if (targetContainer == null && shortcut != null) targetContainer = shortcut.container;
-        if (targetContainer == null) return path;
-
-        // Check container drives
-        for (String[] drive : Container.drivesIterator(targetContainer.getDrives())) {
-            String driveLetter = drive[0];
-            String drivePath = drive[1];
-            if (path.startsWith(drivePath)) {
-                return driveLetter + ":" + path.substring(drivePath.length()).replace("/", "\\");
-            }
-        }
-
-        // Fallback: If it's already a Wine path (contains ':'), return as is
-        if (path.contains(":")) return path;
-
-        return path;
-    }
-
-    /**
-     * Resolves the actual game EXE for a Steam shortcut by scanning the install directory.
-     * This is what the steamclient_loader would target via ColdClientLoader.ini.
-     */
-    private String resolveGameExeForSteam(Shortcut shortcut) {
-        try {
-            String appIdStr = shortcut.getExtra("app_id");
-            if (appIdStr == null || appIdStr.isEmpty()) return null;
-            int appId = Integer.parseInt(appIdStr);
-
-            // If shortcut.path is already a real game exe (not the loader), use it
-            if (shortcut.path != null && !shortcut.path.isEmpty()
-                    && !shortcut.path.contains("steamclient_loader")
-                    && shortcut.path.contains("\\")) {
-                return shortcut.path;
-            }
-
-            String gameInstallPath = com.winlator.cmod.SteamBridge.getAppDirPath(appId);
-            if (gameInstallPath == null || gameInstallPath.isEmpty()) return null;
-            File gameDir = new File(gameInstallPath);
-            if (!gameDir.exists()) return null;
-
-            String[] exclusions = {"unins", "redist", "setup", "dotnet", "vcredist",
-                    "dxsetup", "helper", "crash", "ue4prereq", "dxwebsetup", "launcher"};
-
-            java.util.List<File> currentDirs = new java.util.ArrayList<>();
-            currentDirs.add(gameDir);
-            int depth = 0;
-            File fallbackExe = null;
-
-            while (!currentDirs.isEmpty() && depth <= 4) {
-                java.util.List<File> nextDirs = new java.util.ArrayList<>();
-                java.util.List<File> candidates = new java.util.ArrayList<>();
-
-                for (File d : currentDirs) {
-                    File[] children = d.listFiles();
-                    if (children == null) continue;
-                    for (File f : children) {
-                        if (f.isDirectory()) {
-                            nextDirs.add(f);
-                        } else if (f.getName().toLowerCase().endsWith(".exe")) {
-                            String name = f.getName().toLowerCase();
-                            boolean excluded = false;
-                            for (String ex : exclusions) {
-                                if (name.contains(ex)) { excluded = true; break; }
-                            }
-                            if (!excluded) candidates.add(f);
-                        }
-                    }
-                }
-
-                for (File cand : candidates) {
-                    if (cand.getName().toLowerCase().contains("64") ||
-                            (cand.getParentFile() != null && cand.getParentFile().getName().toLowerCase().contains("64"))) {
-                        String rel = cand.getAbsolutePath().substring(gameInstallPath.length());
-                        if (rel.startsWith("/")) rel = rel.substring(1);
-                        return "A:\\" + rel.replace("/", "\\");
-                    }
-                }
-
-                if (fallbackExe == null && !candidates.isEmpty()) {
-                    fallbackExe = candidates.get(0);
-                }
-
-                currentDirs = nextDirs;
-                depth++;
-            }
-
-            if (fallbackExe != null) {
-                String rel = fallbackExe.getAbsolutePath().substring(gameInstallPath.length());
-                if (rel.startsWith("/")) rel = rel.substring(1);
-                return "A:\\" + rel.replace("/", "\\");
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to resolve game exe for Steam shortcut", e);
-        }
-        return null;
     }
 
     @Override
@@ -481,48 +381,6 @@ public class ContainerDetailFragment extends Fragment {
         Log.d(TAG, "onCreateView: step 5 - wine version spinner loaded");
 
         loadScreenSizeSpinner(view, isShortcutMode() ? shortcut.getExtra("screenSize", container != null ? container.getScreenSize() : Container.DEFAULT_SCREEN_SIZE) : (isEditMode() && container != null ? container.getScreenSize() : Container.DEFAULT_SCREEN_SIZE));
-
-        final TextView tvSelectExe = view.findViewById(R.id.TVSelectExeLabel);
-        final EditText etExecPath = view.findViewById(R.id.ETExecPath);
-        final View btSelectEXE = view.findViewById(R.id.BTSelectEXE);
-
-        if (isShortcutMode()) {
-            String gameSource = shortcut.getExtra("game_source", "CUSTOM");
-            if (gameSource.equals("STEAM")) {
-                if (tvSelectExe != null) tvSelectExe.setText(R.string.select_targeted_exe_steam);
-                String targetedExe = shortcut.getExtra("targeted_exe");
-                if (targetedExe != null && !targetedExe.isEmpty()
-                        && !targetedExe.contains("steamclient_loader")) {
-                    etExecPath.setText(targetedExe);
-                } else {
-                    // Resolve actual game EXE from install directory
-                    String resolved = resolveGameExeForSteam(shortcut);
-                    etExecPath.setText(resolved != null ? resolved : "");
-                }
-            } else {
-                if (tvSelectExe != null) tvSelectExe.setText(R.string.select_exe);
-                etExecPath.setText(shortcut.path);
-            }
-            
-            btSelectEXE.setOnClickListener(v -> {
-                openDirectoryCallback = (path) -> {
-                    String winePath = toWinePath(path);
-                    if (winePath != null) {
-                        etExecPath.setText(winePath);
-                    }
-                };
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("*/*");
-                getActivity().startActivityFromFragment(this, intent, MainActivity.OPEN_DIRECTORY_REQUEST_CODE);
-            });
-        } else {
-            view.findViewById(R.id.BTSelectEXE).setVisibility(View.GONE);
-            etExecPath.setVisibility(View.GONE);
-            // Also hide the label
-            View label = view.findViewWithTag("select_exe_label");
-            if (label != null) label.setVisibility(View.GONE);
-        }
 
         final Spinner sGraphicsDriver = view.findViewById(R.id.SGraphicsDriver);
         
@@ -756,19 +614,6 @@ public class ContainerDetailFragment extends Fragment {
                 }
 
                 if (isShortcutMode()) {
-                    String newExecPath = etExecPath.getText().toString().trim();
-                    String gameSource = shortcut.getExtra("game_source", "CUSTOM");
-                    if (gameSource.equals("STEAM")) {
-                        // Never save the loader path as targeted_exe
-                        if (!newExecPath.contains("steamclient_loader")) {
-                            shortcut.putExtra("targeted_exe", newExecPath);
-                        }
-                    } else {
-                        if (!newExecPath.equals(shortcut.path)) {
-                            updateShortcutExec(shortcut, newExecPath);
-                        }
-                    }
-
                     // Save overrides to Shortcut extraData
                     shortcut.putExtra("screenSize", screenSize);
                     shortcut.putExtra("envVars", envVars);
@@ -1749,24 +1594,6 @@ public class ContainerDetailFragment extends Fragment {
         }
 
         FileUtils.writeString(shortcutFile, content.toString());
-    }
-
-    private void updateShortcutExec(Shortcut shortcut, String newExecPath) {
-        try {
-            ArrayList<String> lines = FileUtils.readLines(shortcut.file);
-            StringBuilder sb = new StringBuilder();
-            for (String line : lines) {
-                if (line.startsWith("Exec=")) {
-                    sb.append("Exec=wine \"").append(newExecPath).append("\"\n");
-                } else {
-                    sb.append(line).append("\n");
-                }
-            }
-            FileUtils.writeString(shortcut.file, sb.toString());
-            shortcut.path = newExecPath;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 }
 

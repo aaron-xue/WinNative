@@ -28,12 +28,10 @@ import com.winlator.cmod.ContainerDetailFragment;
 import com.winlator.cmod.R;
 import com.winlator.cmod.ShortcutsFragment;
 import com.winlator.cmod.box64.Box64PresetManager;
-import com.winlator.cmod.container.Container;
 import com.winlator.cmod.container.ContainerManager;
 import com.winlator.cmod.container.Shortcut;
 import com.winlator.cmod.contents.ContentProfile;
 import com.winlator.cmod.contents.ContentsManager;
-import com.winlator.cmod.core.FileUtils;
 import com.winlator.cmod.core.AppUtils;
 import com.winlator.cmod.core.DefaultVersion;
 import com.winlator.cmod.core.EnvVars;
@@ -62,14 +60,12 @@ public class ShortcutSettingsDialog extends ContentDialog {
     private InputControlsManager inputControlsManager;
     private TextView tvGraphicsDriverVersion;
     private String box64Version;
-    private String selectedExecPath;
 
 
     public ShortcutSettingsDialog(ShortcutsFragment fragment, Shortcut shortcut) {
         super(fragment.getContext(), R.layout.shortcut_settings_dialog);
         this.fragment = fragment;
         this.shortcut = shortcut;
-        this.selectedExecPath = shortcut.path;
         setTitle(shortcut.name);
         setIcon(R.drawable.icon_settings);
 
@@ -103,31 +99,6 @@ public class ShortcutSettingsDialog extends ContentDialog {
 
         final EditText etName = findViewById(R.id.ETName);
         etName.setText(shortcut.name);
-
-        final TextView tvSelectExe = findViewById(R.id.TVSelectExeLabel);
-        final EditText etExecPath = findViewById(R.id.ETExecPath);
-        
-        String gameSource = shortcut.getExtra("game_source", "CUSTOM");
-        if (gameSource.equals("STEAM")) {
-            tvSelectExe.setText(R.string.select_targeted_exe_steam);
-            String targetedExe = shortcut.getExtra("targeted_exe");
-            Log.d("ShortcutSettingsDialog", "Steam game: targeted_exe='" + targetedExe + "' selectedExecPath='" + selectedExecPath + "' shortcut.path='" + shortcut.path + "'");
-            if (targetedExe != null && !targetedExe.isEmpty()) {
-                etExecPath.setText(targetedExe);
-            } else {
-                // Resolve the actual game EXE that the steamclient_loader would launch
-                String resolvedExe = resolveGameExePath(shortcut);
-                Log.d("ShortcutSettingsDialog", "Resolved game exe: '" + resolvedExe + "'");
-                etExecPath.setText(resolvedExe != null ? resolvedExe : selectedExecPath);
-            }
-        } else {
-            tvSelectExe.setText(R.string.select_exe);
-            etExecPath.setText(selectedExecPath);
-        }
-
-        findViewById(R.id.BTSelectEXE).setOnClickListener(v -> {
-            fragment.pickExe();
-        });
 
         final EditText etExecArgs = findViewById(R.id.ETExecArgs);
         etExecArgs.setText(shortcut.getExtra("execArgs"));
@@ -396,18 +367,6 @@ public class ShortcutSettingsDialog extends ContentDialog {
             // First, handle renaming if the name has changed
             if (nameChanged) {
                 renameShortcut(name);
-            }
-
-            String newExecPath = etExecPath.getText().toString().trim();
-            if (gameSource.equals("STEAM")) {
-                // Never save the loader path as targeted_exe
-                if (!newExecPath.contains("steamclient_loader")) {
-                    shortcut.putExtra("targeted_exe", newExecPath);
-                }
-            } else {
-                if (!newExecPath.equals(shortcut.path)) {
-                    updateShortcutExec(shortcut, newExecPath);
-                }
             }
 
 
@@ -773,131 +732,5 @@ public class ShortcutSettingsDialog extends ContentDialog {
 
         AppUtils.setSpinnerSelectionFromIdentifier(sGraphicsDriver, selectedGraphicsDriver);
         update.run();
-    }
-
-    private void updateShortcutExec(Shortcut shortcut, String newExecPath) {
-        try {
-            ArrayList<String> lines = FileUtils.readLines(shortcut.file);
-            StringBuilder sb = new StringBuilder();
-            for (String line : lines) {
-                if (line.startsWith("Exec=")) {
-                    sb.append("Exec=wine \"").append(newExecPath).append("\"\n");
-                } else {
-                    sb.append(line).append("\n");
-                }
-            }
-            com.winlator.cmod.core.FileUtils.writeString(shortcut.file, sb.toString());
-            shortcut.path = newExecPath;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void setExecPath(String path) {
-        String winePath = toWinePath(path);
-        if (winePath != null) {
-            final EditText etExecPath = findViewById(R.id.ETExecPath);
-            etExecPath.setText(winePath);
-            selectedExecPath = winePath;
-        }
-    }
-
-    /**
-     * Resolves the actual game EXE that the steamclient_loader would launch.
-     * Uses the same logic as XServerDisplayActivity.findGameExeWinPath.
-     */
-    private String resolveGameExePath(Shortcut shortcut) {
-        try {
-            // If shortcut.path is already a real game exe (not the loader), use it
-            if (shortcut.path != null && !shortcut.path.isEmpty()
-                    && !shortcut.path.contains("steamclient_loader")
-                    && shortcut.path.contains("\\")) {
-                return shortcut.path;
-            }
-
-            String appIdStr = shortcut.getExtra("app_id");
-            if (appIdStr == null || appIdStr.isEmpty()) return null;
-            int appId = Integer.parseInt(appIdStr);
-
-            String gameInstallPath = com.winlator.cmod.SteamBridge.getAppDirPath(appId);
-            File gameDir = new File(gameInstallPath);
-            if (!gameDir.exists()) return null;
-
-            // BFS to find game exe — mirrors XServerDisplayActivity.findGameExe
-            String[] exclusions = {"unins", "redist", "setup", "dotnet", "vcredist",
-                    "dxsetup", "helper", "crash", "ue4prereq", "dxwebsetup", "launcher"};
-
-            java.util.List<File> currentDirs = new java.util.ArrayList<>();
-            currentDirs.add(gameDir);
-            int depth = 0;
-            File fallbackExe = null;
-
-            while (!currentDirs.isEmpty() && depth <= 4) {
-                java.util.List<File> nextDirs = new java.util.ArrayList<>();
-                java.util.List<File> candidates = new java.util.ArrayList<>();
-
-                for (File d : currentDirs) {
-                    File[] children = d.listFiles();
-                    if (children == null) continue;
-                    for (File f : children) {
-                        if (f.isDirectory()) {
-                            nextDirs.add(f);
-                        } else if (f.getName().toLowerCase().endsWith(".exe")) {
-                            String name = f.getName().toLowerCase();
-                            boolean excluded = false;
-                            for (String ex : exclusions) {
-                                if (name.contains(ex)) { excluded = true; break; }
-                            }
-                            if (!excluded) candidates.add(f);
-                        }
-                    }
-                }
-
-                for (File cand : candidates) {
-                    if (cand.getName().toLowerCase().contains("64") ||
-                            (cand.getParentFile() != null && cand.getParentFile().getName().toLowerCase().contains("64"))) {
-                        return toADrivePath(cand, gameInstallPath);
-                    }
-                }
-
-                if (fallbackExe == null && !candidates.isEmpty()) {
-                    fallbackExe = candidates.get(0);
-                }
-
-                currentDirs = nextDirs;
-                depth++;
-            }
-
-            if (fallbackExe != null) {
-                return toADrivePath(fallbackExe, gameInstallPath);
-            }
-        } catch (Exception e) {
-            Log.e("ShortcutSettingsDialog", "Failed to resolve game exe path", e);
-        }
-        return null;
-    }
-
-    private String toADrivePath(File exeFile, String gameInstallPath) {
-        String relativePath = exeFile.getAbsolutePath().substring(gameInstallPath.length());
-        if (relativePath.startsWith("/")) relativePath = relativePath.substring(1);
-        return "A:\\" + relativePath.replace("/", "\\");
-    }
-
-    private String toWinePath(String path) {
-        if (path == null) return null;
-
-        // Check container drives
-        for (String[] drive : Container.drivesIterator(shortcut.container.getDrives())) {
-            String driveLetter = drive[0];
-            String drivePath = drive[1];
-            if (path.startsWith(drivePath)) {
-                return driveLetter + ":" + path.substring(drivePath.length()).replace("/", "\\");
-            }
-        }
-
-        // Fallback: If it's already a Wine path (contains ':'), return as is
-        if (path.contains(":")) return path;
-
-        return path;
     }
 }

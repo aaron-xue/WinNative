@@ -69,34 +69,6 @@
                     android:layout_marginTop="10dp"
                     android:inputType="textCapSentences" />
 
-                <TextView
-                    style="@style/OtherSettingsFieldLabel"
-                    android:layout_marginTop="12dp"
-                    android:tag="select_exe_label"
-                    android:text="@string/select_exe" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <EditText
-                        android:id="@+id/ETExecPath"
-                        style="@style/OtherSettingsEditText"
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:focusable="false"
-                        android:clickable="true" />
-
-                    <ImageButton
-                        android:id="@+id/BTSelectEXE"
-                        style="@style/OtherSettingsIconButton"
-                        android:layout_marginStart="10dp"
-                        android:src="@drawable/ic_content_folder" />
-                </LinearLayout>
-
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"

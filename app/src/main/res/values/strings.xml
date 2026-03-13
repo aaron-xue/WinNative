@@ -1431,8 +1431,6 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="no_available_drive_letters">No available drive letters</string>
     <string name="processor_affinity_32bit">Processor Affinity (32-bit apps)</string>
     <string name="executable_path">Executable Path</string>
-    <string name="select_exe">Select EXE</string>
-    <string name="select_targeted_exe_steam">Select Targeted EXE for Steam Client</string>
     <string name="executable_path_placeholder">e.g., path\\to\\exe</string>
 
     
