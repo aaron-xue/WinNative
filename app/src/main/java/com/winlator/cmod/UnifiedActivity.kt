@@ -5039,7 +5039,7 @@ class UnifiedActivity : ComponentActivity() {
     fun GameManagerDialog(app: SteamApp, onDismissRequest: () -> Unit) {
         val context = LocalContext.current
         var isLoading by remember { mutableStateOf(true) }
-        var depots by remember { mutableStateOf<Map<Int, DepotInfo>>(emptyMap()) }
+        var manifestSizes by remember { mutableStateOf(SteamService.ManifestSizes()) }
         var dlcApps by remember { mutableStateOf<List<SteamApp>>(emptyList()) }
         val selectedDlcIds = remember { mutableStateListOf<Int>() }
         var customPath by remember { mutableStateOf<String?>(null) }
@@ -5108,16 +5108,27 @@ class UnifiedActivity : ComponentActivity() {
             }
         }
 
+        val selectedDlcIdsKey = selectedDlcIds.toList().sorted().joinToString(",")
+
         LaunchedEffect(app.id) {
-            withContext(Dispatchers.IO) {
-                depots = SteamService.getDownloadableDepots(app.id)
-                dlcApps = db.steamAppDao().findDownloadableDLCApps(app.id) ?: emptyList()
-                isLoading = false
+            val (downloadableDlcApps, sizes) = withContext(Dispatchers.IO) {
+                (db.steamAppDao().findDownloadableDLCApps(app.id) ?: emptyList<SteamApp>()) to
+                    SteamService.getSelectedManifestSizes(app.id)
+            }
+            dlcApps = downloadableDlcApps
+            manifestSizes = sizes
+            isLoading = false
+        }
+
+        LaunchedEffect(app.id, selectedDlcIdsKey) {
+            if (isLoading) return@LaunchedEffect
+            manifestSizes = withContext(Dispatchers.IO) {
+                SteamService.getSelectedManifestSizes(app.id, selectedDlcIds.toList())
             }
         }
 
-        val totalInstallSize = depots.values.sumOf { it.manifests["public"]?.size ?: 0L }
-        val totalDownloadSize = depots.values.sumOf { it.manifests["public"]?.download ?: 0L }
+        val totalInstallSize = manifestSizes.installSize
+        val totalDownloadSize = manifestSizes.downloadSize
         val defaultPathSet = if (PrefManager.useSingleDownloadFolder) PrefManager.defaultDownloadFolder.isNotEmpty() else PrefManager.steamDownloadFolder.isNotEmpty()
         val effectivePath = customPath ?: SteamService.defaultAppInstallPath
         val availableBytes = try { StorageUtils.getAvailableSpace(effectivePath) } catch (e: Exception) { 0L }

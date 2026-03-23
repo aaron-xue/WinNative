@@ -22,6 +22,7 @@ import com.winlator.cmod.steam.enums.DownloadPhase
 import com.winlator.cmod.steam.data.DownloadInfo
 import com.winlator.cmod.steam.data.GameProcessInfo
 import com.winlator.cmod.steam.data.LaunchInfo
+import com.winlator.cmod.steam.data.ManifestInfo
 import com.winlator.cmod.steam.data.OwnedGames
 import com.winlator.cmod.steam.data.PostSyncInfo
 import com.winlator.cmod.steam.data.SteamApp
@@ -292,6 +293,11 @@ class SteamService : Service(), IChallengeUrlChanged {
         SteamFriend(name = PrefManager.steamUserName, avatarHash = PrefManager.steamUserAvatarHash),
     )
     val localPersona = _localPersona.asStateFlow()
+
+    data class ManifestSizes(
+        val installSize: Long = 0L,
+        val downloadSize: Long = 0L,
+    )
 
     companion object {
         const val MAX_PICS_BUFFER = 256
@@ -1143,6 +1149,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             val appInfo = getAppInfoOf(appId) ?: return emptyMap()
             val ownedDlc = runBlocking { getOwnedAppDlc(appId) }
             val preferredLanguage = PrefManager.containerLanguage
+            val entitledDepotIds = getEntitledDepotIds(appInfo.packageId)
 
             // If the game ships any 64-bit depot for Windows, prefer those and ignore x86 ones
             val has64Bit = appInfo.depots.values.any { 
@@ -1151,7 +1158,8 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             return appInfo.depots.asSequence()
                 .filter { (depotId, depot) ->
-                    return@filter filterForDownloadableDepots(depot, has64Bit, preferredLanguage, ownedDlc)
+                    return@filter isDepotEntitled(depotId, depot, entitledDepotIds) &&
+                        filterForDownloadableDepots(depot, has64Bit, preferredLanguage, ownedDlc)
                 }
                 .associate { it.toPair() }
         }
@@ -1163,6 +1171,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         fun getDownloadableDepots(appId: Int, preferredLanguage: String = PrefManager.containerLanguage): Map<Int, DepotInfo> {
             val appInfo = getAppInfoOf(appId) ?: return emptyMap()
             val ownedDlc = runBlocking { getOwnedAppDlc(appId) }
+            val entitledDepotIds = getEntitledDepotIds(appInfo.packageId)
 
             // If the game ships any 64-bit depot for Windows, prefer those and ignore x86 ones
             val has64Bit = appInfo.depots.values.any { 
@@ -1171,15 +1180,20 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             val map = mutableMapOf<Int, DepotInfo>()
             for ((depotId, depot) in appInfo.depots) {
-                if (filterForDownloadableDepots(depot, has64Bit, preferredLanguage, ownedDlc)) {
+                if (isDepotEntitled(depotId, depot, entitledDepotIds) &&
+                    filterForDownloadableDepots(depot, has64Bit, preferredLanguage, ownedDlc)
+                ) {
                     map[depotId] = depot
                 }
             }
 
             val indirectDlcApps = getDownloadableDlcAppsOf(appId).orEmpty()
             for (dlcApp in indirectDlcApps) {
+                val entitledDlcDepotIds = getEntitledDepotIds(dlcApp.packageId)
                 for ((depotId, depot) in dlcApp.depots) {
-                    if (filterForDownloadableDepots(depot, has64Bit, preferredLanguage, null)) {
+                    if (isDepotEntitled(depotId, depot, entitledDlcDepotIds) &&
+                        filterForDownloadableDepots(depot, has64Bit, preferredLanguage, null)
+                    ) {
                         // Add DLC Depots with custom object
                         map[depotId] = DepotInfo(
                             depotId = depot.depotId,
@@ -1198,6 +1212,100 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
 
             return map
+        }
+
+        private fun getEntitledDepotIds(packageId: Int): Set<Int>? {
+            if (packageId == INVALID_PKG_ID) return null
+            val depotIds = runBlocking(Dispatchers.IO) {
+                instance?.licenseDao?.findLicense(packageId)?.depotIds.orEmpty()
+            }
+            return depotIds.takeIf { it.isNotEmpty() }?.toSet()
+        }
+
+        private fun isDepotEntitled(
+            depotId: Int,
+            depot: DepotInfo,
+            entitledDepotIds: Set<Int>?,
+        ): Boolean {
+            if (entitledDepotIds == null) return true
+            if (depotId in entitledDepotIds) return true
+
+            // Shared/proxied depots may not be listed directly on the package even though
+            // they are required to resolve the owning depot's content.
+            return depot.sharedInstall || depot.depotFromApp != INVALID_APP_ID
+        }
+
+        private fun getSelectedDownloadDepots(
+            appId: Int,
+            userSelectedDlcAppIds: Collection<Int>,
+            preferredLanguage: String = PrefManager.containerLanguage,
+        ): Map<Int, DepotInfo> {
+            val downloadableDepots = getDownloadableDepots(appId, preferredLanguage)
+            if (downloadableDepots.isEmpty()) return emptyMap()
+
+            val selectedDlcIds = userSelectedDlcAppIds.toSet()
+            val indirectDlcAppIds = getDownloadableDlcAppsOf(appId).orEmpty().map { it.id }.toSet()
+            val mainDepots = getMainAppDepots(appId)
+
+            val selectedMainDepots = mainDepots.filter { (_, depot) ->
+                depot.dlcAppId == INVALID_APP_ID ||
+                    (depot.dlcAppId in selectedDlcIds && depot.manifests.isNotEmpty())
+            }
+
+            val selectedDlcDepots = downloadableDepots.filter { (depotId, depot) ->
+                depotId !in selectedMainDepots &&
+                    depot.dlcAppId in selectedDlcIds &&
+                    depot.dlcAppId in indirectDlcAppIds &&
+                    depot.manifests.isNotEmpty()
+            }
+
+            return selectedMainDepots + selectedDlcDepots
+        }
+
+        private fun resolveDepotManifestInfo(
+            depot: DepotInfo,
+            branch: String,
+            visitedApps: MutableSet<Int> = mutableSetOf(),
+        ): ManifestInfo? {
+            depot.manifests[branch]?.let { return it }
+            depot.encryptedManifests[branch]?.let { return it }
+
+            if (!branch.equals("public", ignoreCase = true)) {
+                depot.manifests["public"]?.let { return it }
+                depot.encryptedManifests["public"]?.let { return it }
+            }
+
+            val sourceAppId = depot.depotFromApp
+            if (sourceAppId == INVALID_APP_ID || !visitedApps.add(sourceAppId)) {
+                return null
+            }
+
+            val sourceDepot = getAppInfoOf(sourceAppId)?.depots?.get(depot.depotId) ?: return null
+            return resolveDepotManifestInfo(sourceDepot, branch, visitedApps)
+        }
+
+        fun getSelectedManifestSizes(
+            appId: Int,
+            userSelectedDlcAppIds: Collection<Int> = emptyList(),
+            preferredLanguage: String = PrefManager.containerLanguage,
+            branch: String = "public",
+        ): ManifestSizes {
+            val selectedDepots = getSelectedDownloadDepots(appId, userSelectedDlcAppIds, preferredLanguage)
+            if (selectedDepots.isEmpty()) return ManifestSizes()
+
+            var totalInstallSize = 0L
+            var totalDownloadSize = 0L
+
+            selectedDepots.values.forEach { depot ->
+                val manifest = resolveDepotManifestInfo(depot, branch)
+                totalInstallSize += manifest?.size ?: 0L
+                totalDownloadSize += manifest?.download ?: 0L
+            }
+
+            return ManifestSizes(
+                installSize = totalInstallSize,
+                downloadSize = totalDownloadSize,
+            )
         }
 
         fun getAppDirName(app: SteamApp?): String {
