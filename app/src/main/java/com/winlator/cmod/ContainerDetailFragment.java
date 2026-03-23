@@ -12,6 +12,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.DocumentsContract;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -25,6 +27,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -70,6 +73,7 @@ import com.winlator.cmod.widget.CPUListView;
 import com.winlator.cmod.widget.ColorPickerView;
 import com.winlator.cmod.widget.EnvVarsView;
 import com.winlator.cmod.widget.ImagePickerView;
+import com.winlator.cmod.widget.ChasingBorderDrawable;
 import com.winlator.cmod.winhandler.WinHandler;
 import com.winlator.cmod.xenvironment.ImageFs;
 import com.winlator.cmod.xserver.XKeycode;
@@ -114,6 +118,10 @@ public class ContainerDetailFragment extends Fragment {
     private String createShortcutForAppName = "";
     private String createShortcutForSource = "STEAM";
     private String createShortcutForGogId = "";
+    private int hostSidebarPreviousVisibility = View.VISIBLE;
+    private boolean hostSidebarVisibilityCaptured = false;
+    private final HashMap<TextView, String> labelOriginalText = new HashMap<>();
+    private Runnable perGameRefreshIndicators;
 
     private ImageFs imageFs;
 
@@ -168,6 +176,16 @@ public class ContainerDetailFragment extends Fragment {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(context, R.layout.spinner_item_themed, items);
         adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_themed);
         return adapter;
+    }
+
+    private static int parseIntSafely(String value, int fallback) {
+        if (value == null) return fallback;
+        try {
+            return Integer.parseInt(value.trim());
+        }
+        catch (Exception ignored) {
+            return fallback;
+        }
     }
 
     public static void applyThemedAdapter(Spinner spinner, int arrayResId) {
@@ -330,6 +348,7 @@ public class ContainerDetailFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        hideHostSidebar();
         Activity activity = getActivity();
         if (activity instanceof AppCompatActivity) {
             androidx.appcompat.app.ActionBar actionBar = ((AppCompatActivity) activity).getSupportActionBar();
@@ -338,6 +357,13 @@ public class ContainerDetailFragment extends Fragment {
             }
         }
 
+    }
+
+    @Override
+    public void onDestroyView() {
+        perGameRefreshIndicators = null;
+        restoreHostSidebar();
+        super.onDestroyView();
     }
 
     public boolean isEditMode() {
@@ -350,6 +376,60 @@ public class ContainerDetailFragment extends Fragment {
 
     private boolean isCreateShortcutMode() {
         return createShortcutForAppId > 0 || ("GOG".equals(createShortcutForSource) && !createShortcutForGogId.isEmpty());
+    }
+
+    private boolean isPerGameSettingsMode() {
+        return isShortcutMode() || isCreateShortcutMode();
+    }
+
+    private Container getInitialPerGameContainer() {
+        if (manager == null) return container;
+        if (isShortcutMode()) return getShortcutSettingsContainer();
+        if (!isCreateShortcutMode()) return container;
+        if (container != null) return container;
+        Context context = getContext();
+        return context != null ? SetupWizardActivity.getPreferredGameContainer(context, manager) : null;
+    }
+
+    private Container getSelectedPerGameContainer(@Nullable Spinner sWineVersion) {
+        if (!isPerGameSettingsMode()) return container;
+
+        Container selectedContainer = resolveSelectedShortcutContainer(sWineVersion);
+        if (selectedContainer != null) return selectedContainer;
+
+        if (isShortcutMode()) {
+            Container currentShortcutContainer = getShortcutSettingsContainer();
+            if (currentShortcutContainer != null) return currentShortcutContainer;
+        }
+
+        if (container != null) return container;
+        Context context = getContext();
+        return context != null && manager != null ? SetupWizardActivity.getPreferredGameContainer(context, manager) : null;
+    }
+
+    private void hideHostSidebar() {
+        Activity activity = getActivity();
+        if (activity == null) return;
+
+        View hostSidebar = activity.findViewById(R.id.LLSidebar);
+        if (hostSidebar == null) return;
+
+        if (!hostSidebarVisibilityCaptured) {
+            hostSidebarPreviousVisibility = hostSidebar.getVisibility();
+            hostSidebarVisibilityCaptured = true;
+        }
+        hostSidebar.setVisibility(View.GONE);
+    }
+
+    private void restoreHostSidebar() {
+        Activity activity = getActivity();
+        if (activity == null || !hostSidebarVisibilityCaptured) return;
+
+        View hostSidebar = activity.findViewById(R.id.LLSidebar);
+        if (hostSidebar != null) {
+            hostSidebar.setVisibility(hostSidebarPreviousVisibility);
+        }
+        hostSidebarVisibilityCaptured = false;
     }
 
     private Container resolveSelectedShortcutContainer(Spinner sWineVersion) {
@@ -370,6 +450,156 @@ public class ContainerDetailFragment extends Fragment {
         for (String key : SHORTCUT_SETTING_OVERRIDE_KEYS) {
             shortcut.putExtra(key, null);
         }
+    }
+
+    private void resetShortcutToContainerDefaults(Shortcut shortcut, Container selectedShortcutContainer) {
+        if (shortcut == null || selectedShortcutContainer == null) return;
+
+        boolean containerChanged = selectedShortcutContainer.id != shortcut.container.id;
+        clearShortcutSettingOverrides(shortcut);
+        shortcut.putExtra(EXTRA_USE_CONTAINER_DEFAULTS, "1");
+        shortcut.putExtra("wineVersion", null);
+        shortcut.putExtra("container_id", String.valueOf(selectedShortcutContainer.id));
+        shortcut.putExtra("cloud_force_download", containerChanged ? "1" : null);
+        shortcut.saveData();
+
+        if (containerChanged) {
+            File newDesktopDir = selectedShortcutContainer.getDesktopDir();
+            if (!newDesktopDir.exists()) newDesktopDir.mkdirs();
+            File newShortcutFile = new File(newDesktopDir, shortcut.file.getName());
+            FileUtils.copy(shortcut.file, newShortcutFile);
+            shortcut.file.delete();
+        }
+    }
+
+    private Container getShortcutSettingsContainer() {
+        if (!isShortcutMode() || shortcut == null) return container;
+
+        int fallbackContainerId = container != null ? container.id : 0;
+        int selectedContainerId = parseIntSafely(shortcut.getExtra("container_id"), fallbackContainerId);
+        if (selectedContainerId == 0 || manager == null) return container;
+
+        Container selectedContainer = manager.getContainerById(selectedContainerId);
+        return selectedContainer != null ? selectedContainer : container;
+    }
+
+    private String getShortcutSettingValue(String key, String containerValue) {
+        if (!isShortcutMode() || shortcut == null) return containerValue;
+        return shortcut.getSettingExtra(key, containerValue);
+    }
+
+    private boolean getShortcutSettingEnabled(String key, boolean containerValue) {
+        return "1".equals(getShortcutSettingValue(key, containerValue ? "1" : "0"));
+    }
+
+    private int getShortcutSettingInt(String key, int containerValue) {
+        return parseIntSafely(getShortcutSettingValue(key, String.valueOf(containerValue)), containerValue);
+    }
+
+    private static String normalizeShortcutValue(Object value) {
+        if (value == null) return "";
+        if (value instanceof Boolean) return (Boolean) value ? "1" : "0";
+        return String.valueOf(value);
+    }
+
+    private static boolean valuesDiffer(Object currentValue, Object containerValue) {
+        return !normalizeShortcutValue(currentValue).equals(normalizeShortcutValue(containerValue));
+    }
+
+    private static void appendShortcutExtra(StringBuilder content, String key, String value) {
+        content.append(key).append("=").append(value).append("\n");
+    }
+
+    private void trackLabel(TextView label) {
+        if (label != null && !labelOriginalText.containsKey(label)) {
+            labelOriginalText.put(label, label.getText().toString().replaceFirst("^\\*\\s*", ""));
+        }
+    }
+
+    private void markIfChanged(TextView label, String currentValue, String containerDefault) {
+        if (label == null) return;
+        String originalText = labelOriginalText.get(label);
+        if (originalText == null) {
+            originalText = label.getText().toString().replaceFirst("^\\*\\s*", "");
+            labelOriginalText.put(label, originalText);
+        }
+        label.setText(valuesDiffer(currentValue, containerDefault) ? "* " + originalText : originalText);
+    }
+
+    private void markSpinnerIfChanged(View contentView, int spinnerId, String containerDefault) {
+        Spinner spinner = contentView.findViewById(spinnerId);
+        if (spinner == null) return;
+        TextView label = findLabelForView(spinner, contentView.findViewById(R.id.LLContent));
+        String current = spinner.getSelectedItem() != null ? StringUtils.parseIdentifier(spinner.getSelectedItem()) : "";
+        markIfChanged(label, current, containerDefault);
+    }
+
+    private void markSpinnerValueIfChanged(View contentView, int spinnerId, String containerDefault) {
+        Spinner spinner = contentView.findViewById(spinnerId);
+        if (spinner == null) return;
+        TextView label = findLabelForView(spinner, contentView.findViewById(R.id.LLContent));
+        String current = spinner.getSelectedItem() != null ? spinner.getSelectedItem().toString() : "";
+        markIfChanged(label, current, containerDefault);
+    }
+
+    private void markSpinnerPositionIfChanged(View contentView, int spinnerId, String containerDefault) {
+        Spinner spinner = contentView.findViewById(spinnerId);
+        if (spinner == null) return;
+        TextView label = findLabelForView(spinner, contentView.findViewById(R.id.LLContent));
+        markIfChanged(label, String.valueOf(Math.max(spinner.getSelectedItemPosition(), 0)), containerDefault);
+    }
+
+    private boolean appendShortcutOverrideIfNeeded(StringBuilder content, Container targetContainer,
+                                                   String key, Object currentValue, Object containerValue,
+                                                   boolean[] hasOverrides) {
+        if (!valuesDiffer(currentValue, containerValue)) return false;
+        appendShortcutExtra(content, key, normalizeShortcutValue(currentValue));
+        hasOverrides[0] = true;
+        return true;
+    }
+
+    private boolean shortcutSettingsMatchContainerDefaults(HashMap<String, String> snapshot, Container targetContainer, String gameSource) {
+        if (snapshot == null || targetContainer == null) return false;
+
+        if (valuesDiffer(snapshot.get("screenSize"), targetContainer.getScreenSize())) return false;
+        if (valuesDiffer(snapshot.get("envVars"), targetContainer.getEnvVars())) return false;
+        if (valuesDiffer(snapshot.get("cpuList"), targetContainer.getCPUList(true))) return false;
+        if (valuesDiffer(snapshot.get("cpuListWoW64"), targetContainer.getCPUListWoW64(true))) return false;
+        if (valuesDiffer(snapshot.get("graphicsDriver"), targetContainer.getGraphicsDriver())) return false;
+        if (valuesDiffer(snapshot.get("graphicsDriverConfig"), targetContainer.getGraphicsDriverConfig())) return false;
+        if (valuesDiffer(snapshot.get("dxwrapper"), targetContainer.getDXWrapper())) return false;
+        if (valuesDiffer(snapshot.get("dxwrapperConfig"), targetContainer.getDXWrapperConfig())) return false;
+        if (valuesDiffer(snapshot.get("audioDriver"), targetContainer.getAudioDriver())) return false;
+        if (valuesDiffer(snapshot.get("emulator"), targetContainer.getEmulator())) return false;
+        if (valuesDiffer(snapshot.get("emulator64"), targetContainer.getEmulator64())) return false;
+        if (valuesDiffer(snapshot.get("wincomponents"), targetContainer.getWinComponents())) return false;
+        if (valuesDiffer(snapshot.get("drives"), targetContainer.getDrives())) return false;
+        if (valuesDiffer(snapshot.get("showFPS"), targetContainer.isShowFPS())) return false;
+        if (valuesDiffer(snapshot.get("fullscreenStretched"), targetContainer.isFullscreenStretched())) return false;
+        if (valuesDiffer(snapshot.get("inputType"), targetContainer.getInputType())) return false;
+        if (valuesDiffer(snapshot.get("disableXinput"), "")) return false;
+        if (valuesDiffer(snapshot.get("startupSelection"), targetContainer.getStartupSelection())) return false;
+        if (valuesDiffer(snapshot.get("box64Version"), targetContainer.getBox64Version())) return false;
+        if (valuesDiffer(snapshot.get("box64Preset"), targetContainer.getBox64Preset())) return false;
+        if (valuesDiffer(snapshot.get("fexcoreVersion"), targetContainer.getFEXCoreVersion())) return false;
+        if (valuesDiffer(snapshot.get("fexcorePreset"), targetContainer.getFEXCorePreset())) return false;
+        if (valuesDiffer(snapshot.get("desktopTheme"), targetContainer.getDesktopTheme())) return false;
+        if (valuesDiffer(snapshot.get("midiSoundFont"), targetContainer.getMIDISoundFont())) return false;
+        if (valuesDiffer(snapshot.get("lc_all"), targetContainer.getLC_ALL())) return false;
+        if (valuesDiffer(snapshot.get("primaryController"), targetContainer.getPrimaryController())) return false;
+        if (valuesDiffer(snapshot.get("controllerMapping"), targetContainer.getControllerMapping())) return false;
+
+        if ("STEAM".equals(gameSource)) {
+            if (valuesDiffer(snapshot.get("useLegacyDRM"), targetContainer.isUseLegacyDRM())) return false;
+            if (valuesDiffer(snapshot.get("launchRealSteam"), targetContainer.isLaunchRealSteam())) return false;
+            if (valuesDiffer(snapshot.get("useSteamInput"), targetContainer.getExtra("useSteamInput", "0"))) return false;
+            if (valuesDiffer(snapshot.get("steamType"), targetContainer.getSteamType())) return false;
+            if (valuesDiffer(snapshot.get("forceDlc"), targetContainer.isForceDlc())) return false;
+            if (valuesDiffer(snapshot.get("steamOfflineMode"), targetContainer.isSteamOfflineMode())) return false;
+            if (valuesDiffer(snapshot.get("unpackFiles"), targetContainer.isUnpackFiles())) return false;
+        }
+
+        return true;
     }
 
     private HashMap<String, String> collectShortcutSettingsSnapshot(
@@ -523,7 +753,7 @@ public class ContainerDetailFragment extends Fragment {
         CompoundButton cbUseSteamInput = view.findViewById(R.id.CBUseSteamInput);
         snapshot.put("useSteamInput", cbUseSteamInput != null && cbUseSteamInput.isChecked() ? "1" : "0");
         Spinner sSteamType = view.findViewById(R.id.SSteamType);
-        snapshot.put("steamType", sSteamType != null ? String.valueOf(sSteamType.getSelectedItemPosition()) : "0");
+        snapshot.put("steamType", sSteamType != null ? getSelectedSteamType(sSteamType) : Container.STEAM_TYPE_NORMAL);
         CompoundButton cbForceDlc = view.findViewById(R.id.CBForceDlc);
         snapshot.put("forceDlc", cbForceDlc != null && cbForceDlc.isChecked() ? "1" : "0");
         CompoundButton cbSteamOfflineMode = view.findViewById(R.id.CBSteamOfflineMode);
@@ -566,6 +796,7 @@ public class ContainerDetailFragment extends Fragment {
         } else {
             container = containerId > 0 ? manager.getContainerById(containerId) : null;
         }
+        final Container settingsContainer = isPerGameSettingsMode() ? getInitialPerGameContainer() : container;
         
         Log.d(TAG, "onCreateView: step 2 - creating ContentsManager");
         contentsManager = new ContentsManager(context);
@@ -583,6 +814,7 @@ public class ContainerDetailFragment extends Fragment {
                 ? shortcut.getExtra("customLibraryIconPath", shortcut.getExtra("customCoverArtPath"))
                 : "";
         final String[] selectedIconPath = new String[]{existingCustomLibraryIconPath};
+        final Runnable[] refreshIndicatorsRef = new Runnable[1];
 
         final Spinner sWineVersion = view.findViewById(R.id.SWineVersion);
 
@@ -647,43 +879,80 @@ public class ContainerDetailFragment extends Fragment {
         applyDarkMode(view);
 
         Log.d(TAG, "onCreateView: step 4 - loading wine version spinner");
-        loadWineVersionSpinner(view, sWineVersion, sBox64Version);
+        loadWineVersionSpinner(view, sWineVersion, sBox64Version, () -> runIndicatorRefresh(refreshIndicatorsRef));
         Log.d(TAG, "onCreateView: step 5 - wine version spinner loaded");
 
-        loadScreenSizeSpinner(view, isShortcutMode() ? shortcut.getExtra("screenSize", container != null ? container.getScreenSize() : Container.DEFAULT_SCREEN_SIZE) : (isEditMode() && container != null ? container.getScreenSize() : Container.DEFAULT_SCREEN_SIZE));
+        loadScreenSizeSpinner(view, isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("screenSize", settingsContainer != null ? settingsContainer.getScreenSize() : Container.DEFAULT_SCREEN_SIZE)
+                    : (settingsContainer != null ? settingsContainer.getScreenSize() : Container.DEFAULT_SCREEN_SIZE))
+                : (isEditMode() && container != null ? container.getScreenSize() : Container.DEFAULT_SCREEN_SIZE),
+                () -> runIndicatorRefresh(refreshIndicatorsRef));
 
         final Spinner sGraphicsDriver = view.findViewById(R.id.SGraphicsDriver);
         
         final Spinner sDXWrapper = view.findViewById(R.id.SDXWrapper);
 
         final View vDXWrapperConfig = view.findViewById(R.id.BTDXWrapperConfig);
-        vDXWrapperConfig.setTag(isShortcutMode() ? shortcut.getExtra("dxwrapperConfig", container != null ? container.getDXWrapperConfig() : Container.DEFAULT_DXWRAPPERCONFIG) : (isEditMode() && container != null ? container.getDXWrapperConfig() : Container.DEFAULT_DXWRAPPERCONFIG));
+        vDXWrapperConfig.setTag(isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("dxwrapperConfig", settingsContainer != null ? settingsContainer.getDXWrapperConfig() : Container.DEFAULT_DXWRAPPERCONFIG)
+                    : (settingsContainer != null ? settingsContainer.getDXWrapperConfig() : Container.DEFAULT_DXWRAPPERCONFIG))
+                : (isEditMode() && container != null ? container.getDXWrapperConfig() : Container.DEFAULT_DXWRAPPERCONFIG));
         Log.d(TAG, "Initial DXVK config mode=" +
                 (isShortcutMode() ? "shortcut" : (isEditMode() ? "container-edit" : "create-shortcut")) +
                 " value='" + vDXWrapperConfig.getTag() + "'");
 
         final View vGraphicsDriverConfig = view.findViewById(R.id.BTGraphicsDriverConfig);
-        vGraphicsDriverConfig.setTag(isShortcutMode() ? shortcut.getExtra("graphicsDriverConfig", container != null ? container.getGraphicsDriverConfig() : Container.DEFAULT_GRAPHICSDRIVERCONFIG) : (isEditMode() && container != null ? container.getGraphicsDriverConfig() : Container.DEFAULT_GRAPHICSDRIVERCONFIG));
+        vGraphicsDriverConfig.setTag(isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("graphicsDriverConfig", settingsContainer != null ? settingsContainer.getGraphicsDriverConfig() : Container.DEFAULT_GRAPHICSDRIVERCONFIG)
+                    : (settingsContainer != null ? settingsContainer.getGraphicsDriverConfig() : Container.DEFAULT_GRAPHICSDRIVERCONFIG))
+                : (isEditMode() && container != null ? container.getGraphicsDriverConfig() : Container.DEFAULT_GRAPHICSDRIVERCONFIG));
 
         Log.d(TAG, "onCreateView: step 6 - loading graphics driver spinner");
         loadGraphicsDriverSpinner(sGraphicsDriver, sDXWrapper, vGraphicsDriverConfig,
-                isShortcutMode() ? shortcut.getExtra("graphicsDriver", container != null ? container.getGraphicsDriver() : Container.DEFAULT_GRAPHICS_DRIVER) : (isEditMode() && container != null ? container.getGraphicsDriver() : Container.DEFAULT_GRAPHICS_DRIVER),
-                isShortcutMode() ? shortcut.getExtra("dxwrapper", container != null ? container.getDXWrapper() : Container.DEFAULT_DXWRAPPER) : (isEditMode() && container != null ? container.getDXWrapper() : Container.DEFAULT_DXWRAPPER));
+                isPerGameSettingsMode()
+                        ? (isShortcutMode()
+                            ? getShortcutSettingValue("graphicsDriver", settingsContainer != null ? settingsContainer.getGraphicsDriver() : Container.DEFAULT_GRAPHICS_DRIVER)
+                            : (settingsContainer != null ? settingsContainer.getGraphicsDriver() : Container.DEFAULT_GRAPHICS_DRIVER))
+                        : (isEditMode() && container != null ? container.getGraphicsDriver() : Container.DEFAULT_GRAPHICS_DRIVER),
+                isPerGameSettingsMode()
+                        ? (isShortcutMode()
+                            ? getShortcutSettingValue("dxwrapper", settingsContainer != null ? settingsContainer.getDXWrapper() : Container.DEFAULT_DXWRAPPER)
+                            : (settingsContainer != null ? settingsContainer.getDXWrapper() : Container.DEFAULT_DXWRAPPER))
+                        : (isEditMode() && container != null ? container.getDXWrapper() : Container.DEFAULT_DXWRAPPER),
+                () -> runIndicatorRefresh(refreshIndicatorsRef));
+        String initialWineVersion = settingsContainer != null ? settingsContainer.getWineVersion() : WineInfo.MAIN_WINE_VERSION.identifier();
+        setupDXWrapperSpinner(sDXWrapper, vDXWrapperConfig, WineInfo.fromIdentifier(context, contentsManager, initialWineVersion).isArm64EC(),
+                () -> runIndicatorRefresh(refreshIndicatorsRef));
         Log.d(TAG, "onCreateView: step 7 - graphics driver spinner loaded");
 
         view.findViewById(R.id.BTHelpDXWrapper).setOnClickListener((v) -> AppUtils.showHelpBox(context, v, R.string.dxwrapper_help_content));
 
         Spinner sAudioDriver = view.findViewById(R.id.SAudioDriver);
         applyThemedAdapter(sAudioDriver, R.array.audio_driver_entries);
-        AppUtils.setSpinnerSelectionFromIdentifier(sAudioDriver, isShortcutMode() ? shortcut.getExtra("audioDriver", container != null ? container.getAudioDriver() : Container.DEFAULT_AUDIO_DRIVER) : (isEditMode() && container != null ? container.getAudioDriver() : Container.DEFAULT_AUDIO_DRIVER));
+        AppUtils.setSpinnerSelectionFromIdentifier(sAudioDriver, isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("audioDriver", settingsContainer != null ? settingsContainer.getAudioDriver() : Container.DEFAULT_AUDIO_DRIVER)
+                    : (settingsContainer != null ? settingsContainer.getAudioDriver() : Container.DEFAULT_AUDIO_DRIVER))
+                : (isEditMode() && container != null ? container.getAudioDriver() : Container.DEFAULT_AUDIO_DRIVER));
 
         final Spinner sEmulator = view.findViewById(R.id.SEmulator);
         applyThemedAdapter(sEmulator, R.array.emulator_entries);
-        AppUtils.setSpinnerSelectionFromIdentifier(sEmulator, isShortcutMode() ? shortcut.getExtra("emulator", container != null ? container.getEmulator() : Container.DEFAULT_EMULATOR) : (isEditMode() && container != null ? container.getEmulator() : Container.DEFAULT_EMULATOR));
+        AppUtils.setSpinnerSelectionFromIdentifier(sEmulator, isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("emulator", settingsContainer != null ? settingsContainer.getEmulator() : Container.DEFAULT_EMULATOR)
+                    : (settingsContainer != null ? settingsContainer.getEmulator() : Container.DEFAULT_EMULATOR))
+                : (isEditMode() && container != null ? container.getEmulator() : Container.DEFAULT_EMULATOR));
 
         final Spinner sEmulator64 = view.findViewById(R.id.SEmulator64);
         applyThemedAdapter(sEmulator64, R.array.emulator_entries);
-        AppUtils.setSpinnerSelectionFromIdentifier(sEmulator64, isShortcutMode() ? shortcut.getExtra("emulator64", container != null ? container.getEmulator64() : Container.DEFAULT_EMULATOR64) : (isEditMode() && container != null ? container.getEmulator64() : Container.DEFAULT_EMULATOR64));
+        AppUtils.setSpinnerSelectionFromIdentifier(sEmulator64, isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("emulator64", settingsContainer != null ? settingsContainer.getEmulator64() : Container.DEFAULT_EMULATOR64)
+                    : (settingsContainer != null ? settingsContainer.getEmulator64() : Container.DEFAULT_EMULATOR64))
+                : (isEditMode() && container != null ? container.getEmulator64() : Container.DEFAULT_EMULATOR64));
 
         final View box64Frame = view.findViewById(R.id.box64Frame);
         final View fexcoreFrame = view.findViewById(R.id.fexcoreFrame);
@@ -692,6 +961,7 @@ public class ContainerDetailFragment extends Fragment {
             @Override
             public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
                 updateEmulatorFrames(view, sEmulator, sEmulator64);
+                runIndicatorRefresh(refreshIndicatorsRef);
             }
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
@@ -702,13 +972,25 @@ public class ContainerDetailFragment extends Fragment {
 
         Spinner sMIDISoundFont = view.findViewById(R.id.SMIDISoundFont);
         MidiManager.loadSFSpinner(sMIDISoundFont);
-        AppUtils.setSpinnerSelectionFromValue(sMIDISoundFont, isShortcutMode() ? shortcut.getExtra("midiSoundFont", container != null ? container.getMIDISoundFont() : "") : (isEditMode() && container != null ? container.getMIDISoundFont() : ""));
+        AppUtils.setSpinnerSelectionFromValue(sMIDISoundFont, isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("midiSoundFont", settingsContainer != null ? settingsContainer.getMIDISoundFont() : "")
+                    : (settingsContainer != null ? settingsContainer.getMIDISoundFont() : ""))
+                : (isEditMode() && container != null ? container.getMIDISoundFont() : ""));
 
         final CompoundButton cbShowFPS = view.findViewById(R.id.CBShowFPS);
-        cbShowFPS.setChecked(isShortcutMode() ? shortcut.getExtra("showFPS", container != null && container.isShowFPS() ? "1" : "0").equals("1") : (isEditMode() && container != null && container.isShowFPS()));
+        cbShowFPS.setChecked(isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingEnabled("showFPS", settingsContainer != null && settingsContainer.isShowFPS())
+                    : settingsContainer != null && settingsContainer.isShowFPS())
+                : (isEditMode() && container != null && container.isShowFPS()));
 
         final CompoundButton cbFullscreenStretched = view.findViewById(R.id.CBFullscreenStretched);
-        cbFullscreenStretched.setChecked(isShortcutMode() ? shortcut.getExtra("fullscreenStretched", container != null && container.isFullscreenStretched() ? "1" : "0").equals("1") : (isEditMode() && container != null && container.isFullscreenStretched()));
+        cbFullscreenStretched.setChecked(isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingEnabled("fullscreenStretched", settingsContainer != null && settingsContainer.isFullscreenStretched())
+                    : settingsContainer != null && settingsContainer.isFullscreenStretched())
+                : (isEditMode() && container != null && container.isFullscreenStretched()));
 
         String activeGameSource = isShortcutMode() ? shortcut.getExtra("game_source", createShortcutForSource) : createShortcutForSource;
         boolean showSteamSettings = "STEAM".equals(activeGameSource) && (isShortcutMode() || isCreateShortcutMode());
@@ -717,56 +999,56 @@ public class ContainerDetailFragment extends Fragment {
         final CompoundButton cbUseLegacyDRM = view.findViewById(R.id.CBUseLegacyDRM);
         final CompoundButton cbLaunchRealSteam = view.findViewById(R.id.CBLaunchRealSteam);
         final CompoundButton cbUseSteamInput = view.findViewById(R.id.CBUseSteamInput);
-        boolean defaultUseLegacyDRM = container != null && container.isUseLegacyDRM();
-        boolean defaultLaunchRealSteam = container != null && container.isLaunchRealSteam();
-        boolean defaultUseSteamInput = container != null && "1".equals(container.getExtra("useSteamInput", "0"));
+        boolean defaultUseLegacyDRM = settingsContainer != null && settingsContainer.isUseLegacyDRM();
+        boolean defaultLaunchRealSteam = settingsContainer != null && settingsContainer.isLaunchRealSteam();
+        boolean defaultUseSteamInput = settingsContainer != null && "1".equals(settingsContainer.getExtra("useSteamInput", "0"));
         cbUseLegacyDRM.setChecked(
-                isShortcutMode()
-                        ? "1".equals(shortcut.getExtra("useLegacyDRM", defaultUseLegacyDRM ? "1" : "0"))
+                isPerGameSettingsMode() && isShortcutMode()
+                        ? getShortcutSettingEnabled("useLegacyDRM", defaultUseLegacyDRM)
                         : defaultUseLegacyDRM
         );
         cbLaunchRealSteam.setChecked(
-                isShortcutMode()
-                        ? "1".equals(shortcut.getExtra("launchRealSteam", defaultLaunchRealSteam ? "1" : "0"))
+                isPerGameSettingsMode() && isShortcutMode()
+                        ? getShortcutSettingEnabled("launchRealSteam", defaultLaunchRealSteam)
                         : defaultLaunchRealSteam
         );
         cbUseSteamInput.setChecked(
-                isShortcutMode()
-                        ? "1".equals(shortcut.getExtra("useSteamInput", defaultUseSteamInput ? "1" : "0"))
+                isPerGameSettingsMode() && isShortcutMode()
+                        ? getShortcutSettingEnabled("useSteamInput", defaultUseSteamInput)
                         : defaultUseSteamInput
         );
 
         final Spinner sSteamType = view.findViewById(R.id.SSteamType);
         applyThemedAdapter(sSteamType, R.array.steam_type_entries);
-        String defaultSteamType = container != null ? container.getSteamType() : Container.STEAM_TYPE_NORMAL;
-        if (isShortcutMode()) {
-            defaultSteamType = shortcut.getExtra("steamType", defaultSteamType);
+        String defaultSteamType = settingsContainer != null ? settingsContainer.getSteamType() : Container.STEAM_TYPE_NORMAL;
+        if (isPerGameSettingsMode() && isShortcutMode()) {
+            defaultSteamType = getShortcutSettingValue("steamType", defaultSteamType);
         }
         int steamTypeIndex = Container.STEAM_TYPE_ULTRALIGHT.equals(defaultSteamType) ? 2
                 : Container.STEAM_TYPE_LIGHT.equals(defaultSteamType) ? 1 : 0;
         sSteamType.setSelection(steamTypeIndex);
 
         final CompoundButton cbForceDlc = view.findViewById(R.id.CBForceDlc);
-        boolean defaultForceDlc = container != null && container.isForceDlc();
+        boolean defaultForceDlc = settingsContainer != null && settingsContainer.isForceDlc();
         cbForceDlc.setChecked(
-                isShortcutMode()
-                        ? "1".equals(shortcut.getExtra("forceDlc", defaultForceDlc ? "1" : "0"))
+                isPerGameSettingsMode() && isShortcutMode()
+                        ? getShortcutSettingEnabled("forceDlc", defaultForceDlc)
                         : defaultForceDlc
         );
 
         final CompoundButton cbSteamOfflineMode = view.findViewById(R.id.CBSteamOfflineMode);
-        boolean defaultSteamOfflineMode = container != null && container.isSteamOfflineMode();
+        boolean defaultSteamOfflineMode = settingsContainer != null && settingsContainer.isSteamOfflineMode();
         cbSteamOfflineMode.setChecked(
-                isShortcutMode()
-                        ? "1".equals(shortcut.getExtra("steamOfflineMode", defaultSteamOfflineMode ? "1" : "0"))
+                isPerGameSettingsMode() && isShortcutMode()
+                        ? getShortcutSettingEnabled("steamOfflineMode", defaultSteamOfflineMode)
                         : defaultSteamOfflineMode
         );
 
         final CompoundButton cbUnpackFiles = view.findViewById(R.id.CBUnpackFiles);
-        boolean defaultUnpackFiles = container != null && container.isUnpackFiles();
+        boolean defaultUnpackFiles = settingsContainer != null && settingsContainer.isUnpackFiles();
         cbUnpackFiles.setChecked(
-                isShortcutMode()
-                        ? "1".equals(shortcut.getExtra("unpackFiles", defaultUnpackFiles ? "1" : "0"))
+                isPerGameSettingsMode() && isShortcutMode()
+                        ? getShortcutSettingEnabled("unpackFiles", defaultUnpackFiles)
                         : defaultUnpackFiles
         );
 
@@ -783,7 +1065,11 @@ public class ContainerDetailFragment extends Fragment {
         applyThemedAdapter(SDInputType, R.array.dinput_mapper_type_entries);
 
         // Check if we are in edit mode to set input type accordingly
-        int inputType = isShortcutMode() ? Integer.parseInt(shortcut.getExtra("inputType", String.valueOf(container != null ? container.getInputType() : WinHandler.DEFAULT_INPUT_TYPE))) : (isEditMode() && container != null ? container.getInputType() : WinHandler.DEFAULT_INPUT_TYPE);
+        int inputType = isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingInt("inputType", settingsContainer != null ? settingsContainer.getInputType() : WinHandler.DEFAULT_INPUT_TYPE)
+                    : (settingsContainer != null ? settingsContainer.getInputType() : WinHandler.DEFAULT_INPUT_TYPE))
+                : (isEditMode() && container != null ? container.getInputType() : WinHandler.DEFAULT_INPUT_TYPE);
 
         // New logic for enabling XInput and DInput
         cbEnableXInput.setChecked((inputType & WinHandler.FLAG_INPUT_TYPE_XINPUT) == WinHandler.FLAG_INPUT_TYPE_XINPUT);
@@ -804,8 +1090,8 @@ public class ContainerDetailFragment extends Fragment {
         llDInputType.setVisibility(cbEnableDInput.isChecked() ? View.VISIBLE : View.GONE);
 
         if (cbExclusiveInput != null && llExclusiveInput != null) {
-            boolean exclusiveInputEnabled = isShortcutMode()
-                    ? "1".equals(shortcut.getExtra("disableXinput", "0"))
+            boolean exclusiveInputEnabled = isPerGameSettingsMode()
+                    ? (isShortcutMode() ? getShortcutSettingEnabled("disableXinput", false) : false)
                     : preferences.getBoolean("xinput_toggle", false);
             cbExclusiveInput.setChecked(exclusiveInputEnabled);
             llExclusiveInput.setVisibility(View.VISIBLE);
@@ -830,12 +1116,20 @@ public class ContainerDetailFragment extends Fragment {
         btHelpDInput.setOnClickListener(v -> AppUtils.showHelpBox(context, v, R.string.help_dinput));
 
         final CompoundButton cbSdl2Toggle = view.findViewById(R.id.CBSdl2Toggle);
-        String envVarsValue = isShortcutMode() ? shortcut.getExtra("envVars", container != null ? container.getEnvVars() : Container.DEFAULT_ENV_VARS) : (isEditMode() && container != null ? container.getEnvVars() : Container.DEFAULT_ENV_VARS);
+        String envVarsValue = isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("envVars", settingsContainer != null ? settingsContainer.getEnvVars() : Container.DEFAULT_ENV_VARS)
+                    : (settingsContainer != null ? settingsContainer.getEnvVars() : Container.DEFAULT_ENV_VARS))
+                : (isEditMode() && container != null ? container.getEnvVars() : Container.DEFAULT_ENV_VARS);
         cbSdl2Toggle.setChecked(envVarsValue.contains("SDL_XINPUT_ENABLED=1"));
 
         final EditText etLC_ALL = view.findViewById(R.id.ETlcall);
         Locale systemLocal = Locale.getDefault();
-        etLC_ALL.setText(isShortcutMode() ? shortcut.getExtra("lc_all", container != null ? container.getLC_ALL() : "") : (isEditMode() && container != null ? container.getLC_ALL() : systemLocal.getLanguage() + '_' + systemLocal.getCountry() + ".UTF-8"));
+        etLC_ALL.setText(isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("lc_all", settingsContainer != null ? settingsContainer.getLC_ALL() : "")
+                    : (settingsContainer != null ? settingsContainer.getLC_ALL() : ""))
+                : (isEditMode() && container != null ? container.getLC_ALL() : systemLocal.getLanguage() + '_' + systemLocal.getCountry() + ".UTF-8"));
 
         final View btShowLCALL = view.findViewById(R.id.BTShowLCALL);
         btShowLCALL.setOnClickListener(v -> {
@@ -853,27 +1147,55 @@ public class ContainerDetailFragment extends Fragment {
 
         final Spinner sStartupSelection = view.findViewById(R.id.SStartupSelection);
         applyThemedAdapter(sStartupSelection, R.array.startup_selection_entries);
-        byte previousStartupSelection = isShortcutMode() ? (byte)Integer.parseInt(shortcut.getExtra("startupSelection", String.valueOf(container != null ? container.getStartupSelection() : -1))) : (isEditMode() && container != null ? container.getStartupSelection() : -1);
+        byte previousStartupSelection = isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? (byte)getShortcutSettingInt("startupSelection", settingsContainer != null ? settingsContainer.getStartupSelection() : -1)
+                    : (byte)(settingsContainer != null ? settingsContainer.getStartupSelection() : -1))
+                : (isEditMode() && container != null ? container.getStartupSelection() : -1);
         sStartupSelection.setSelection(previousStartupSelection != -1 ? previousStartupSelection : Container.STARTUP_SELECTION_ESSENTIAL);
 
         final Spinner sBox64Preset = view.findViewById(R.id.SBox64Preset);
-        Box64PresetManager.loadSpinner("box64", sBox64Preset, isShortcutMode() ? shortcut.getExtra("box64Preset", container != null ? container.getBox64Preset() : preferences.getString("box64_preset", Box64Preset.COMPATIBILITY)) : (isEditMode() && container != null ? container.getBox64Preset() : preferences.getString("box64_preset", Box64Preset.COMPATIBILITY)));
+        Box64PresetManager.loadSpinner("box64", sBox64Preset, isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("box64Preset", settingsContainer != null ? settingsContainer.getBox64Preset() : preferences.getString("box64_preset", Box64Preset.COMPATIBILITY))
+                    : (settingsContainer != null ? settingsContainer.getBox64Preset() : preferences.getString("box64_preset", Box64Preset.COMPATIBILITY)))
+                : (isEditMode() && container != null ? container.getBox64Preset() : preferences.getString("box64_preset", Box64Preset.COMPATIBILITY)));
 
         final Spinner sFEXCoreVersion = view.findViewById(R.id.SFEXCoreVersion);
-        FEXCoreManager.loadFEXCoreVersion(context, contentsManager, sFEXCoreVersion, isShortcutMode() ? shortcut.getExtra("fexcoreVersion", container != null ? container.getFEXCoreVersion() : DefaultVersion.FEXCORE) : (isEditMode() && container != null ? container.getFEXCoreVersion() : DefaultVersion.FEXCORE));
+        FEXCoreManager.loadFEXCoreVersion(context, contentsManager, sFEXCoreVersion, isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("fexcoreVersion", settingsContainer != null ? settingsContainer.getFEXCoreVersion() : DefaultVersion.FEXCORE)
+                    : (settingsContainer != null ? settingsContainer.getFEXCoreVersion() : DefaultVersion.FEXCORE))
+                : (isEditMode() && container != null ? container.getFEXCoreVersion() : DefaultVersion.FEXCORE));
 
         final Spinner sFEXCorePreset = view.findViewById(R.id.SFEXCorePreset);
-        FEXCorePresetManager.loadSpinner(sFEXCorePreset, isShortcutMode() ? shortcut.getExtra("fexcorePreset", container != null ? container.getFEXCorePreset() : preferences.getString("fexcore_preset", FEXCorePreset.INTERMEDIATE)) : (isEditMode() && container != null ? container.getFEXCorePreset() : preferences.getString("fexcore_preset", FEXCorePreset.INTERMEDIATE)));
+        FEXCorePresetManager.loadSpinner(sFEXCorePreset, isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("fexcorePreset", settingsContainer != null ? settingsContainer.getFEXCorePreset() : preferences.getString("fexcore_preset", FEXCorePreset.INTERMEDIATE))
+                    : (settingsContainer != null ? settingsContainer.getFEXCorePreset() : preferences.getString("fexcore_preset", FEXCorePreset.INTERMEDIATE)))
+                : (isEditMode() && container != null ? container.getFEXCorePreset() : preferences.getString("fexcore_preset", FEXCorePreset.INTERMEDIATE)));
 
         final CPUListView cpuListView = view.findViewById(R.id.CPUListView);
         final CPUListView cpuListViewWoW64 = view.findViewById(R.id.CPUListViewWoW64);
 
-        cpuListView.setCheckedCPUList(isShortcutMode() ? shortcut.getExtra("cpuList", container != null ? container.getCPUList(true) : Container.getFallbackCPUList()) : (isEditMode() && container != null ? container.getCPUList(true) : Container.getFallbackCPUList()));
-        cpuListViewWoW64.setCheckedCPUList(isShortcutMode() ? shortcut.getExtra("cpuListWoW64", container != null ? container.getCPUListWoW64(true) : Container.getFallbackCPUListWoW64()) : (isEditMode() && container != null ? container.getCPUListWoW64(true) : Container.getFallbackCPUListWoW64()));
+        cpuListView.setCheckedCPUList(isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("cpuList", settingsContainer != null ? settingsContainer.getCPUList(true) : Container.getFallbackCPUList())
+                    : (settingsContainer != null ? settingsContainer.getCPUList(true) : Container.getFallbackCPUList()))
+                : (isEditMode() && container != null ? container.getCPUList(true) : Container.getFallbackCPUList()));
+        cpuListViewWoW64.setCheckedCPUList(isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("cpuListWoW64", settingsContainer != null ? settingsContainer.getCPUListWoW64(true) : Container.getFallbackCPUListWoW64())
+                    : (settingsContainer != null ? settingsContainer.getCPUListWoW64(true) : Container.getFallbackCPUListWoW64()))
+                : (isEditMode() && container != null ? container.getCPUListWoW64(true) : Container.getFallbackCPUListWoW64()));
 
         final Spinner sPrimaryController = view.findViewById(R.id.SPrimaryController);
         applyThemedAdapter(sPrimaryController, R.array.xr_controllers);
-        sPrimaryController.setSelection(isShortcutMode() ? Integer.parseInt(shortcut.getExtra("primaryController", String.valueOf(container != null ? container.getPrimaryController() : 1))) : (isEditMode() && container != null ? container.getPrimaryController() : 1));
+        sPrimaryController.setSelection(isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingInt("primaryController", settingsContainer != null ? settingsContainer.getPrimaryController() : 1)
+                    : (settingsContainer != null ? settingsContainer.getPrimaryController() : 1))
+                : (isEditMode() && container != null ? container.getPrimaryController() : 1));
         setControllerMapping(view.findViewById(R.id.SButtonA), Container.XrControllerMapping.BUTTON_A, XKeycode.KEY_A.ordinal());
         setControllerMapping(view.findViewById(R.id.SButtonB), Container.XrControllerMapping.BUTTON_B, XKeycode.KEY_B.ordinal());
         setControllerMapping(view.findViewById(R.id.SButtonX), Container.XrControllerMapping.BUTTON_X, XKeycode.KEY_X.ordinal());
@@ -887,16 +1209,71 @@ public class ContainerDetailFragment extends Fragment {
 
         createWineConfigurationTab(view);
         final EnvVarsView envVarsView = createEnvVarsTab(view);
-        createWinComponentsTab(view, isShortcutMode() ? shortcut.getExtra("wincomponents", container != null ? container.getWinComponents() : Container.DEFAULT_WINCOMPONENTS) : (isEditMode() && container != null ? container.getWinComponents() : Container.DEFAULT_WINCOMPONENTS));
+        createWinComponentsTab(view, isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("wincomponents", settingsContainer != null ? settingsContainer.getWinComponents() : Container.DEFAULT_WINCOMPONENTS)
+                    : (settingsContainer != null ? settingsContainer.getWinComponents() : Container.DEFAULT_WINCOMPONENTS))
+                : (isEditMode() && container != null ? container.getWinComponents() : Container.DEFAULT_WINCOMPONENTS));
         createDrivesTab(view);
-        final HashMap<String, String> initialShortcutSettings = isShortcutMode()
-                ? collectShortcutSettingsSnapshot(view, envVarsView, vGraphicsDriverConfig, vDXWrapperConfig)
-                : null;
+        if (isPerGameSettingsMode()) {
+            refreshIndicatorsRef[0] = () -> {
+                Container comparisonContainer = getSelectedPerGameContainer(sWineVersion);
+                if (comparisonContainer != null) {
+                    refreshPerGameChangeIndicators(view, comparisonContainer);
+                }
+            };
+            perGameRefreshIndicators = refreshIndicatorsRef[0];
+            setupPerGameChangeIndicators(view, sWineVersion, refreshIndicatorsRef[0]);
+            runIndicatorRefresh(refreshIndicatorsRef);
+        }
 
         setupExpandableSections(view);
+        setupSidebarNavigation(view);
+
+        // Auto-expand Win Components in the Windows tab
+        View winComponentsContent = view.findViewById(R.id.LLTabWinComponents);
+        if (winComponentsContent != null) {
+            winComponentsContent.setVisibility(View.VISIBLE);
+            winComponentsContent.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        }
+        ImageView winComponentsChevron = view.findViewById(R.id.IVChevronWinComponents);
+        if (winComponentsChevron != null) {
+            winComponentsChevron.setRotation(90f);
+        }
 
         // Set up confirm button with press animation
-        View btnConfirm = view.findViewById(R.id.BTConfirm);
+        View btnReset = view.findViewById(R.id.BTSidebarReset);
+        View btnConfirm = view.findViewById(R.id.BTSidebarConfirm);
+        if (btnReset != null) {
+            btnReset.setVisibility(isPerGameSettingsMode() ? View.VISIBLE : View.GONE);
+            btnReset.setOnTouchListener((v, event) -> {
+                switch (event.getAction()) {
+                    case android.view.MotionEvent.ACTION_DOWN:
+                        v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(100).start();
+                        break;
+                    case android.view.MotionEvent.ACTION_UP:
+                    case android.view.MotionEvent.ACTION_CANCEL:
+                        v.animate().scaleX(1f).scaleY(1f).setDuration(150).start();
+                        break;
+                }
+                return false;
+            });
+            btnReset.setOnClickListener((v) -> {
+                Container selectedShortcutContainer = getSelectedPerGameContainer(sWineVersion);
+                if (selectedShortcutContainer == null) return;
+
+                ContentDialog dialog = new ContentDialog(context);
+                dialog.setTitle("Reset Per-Game Settings");
+                dialog.setMessage("Reset this game to use the selected container defaults?");
+                Container finalSelectedShortcutContainer = selectedShortcutContainer;
+                dialog.setOnConfirmCallback(() -> {
+                    updateUIWithContainerSettings(view, finalSelectedShortcutContainer);
+                    runIndicatorRefresh(refreshIndicatorsRef);
+                    Toast.makeText(context, "Per-game settings reset to selected container defaults", Toast.LENGTH_SHORT).show();
+                });
+                dialog.show();
+            });
+        }
         btnConfirm.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case android.view.MotionEvent.ACTION_DOWN:
@@ -1016,15 +1393,12 @@ public class ContainerDetailFragment extends Fragment {
 
                 if (isShortcutMode()) {
                     Container selectedShortcutContainer = resolveSelectedShortcutContainer(sWineVersion);
-                    boolean followsContainerDefaults = "1".equals(shortcut.getExtra(EXTRA_USE_CONTAINER_DEFAULTS, "0"));
                     HashMap<String, String> currentShortcutSettings =
                             collectShortcutSettingsSnapshot(view, envVarsView, vGraphicsDriverConfig, vDXWrapperConfig);
-                    boolean keepUsingContainerDefaults = followsContainerDefaults
-                            && selectedShortcutContainer != null
-                            && initialShortcutSettings != null
-                            && initialShortcutSettings.equals(currentShortcutSettings);
 
                     String gameSource = shortcut.getExtra("game_source", createShortcutForSource);
+                    boolean keepUsingContainerDefaults = selectedShortcutContainer != null
+                            && shortcutSettingsMatchContainerDefaults(currentShortcutSettings, selectedShortcutContainer, gameSource);
                     if (showLaunchExeSelector && selectedExePath[0] != null && !selectedExePath[0].isEmpty()) {
                         shortcut.putExtra("launch_exe_path", selectedExePath[0]);
                         if ("CUSTOM".equals(gameSource)) {
@@ -1099,7 +1473,7 @@ public class ContainerDetailFragment extends Fragment {
                     if (selectedShortcutContainer != null) {
                         boolean containerChanged = selectedShortcutContainer.id != shortcut.container.id;
                         shortcut.putExtra("container_id", String.valueOf(selectedShortcutContainer.id));
-                        shortcut.putExtra("wineVersion", selectedShortcutContainer.getWineVersion());
+                        shortcut.putExtra("wineVersion", null);
                         shortcut.putExtra("cloud_force_download", containerChanged ? "1" : null);
                         shortcut.saveData();
                         saved = true;
@@ -1180,6 +1554,7 @@ public class ContainerDetailFragment extends Fragment {
                     data.put("showFPS", showFPS);
                     data.put("fullscreenStretched", fullscreenStretched);
                     data.put("inputType", finalInputType);
+                    data.put("disableXinput", cbExclusiveInput != null && cbExclusiveInput.isChecked() ? "1" : "");
                     data.put("startupSelection", startupSelection);
                     data.put("box64Version", box64Version);
                     data.put("box64Preset", box64Preset);
@@ -1362,6 +1737,80 @@ public class ContainerDetailFragment extends Fragment {
         }
     }
 
+    private void setupSidebarNavigation(View view) {
+        int[] sidebarButtonIds = {
+            R.id.BTSectionAV, R.id.BTSectionWine,
+            R.id.BTSectionWindows, R.id.BTSectionInputs, R.id.BTSectionConfig
+        };
+        int[] sectionIds = {
+            R.id.LLSectionAV, R.id.LLSectionWine,
+            R.id.LLSectionWindows, R.id.LLSectionInputs, R.id.LLSectionConfig
+        };
+
+        View[] sidebarButtons = new View[sidebarButtonIds.length];
+        View[] sectionViews = new View[sectionIds.length];
+
+        for (int i = 0; i < sidebarButtonIds.length; i++) {
+            sidebarButtons[i] = view.findViewById(sidebarButtonIds[i]);
+            sectionViews[i] = view.findViewById(sectionIds[i]);
+        }
+
+        final ScrollView scrollView = view.findViewById(R.id.SVContainerDetail);
+
+        for (int i = 0; i < sidebarButtons.length; i++) {
+            final int index = i;
+            if (sidebarButtons[i] != null) {
+                sidebarButtons[i].setOnClickListener(v -> showSection(index, sidebarButtons, sectionViews, scrollView));
+            }
+        }
+
+        // Show first section by default
+        showSection(0, sidebarButtons, sectionViews, scrollView);
+    }
+
+    private void showSection(int selectedIndex, View[] sidebarButtons, View[] sectionViews, ScrollView scrollView) {
+        for (int i = 0; i < sectionViews.length; i++) {
+            if (sectionViews[i] != null) {
+                sectionViews[i].setVisibility(i == selectedIndex ? View.VISIBLE : View.GONE);
+            }
+        }
+
+        for (int i = 0; i < sidebarButtons.length; i++) {
+            View btn = sidebarButtons[i];
+            if (btn == null) continue;
+
+            if (i == selectedIndex) {
+                // Active: white text/icon + ChasingBorderDrawable
+                float density = btn.getResources().getDisplayMetrics().density;
+                ChasingBorderDrawable border = new ChasingBorderDrawable(12f, 1.5f, density);
+                btn.setBackground(border);
+                setButtonColors(btn, Color.WHITE);
+            } else {
+                // Inactive: gray text/icon, transparent bg
+                btn.setBackground(null);
+                setButtonColors(btn, Color.parseColor("#B0BEC5"));
+            }
+        }
+
+        if (scrollView != null) {
+            scrollView.post(() -> scrollView.scrollTo(0, 0));
+        }
+    }
+
+    private void setButtonColors(View button, int color) {
+        if (button instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) button;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                if (child instanceof TextView) {
+                    ((TextView) child).setTextColor(color);
+                } else if (child instanceof ImageView) {
+                    ((ImageView) child).setColorFilter(color);
+                }
+            }
+        }
+    }
+
     private void saveWineRegistryKeys(View view) {
         if (container == null || container.getRootDir() == null) return;
         File userRegFile = new File(container.getRootDir(), ".wine/user.reg");
@@ -1380,7 +1829,6 @@ public class ContainerDetailFragment extends Fragment {
             { R.id.LLHeaderWinComponents, R.id.LLTabWinComponents, R.id.IVChevronWinComponents },
             { R.id.LLHeaderEnvVars, R.id.LLTabEnvVars, R.id.IVChevronEnvVars },
             { R.id.LLHeaderDrives, R.id.LLTabDrives, R.id.IVChevronDrives },
-            { R.id.LLHeaderAdvanced, R.id.LLTabAdvanced, R.id.IVChevronAdvanced },
             { R.id.LLHeaderXR, R.id.LLTabXR, R.id.IVChevronXR },
         };
 
@@ -1453,8 +1901,16 @@ public class ContainerDetailFragment extends Fragment {
 
     private void createWineConfigurationTab(View view) {
         Context context = getContext();
+        Container settingsContainer = isShortcutMode()
+                ? getShortcutSettingsContainer()
+                : (isCreateShortcutMode() ? getInitialPerGameContainer() : container);
 
-        WineThemeManager.ThemeInfo desktopTheme = new WineThemeManager.ThemeInfo(isEditMode() && container != null ? container.getDesktopTheme() : WineThemeManager.DEFAULT_DESKTOP_THEME);
+        String desktopThemeValue = isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("desktopTheme", settingsContainer != null ? settingsContainer.getDesktopTheme() : WineThemeManager.DEFAULT_DESKTOP_THEME)
+                    : (settingsContainer != null ? settingsContainer.getDesktopTheme() : WineThemeManager.DEFAULT_DESKTOP_THEME))
+                : (isEditMode() && container != null ? container.getDesktopTheme() : WineThemeManager.DEFAULT_DESKTOP_THEME);
+        WineThemeManager.ThemeInfo desktopTheme = new WineThemeManager.ThemeInfo(desktopThemeValue);
         Spinner sDesktopTheme = view.findViewById(R.id.SDesktopTheme);
         applyThemedAdapter(sDesktopTheme, R.array.desktop_theme_entries);
         sDesktopTheme.setSelection(desktopTheme.theme.ordinal());
@@ -1489,7 +1945,7 @@ public class ContainerDetailFragment extends Fragment {
         sMouseWarpOverride.setAdapter(createThemedAdapter(context, mouseWarpOverrideList));
         applyPopupBackground(sMouseWarpOverride);
 
-        File containerDir = isEditMode() && container != null ? container.getRootDir() : null;
+        File containerDir = settingsContainer != null ? settingsContainer.getRootDir() : null;
         if (containerDir != null) {
             File userRegFile = new File(containerDir, ".wine/user.reg");
             if (userRegFile.exists()) {
@@ -1555,6 +2011,10 @@ public class ContainerDetailFragment extends Fragment {
     }
 
     public static void loadScreenSizeSpinner(View view, String selectedValue) {
+        loadScreenSizeSpinner(view, selectedValue, null);
+    }
+
+    public static void loadScreenSizeSpinner(View view, String selectedValue, @Nullable Runnable onChanged) {
         final Spinner sScreenSize = view.findViewById(R.id.SScreenSize);
         applyThemedAdapter(sScreenSize, R.array.screen_size_entries);
 
@@ -1564,6 +2024,7 @@ public class ContainerDetailFragment extends Fragment {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String value = sScreenSize.getItemAtPosition(position).toString();
                 llCustomScreenSize.setVisibility(value.equalsIgnoreCase("custom") ? View.VISIBLE : View.GONE);
+                if (onChanged != null) onChanged.run();
             }
 
             @Override
@@ -1582,6 +2043,11 @@ public class ContainerDetailFragment extends Fragment {
 
     // New method: Adds support for the GraphicsDriverConfigDialog
     public void loadGraphicsDriverSpinner(final Spinner sGraphicsDriver, final Spinner sDXWrapper, final View vGraphicsDriverConfig, String selectedGraphicsDriver, String selectedDXWrapper) {
+        loadGraphicsDriverSpinner(sGraphicsDriver, sDXWrapper, vGraphicsDriverConfig, selectedGraphicsDriver, selectedDXWrapper, null);
+    }
+
+    public void loadGraphicsDriverSpinner(final Spinner sGraphicsDriver, final Spinner sDXWrapper, final View vGraphicsDriverConfig,
+                                          String selectedGraphicsDriver, String selectedDXWrapper, @Nullable Runnable onChanged) {
         final Context context = sGraphicsDriver.getContext();
 
         // Update the spinner with the available graphics driver options
@@ -1609,6 +2075,7 @@ public class ContainerDetailFragment extends Fragment {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 update.run();
+                if (onChanged != null) onChanged.run();
             }
 
             @Override
@@ -1618,9 +2085,15 @@ public class ContainerDetailFragment extends Fragment {
         // Set the spinner's initial selection
         AppUtils.setSpinnerSelectionFromIdentifier(sGraphicsDriver, selectedGraphicsDriver);
         update.run();
+        if (onChanged != null) onChanged.run();
     }
 
     public static void setupDXWrapperSpinner(final Spinner sDXWrapper, final View vDXWrapperConfig, boolean isARM64EC) {
+        setupDXWrapperSpinner(sDXWrapper, vDXWrapperConfig, isARM64EC, null);
+    }
+
+    public static void setupDXWrapperSpinner(final Spinner sDXWrapper, final View vDXWrapperConfig, boolean isARM64EC,
+                                             @Nullable Runnable onChanged) {
         AdapterView.OnItemSelectedListener listener = new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -1643,6 +2116,7 @@ public class ContainerDetailFragment extends Fragment {
                     });
                 }
                 vDXWrapperConfig.setVisibility(View.VISIBLE);
+                if (onChanged != null) onChanged.run();
             }
 
             @Override
@@ -1722,13 +2196,18 @@ public class ContainerDetailFragment extends Fragment {
     private EnvVarsView createEnvVarsTab(final View view) {
         final Context context = view.getContext();
         final EnvVarsView envVarsView = view.findViewById(R.id.EnvVarsView);
+        final Container settingsContainer = isShortcutMode()
+                ? getShortcutSettingsContainer()
+                : (isCreateShortcutMode() ? getInitialPerGameContainer() : container);
 
         String envVarsValue;
         if (isShortcutMode() && shortcut != null) {
-            envVarsValue = shortcut.getExtra(
+            envVarsValue = getShortcutSettingValue(
                     "envVars",
-                    container != null ? container.getEnvVars() : Container.DEFAULT_ENV_VARS
+                    settingsContainer != null ? settingsContainer.getEnvVars() : Container.DEFAULT_ENV_VARS
             );
+        } else if (isCreateShortcutMode()) {
+            envVarsValue = settingsContainer != null ? settingsContainer.getEnvVars() : Container.DEFAULT_ENV_VARS;
         } else if (isEditMode() && container != null) {
             envVarsValue = container.getEnvVars();
         } else {
@@ -1756,11 +2235,18 @@ public class ContainerDetailFragment extends Fragment {
 
     private void createDrivesTab(View view) {
         final Context context = getContext();
+        final Container settingsContainer = isShortcutMode()
+                ? getShortcutSettingsContainer()
+                : (isCreateShortcutMode() ? getInitialPerGameContainer() : container);
 
         final LinearLayout parent = view.findViewById(R.id.LLDrives);
         final View emptyTextView = view.findViewById(R.id.TVDrivesEmptyText);
         LayoutInflater inflater = LayoutInflater.from(context);
-        final String drives = isEditMode() && container != null ? container.getDrives() : Container.DEFAULT_DRIVES;
+        final String drives = isPerGameSettingsMode()
+                ? (isShortcutMode()
+                    ? getShortcutSettingValue("drives", settingsContainer != null ? settingsContainer.getDrives() : Container.DEFAULT_DRIVES)
+                    : (settingsContainer != null ? settingsContainer.getDrives() : Container.DEFAULT_DRIVES))
+                : (isEditMode() && container != null ? container.getDrives() : Container.DEFAULT_DRIVES);
         final String[] driveLetters = new String[Container.MAX_DRIVE_LETTERS];
         for (int i = 0; i < driveLetters.length; i++) driveLetters[i] = ((char)(i + 68))+":";
 
@@ -1812,11 +2298,15 @@ public class ContainerDetailFragment extends Fragment {
 
 
     private void loadWineVersionSpinner(final View view, Spinner sWineVersion, Spinner sBox64Version) {
+        loadWineVersionSpinner(view, sWineVersion, sBox64Version, null);
+    }
+
+    private void loadWineVersionSpinner(final View view, Spinner sWineVersion, Spinner sBox64Version, @Nullable Runnable onChanged) {
         final Context context = getContext();
         // Allow changing container in shortcut/per-game settings mode; 
         // only lock it when editing a container directly 
-        sWineVersion.setEnabled(!isEditMode() || isShortcutMode());
-//
+        sWineVersion.setEnabled(!isEditMode() || isPerGameSettingsMode());
+
         final boolean[] isInitialWineSelection = {true};
         sWineVersion.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -1866,9 +2356,10 @@ public class ContainerDetailFragment extends Fragment {
                 
                 // Trigger the emulator frames update
                 updateEmulatorFrames(view, sEmulator, sEmulator64);
-                loadBox64VersionSpinner(context, container, contentsManager, sBox64Version, wineInfo.isArm64EC());
+                Container box64Container = selectedContainer != null ? selectedContainer : container;
+                loadBox64VersionSpinner(context, box64Container, contentsManager, sBox64Version, wineInfo.isArm64EC());
                 // Re-apply shortcut's box64Version override if in shortcut mode
-                if (isShortcutMode() && shortcut != null && isInitialWineSelection[0]) {
+                if (isShortcutMode() && shortcut != null && isInitialWineSelection[0] && !shortcut.usesContainerDefaults()) {
                     String shortcutBox64 = shortcut.getExtra("box64Version", "");
                     if (!shortcutBox64.isEmpty()) {
                         AppUtils.setSpinnerSelectionFromValue(sBox64Version, shortcutBox64);
@@ -1876,10 +2367,13 @@ public class ContainerDetailFragment extends Fragment {
                 }
                 setupDXWrapperSpinner(sDXWrapper, vDXWrapperConfig, wineInfo.isArm64EC());
 
-                // Update full UI if the user actively swapped the container
-                if (!isInitialWineSelection[0] && selectedContainer != null && isShortcutMode()) {
+                // In per-game mode, the selected container is the active defaults source.
+                if (selectedContainer != null && isPerGameSettingsMode()
+                        && (!isInitialWineSelection[0] || isCreateShortcutMode())) {
                     updateUIWithContainerSettings(view, selectedContainer);
                 }
+
+                if (onChanged != null) onChanged.run();
 
                 isInitialWineSelection[0] = false;
             }
@@ -1892,7 +2386,7 @@ public class ContainerDetailFragment extends Fragment {
         view.findViewById(R.id.LLWineVersion).setVisibility(View.VISIBLE);
         ArrayList<String> wineVersions = new ArrayList<>();
         
-        if (isShortcutMode() || createShortcutForAppId > 0) {
+        if (isPerGameSettingsMode()) {
             // When editing/creating game settings, ONLY list containers
             for (Container c : manager.getContainers()) {
                 wineVersions.add("Container: " + c.getName());
@@ -1922,16 +2416,14 @@ public class ContainerDetailFragment extends Fragment {
         applyPopupBackground(sWineVersion);
 
         if (isShortcutMode()) {
-            String containerIdStr = shortcut.getExtra("container_id");
-            if (!containerIdStr.isEmpty()) {
-                try {
-                    Container currentSC = manager.getContainerById(Integer.parseInt(containerIdStr));
-                    if (currentSC != null) {
-                        AppUtils.setSpinnerSelectionFromValue(sWineVersion, "Container: " + currentSC.getName());
-                    }
-                } catch (NumberFormatException e) {
-                    // Ignore parsing error
-                }
+            Container currentSC = getShortcutSettingsContainer();
+            if (currentSC != null) {
+                AppUtils.setSpinnerSelectionFromValue(sWineVersion, "Container: " + currentSC.getName());
+            }
+        } else if (isCreateShortcutMode()) {
+            Container initialContainer = getInitialPerGameContainer();
+            if (initialContainer != null) {
+                AppUtils.setSpinnerSelectionFromValue(sWineVersion, "Container: " + initialContainer.getName());
             }
         } else if (isEditMode() && container != null) {
             AppUtils.setSpinnerSelectionFromValue(sWineVersion, container.getWineVersion());
@@ -1962,7 +2454,21 @@ public class ContainerDetailFragment extends Fragment {
         spinner.setAdapter(createThemedAdapter(spinner.getContext(), array));
         applyPopupBackground(spinner);
 
-        byte keycode = isEditMode() && container != null ? container.getControllerMapping(mapping) : (byte) defaultValue;
+        byte keycode = (byte) defaultValue;
+        if (isPerGameSettingsMode()) {
+            Container settingsContainer = isShortcutMode()
+                    ? getShortcutSettingsContainer()
+                    : (isCreateShortcutMode() ? getInitialPerGameContainer() : container);
+            String mappingValue = getShortcutSettingValue(
+                    "controllerMapping",
+                    settingsContainer != null ? settingsContainer.getControllerMapping() : ""
+            );
+            if (!mappingValue.isEmpty() && mapping.ordinal() < mappingValue.length()) {
+                keycode = (byte) mappingValue.charAt(mapping.ordinal());
+            }
+        } else if (isEditMode() && container != null) {
+            keycode = container.getControllerMapping(mapping);
+        }
         int index = 0;
         for (int i = 0; i < values.length; i++) {
             if (values[i].id == keycode) {
@@ -1970,7 +2476,7 @@ public class ContainerDetailFragment extends Fragment {
                 break;
             }
         }
-        spinner.setSelection(isEditMode() && (index != 0) ? index : defaultValue);
+        spinner.setSelection((isEditMode() || isPerGameSettingsMode()) && (index != 0) ? index : defaultValue);
     }
 
     private void applyDarkMode(View view) {
@@ -2010,8 +2516,7 @@ public class ContainerDetailFragment extends Fragment {
     }
 
     private void updateUIWithContainerSettings(View view, Container c) {
-        Spinner sScreenSize = view.findViewById(R.id.SScreenSize);
-        if (sScreenSize != null) AppUtils.setSpinnerSelectionFromValue(sScreenSize, c.getScreenSize());
+        loadScreenSizeSpinner(view, c.getScreenSize(), null);
 
         Spinner sGraphicsDriver = view.findViewById(R.id.SGraphicsDriver);
         if (sGraphicsDriver != null) AppUtils.setSpinnerSelectionFromIdentifier(sGraphicsDriver, c.getGraphicsDriver());
@@ -2045,6 +2550,7 @@ public class ContainerDetailFragment extends Fragment {
 
         Spinner sEmulator64 = view.findViewById(R.id.SEmulator64);
         if (sEmulator64 != null) AppUtils.setSpinnerSelectionFromIdentifier(sEmulator64, c.getEmulator64());
+        if (sEmulator != null && sEmulator64 != null) updateEmulatorFrames(view, sEmulator, sEmulator64);
 
         CompoundButton cbShowFPS = view.findViewById(R.id.CBShowFPS);
         if (cbShowFPS != null) cbShowFPS.setChecked(c.isShowFPS());
@@ -2077,8 +2583,35 @@ public class ContainerDetailFragment extends Fragment {
         CompoundButton cbUnpackFiles = view.findViewById(R.id.CBUnpackFiles);
         if (cbUnpackFiles != null) cbUnpackFiles.setChecked(c.isUnpackFiles());
 
+        Spinner sStartupSelection = view.findViewById(R.id.SStartupSelection);
+        if (sStartupSelection != null) {
+            int startupSelection = c.getStartupSelection();
+            sStartupSelection.setSelection(startupSelection != -1 ? startupSelection : Container.STARTUP_SELECTION_ESSENTIAL);
+        }
+
+        Spinner sMIDISoundFont = view.findViewById(R.id.SMIDISoundFont);
+        if (sMIDISoundFont != null) AppUtils.setSpinnerSelectionFromValue(sMIDISoundFont, c.getMIDISoundFont());
+
+        EditText etLC_ALL = view.findViewById(R.id.ETlcall);
+        if (etLC_ALL != null) etLC_ALL.setText(c.getLC_ALL());
+
+        Spinner sPrimaryController = view.findViewById(R.id.SPrimaryController);
+        if (sPrimaryController != null) sPrimaryController.setSelection(c.getPrimaryController());
+        applyControllerMappingToUi(view, c.getControllerMapping());
+
+        CPUListView cpuListView = view.findViewById(R.id.CPUListView);
+        if (cpuListView != null) cpuListView.setCheckedCPUList(c.getCPUList(true));
+
+        CPUListView cpuListViewWoW64 = view.findViewById(R.id.CPUListViewWoW64);
+        if (cpuListViewWoW64 != null) cpuListViewWoW64.setCheckedCPUList(c.getCPUListWoW64(true));
+
+        applyInputTypeToUi(view, c.getInputType(), false);
         EnvVarsView envVarsView = view.findViewById(R.id.EnvVarsView);
-        if (envVarsView != null) envVarsView.setEnvVars(new EnvVars(c.getEnvVars()));
+        if (envVarsView != null) {
+            envVarsView.setEnvVars(new EnvVars(c.getEnvVars()));
+            CompoundButton cbSdl2Toggle = view.findViewById(R.id.CBSdl2Toggle);
+            if (cbSdl2Toggle != null) cbSdl2Toggle.setChecked(c.getEnvVars().contains("SDL_XINPUT_ENABLED=1"));
+        }
 
         // Update wincomponents by removing old views and re-adding
         ViewGroup tabView = view.findViewById(R.id.LLTabWinComponents);
@@ -2089,6 +2622,509 @@ public class ContainerDetailFragment extends Fragment {
             if (generalSectionView != null) generalSectionView.removeAllViews();
             createWinComponentsTab(view, c.getWinComponents());
         }
+
+        populateDrivesTab(view, c.getDrives());
+        applyWineConfigurationSettings(view, c);
+        if (perGameRefreshIndicators != null) {
+            attachWinComponentsIndicatorListeners(view, perGameRefreshIndicators);
+        }
+    }
+
+    private void applyWineConfigurationSettings(View view, Container settingsContainer) {
+        if (settingsContainer == null) return;
+
+        String desktopThemeValue = settingsContainer.getDesktopTheme();
+        WineThemeManager.ThemeInfo desktopTheme = new WineThemeManager.ThemeInfo(desktopThemeValue);
+
+        Spinner sDesktopTheme = view.findViewById(R.id.SDesktopTheme);
+        if (sDesktopTheme != null) sDesktopTheme.setSelection(desktopTheme.theme.ordinal());
+
+        ColorPickerView cpvDesktopBackgroundColor = view.findViewById(R.id.CPVDesktopBackgroundColor);
+        if (cpvDesktopBackgroundColor != null) cpvDesktopBackgroundColor.setColor(desktopTheme.backgroundColor);
+
+        Spinner sDesktopBackgroundType = view.findViewById(R.id.SDesktopBackgroundType);
+        if (sDesktopBackgroundType != null) sDesktopBackgroundType.setSelection(desktopTheme.backgroundType.ordinal());
+
+        Spinner sMouseWarpOverride = view.findViewById(R.id.SMouseWarpOverride);
+        if (sMouseWarpOverride != null) {
+            File userRegFile = new File(settingsContainer.getRootDir(), ".wine/user.reg");
+            if (userRegFile.exists()) {
+                try (WineRegistryEditor registryEditor = new WineRegistryEditor(userRegFile)) {
+                    AppUtils.setSpinnerSelectionFromValue(sMouseWarpOverride,
+                            registryEditor.getStringValue("Software\\Wine\\DirectInput", "MouseWarpOverride", "disable"));
+                }
+            } else {
+                AppUtils.setSpinnerSelectionFromValue(sMouseWarpOverride, "disable");
+            }
+        }
+    }
+
+    private void applyInputTypeToUi(View view, int inputType, boolean exclusiveInputEnabled) {
+        CompoundButton cbEnableXInput = view.findViewById(R.id.CBEnableXInput);
+        CompoundButton cbEnableDInput = view.findViewById(R.id.CBEnableDInput);
+        CompoundButton cbExclusiveInput = view.findViewById(R.id.CBExclusiveInput);
+        View llDInputType = view.findViewById(R.id.LLDinputMapperType);
+        Spinner sDInputType = view.findViewById(R.id.SDInputType);
+
+        if (cbEnableXInput != null) {
+            cbEnableXInput.setChecked((inputType & WinHandler.FLAG_INPUT_TYPE_XINPUT) == WinHandler.FLAG_INPUT_TYPE_XINPUT);
+            cbEnableXInput.setEnabled(exclusiveInputEnabled);
+        }
+        if (cbEnableDInput != null) {
+            cbEnableDInput.setChecked((inputType & WinHandler.FLAG_INPUT_TYPE_DINPUT) == WinHandler.FLAG_INPUT_TYPE_DINPUT);
+            cbEnableDInput.setEnabled(exclusiveInputEnabled);
+        }
+        if (cbExclusiveInput != null) cbExclusiveInput.setChecked(exclusiveInputEnabled);
+        if (sDInputType != null) {
+            sDInputType.setSelection(((inputType & WinHandler.FLAG_DINPUT_MAPPER_STANDARD) == WinHandler.FLAG_DINPUT_MAPPER_STANDARD) ? 0 : 1);
+        }
+        if (llDInputType != null && cbEnableDInput != null) {
+            llDInputType.setVisibility(cbEnableDInput.isChecked() ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void applyControllerMappingToUi(View view, String controllerMapping) {
+        if (controllerMapping == null) controllerMapping = "";
+        int[] ids = {
+                R.id.SButtonA, R.id.SButtonB, R.id.SButtonX, R.id.SButtonY, R.id.SButtonGrip, R.id.SButtonTrigger,
+                R.id.SThumbstickUp, R.id.SThumbstickDown, R.id.SThumbstickLeft, R.id.SThumbstickRight
+        };
+        XKeycode[] values = XKeycode.values();
+
+        for (int i = 0; i < ids.length; i++) {
+            Spinner spinner = view.findViewById(ids[i]);
+            if (spinner == null) continue;
+
+            byte keycode = 0;
+            if (i < controllerMapping.length()) keycode = (byte) controllerMapping.charAt(i);
+
+            int selection = 0;
+            for (int valueIndex = 0; valueIndex < values.length; valueIndex++) {
+                if (values[valueIndex].id == keycode) {
+                    selection = valueIndex;
+                    break;
+                }
+            }
+            spinner.setSelection(selection);
+        }
+    }
+
+    private void populateDrivesTab(View view, String drives) {
+        final Context context = getContext();
+        if (context == null) return;
+
+        final LinearLayout parent = view.findViewById(R.id.LLDrives);
+        final View emptyTextView = view.findViewById(R.id.TVDrivesEmptyText);
+        if (parent == null || emptyTextView == null) return;
+
+        parent.removeAllViews();
+        LayoutInflater inflater = LayoutInflater.from(context);
+        final String[] driveLetters = new String[Container.MAX_DRIVE_LETTERS];
+        for (int i = 0; i < driveLetters.length; i++) driveLetters[i] = ((char) (i + 68)) + ":";
+
+        Callback<String[]> addItem = (drive) -> {
+            final View itemView = inflater.inflate(R.layout.drive_list_item, parent, false);
+            Spinner spinner = itemView.findViewById(R.id.Spinner);
+            spinner.setAdapter(createThemedAdapter(context, driveLetters));
+            applyPopupBackground(spinner);
+            AppUtils.setSpinnerSelectionFromValue(spinner, drive[0] + ":");
+            spinner.setPopupBackgroundResource(R.drawable.content_dialog_background_dark);
+
+            final EditText editText = itemView.findViewById(R.id.EditText);
+            editText.setText(drive[1]);
+
+            itemView.findViewById(R.id.BTSearch).setOnClickListener((v) -> {
+                openDirectoryCallback = (path) -> {
+                    drive[1] = path;
+                    editText.setText(path);
+                };
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, Uri.fromFile(Environment.getExternalStorageDirectory()));
+                getActivity().startActivityFromFragment(this, intent, MainActivity.OPEN_DIRECTORY_REQUEST_CODE);
+            });
+
+            itemView.findViewById(R.id.BTRemove).setOnClickListener((v) -> {
+                parent.removeView(itemView);
+                if (parent.getChildCount() == 0) emptyTextView.setVisibility(View.VISIBLE);
+            });
+            parent.addView(itemView);
+            emptyTextView.setVisibility(View.GONE);
+        };
+
+        for (String[] drive : Container.drivesIterator(drives)) addItem.call(drive);
+
+        View addDriveButton = view.findViewById(R.id.BTAddDrive);
+        if (addDriveButton != null) {
+            addDriveButton.setOnClickListener((v) -> {
+                if (parent.getChildCount() >= Container.MAX_DRIVE_LETTERS) return;
+                final String nextDriveLetter = String.valueOf(driveLetters[parent.getChildCount()].charAt(0));
+                addItem.call(new String[]{nextDriveLetter, ""});
+            });
+        }
+
+        if (drives.isEmpty()) emptyTextView.setVisibility(View.VISIBLE);
+    }
+
+    private void runIndicatorRefresh(Runnable[] refreshIndicatorsRef) {
+        if (refreshIndicatorsRef != null && refreshIndicatorsRef.length > 0 && refreshIndicatorsRef[0] != null) {
+            refreshIndicatorsRef[0].run();
+        }
+    }
+
+    private void setupPerGameChangeIndicators(View contentView, Spinner sWineVersion, Runnable refreshIndicators) {
+        if (contentView == null || refreshIndicators == null) return;
+
+        attachRefreshOnSelection(contentView.findViewById(R.id.SAudioDriver), refreshIndicators);
+        attachRefreshOnSelection(contentView.findViewById(R.id.SMIDISoundFont), refreshIndicators);
+        attachRefreshOnSelection(contentView.findViewById(R.id.SBox64Version), refreshIndicators);
+        attachRefreshOnSelection(contentView.findViewById(R.id.SBox64Preset), refreshIndicators);
+        attachRefreshOnSelection(contentView.findViewById(R.id.SFEXCoreVersion), refreshIndicators);
+        attachRefreshOnSelection(contentView.findViewById(R.id.SFEXCorePreset), refreshIndicators);
+        attachRefreshOnSelection(contentView.findViewById(R.id.SStartupSelection), refreshIndicators);
+        attachRefreshOnSelection(contentView.findViewById(R.id.SSteamType), refreshIndicators);
+        attachRefreshOnSelection(contentView.findViewById(R.id.SDInputType), refreshIndicators);
+        attachRefreshOnSelection(contentView.findViewById(R.id.SPrimaryController), refreshIndicators);
+        attachRefreshOnSelection(contentView.findViewById(R.id.SDesktopTheme), refreshIndicators);
+        attachRefreshOnSelection(contentView.findViewById(R.id.SMouseWarpOverride), refreshIndicators);
+
+        attachRefreshOnClick(contentView.findViewById(R.id.CBShowFPS), refreshIndicators);
+        attachRefreshOnClick(contentView.findViewById(R.id.CBFullscreenStretched), refreshIndicators);
+        attachRefreshOnClick(contentView.findViewById(R.id.CBUseLegacyDRM), refreshIndicators);
+        attachRefreshOnClick(contentView.findViewById(R.id.CBLaunchRealSteam), refreshIndicators);
+        attachRefreshOnClick(contentView.findViewById(R.id.CBUseSteamInput), refreshIndicators);
+        attachRefreshOnClick(contentView.findViewById(R.id.CBForceDlc), refreshIndicators);
+        attachRefreshOnClick(contentView.findViewById(R.id.CBSteamOfflineMode), refreshIndicators);
+        attachRefreshOnClick(contentView.findViewById(R.id.CBUnpackFiles), refreshIndicators);
+        attachRefreshOnClick(contentView.findViewById(R.id.CBEnableXInput), refreshIndicators);
+        attachRefreshOnClick(contentView.findViewById(R.id.CBEnableDInput), refreshIndicators);
+        attachRefreshOnClick(contentView.findViewById(R.id.CBExclusiveInput), refreshIndicators);
+        attachRefreshOnClick(contentView.findViewById(R.id.CBSdl2Toggle), refreshIndicators);
+
+        attachRefreshOnTextChanged(contentView.findViewById(R.id.ETScreenWidth), refreshIndicators);
+        attachRefreshOnTextChanged(contentView.findViewById(R.id.ETScreenHeight), refreshIndicators);
+        attachRefreshOnTextChanged(contentView.findViewById(R.id.ETlcall), refreshIndicators);
+
+        View addEnvVarButton = contentView.findViewById(R.id.BTAddEnvVar);
+        if (addEnvVarButton != null) addEnvVarButton.setOnClickListener((v) -> {
+            EnvVarsView envVarsView = contentView.findViewById(R.id.EnvVarsView);
+            new AddEnvVarDialog(contentView.getContext(), envVarsView).show();
+            refreshIndicators.run();
+        });
+
+        attachWinComponentsIndicatorListeners(contentView, refreshIndicators);
+        attachControllerMappingIndicatorListeners(contentView, refreshIndicators);
+    }
+
+    private void attachRefreshOnSelection(@Nullable Spinner spinner, Runnable refreshIndicators) {
+        if (spinner == null) return;
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                refreshIndicators.run();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+    }
+
+    private void attachRefreshOnClick(@Nullable View view, Runnable refreshIndicators) {
+        if (view == null) return;
+        view.setOnClickListener((v) -> refreshIndicators.run());
+    }
+
+    private void attachRefreshOnTextChanged(@Nullable EditText editText, Runnable refreshIndicators) {
+        if (editText == null) return;
+        editText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                refreshIndicators.run();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    private void attachControllerMappingIndicatorListeners(View contentView, Runnable refreshIndicators) {
+        int[] ids = {
+                R.id.SButtonA, R.id.SButtonB, R.id.SButtonX, R.id.SButtonY, R.id.SButtonGrip, R.id.SButtonTrigger,
+                R.id.SThumbstickUp, R.id.SThumbstickDown, R.id.SThumbstickLeft, R.id.SThumbstickRight
+        };
+        for (int id : ids) {
+            Spinner spinner = contentView.findViewById(id);
+            attachRefreshOnSelection(spinner, refreshIndicators);
+        }
+    }
+
+    private void attachWinComponentsIndicatorListeners(View contentView, Runnable refreshIndicators) {
+        ViewGroup tabView = contentView.findViewById(R.id.LLTabWinComponents);
+        if (tabView == null) return;
+
+        ArrayList<View> spinnerViews = new ArrayList<>();
+        AppUtils.findViewsWithClass(tabView, Spinner.class, spinnerViews);
+        for (View spinnerView : spinnerViews) {
+            Spinner spinner = (Spinner) spinnerView;
+            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    refreshIndicators.run();
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {}
+            });
+        }
+    }
+
+    private void refreshPerGameChangeIndicators(View contentView, Container comparisonContainer) {
+        if (contentView == null || comparisonContainer == null) return;
+
+        ViewGroup llContent = contentView.findViewById(R.id.LLContent);
+        if (llContent == null) return;
+
+        markIfChanged(findLabelForView(contentView.findViewById(R.id.SScreenSize), llContent),
+                getScreenSize(contentView),
+                comparisonContainer.getScreenSize());
+
+        TextView graphicsDriverLabel = findLabelForView(contentView.findViewById(R.id.SGraphicsDriver), llContent);
+        if (graphicsDriverLabel != null) {
+            trackLabel(graphicsDriverLabel);
+            Spinner sGraphicsDriver = contentView.findViewById(R.id.SGraphicsDriver);
+            String graphicsDriver = sGraphicsDriver != null && sGraphicsDriver.getSelectedItem() != null
+                    ? StringUtils.parseIdentifier(sGraphicsDriver.getSelectedItem()) : "";
+            View graphicsConfigButton = contentView.findViewById(R.id.BTGraphicsDriverConfig);
+            String graphicsDriverConfig = graphicsConfigButton != null && graphicsConfigButton.getTag() != null
+                    ? graphicsConfigButton.getTag().toString() : "";
+            boolean graphicsChanged = valuesDiffer(graphicsDriver, comparisonContainer.getGraphicsDriver())
+                    || valuesDiffer(graphicsDriverConfig, comparisonContainer.getGraphicsDriverConfig());
+            markIfChanged(graphicsDriverLabel, graphicsChanged ? "1" : "", "");
+        }
+
+        TextView dxWrapperLabel = findLabelForView(contentView.findViewById(R.id.SDXWrapper), llContent);
+        if (dxWrapperLabel != null) {
+            trackLabel(dxWrapperLabel);
+            Spinner sDXWrapper = contentView.findViewById(R.id.SDXWrapper);
+            String dxwrapper = sDXWrapper != null && sDXWrapper.getSelectedItem() != null
+                    ? StringUtils.parseIdentifier(sDXWrapper.getSelectedItem()) : "";
+            View dxWrapperConfigButton = contentView.findViewById(R.id.BTDXWrapperConfig);
+            String dxWrapperConfig = dxWrapperConfigButton != null && dxWrapperConfigButton.getTag() != null
+                    ? dxWrapperConfigButton.getTag().toString() : "";
+            boolean dxWrapperChanged = valuesDiffer(dxwrapper, comparisonContainer.getDXWrapper())
+                    || valuesDiffer(dxWrapperConfig, comparisonContainer.getDXWrapperConfig());
+            markIfChanged(dxWrapperLabel, dxWrapperChanged ? "1" : "", "");
+        }
+
+        markSpinnerIfChanged(contentView, R.id.SAudioDriver, comparisonContainer.getAudioDriver());
+        markSpinnerValueIfChanged(contentView, R.id.SMIDISoundFont, comparisonContainer.getMIDISoundFont());
+        markSpinnerIfChanged(contentView, R.id.SEmulator, comparisonContainer.getEmulator());
+        markSpinnerIfChanged(contentView, R.id.SEmulator64, comparisonContainer.getEmulator64());
+        markSpinnerValueIfChanged(contentView, R.id.SBox64Version, comparisonContainer.getBox64Version());
+        markIfChanged(findLabelForView(contentView.findViewById(R.id.SBox64Preset), llContent),
+                Box64PresetManager.getSpinnerSelectedId((Spinner) contentView.findViewById(R.id.SBox64Preset)),
+                comparisonContainer.getBox64Preset());
+        markSpinnerValueIfChanged(contentView, R.id.SFEXCoreVersion, comparisonContainer.getFEXCoreVersion());
+        markIfChanged(findLabelForView(contentView.findViewById(R.id.SFEXCorePreset), llContent),
+                FEXCorePresetManager.getSpinnerSelectedId((Spinner) contentView.findViewById(R.id.SFEXCorePreset)),
+                comparisonContainer.getFEXCorePreset());
+        markSpinnerPositionIfChanged(contentView, R.id.SStartupSelection, String.valueOf(comparisonContainer.getStartupSelection()));
+        markSpinnerPositionIfChanged(contentView, R.id.SPrimaryController, String.valueOf(comparisonContainer.getPrimaryController()));
+        markIfChanged(findLabelForView(contentView.findViewById(R.id.ETlcall), llContent),
+                ((EditText) contentView.findViewById(R.id.ETlcall)).getText().toString(),
+                comparisonContainer.getLC_ALL());
+        markIfChanged(findLabelForView(contentView.findViewById(R.id.EnvVarsView), llContent),
+                ((EnvVarsView) contentView.findViewById(R.id.EnvVarsView)).getEnvVars(),
+                comparisonContainer.getEnvVars());
+        markIfChanged(findLabelForView(contentView.findViewById(R.id.LLDrives), llContent),
+                getDrives(contentView),
+                comparisonContainer.getDrives());
+        markIfChanged(findLabelForView(contentView.findViewById(R.id.CPUListView), llContent),
+                ((CPUListView) contentView.findViewById(R.id.CPUListView)).getCheckedCPUListAsString(),
+                comparisonContainer.getCPUList(true));
+        markIfChanged(findLabelForView(contentView.findViewById(R.id.CPUListViewWoW64), llContent),
+                ((CPUListView) contentView.findViewById(R.id.CPUListViewWoW64)).getCheckedCPUListAsString(),
+                comparisonContainer.getCPUListWoW64(true));
+        markIfChanged(findLabelForView(contentView.findViewById(R.id.SDesktopTheme), llContent),
+                getDesktopTheme(contentView),
+                comparisonContainer.getDesktopTheme());
+        markSpinnerPositionIfChanged(contentView, R.id.SMouseWarpOverride, getMouseWarpDefault(comparisonContainer));
+
+        CompoundButton cbShowFPS = contentView.findViewById(R.id.CBShowFPS);
+        if (cbShowFPS != null) {
+            trackLabel((TextView) cbShowFPS);
+            markIfChanged((TextView) cbShowFPS, cbShowFPS.isChecked() ? "1" : "0", comparisonContainer.isShowFPS() ? "1" : "0");
+        }
+
+        CompoundButton cbFullscreenStretched = contentView.findViewById(R.id.CBFullscreenStretched);
+        if (cbFullscreenStretched != null) {
+            trackLabel((TextView) cbFullscreenStretched);
+            markIfChanged((TextView) cbFullscreenStretched, cbFullscreenStretched.isChecked() ? "1" : "0",
+                    comparisonContainer.isFullscreenStretched() ? "1" : "0");
+        }
+
+        markInputIndicators(contentView, comparisonContainer);
+        markControllerMappingIndicator(contentView, comparisonContainer, llContent);
+        markSteamIndicators(contentView, comparisonContainer);
+        refreshWinComponentsIndicators(contentView, comparisonContainer);
+    }
+
+    private void markInputIndicators(View contentView, Container comparisonContainer) {
+        CompoundButton cbEnableXInput = contentView.findViewById(R.id.CBEnableXInput);
+        CompoundButton cbEnableDInput = contentView.findViewById(R.id.CBEnableDInput);
+        CompoundButton cbExclusiveInput = contentView.findViewById(R.id.CBExclusiveInput);
+        Spinner sDInputType = contentView.findViewById(R.id.SDInputType);
+        int containerInputType = comparisonContainer.getInputType();
+
+        if (cbEnableXInput != null) {
+            trackLabel((TextView) cbEnableXInput);
+            markIfChanged((TextView) cbEnableXInput,
+                    cbEnableXInput.isChecked() ? "1" : "0",
+                    (containerInputType & WinHandler.FLAG_INPUT_TYPE_XINPUT) == WinHandler.FLAG_INPUT_TYPE_XINPUT ? "1" : "0");
+        }
+        if (cbEnableDInput != null) {
+            trackLabel((TextView) cbEnableDInput);
+            markIfChanged((TextView) cbEnableDInput,
+                    cbEnableDInput.isChecked() ? "1" : "0",
+                    (containerInputType & WinHandler.FLAG_INPUT_TYPE_DINPUT) == WinHandler.FLAG_INPUT_TYPE_DINPUT ? "1" : "0");
+        }
+        if (sDInputType != null) {
+            ViewGroup llContent = contentView.findViewById(R.id.LLContent);
+            markIfChanged(findLabelForView(sDInputType, llContent),
+                    String.valueOf(sDInputType.getSelectedItemPosition()),
+                    ((containerInputType & WinHandler.FLAG_DINPUT_MAPPER_STANDARD) == WinHandler.FLAG_DINPUT_MAPPER_STANDARD) ? "0" : "1");
+        }
+        if (cbExclusiveInput != null) {
+            trackLabel((TextView) cbExclusiveInput);
+            markIfChanged((TextView) cbExclusiveInput, cbExclusiveInput.isChecked() ? "1" : "0", "0");
+        }
+    }
+
+    private void markControllerMappingIndicator(View contentView, Container comparisonContainer, ViewGroup llContent) {
+        TextView label = findLabelForView(contentView.findViewById(R.id.SButtonA), llContent);
+        markIfChanged(label, getControllerMapping(contentView), comparisonContainer.getControllerMapping());
+    }
+
+    private void markSteamIndicators(View contentView, Container comparisonContainer) {
+        CompoundButton cbUseLegacyDRM = contentView.findViewById(R.id.CBUseLegacyDRM);
+        CompoundButton cbLaunchRealSteam = contentView.findViewById(R.id.CBLaunchRealSteam);
+        CompoundButton cbUseSteamInput = contentView.findViewById(R.id.CBUseSteamInput);
+        Spinner sSteamType = contentView.findViewById(R.id.SSteamType);
+        CompoundButton cbForceDlc = contentView.findViewById(R.id.CBForceDlc);
+        CompoundButton cbSteamOfflineMode = contentView.findViewById(R.id.CBSteamOfflineMode);
+        CompoundButton cbUnpackFiles = contentView.findViewById(R.id.CBUnpackFiles);
+
+        if (cbUseLegacyDRM != null) {
+            trackLabel((TextView) cbUseLegacyDRM);
+            markIfChanged((TextView) cbUseLegacyDRM, cbUseLegacyDRM.isChecked() ? "1" : "0",
+                    comparisonContainer.isUseLegacyDRM() ? "1" : "0");
+        }
+        if (cbLaunchRealSteam != null) {
+            trackLabel((TextView) cbLaunchRealSteam);
+            markIfChanged((TextView) cbLaunchRealSteam, cbLaunchRealSteam.isChecked() ? "1" : "0",
+                    comparisonContainer.isLaunchRealSteam() ? "1" : "0");
+        }
+        if (cbUseSteamInput != null) {
+            trackLabel((TextView) cbUseSteamInput);
+            markIfChanged((TextView) cbUseSteamInput, cbUseSteamInput.isChecked() ? "1" : "0",
+                    comparisonContainer.getExtra("useSteamInput", "0"));
+        }
+        if (sSteamType != null) {
+            ViewGroup llContent = contentView.findViewById(R.id.LLContent);
+            markIfChanged(findLabelForView(sSteamType, llContent), getSelectedSteamType(sSteamType), comparisonContainer.getSteamType());
+        }
+        if (cbForceDlc != null) {
+            trackLabel((TextView) cbForceDlc);
+            markIfChanged((TextView) cbForceDlc, cbForceDlc.isChecked() ? "1" : "0",
+                    comparisonContainer.isForceDlc() ? "1" : "0");
+        }
+        if (cbSteamOfflineMode != null) {
+            trackLabel((TextView) cbSteamOfflineMode);
+            markIfChanged((TextView) cbSteamOfflineMode, cbSteamOfflineMode.isChecked() ? "1" : "0",
+                    comparisonContainer.isSteamOfflineMode() ? "1" : "0");
+        }
+        if (cbUnpackFiles != null) {
+            trackLabel((TextView) cbUnpackFiles);
+            markIfChanged((TextView) cbUnpackFiles, cbUnpackFiles.isChecked() ? "1" : "0",
+                    comparisonContainer.isUnpackFiles() ? "1" : "0");
+        }
+    }
+
+    private void refreshWinComponentsIndicators(View contentView, Container comparisonContainer) {
+        HashMap<String, String> containerDefaults = new HashMap<>();
+        for (String[] wincomponent : new KeyValueSet(comparisonContainer.getWinComponents())) {
+            containerDefaults.put(wincomponent[0], wincomponent[1]);
+        }
+
+        ViewGroup tabView = contentView.findViewById(R.id.LLTabWinComponents);
+        if (tabView == null) return;
+
+        ArrayList<View> spinnerViews = new ArrayList<>();
+        AppUtils.findViewsWithClass(tabView, Spinner.class, spinnerViews);
+        for (View spinnerView : spinnerViews) {
+            Spinner spinner = (Spinner) spinnerView;
+            TextView label = null;
+            if (spinner.getParent() instanceof ViewGroup) {
+                label = ((ViewGroup) spinner.getParent()).findViewById(R.id.TextView);
+            }
+            if (label == null) continue;
+            trackLabel(label);
+            String key = spinner.getTag() != null ? spinner.getTag().toString() : "";
+            markIfChanged(label, String.valueOf(spinner.getSelectedItemPosition()), containerDefaults.get(key));
+        }
+    }
+
+    private String getSelectedSteamType(Spinner spinner) {
+        int selection = spinner != null ? spinner.getSelectedItemPosition() : 0;
+        return selection == 2 ? Container.STEAM_TYPE_ULTRALIGHT
+                : selection == 1 ? Container.STEAM_TYPE_LIGHT
+                : Container.STEAM_TYPE_NORMAL;
+    }
+
+    private String getMouseWarpDefault(Container comparisonContainer) {
+        File userRegFile = new File(comparisonContainer.getRootDir(), ".wine/user.reg");
+        if (userRegFile.exists()) {
+            try (WineRegistryEditor registryEditor = new WineRegistryEditor(userRegFile)) {
+                return registryEditor.getStringValue("Software\\Wine\\DirectInput", "MouseWarpOverride", "disable");
+            }
+        }
+        return "disable";
+    }
+
+    private TextView findLabelForView(View target, ViewGroup root) {
+        if (target == null || root == null || target.getParent() == null) return null;
+        ViewGroup directParent = (ViewGroup) target.getParent();
+
+        while (directParent != null && directParent.getParent() != root && directParent.getParent() instanceof ViewGroup) {
+            target = directParent;
+            directParent = (ViewGroup) directParent.getParent();
+        }
+
+        if (directParent == null) return null;
+
+        ViewGroup containerParent = (ViewGroup) directParent.getParent();
+        if (containerParent == null) containerParent = directParent;
+
+        int idx = -1;
+        for (int i = 0; i < containerParent.getChildCount(); i++) {
+            if (containerParent.getChildAt(i) == target || containerParent.getChildAt(i) == directParent) {
+                idx = i;
+                break;
+            }
+        }
+
+        for (int i = idx - 1; i >= 0; i--) {
+            View child = containerParent.getChildAt(i);
+            if (child instanceof TextView) return (TextView) child;
+            if (child instanceof ViewGroup) {
+                ArrayList<View> textViews = new ArrayList<>();
+                AppUtils.findViewsWithClass((ViewGroup) child, TextView.class, textViews);
+                if (!textViews.isEmpty()) return (TextView) textViews.get(textViews.size() - 1);
+            }
+        }
+        return null;
     }
 
     public static void loadBox64VersionSpinner(Context context, Container container, ContentsManager manager, Spinner spinner, boolean isArm64EC) {
@@ -2410,15 +3446,53 @@ public class ContainerDetailFragment extends Fragment {
             content.append("gog_id=").append(createShortcutForGogId).append("\n");
         }
         content.append("container_id=").append(container.id).append("\n");
+        boolean[] hasOverrides = {false};
 
-        // Write all additional overrides from data as extra data
+        appendShortcutOverrideIfNeeded(content, container, "screenSize", data.opt("screenSize"), container.getScreenSize(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "envVars", data.opt("envVars"), container.getEnvVars(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "cpuList", data.opt("cpuList"), container.getCPUList(true), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "cpuListWoW64", data.opt("cpuListWoW64"), container.getCPUListWoW64(true), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "graphicsDriver", data.opt("graphicsDriver"), container.getGraphicsDriver(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "graphicsDriverConfig", data.opt("graphicsDriverConfig"), container.getGraphicsDriverConfig(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "dxwrapper", data.opt("dxwrapper"), container.getDXWrapper(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "dxwrapperConfig", data.opt("dxwrapperConfig"), container.getDXWrapperConfig(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "audioDriver", data.opt("audioDriver"), container.getAudioDriver(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "emulator", data.opt("emulator"), container.getEmulator(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "emulator64", data.opt("emulator64"), container.getEmulator64(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "wincomponents", data.opt("wincomponents"), container.getWinComponents(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "drives", data.opt("drives"), container.getDrives(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "showFPS", data.opt("showFPS"), container.isShowFPS(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "fullscreenStretched", data.opt("fullscreenStretched"), container.isFullscreenStretched(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "inputType", data.opt("inputType"), container.getInputType(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "disableXinput", data.opt("disableXinput"), "", hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "startupSelection", data.opt("startupSelection"), container.getStartupSelection(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "box64Version", data.opt("box64Version"), container.getBox64Version(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "box64Preset", data.opt("box64Preset"), container.getBox64Preset(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "fexcoreVersion", data.opt("fexcoreVersion"), container.getFEXCoreVersion(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "fexcorePreset", data.opt("fexcorePreset"), container.getFEXCorePreset(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "desktopTheme", data.opt("desktopTheme"), container.getDesktopTheme(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "midiSoundFont", data.opt("midiSoundFont"), container.getMIDISoundFont(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "lc_all", data.opt("lc_all"), container.getLC_ALL(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "primaryController", data.opt("primaryController"), container.getPrimaryController(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "controllerMapping", data.opt("controllerMapping"), container.getControllerMapping(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "useLegacyDRM", data.opt("useLegacyDRM"), container.isUseLegacyDRM(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "launchRealSteam", data.opt("launchRealSteam"), container.isLaunchRealSteam(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "useSteamInput", data.opt("useSteamInput"), container.getExtra("useSteamInput", "0"), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "steamType", data.opt("steamType"), container.getSteamType(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "forceDlc", data.opt("forceDlc"), container.isForceDlc(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "steamOfflineMode", data.opt("steamOfflineMode"), container.isSteamOfflineMode(), hasOverrides);
+        appendShortcutOverrideIfNeeded(content, container, "unpackFiles", data.opt("unpackFiles"), container.isUnpackFiles(), hasOverrides);
+
         java.util.Iterator<String> keys = data.keys();
         while (keys.hasNext()) {
             String key = keys.next();
-            if (!key.equals("name") && !key.equals("wineVersion")) {
-                content.append(key).append("=").append(data.getString(key)).append("\n");
+            if (Arrays.asList(SHORTCUT_SETTING_OVERRIDE_KEYS).contains(key) || key.equals("name") || key.equals("wineVersion")) {
+                continue;
             }
+            appendShortcutExtra(content, key, normalizeShortcutValue(data.opt(key)));
         }
+
+        appendShortcutExtra(content, EXTRA_USE_CONTAINER_DEFAULTS, hasOverrides[0] ? "0" : "1");
 
         FileUtils.writeString(shortcutFile, content.toString());
     }

@@ -2,19 +2,14 @@ package com.winlator.cmod.google
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.util.Log
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.Scope
-import com.google.android.gms.games.GamesSignInClient
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.SnapshotsClient
 import com.google.android.gms.games.snapshot.Snapshot
 import com.google.android.gms.games.snapshot.SnapshotMetadataChange
 import com.google.android.gms.tasks.Tasks
-import com.winlator.cmod.R
-import com.winlator.cmod.PluviaApp
 import com.winlator.cmod.epic.service.EpicAuthManager
 import com.winlator.cmod.epic.service.EpicService
 import com.winlator.cmod.gog.service.GOGAuthManager
@@ -24,7 +19,7 @@ import com.winlator.cmod.steam.utils.PrefManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -47,13 +42,11 @@ object CloudSyncManager {
     private const val TAG = "CloudSyncManager"
     private const val PREFS_NAME = "google_store_login_sync"
     private const val KEY_GOOGLE_SYNC_ENABLED = "google_sync_enabled"
-    private const val KEY_PENDING_BACKUP = "pending_backup"
-    private const val KEY_LAST_SYNC_FINGERPRINT = "last_sync_fingerprint"
     private const val KEY_LAST_SYNC_TIME = "last_sync_time"
-    private const val KEY_AUTO_RESTORE_COMPLETED = "auto_restore_completed"
     private const val KEY_LAST_SYNC_ERROR = "last_sync_error"
-    private const val KEY_SNAPSHOTS_BLOCKED = "snapshots_blocked"
     private const val SNAPSHOT_NAME = "store_logins_v1"
+    private const val AUTH_SESSION_RETRY_COUNT = 5
+    private const val AUTH_SESSION_RETRY_DELAY_MS = 750L
     private const val ZIP_MANIFEST = "manifest.json"
     private const val ZIP_STEAM = "stores/steam.json"
     private const val ZIP_EPIC = "stores/epic_credentials.json"
@@ -74,11 +67,6 @@ object CloudSyncManager {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val syncMutex = Mutex()
-    private val permissionEvents = kotlinx.coroutines.flow.MutableSharedFlow<PermissionResumeEvent>(extraBufferCapacity = 1)
-    private var pendingSavedGamesAction: PendingSavedGamesAction? = null
-
-    val savedGamesPermissionEvents: kotlinx.coroutines.flow.SharedFlow<PermissionResumeEvent> =
-        permissionEvents.asSharedFlow()
 
     data class StoreLoginSyncState(
         val googleSignedIn: Boolean = false,
@@ -109,22 +97,6 @@ object CloudSyncManager {
         val lastModifiedTime: Long?
     )
 
-    data class PermissionResumeEvent(
-        val success: Boolean,
-        val message: String
-    )
-
-    private enum class PendingSavedGamesAction {
-        BACKUP,
-        RESTORE
-    }
-
-    private enum class SavedGamesPermissionState {
-        GRANTED,
-        REQUESTED,
-        UNAVAILABLE
-    }
-
     private data class SyncSummary(
         val restoredStores: Set<String> = emptySet(),
         val uploadedStores: Set<String> = emptySet(),
@@ -154,20 +126,9 @@ object CloudSyncManager {
         Timber.tag(TAG).i("Starting Google Play Games sign-in for store login sync")
         gamesSignInClient.signIn().addOnCompleteListener { task ->
             if (task.isSuccessful && task.result?.isAuthenticated == true) {
-                Log.d(TAG, "Sign in successful to Play Games Services; checking Saved Games scope")
-                Timber.tag(TAG).i("Google Play Games sign-in succeeded; checking Saved Games scope")
-                
-                scope.launch {
-                    val state = ensureSavedGamesPermission(activity, PendingSavedGamesAction.RESTORE)
-                    if (state == SavedGamesPermissionState.REQUESTED) {
-                        Timber.tag(TAG).i("Drive scope missing; requesting permission from user")
-                        callback(true, "Sign-in partially successful; please allow Saved Games access.")
-                    } else if (state == SavedGamesPermissionState.GRANTED) {
-                        requestSavedGamesAccess(activity, gamesSignInClient, callback)
-                    } else {
-                        callback(false, "Google Saved Games is unavailable on this device.")
-                    }
-                }
+                Log.d(TAG, "Sign in successful to Play Games Services; validating Saved Games access")
+                Timber.tag(TAG).i("Google Play Games sign-in succeeded; validating Saved Games access")
+                startCloudSyncSession(activity, callback)
             } else {
                 Log.e(TAG, "Sign in failed: ${task.exception?.message}")
                 Timber.tag(TAG).e(task.exception, "Google Play Games sign-in failed")
@@ -176,49 +137,48 @@ object CloudSyncManager {
         }
     }
 
-    private fun requestSavedGamesAccess(
+    private fun startCloudSyncSession(
         activity: Activity,
-        gamesSignInClient: GamesSignInClient,
         callback: (Boolean, String) -> Unit
     ) {
         scope.launch {
             prefs(activity).edit().putBoolean(KEY_GOOGLE_SYNC_ENABLED, true).apply()
-            
-            Timber.tag(TAG).i("Starting smart sync with Play Games Services v2")
-            val syncResult = runCatching {
-                performSmartSync(activity, preferRestoreForMissingStores = true)
+
+            if (!awaitAuthenticatedSession(activity)) {
+                callback(
+                    false,
+                    "Google Play Games sign-in is still finishing. Wait a moment and try cloud sync again."
+                )
+                return@launch
             }
-            val message = syncResult.fold(
-                onSuccess = {
-                    clearSyncError(activity)
-                    it.message()
-                },
-                onFailure = { error ->
-                    rememberSyncError(activity, error)
+
+            Timber.tag(TAG).i("Play Games session ready; reading Saved Games state without auto-sync")
+            val message = runCatching {
+                val state = readStateInternal(activity, authenticated = true)
+                when {
+                    state.cloudStores.isNotEmpty() ->
+                        "Google Play Games connected. Restore is available for ${state.cloudStores.joinToString()}."
+                    state.localStores.isNotEmpty() ->
+                        "Google Play Games connected. Tap Backup to save ${state.localStores.joinToString()} logins."
+                    else ->
+                        "Google Play Games connected. Backup and Restore are ready."
                 }
-            )
+            }.getOrElse { error ->
+                rememberSyncError(activity, error)
+            }
             callback(true, message)
         }
     }
 
     fun signOut(activity: Activity, callback: (Boolean, String) -> Unit) {
-        Log.i(TAG, "Signing out of Google Play Games store login sync")
-        Timber.tag(TAG).i("Signing out of Google Play Games and clearing scopes")
-        
+        Log.i(TAG, "Disabling Google Play Games store login sync")
+        Timber.tag(TAG).i("Disabling Google Play Games sync for this app")
+
         prefs(activity).edit()
             .putBoolean(KEY_GOOGLE_SYNC_ENABLED, false)
-            .putBoolean(KEY_PENDING_BACKUP, false)
             .apply()
         clearSyncError(activity)
-
-        // For PGS v2, there is no direct signOut() on GamesSignInClient.
-        // We sign out from the legacy GoogleSignInClient which should also clear the session.
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
-        val signInClient = GoogleSignIn.getClient(activity, gso)
-        signInClient.signOut().addOnCompleteListener { task ->
-            Timber.tag(TAG).i("Google legacy sign-out complete (success: %s)", task.isSuccessful)
-            callback(true, "Signed out of Google Play Games.")
-        }
+        callback(true, "Google Play Games sync disabled for this app.")
     }
 
     fun isAuthenticated(activity: Activity, callback: (Boolean) -> Unit) {
@@ -230,31 +190,17 @@ object CloudSyncManager {
     }
 
     fun queueStoreLoginBackup(context: Context) {
-        prefs(context).edit().putBoolean(KEY_PENDING_BACKUP, true).apply()
-        Timber.tag(TAG).i("Queued store login backup")
-
-        val currentActivity = PluviaApp.currentForegroundActivity
-        if (currentActivity != null) {
-            Timber.tag(TAG).d("Foreground activity available, flushing pending backup immediately")
-            flushPendingBackup(currentActivity)
-        } else {
-            Timber.tag(TAG).d("No foreground activity available, pending backup will flush later")
-        }
+        Timber.tag(TAG).i(
+            "Ignoring automatic store login backup request for %s; backups are manual-only",
+            context.packageName
+        )
     }
 
     fun flushPendingBackup(activity: Activity) {
-        scope.launch {
-            runCatching {
-                if (!prefs(activity).getBoolean(KEY_PENDING_BACKUP, false)) {
-                    Timber.tag(TAG).v("flushPendingBackup skipped: no pending backup")
-                    return@runCatching
-                }
-                Timber.tag(TAG).i("Flushing pending store login backup")
-                performBackupIfAuthenticated(activity)
-            }.onFailure { error ->
-                Timber.tag(TAG).e(error, "Failed to flush pending store login backup")
-            }
-        }
+        Timber.tag(TAG).v(
+            "Skipping automatic store login backup flush for %s; backups are manual-only",
+            activity::class.java.simpleName
+        )
     }
 
     suspend fun syncOnGoogleScreenOpened(activity: Activity): StoreLoginSyncState {
@@ -269,21 +215,6 @@ object CloudSyncManager {
             }
             val authenticated = isAuthenticatedBlocking(activity)
             Timber.tag(TAG).i("Google screen opened; authenticated=%s", authenticated)
-            if (authenticated) {
-                val prefs = prefs(activity)
-                if (!snapshotsBlocked(activity) && hasSavedGamesPermission(activity)) {
-                    runCatching {
-                        performSmartSync(activity, preferRestoreForMissingStores = true)
-                    }.onFailure { error ->
-                        Timber.tag(TAG).e(error, "Initial Google screen sync failed")
-                    }
-                } else if (!hasSavedGamesPermission(activity)) {
-                    Timber.tag(TAG).i("Skipping automatic Google screen sync because DRIVE_APPFOLDER permission is missing")
-                } else {
-                    Timber.tag(TAG).w("Skipping automatic Google screen sync because snapshots are blocked")
-                }
-                prefs.edit().putBoolean(KEY_AUTO_RESTORE_COMPLETED, true).apply()
-            }
             readStateInternal(activity, authenticated)
         }
     }
@@ -313,11 +244,6 @@ object CloudSyncManager {
                 Timber.tag(TAG).w("restoreStoreLogins aborted: Google Play Games not authenticated")
                 return@withContext "Sign in to Google Play Games first."
             }
-            when (ensureSavedGamesPermission(activity, PendingSavedGamesAction.RESTORE)) {
-                SavedGamesPermissionState.UNAVAILABLE -> return@withContext "Sign in to Google Play Games first."
-                SavedGamesPermissionState.REQUESTED -> return@withContext "Grant Google Saved Games permission to continue restore."
-                SavedGamesPermissionState.GRANTED -> Unit
-            }
 
             Log.i(TAG, "Starting manual store login restore")
             clearSyncError(activity)
@@ -332,9 +258,8 @@ object CloudSyncManager {
 
                     val restored = restoreMissingStores(activity, payload)
                     if (restored.isNotEmpty()) {
-                        prefs(activity).edit().putBoolean(KEY_AUTO_RESTORE_COMPLETED, true).apply()
+                        rehydrateRestoredStores(activity, restored)
                     }
-
                     val local = collectLocalPayload(activity)
                     SyncSummary(
                         restoredStores = restored,
@@ -365,11 +290,6 @@ object CloudSyncManager {
                 Timber.tag(TAG).w("backupStoreLogins aborted: Google Play Games not authenticated")
                 return@withContext "Sign in to Google Play Games first."
             }
-            when (ensureSavedGamesPermission(activity, PendingSavedGamesAction.BACKUP)) {
-                SavedGamesPermissionState.UNAVAILABLE -> return@withContext "Sign in to Google Play Games first."
-                SavedGamesPermissionState.REQUESTED -> return@withContext "Grant Google Saved Games permission to continue backup."
-                SavedGamesPermissionState.GRANTED -> Unit
-            }
 
             Log.i(TAG, "Starting manual store login backup")
             clearSyncError(activity)
@@ -377,27 +297,36 @@ object CloudSyncManager {
             runCatching {
                 val summary = syncMutex.withLock {
                     val localPayload = collectLocalPayload(activity)
+                    val remotePayload = readRemotePayload(activity).payload
                     if (localPayload.stores.isEmpty()) {
                         return@withLock SyncSummary(
                             localStores = emptySet(),
-                            cloudStores = readRemotePayload(activity).payload?.stores?.keys ?: emptySet()
+                            cloudStores = remotePayload?.stores?.keys ?: emptySet(),
+                            lastSyncTime = readRemotePayload(activity).lastModifiedTime ?: prefs(activity).getLong(KEY_LAST_SYNC_TIME, 0L).takeIf { it > 0L }
                         )
                     }
-
-                    val uploaded = backupPayload(activity, localPayload)
+                    val shouldUpload = remotePayload == null || localPayload.fingerprint != remotePayload.fingerprint
+                    val uploaded = if (shouldUpload) backupPayload(activity, localPayload) else emptySet()
+                    val effectiveCloudStores = if (uploaded.isNotEmpty()) {
+                        localPayload.stores.keys
+                    } else {
+                        remotePayload?.stores?.keys ?: localPayload.stores.keys
+                    }
                     SyncSummary(
                         uploadedStores = uploaded,
                         localStores = localPayload.stores.keys,
-                        cloudStores = localPayload.stores.keys,
+                        cloudStores = effectiveCloudStores,
                         lastSyncTime = prefs(activity).getLong(KEY_LAST_SYNC_TIME, 0L).takeIf { it > 0L }
                     )
                 }
 
                 clearSyncError(activity)
-                if (summary.uploadedStores.isEmpty()) {
-                    "No local store logins are available to back up."
-                } else {
+                if (summary.uploadedStores.isNotEmpty()) {
                     summary.message()
+                } else if (summary.cloudStores.isNotEmpty()) {
+                    "Cloud backup already matches the current store logins."
+                } else {
+                    "No local store logins are available to back up."
                 }
             }.getOrElse { error ->
                 rememberSyncError(activity, error)
@@ -415,10 +344,9 @@ object CloudSyncManager {
                 val remote = readRemotePayload(activity)
                 val remotePayload = remote.payload
                 Timber.tag(TAG).i(
-                    "performSmartSync localStores=%s remoteStores=%s pendingBackup=%s preferRestore=%s",
+                    "performSmartSync localStores=%s remoteStores=%s preferRestore=%s",
                     localBefore.stores.keys,
                     remotePayload?.stores?.keys ?: emptySet<String>(),
-                    prefs(activity).getBoolean(KEY_PENDING_BACKUP, false),
                     preferRestoreForMissingStores
                 )
 
@@ -429,35 +357,13 @@ object CloudSyncManager {
                 }
 
                 val localAfterRestore = collectLocalPayload(activity)
-                val shouldUpload = localAfterRestore.stores.isNotEmpty() &&
-                    (prefs(activity).getBoolean(KEY_PENDING_BACKUP, false) ||
-                        remotePayload == null ||
-                        localAfterRestore.fingerprint != remotePayload.fingerprint)
-
-                val uploadedStores = if (shouldUpload) {
-                    Timber.tag(TAG).i("Local payload differs or backup pending; uploading stores=%s", localAfterRestore.stores.keys)
-                    backupPayload(activity, localAfterRestore)
-                } else {
-                    Timber.tag(TAG).d("Cloud backup already current; skipping upload")
-                    emptySet()
-                }
-
-                val effectiveCloudStores = if (uploadedStores.isNotEmpty()) {
-                    localAfterRestore.stores.keys
-                } else {
-                    remotePayload?.stores?.keys ?: emptySet()
-                }
+                val effectiveCloudStores = remotePayload?.stores?.keys ?: emptySet()
 
                 SyncSummary(
                     restoredStores = restoredStores,
-                    uploadedStores = uploadedStores,
                     localStores = localAfterRestore.stores.keys,
                     cloudStores = effectiveCloudStores,
-                    lastSyncTime = if (uploadedStores.isNotEmpty()) {
-                        prefs(activity).getLong(KEY_LAST_SYNC_TIME, 0L).takeIf { it > 0L }
-                    } else {
-                        remote.lastModifiedTime ?: remotePayload?.createdAt
-                    }
+                    lastSyncTime = remote.lastModifiedTime ?: remotePayload?.createdAt
                 )
             }
         }
@@ -465,34 +371,81 @@ object CloudSyncManager {
 
     private suspend fun performBackupIfAuthenticated(activity: Activity) {
         withContext(Dispatchers.IO) {
-            if (!isGoogleSyncEnabled(activity)) {
-                Timber.tag(TAG).d("performBackupIfAuthenticated skipped: Google sync not enabled by user")
-                return@withContext
-            }
-            if (snapshotsBlocked(activity)) {
-                Timber.tag(TAG).w("performBackupIfAuthenticated skipped: snapshots are currently blocked")
-                return@withContext
-            }
-            if (!isAuthenticatedBlocking(activity)) {
-                Timber.tag(TAG).w("performBackupIfAuthenticated skipped: Google Play Games not authenticated")
-                return@withContext
-            }
-            if (!hasSavedGamesPermission(activity)) {
-                Timber.tag(TAG).w("performBackupIfAuthenticated skipped: DRIVE_APPFOLDER permission missing")
-                return@withContext
-            }
-
-            syncMutex.withLock {
-                val localPayload = collectLocalPayload(activity)
-                if (localPayload.stores.isEmpty()) {
-                    Timber.tag(TAG).i("No local store logins found; clearing pending backup flag")
-                    prefs(activity).edit().putBoolean(KEY_PENDING_BACKUP, false).apply()
-                    return@withLock
-                }
-                Timber.tag(TAG).i("Uploading pending backup for stores=%s", localPayload.stores.keys)
-                backupPayload(activity, localPayload)
-            }
+            Timber.tag(TAG).v(
+                "performBackupIfAuthenticated skipped for %s; backups are manual-only",
+                activity::class.java.simpleName
+            )
         }
+    }
+
+    private suspend fun rehydrateRestoredStores(context: Context, restoredStores: Set<String>) {
+        if (STORE_STEAM in restoredStores) {
+            rehydrateSteamSession(context)
+        }
+        if (STORE_EPIC in restoredStores) {
+            rehydrateEpicSession(context)
+        }
+        if (STORE_GOG in restoredStores) {
+            rehydrateGogSession(context)
+        }
+    }
+
+    private suspend fun rehydrateSteamSession(context: Context) {
+        Timber.tag(TAG).i("Rehydrating restored Steam session for live UI and store state")
+
+        SteamService.initLoginStatus(context)
+
+        // If a logged-out service instance is still around, restart it so the restored tokens are used.
+        if (SteamService.instance != null && !SteamService.isLoggedIn) {
+            Timber.tag(TAG).d("Restarting existing Steam service after token restore")
+            SteamService.stop()
+            waitForCondition(timeoutMillis = 6000L) { SteamService.instance == null }
+        }
+
+        SteamService.start(context)
+        waitForCondition(timeoutMillis = 8000L) { SteamService.instance != null }
+        waitForCondition(timeoutMillis = 12000L) { SteamService.isLoggedIn }
+
+        if (SteamService.isLoggedIn) {
+            runCatching { SteamService.requestUserPersona() }
+                .onFailure { Timber.tag(TAG).w(it, "Steam persona refresh failed after restore") }
+            SteamService.requestSync()
+        } else {
+            Timber.tag(TAG).w("Steam session restore did not finish logging in before refresh timeout")
+        }
+    }
+
+    private suspend fun rehydrateEpicSession(context: Context) {
+        Timber.tag(TAG).i("Rehydrating restored Epic session for live UI and store state")
+        EpicAuthManager.updateLoginStatus(context)
+        EpicService.triggerLibrarySync(context)
+        waitForCondition(timeoutMillis = 6000L) { EpicService.isRunning }
+        runCatching { EpicService.refreshLibrary(context) }
+            .onFailure { Timber.tag(TAG).w(it, "Epic library refresh failed after restore") }
+    }
+
+    private suspend fun rehydrateGogSession(context: Context) {
+        Timber.tag(TAG).i("Rehydrating restored GOG session for live UI and store state")
+        GOGAuthManager.updateLoginStatus(context)
+        GOGService.triggerLibrarySync(context)
+        waitForCondition(timeoutMillis = 6000L) { GOGService.isRunning }
+        runCatching { GOGService.refreshLibrary(context) }
+            .onFailure { Timber.tag(TAG).w(it, "GOG library refresh failed after restore") }
+    }
+
+    private suspend fun waitForCondition(
+        timeoutMillis: Long,
+        pollIntervalMillis: Long = 250L,
+        predicate: () -> Boolean
+    ): Boolean {
+        val maxAttempts = (timeoutMillis / pollIntervalMillis).toInt().coerceAtLeast(1)
+        repeat(maxAttempts) {
+            if (predicate()) {
+                return true
+            }
+            delay(pollIntervalMillis)
+        }
+        return predicate()
     }
 
     private suspend fun backupPayload(activity: Activity, payload: StorePayload): Set<String> {
@@ -518,8 +471,6 @@ object CloudSyncManager {
             Timber.tag(TAG).i("Snapshot commitAndClose succeeded for stores=%s", payload.stores.keys)
 
             prefs(activity).edit()
-                .putBoolean(KEY_PENDING_BACKUP, false)
-                .putString(KEY_LAST_SYNC_FINGERPRINT, payload.fingerprint)
                 .putLong(KEY_LAST_SYNC_TIME, System.currentTimeMillis())
                 .apply()
 
@@ -560,111 +511,60 @@ object CloudSyncManager {
         client: SnapshotsClient,
         createIfMissing: Boolean
     ): Snapshot? {
-        return try {
-            Log.i(TAG, "SnapshotsClient.open(name=$SNAPSHOT_NAME, createIfMissing=$createIfMissing)")
-            Timber.tag(TAG).d("SnapshotsClient.open(name=%s, createIfMissing=%s)", SNAPSHOT_NAME, createIfMissing)
-            val result = Tasks.await(
-                client.open(
+        repeat(AUTH_SESSION_RETRY_COUNT) { attempt ->
+            try {
+                Log.i(TAG, "SnapshotsClient.open(name=$SNAPSHOT_NAME, createIfMissing=$createIfMissing)")
+                Timber.tag(TAG).d(
+                    "SnapshotsClient.open(name=%s, createIfMissing=%s, attempt=%d)",
                     SNAPSHOT_NAME,
                     createIfMissing,
-                    SnapshotsClient.RESOLUTION_POLICY_MOST_RECENTLY_MODIFIED
+                    attempt + 1
                 )
-            )
-            if (result.isConflict) {
-                Timber.tag(TAG).w("Snapshot conflict detected for %s", SNAPSHOT_NAME)
-            } else {
-                Timber.tag(TAG).d("Snapshot open returned without conflict")
+                val result = Tasks.await(
+                    client.open(
+                        SNAPSHOT_NAME,
+                        createIfMissing,
+                        SnapshotsClient.RESOLUTION_POLICY_MOST_RECENTLY_MODIFIED
+                    )
+                )
+                if (result.isConflict) {
+                    Timber.tag(TAG).w("Snapshot conflict detected for %s", SNAPSHOT_NAME)
+                } else {
+                    Timber.tag(TAG).d("Snapshot open returned without conflict")
+                }
+                return result.data ?: result.conflict?.snapshot ?: result.conflict?.conflictingSnapshot
+            } catch (error: Exception) {
+                if (!createIfMissing && isMissingSnapshotError(error)) {
+                    Timber.tag(TAG).d("No existing store login snapshot found: ${error.message}")
+                    return null
+                }
+                if (isSignInRequiredError(error) && attempt < AUTH_SESSION_RETRY_COUNT - 1) {
+                    Timber.tag(TAG).w(
+                        error,
+                        "Snapshot open hit transient sign-in state; retrying in %d ms",
+                        AUTH_SESSION_RETRY_DELAY_MS
+                    )
+                    delay(AUTH_SESSION_RETRY_DELAY_MS)
+                    return@repeat
+                }
+                rememberSyncError(context, error)
+                Timber.tag(TAG).e(error, "Snapshot open failed for createIfMissing=%s", createIfMissing)
+                throw error
             }
-            result.data ?: result.conflict?.snapshot ?: result.conflict?.conflictingSnapshot
-        } catch (error: Exception) {
-            if (!createIfMissing) {
-                Timber.tag(TAG).d("No existing store login snapshot found: ${error.message}")
-                return null
-            }
-            rememberSyncError(context, error)
-            Timber.tag(TAG).e(error, "Snapshot open failed for createIfMissing=%s", createIfMissing)
-            throw error
         }
+        return null
     }
 
     private suspend fun freshSnapshotsClient(activity: Activity): SnapshotsClient? {
         return PlayGames.getSnapshotsClient(activity)
     }
 
-    // Removed resolveFreshSavedGamesAccount
-
-    private suspend fun ensureSavedGamesPermission(
-        activity: Activity,
-        pendingAction: PendingSavedGamesAction
-    ): SavedGamesPermissionState {
-        val driveScope = Scope("https://www.googleapis.com/auth/drive.appdata")
-        val account = GoogleSignIn.getLastSignedInAccount(activity)
-        
-        if (account != null && GoogleSignIn.hasPermissions(account, driveScope)) {
-            Timber.tag(TAG).d("Drive scope already granted for account: %s", account.email)
-            return SavedGamesPermissionState.GRANTED
-        }
-
-        Timber.tag(TAG).i("Requesting DRIVE_APPFOLDER scope via GoogleSignIn UI")
-        pendingSavedGamesAction = pendingAction
-
-        withContext(Dispatchers.Main) {
-            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestScopes(driveScope)
-                .requestEmail()
-                .build()
-            val signInClient = GoogleSignIn.getClient(activity, gso)
-            
-            // This MUST be called on main thread and correctly handled in onActivityResult
-            activity.startActivityForResult(signInClient.signInIntent, REQUEST_CODE_SAVED_GAMES_PERMISSIONS)
-        }
-
-        return SavedGamesPermissionState.REQUESTED
-    }
-
-    private fun hasSavedGamesPermissionCached(activity: Activity): Boolean {
-        val account = GoogleSignIn.getLastSignedInAccount(activity)
-        return account != null && GoogleSignIn.hasPermissions(account, Scope("https://www.googleapis.com/auth/drive.appdata"))
-    }
-
-    private suspend fun hasSavedGamesPermission(activity: Activity): Boolean {
-        return withContext(Dispatchers.IO) {
-            val account = GoogleSignIn.getLastSignedInAccount(activity)
-            account != null && GoogleSignIn.hasPermissions(account, Scope("https://www.googleapis.com/auth/drive.appdata"))
-        }
-    }
-
     fun onSavedGamesPermissionResult(activity: Activity) {
-        val hasPermission = hasSavedGamesPermissionCached(activity)
-        Timber.tag(TAG).i("Google Saved Games permission result: granted=%s", hasPermission)
-        
-        val action = pendingSavedGamesAction
-        pendingSavedGamesAction = null
-
-        if (hasPermission) {
-            // Give Play Games Services a moment to recognize the new permission
-            scope.launch {
-                Timber.tag(TAG).d("Waiting 2s for PGS session to refresh with new Drive permission...")
-                kotlinx.coroutines.delay(2000)
-                
-                if (action != null) {
-                    runCatching {
-                        performSmartSync(activity, preferRestoreForMissingStores = (action == PendingSavedGamesAction.RESTORE))
-                    }.onSuccess { summary ->
-                        permissionEvents.emit(PermissionResumeEvent(true, summary.message()))
-                    }.onFailure { error ->
-                        permissionEvents.emit(PermissionResumeEvent(false, rememberSyncError(activity, error)))
-                    }
-                } else {
-                    permissionEvents.tryEmit(PermissionResumeEvent(true, "Google Saved Games permission granted."))
-                }
-            }
-        } else {
-            permissionEvents.tryEmit(PermissionResumeEvent(false, "Google Saved Games access was denied. Sync will not work."))
-        }
+        Timber.tag(TAG).w(
+            "Ignoring legacy Saved Games permission callback after Play Games v2-only sync migration for %s",
+            activity::class.java.simpleName
+        )
     }
-
-    // Removed buildSavedGamesSignInOptions
 
     private suspend fun readStateInternal(
         activity: Activity,
@@ -684,44 +584,28 @@ object CloudSyncManager {
             )
         }
 
-        if (snapshotsBlocked(activity)) {
-            return StoreLoginSyncState(
-                googleSignedIn = true,
-                localStores = localStores,
-                status = SyncStatus.ERROR,
-                detail = prefs(activity).getString(KEY_LAST_SYNC_ERROR, null)
-                    ?: "Google Saved Games is unavailable for this build."
-            )
-        }
-
-        if (!hasSavedGamesPermission(activity)) {
-            return StoreLoginSyncState(
-                googleSignedIn = true,
-                localStores = localStores,
-                status = if (localStores.isNotEmpty()) SyncStatus.BACKUP_PENDING else SyncStatus.EMPTY,
-                detail = if (localStores.isNotEmpty()) {
-                    "Grant Google Saved Games access to back up ${localStores.joinToString()} login tokens."
-                } else {
-                    "Grant Google Saved Games access to enable cloud restore."
-                }
-            )
-        }
-
         return try {
             val remote = readRemotePayload(activity)
             val cloudStores = remote.payload?.stores?.keys ?: emptySet()
-            val pendingBackup = prefs(activity).getBoolean(KEY_PENDING_BACKUP, false)
             val status = when {
                 cloudStores.isEmpty() && localStores.isEmpty() -> SyncStatus.EMPTY
-                pendingBackup && localStores.isNotEmpty() -> SyncStatus.BACKUP_PENDING
-                cloudStores.isNotEmpty() && localStores.containsAll(cloudStores) -> SyncStatus.SYNCED
-                cloudStores.isNotEmpty() -> SyncStatus.RESTORE_AVAILABLE
+                cloudStores.isNotEmpty() && cloudStores == localStores -> SyncStatus.SYNCED
+                cloudStores.isNotEmpty() && cloudStores.containsAll(localStores) -> SyncStatus.RESTORE_AVAILABLE
+                localStores.isNotEmpty() && localStores.containsAll(cloudStores) -> SyncStatus.BACKUP_PENDING
+                cloudStores.isNotEmpty() && localStores.isNotEmpty() -> SyncStatus.BACKUP_PENDING
                 localStores.isNotEmpty() -> SyncStatus.BACKUP_PENDING
                 else -> SyncStatus.EMPTY
             }
             val detail = when (status) {
                 SyncStatus.EMPTY -> "No backed up store logins found yet."
-                SyncStatus.BACKUP_PENDING -> "Waiting to sync ${localStores.joinToString()} logins to Google."
+                SyncStatus.BACKUP_PENDING -> when {
+                    cloudStores.isNotEmpty() && localStores.isNotEmpty() && cloudStores != localStores ->
+                        "Local and cloud store logins differ. Use Backup to overwrite cloud data or Restore to pull the saved tokens."
+                    localStores.isNotEmpty() ->
+                        "Local store logins are ready to back up for ${localStores.joinToString()}."
+                    else ->
+                        "Store login backup is ready."
+                }
                 SyncStatus.RESTORE_AVAILABLE -> "Cloud login restore is available for ${cloudStores.joinToString()}."
                 SyncStatus.SYNCED -> "Store logins are synced with Google Play Games."
                 SyncStatus.NOT_SIGNED_IN -> "Sign in to Google Play Games to sync store logins."
@@ -953,7 +837,7 @@ object CloudSyncManager {
             }
         }
 
-        if (stores.isEmpty()) {
+        if (stores.isEmpty() && createdAt == 0L && fingerprint == null) {
             return null
         }
 
@@ -991,7 +875,6 @@ object CloudSyncManager {
     private fun clearSyncError(context: Context) {
         prefs(context).edit()
             .remove(KEY_LAST_SYNC_ERROR)
-            .putBoolean(KEY_SNAPSHOTS_BLOCKED, false)
             .apply()
     }
 
@@ -1000,15 +883,15 @@ object CloudSyncManager {
         Log.e(TAG, detail, error)
         prefs(context).edit()
             .putString(KEY_LAST_SYNC_ERROR, detail)
-            .putBoolean(KEY_SNAPSHOTS_BLOCKED, isPermanentSnapshotConfigError(error))
             .apply()
         return detail
     }
 
-    private fun snapshotsBlocked(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_SNAPSHOTS_BLOCKED, false)
-
     private fun explainSyncError(error: Throwable): String {
+        val apiStatusCode = generateSequence(error) { it.cause }
+            .filterIsInstance<ApiException>()
+            .map { it.statusCode }
+            .firstOrNull()
         val chain = generateSequence(error) { it.cause }
             .mapNotNull { throwable ->
                 val simpleName = throwable::class.java.simpleName.takeIf { it.isNotBlank() }
@@ -1023,14 +906,25 @@ object CloudSyncManager {
         val rawMessage = chain.joinToString(" | ")
         val normalized = rawMessage.lowercase()
         return when {
-            "sign_in_required" in normalized || "apiexception: 4" in normalized ->
-                "Google Play Games is connected, but the refreshed Google account session still lacks Saved Games authorization. Sign in again and allow Saved Games access."
+            apiStatusCode == CommonStatusCodes.SIGN_IN_REQUIRED ||
+                "sign_in_required" in normalized || "apiexception: 4" in normalized ->
+                "Google Play Games needs to finish authentication before cloud sync can access Saved Games. Open the Play Games profile prompt if shown, then try again."
+            apiStatusCode == CommonStatusCodes.DEVELOPER_ERROR ||
+                "developer_error" in normalized ||
+                "statuscode=10" in normalized ->
+                "Google Play Games Saved Games rejected this build. Check the Play Games app ID, linked package name, and signing certificate in Play Console."
             "sign-in check failed" in normalized ||
                 "cannot find the installed destination app" in normalized ||
                 "games service" in normalized ->
                 "Google account is connected, but Google Play Games Saved Games rejected this build. Check the Play Games app ID, linked package, and signing certificate."
-            "network" in normalized || "timeout" in normalized ->
-                "Google cloud sync failed because the network request did not complete."
+            apiStatusCode == CommonStatusCodes.NETWORK_ERROR ||
+                apiStatusCode == CommonStatusCodes.TIMEOUT ||
+                apiStatusCode == CommonStatusCodes.ERROR ||
+                "service_version_update_required" in normalized ||
+                "network" in normalized || "timeout" in normalized ->
+                "Google cloud sync failed because the network request did not complete or Google Play services needs attention."
+            isMissingSnapshotError(error) ->
+                "No saved store logins were found in Google cloud sync yet."
             rawMessage.isNotBlank() ->
                 "Google cloud sync failed: $rawMessage"
             else ->
@@ -1038,12 +932,68 @@ object CloudSyncManager {
         }
     }
 
-    private fun isPermanentSnapshotConfigError(error: Throwable): Boolean {
+    private fun isMissingSnapshotError(error: Throwable): Boolean {
+        val apiStatusCode = generateSequence(error) { it.cause }
+            .filterIsInstance<ApiException>()
+            .map { it.statusCode }
+            .firstOrNull()
         val rawMessage = generateSequence(error) { it.cause }
             .mapNotNull { it.message }
             .joinToString(" ")
             .lowercase()
-        return "saved game" in rawMessage && "play console" in rawMessage
+        return apiStatusCode == 26504 ||
+            "snapshot_not_found" in rawMessage ||
+            "snapshot not found" in rawMessage ||
+            "no snapshot" in rawMessage
+    }
+
+    private fun isSignInRequiredError(error: Throwable): Boolean {
+        val apiStatusCode = generateSequence(error) { it.cause }
+            .filterIsInstance<ApiException>()
+            .map { it.statusCode }
+            .firstOrNull()
+        val rawMessage = generateSequence(error) { it.cause }
+            .mapNotNull { it.message }
+            .joinToString(" ")
+            .lowercase()
+        return apiStatusCode == CommonStatusCodes.SIGN_IN_REQUIRED ||
+            "sign_in_required" in rawMessage ||
+            "statuscode=4" in rawMessage
+    }
+
+    private suspend fun awaitAuthenticatedSession(activity: Activity): Boolean {
+        repeat(AUTH_SESSION_RETRY_COUNT) { attempt ->
+            if (isAuthenticatedBlocking(activity)) {
+                return true
+            }
+            if (attempt < AUTH_SESSION_RETRY_COUNT - 1) {
+                delay(AUTH_SESSION_RETRY_DELAY_MS)
+            }
+        }
+        return false
+    }
+
+    private suspend fun performSmartSyncWithAuthRetry(
+        activity: Activity,
+        preferRestoreForMissingStores: Boolean
+    ): SyncSummary {
+        repeat(AUTH_SESSION_RETRY_COUNT) { attempt ->
+            try {
+                return performSmartSync(activity, preferRestoreForMissingStores)
+            } catch (error: Exception) {
+                if (isSignInRequiredError(error) && attempt < AUTH_SESSION_RETRY_COUNT - 1) {
+                    Timber.tag(TAG).w(
+                        error,
+                        "Saved Games sync hit transient sign-in state; retrying in %d ms",
+                        AUTH_SESSION_RETRY_DELAY_MS
+                    )
+                    delay(AUTH_SESSION_RETRY_DELAY_MS)
+                    return@repeat
+                }
+                throw error
+            }
+        }
+        throw IllegalStateException("Play Games authentication did not become ready for Saved Games access.")
     }
 
     private suspend fun isAuthenticatedBlocking(activity: Activity): Boolean {

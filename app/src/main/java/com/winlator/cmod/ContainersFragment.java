@@ -14,6 +14,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.appcompat.widget.PopupMenu;
 
@@ -54,6 +55,13 @@ public class ContainersFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        if (getActivity() instanceof AppCompatActivity) {
+            androidx.appcompat.app.ActionBar actionBar =
+                    ((AppCompatActivity) getActivity()).getSupportActionBar();
+            if (actionBar != null) {
+                actionBar.setTitle(R.string.containers);
+            }
+        }
         manager = new ContainerManager(getContext());
         loadContainersList();
     }

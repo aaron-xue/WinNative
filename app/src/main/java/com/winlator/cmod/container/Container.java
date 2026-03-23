@@ -222,6 +222,10 @@ public class Container {
         return (byte) controllerMapping.charAt(input.ordinal());
     }
 
+    public String getControllerMapping() {
+        return controllerMapping;
+    }
+
     public void setControllerMapping(String controllerMapping) {
         this.controllerMapping = controllerMapping;
     }

@@ -4,12 +4,224 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/window_background_color_dark"
-    android:orientation="vertical">
+    android:orientation="horizontal">
 
+    <!-- LEFT SIDEBAR -->
+    <LinearLayout
+        android:id="@+id/LLContainerDetailSidebar"
+        android:layout_width="180dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/nav_sidebar_bg"
+        android:orientation="vertical">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/LLSidebarItems"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp">
+
+            <LinearLayout
+                android:id="@+id/BTSectionAV"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="10dp"
+                    android:src="@drawable/icon_monitor"
+                    app:tint="#FFB0BEC5" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/inter"
+                    android:text="A/V"
+                    android:textColor="#FFB0BEC5"
+                    android:textSize="13sp" />
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginStart="6dp"
+                    android:src="@drawable/icon_audio"
+                    app:tint="#FFB0BEC5" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/BTSectionWine"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="10dp"
+                    android:src="@drawable/ic_containers"
+                    app:tint="#FFB0BEC5" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/inter"
+                    android:text="Wine"
+                    android:textColor="#FFB0BEC5"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/BTSectionWindows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="10dp"
+                    android:src="@drawable/ic_stores"
+                    app:tint="#FFB0BEC5" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/inter"
+                    android:text="Windows"
+                    android:textColor="#FFB0BEC5"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/BTSectionInputs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="10dp"
+                    android:src="@drawable/icon_gamepad"
+                    app:tint="#FFB0BEC5" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/inter"
+                    android:text="Inputs"
+                    android:textColor="#FFB0BEC5"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/BTSectionConfig"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="10dp"
+                    android:src="@drawable/icon_settings"
+                    app:tint="#FFB0BEC5" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/inter"
+                    android:text="Config"
+                    android:textColor="#FFB0BEC5"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/nav_header_divider" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <Button
+                android:id="@+id/BTSidebarReset"
+                style="@style/ContentDialogButtonNeutral"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/reset"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/BTSidebarConfirm"
+                style="@style/ContentDialogButtonPositive"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:text="@string/confirm" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- EDGE DIVIDER -->
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/nav_edge_divider" />
+
+    <!-- RIGHT CONTENT AREA -->
     <ScrollView
         android:id="@+id/SVContainerDetail"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
         android:layout_weight="1"
         android:clipToPadding="false"
         android:descendantFocusability="beforeDescendants"
@@ -29,6 +241,13 @@
             android:paddingTop="16dp"
             android:paddingRight="16dp"
             android:paddingBottom="16dp">
+
+            <LinearLayout
+                android:id="@+id/LLSectionAV"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="visible">
 
             <!-- GENERAL -->
             <TextView
@@ -530,6 +749,112 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- DISPLAY OPTIONS -->
+            <TextView
+                style="@style/OtherSettingsSectionLabel"
+                android:text="@string/xserver" />
+
+            <LinearLayout
+                style="@style/OtherSettingsCard"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="@drawable/content_icon_surface"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_x11_icon"
+                    app:tint="@color/settings_icon_tint" />
+
+                <TextView
+                    style="@style/OtherSettingsCardTitle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/show_fps" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/CBShowFPS"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@android:color/transparent"
+                    app:thumbTint="@color/settings_accent"
+                    app:trackTintMode="src_in" />
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/OtherSettingsCard"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="@drawable/content_icon_surface"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_x11_icon"
+                    app:tint="@color/settings_icon_tint" />
+
+                <TextView
+                    style="@style/OtherSettingsCardTitle"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/fullscreen_stretched" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/CBFullscreenStretched"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@android:color/transparent"
+                    app:thumbTint="@color/settings_accent"
+                    app:trackTintMode="src_in" />
+            </LinearLayout>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/LLSectionWine"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+            <TextView
+                style="@style/OtherSettingsSectionLabel"
+                android:text="@string/system" />
+
+            <LinearLayout
+                style="@style/OtherSettingsCard"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/OtherSettingsFieldLabel"
+                    android:text="@string/startup_selection" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/content_asset_row_surface"
+                    android:orientation="vertical"
+                    android:paddingLeft="10dp"
+                    android:paddingTop="8dp"
+                    android:paddingRight="10dp"
+                    android:paddingBottom="8dp">
+
+                    <androidx.appcompat.widget.AppCompatSpinner
+                        android:id="@+id/SStartupSelection"
+                        style="@style/OtherSettingsSpinner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:entries="@array/startup_selection_entries" />
+                </LinearLayout>
+            </LinearLayout>
+
             <!-- EMULATION -->
             <TextView
                 style="@style/OtherSettingsSectionLabel"
@@ -650,78 +975,109 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- DISPLAY OPTIONS -->
-            <TextView
-                style="@style/OtherSettingsSectionLabel"
-                android:text="@string/xserver" />
-
             <LinearLayout
                 style="@style/OtherSettingsCard"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:orientation="vertical">
 
-                <ImageView
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginEnd="12dp"
-                    android:background="@drawable/content_icon_surface"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_x11_icon"
-                    app:tint="@color/settings_icon_tint" />
-
-                <TextView
-                    style="@style/OtherSettingsCardTitle"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:text="@string/show_fps" />
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/CBShowFPS"
-                    android:layout_width="wrap_content"
+                <!-- Box64 -->
+                <LinearLayout
+                    android:id="@+id/box64Frame"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:background="@android:color/transparent"
-                    app:thumbTint="@color/settings_accent"
-                    app:trackTintMode="src_in" />
-            </LinearLayout>
+                    android:orientation="vertical">
 
-            <LinearLayout
-                style="@style/OtherSettingsCard"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                    <TextView
+                        style="@style/OtherSettingsFieldLabel"
+                        android:text="@string/box64" />
 
-                <ImageView
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginEnd="12dp"
-                    android:background="@drawable/content_icon_surface"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_x11_icon"
-                    app:tint="@color/settings_icon_tint" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/content_asset_row_surface"
+                        android:orientation="vertical"
+                        android:paddingLeft="10dp"
+                        android:paddingTop="8dp"
+                        android:paddingRight="10dp"
+                        android:paddingBottom="8dp">
 
-                <TextView
-                    style="@style/OtherSettingsCardTitle"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:text="@string/fullscreen_stretched" />
+                        <TextView
+                            style="@style/OtherSettingsFieldLabel"
+                            android:text="@string/box64_version" />
 
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/CBFullscreenStretched"
-                    android:layout_width="wrap_content"
+                        <androidx.appcompat.widget.AppCompatSpinner
+                            android:id="@+id/SBox64Version"
+                            style="@style/OtherSettingsSpinner"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:spinnerMode="dropdown" />
+
+                        <TextView
+                            style="@style/OtherSettingsFieldLabel"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/box64_preset" />
+
+                        <androidx.appcompat.widget.AppCompatSpinner
+                            android:id="@+id/SBox64Preset"
+                            style="@style/OtherSettingsSpinner"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:spinnerMode="dropdown" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- FEX-Core -->
+                <LinearLayout
+                    android:id="@+id/fexcoreFrame"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:background="@android:color/transparent"
-                    app:thumbTint="@color/settings_accent"
-                    app:trackTintMode="src_in" />
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/OtherSettingsFieldLabel"
+                        android:text="@string/fexcore_config" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/content_asset_row_surface"
+                        android:orientation="vertical"
+                        android:paddingLeft="10dp"
+                        android:paddingTop="8dp"
+                        android:paddingRight="10dp"
+                        android:paddingBottom="8dp">
+
+                        <TextView
+                            style="@style/OtherSettingsFieldLabel"
+                            android:text="@string/fexcore_version" />
+
+                        <androidx.appcompat.widget.AppCompatSpinner
+                            android:id="@+id/SFEXCoreVersion"
+                            style="@style/OtherSettingsSpinner"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp" />
+
+                        <TextView
+                            style="@style/OtherSettingsFieldLabel"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/fexcore_preset" />
+
+                        <androidx.appcompat.widget.AppCompatSpinner
+                            android:id="@+id/SFEXCorePreset"
+                            style="@style/OtherSettingsSpinner"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:spinnerMode="dropdown" />
+                    </LinearLayout>
+                </LinearLayout>
+
             </LinearLayout>
-
-            <!-- ======================= -->
-            <!-- EXPANDABLE SECTIONS     -->
-            <!-- ======================= -->
-
-            <TextView
-                style="@style/OtherSettingsSectionLabel"
-                android:text="@string/container_config_label" />
 
             <!-- Wine Configuration Section -->
             <LinearLayout
@@ -851,6 +1207,15 @@
                 </LinearLayout>
             </LinearLayout>
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/LLSectionWindows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
             <!-- Win Components Section -->
             <LinearLayout
                 style="@style/ExpandableSectionCard">
@@ -929,8 +1294,192 @@
                 </LinearLayout>
             </LinearLayout>
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/LLSectionInputs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+
+            <TextView
+                style="@style/OtherSettingsSectionLabel"
+                android:text="@string/game_controller" />
+
+            <LinearLayout
+                style="@style/OtherSettingsCard"
+                android:orientation="vertical">
+
+                <!-- Game Controller -->
+                <TextView
+                    style="@style/OtherSettingsFieldLabel"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/game_controller" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/content_asset_row_surface"
+                    android:orientation="vertical"
+                    android:paddingLeft="10dp"
+                    android:paddingTop="8dp"
+                    android:paddingRight="10dp"
+                    android:paddingBottom="8dp">
+
+                    <LinearLayout
+                        android:id="@+id/LLDinputMapperType"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/OtherSettingsFieldLabel"
+                            android:text="@string/directinput_mapper_type" />
+
+                        <androidx.appcompat.widget.AppCompatSpinner
+                            android:id="@+id/SDInputType"
+                            style="@style/OtherSettingsSpinner"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:entries="@array/dinput_mapper_type_entries" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/CBEnableXInput"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@android:color/transparent"
+                            android:fontFamily="@font/inter"
+                            android:text="@string/enable_xinput_for_wine_game"
+                            android:textColor="@color/settings_text_primary"
+                            android:textSize="13sp"
+                            app:thumbTint="@color/settings_accent"
+                            app:trackTintMode="src_in" />
+
+                        <ImageView
+                            android:id="@+id/BTXInputHelp"
+                            style="@style/HelpButton"
+                            android:layout_gravity="center" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/CBEnableDInput"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@android:color/transparent"
+                            android:fontFamily="@font/inter"
+                            android:text="@string/enable_dinput_for_wine_game"
+                            android:textColor="@color/settings_text_primary"
+                            android:textSize="13sp"
+                            app:thumbTint="@color/settings_accent"
+                            app:trackTintMode="src_in" />
+
+                        <ImageView
+                            android:id="@+id/BTDInputHelp"
+                            style="@style/HelpButton"
+                            android:layout_gravity="center" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/LLExclusiveInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/CBExclusiveInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@android:color/transparent"
+                            android:fontFamily="@font/inter"
+                            android:text="@string/exclusive_input"
+                            android:textColor="@color/settings_text_primary"
+                            android:textSize="13sp"
+                            app:thumbTint="@color/settings_accent"
+                            app:trackTintMode="src_in" />
+                    </LinearLayout>
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/CBSdl2Toggle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:background="@android:color/transparent"
+                        android:fontFamily="@font/inter"
+                        android:text="Enable SDL2 Compatibility"
+                        android:textColor="@color/settings_text_primary"
+                        android:textSize="13sp"
+                        app:thumbTint="@color/settings_accent"
+                        app:trackTintMode="src_in" />
+                </LinearLayout>
+            </LinearLayout>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/LLSectionConfig"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+            <TextView
+                style="@style/OtherSettingsSectionLabel"
+                android:text="@string/processor_affinity" />
+
+            <LinearLayout
+                style="@style/OtherSettingsCard"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/OtherSettingsFieldLabel"
+                    android:text="@string/processor_affinity" />
+
+                <com.winlator.cmod.widget.CPUListView
+                    android:id="@+id/CPUListView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:gravity="center_horizontal" />
+
+                <TextView
+                    style="@style/OtherSettingsFieldLabel"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/processor_affinity_32_bit_apps" />
+
+                <com.winlator.cmod.widget.CPUListView
+                    android:id="@+id/CPUListViewWoW64"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:gravity="center_horizontal" />
+            </LinearLayout>
+
             <!-- Environment Variables Section -->
             <LinearLayout
+
                 style="@style/ExpandableSectionCard">
 
                 <LinearLayout
@@ -1056,326 +1605,6 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Advanced Section -->
-            <LinearLayout
-                style="@style/ExpandableSectionCard">
-
-                <LinearLayout
-                    android:id="@+id/LLHeaderAdvanced"
-                    style="@style/ExpandableSectionHeader">
-
-                    <ImageView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_marginEnd="12dp"
-                        android:background="@drawable/content_icon_surface"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_components"
-                        app:tint="@color/settings_icon_tint" />
-
-                    <TextView
-                        style="@style/OtherSettingsCardTitle"
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:text="@string/advanced" />
-
-                    <FrameLayout
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:background="@drawable/content_icon_surface">
-
-                        <ImageView
-                            android:id="@+id/IVChevronAdvanced"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:padding="7dp"
-                            android:scaleType="centerInside"
-                            android:src="@drawable/ic_content_chevron"
-                            app:tint="@color/settings_icon_tint" />
-                    </FrameLayout>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/LLTabAdvanced"
-                    style="@style/ExpandableSectionContent">
-
-                <!-- Box64 -->
-                <LinearLayout
-                    android:id="@+id/box64Frame"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <TextView
-                        style="@style/OtherSettingsFieldLabel"
-                        android:text="@string/box64" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:background="@drawable/content_asset_row_surface"
-                        android:orientation="vertical"
-                        android:paddingLeft="10dp"
-                        android:paddingTop="8dp"
-                        android:paddingRight="10dp"
-                        android:paddingBottom="8dp">
-
-                        <TextView
-                            style="@style/OtherSettingsFieldLabel"
-                            android:text="@string/box64_version" />
-
-                        <androidx.appcompat.widget.AppCompatSpinner
-                            android:id="@+id/SBox64Version"
-                            style="@style/OtherSettingsSpinner"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:spinnerMode="dropdown" />
-
-                        <TextView
-                            style="@style/OtherSettingsFieldLabel"
-                            android:layout_marginTop="8dp"
-                            android:text="@string/box64_preset" />
-
-                        <androidx.appcompat.widget.AppCompatSpinner
-                            android:id="@+id/SBox64Preset"
-                            style="@style/OtherSettingsSpinner"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:spinnerMode="dropdown" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- FEX-Core -->
-                <LinearLayout
-                    android:id="@+id/fexcoreFrame"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        style="@style/OtherSettingsFieldLabel"
-                        android:text="@string/fexcore_config" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:background="@drawable/content_asset_row_surface"
-                        android:orientation="vertical"
-                        android:paddingLeft="10dp"
-                        android:paddingTop="8dp"
-                        android:paddingRight="10dp"
-                        android:paddingBottom="8dp">
-
-                        <TextView
-                            style="@style/OtherSettingsFieldLabel"
-                            android:text="@string/fexcore_version" />
-
-                        <androidx.appcompat.widget.AppCompatSpinner
-                            android:id="@+id/SFEXCoreVersion"
-                            style="@style/OtherSettingsSpinner"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp" />
-
-                        <TextView
-                            style="@style/OtherSettingsFieldLabel"
-                            android:layout_marginTop="8dp"
-                            android:text="@string/fexcore_preset" />
-
-                        <androidx.appcompat.widget.AppCompatSpinner
-                            android:id="@+id/SFEXCorePreset"
-                            style="@style/OtherSettingsSpinner"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:spinnerMode="dropdown" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- System -->
-                <TextView
-                    style="@style/OtherSettingsFieldLabel"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/system" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:background="@drawable/content_asset_row_surface"
-                    android:orientation="vertical"
-                    android:paddingLeft="10dp"
-                    android:paddingTop="8dp"
-                    android:paddingRight="10dp"
-                    android:paddingBottom="8dp">
-
-                    <TextView
-                        style="@style/OtherSettingsFieldLabel"
-                        android:text="@string/startup_selection" />
-
-                    <androidx.appcompat.widget.AppCompatSpinner
-                        android:id="@+id/SStartupSelection"
-                        style="@style/OtherSettingsSpinner"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:entries="@array/startup_selection_entries" />
-                </LinearLayout>
-
-                <!-- Game Controller -->
-                <TextView
-                    style="@style/OtherSettingsFieldLabel"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/game_controller" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:background="@drawable/content_asset_row_surface"
-                    android:orientation="vertical"
-                    android:paddingLeft="10dp"
-                    android:paddingTop="8dp"
-                    android:paddingRight="10dp"
-                    android:paddingBottom="8dp">
-
-                    <LinearLayout
-                        android:id="@+id/LLDinputMapperType"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <TextView
-                            style="@style/OtherSettingsFieldLabel"
-                            android:text="@string/directinput_mapper_type" />
-
-                        <androidx.appcompat.widget.AppCompatSpinner
-                            android:id="@+id/SDInputType"
-                            style="@style/OtherSettingsSpinner"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:entries="@array/dinput_mapper_type_entries" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/CBEnableXInput"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:background="@android:color/transparent"
-                            android:fontFamily="@font/inter"
-                            android:text="@string/enable_xinput_for_wine_game"
-                            android:textColor="@color/settings_text_primary"
-                            android:textSize="13sp"
-                            app:thumbTint="@color/settings_accent"
-                            app:trackTintMode="src_in" />
-
-                        <ImageView
-                            android:id="@+id/BTXInputHelp"
-                            style="@style/HelpButton"
-                            android:layout_gravity="center" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/CBEnableDInput"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:background="@android:color/transparent"
-                            android:fontFamily="@font/inter"
-                            android:text="@string/enable_dinput_for_wine_game"
-                            android:textColor="@color/settings_text_primary"
-                            android:textSize="13sp"
-                            app:thumbTint="@color/settings_accent"
-                            app:trackTintMode="src_in" />
-
-                        <ImageView
-                            android:id="@+id/BTDInputHelp"
-                            style="@style/HelpButton"
-                            android:layout_gravity="center" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/LLExclusiveInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/CBExclusiveInput"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="@android:color/transparent"
-                            android:fontFamily="@font/inter"
-                            android:text="@string/exclusive_input"
-                            android:textColor="@color/settings_text_primary"
-                            android:textSize="13sp"
-                            app:thumbTint="@color/settings_accent"
-                            app:trackTintMode="src_in" />
-                    </LinearLayout>
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/CBSdl2Toggle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:background="@android:color/transparent"
-                        android:fontFamily="@font/inter"
-                        android:text="Enable SDL2 Compatibility"
-                        android:textColor="@color/settings_text_primary"
-                        android:textSize="13sp"
-                        app:thumbTint="@color/settings_accent"
-                        app:trackTintMode="src_in" />
-                </LinearLayout>
-
-                <!-- Processor Affinity -->
-                <TextView
-                    style="@style/OtherSettingsFieldLabel"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/processor_affinity" />
-
-                <com.winlator.cmod.widget.CPUListView
-                    android:id="@+id/CPUListView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:gravity="center_horizontal" />
-
-                <TextView
-                    style="@style/OtherSettingsFieldLabel"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/processor_affinity_32_bit_apps" />
-
-                <com.winlator.cmod.widget.CPUListView
-                    android:id="@+id/CPUListViewWoW64"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:gravity="center_horizontal" />
-                </LinearLayout>
-            </LinearLayout>
 
             <!-- XR Section -->
             <LinearLayout
@@ -1554,25 +1783,7 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Save Button -->
-            <Button
-                android:id="@+id/BTConfirm"
-                android:layout_width="200dp"
-                android:layout_height="46dp"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="14dp"
-                android:layout_marginBottom="32dp"
-                android:background="@drawable/confirm_button_background"
-                android:elevation="4dp"
-                android:fontFamily="@font/inter"
-                android:letterSpacing="0.04"
-                android:stateListAnimator="@null"
-                android:text="@string/confirm"
-                android:textAllCaps="true"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
+        </LinearLayout>
         </LinearLayout>
     </ScrollView>
 

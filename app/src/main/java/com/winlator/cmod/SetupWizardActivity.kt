@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationManagerCompat
@@ -1356,6 +1357,16 @@ class SetupWizardActivity : FragmentActivity() {
         val advanced = isAdvancedMode.value
         val scrollState = rememberScrollState()
         val totalPages = if (advanced) 4 else 5
+        val pageTitle = when {
+            page == 0 -> "Required Access"
+            advanced && page == 1 -> "Select Components"
+            advanced && page == 2 -> "Default Settings"
+            advanced && page == 3 -> "Stores"
+            !advanced && page == 1 -> "Recommended Components"
+            !advanced && page == 2 -> "Recommended Wine / Proton"
+            !advanced && page == 3 -> "Default Settings"
+            else -> "Stores"
+        }
         val canGoNext = when {
             page == 0 -> storageGranted.value && imageFsDone.value
             page == 1 && !advanced -> recommendedComponentsDone.value && driversVisited.value
@@ -1379,32 +1390,45 @@ class SetupWizardActivity : FragmentActivity() {
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = if (advanced) "Advanced Setup" else "Setup Wizard",
-                        color = Color(0xFFE6EDF3),
-                        fontFamily = SyncopateFont,
-                        fontSize = 18.sp
-                    )
-                    if (page == 0) {
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
                         Text(
-                            text = "Required Access",
+                            text = if (advanced) "Advanced Setup" else "Setup Wizard",
+                            color = Color(0xFFE6EDF3),
+                            fontFamily = SyncopateFont,
+                            fontSize = 18.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Text(
+                        text = "Step ${page + 1} of $totalPages",
+                        color = Color(0xFF8B949E),
+                        fontFamily = InterFont,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Text(
+                            text = pageTitle,
                             color = Color(0xFFE6EDF3),
                             fontFamily = InterFont,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
+                            fontSize = 18.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.End
                         )
                     }
                 }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "Step ${page + 1} of $totalPages",
-                    color = Color(0xFF8B949E),
-                    fontFamily = InterFont,
-                    fontSize = 12.sp
-                )
                 Spacer(Modifier.height(18.dp))
 
                 Column(
@@ -1571,14 +1595,6 @@ class SetupWizardActivity : FragmentActivity() {
     @Composable
     private fun PageComponents() {
         Text(
-            text = "Recommended Components",
-            color = Color(0xFFE6EDF3),
-            fontFamily = InterFont,
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
             text = "Recommended Components downloads and installs the supported DXVK, VKD3D, FEX, Box64, and Wowbox64 packages automatically.",
             color = Color(0xFF8B949E),
             fontFamily = InterFont,
@@ -1607,14 +1623,6 @@ class SetupWizardActivity : FragmentActivity() {
 
     @Composable
     private fun PageWineAndProton() {
-        Text(
-            text = "Recommended Wine / Proton",
-            color = Color(0xFFE6EDF3),
-            fontFamily = InterFont,
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp
-        )
-        Spacer(Modifier.height(8.dp))
         Text(
             text = "Each button downloads the package, installs it, and creates its default container automatically.",
             color = Color(0xFF8B949E),
@@ -1664,14 +1672,6 @@ class SetupWizardActivity : FragmentActivity() {
         )
         var selectedTab by remember { mutableStateOf(typeOrder[0]) }
 
-        Text(
-            text = "Select Components",
-            color = Color(0xFFE6EDF3),
-            fontFamily = InterFont,
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp
-        )
-        Spacer(Modifier.height(8.dp))
         Text(
             text = "Choose which components to install. Wine/Proton will auto-create a container.",
             color = Color(0xFF8B949E),
@@ -1823,14 +1823,6 @@ class SetupWizardActivity : FragmentActivity() {
     @Composable
     private fun PageDefaultSettings() {
         Text(
-            text = "Default Settings",
-            color = Color(0xFFE6EDF3),
-            fontFamily = InterFont,
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
             text = "Open each container and set the defaults you want every new game to inherit. New games will target the x86-64 container by default.",
             color = Color(0xFF8B949E),
             fontFamily = InterFont,
@@ -1868,14 +1860,6 @@ class SetupWizardActivity : FragmentActivity() {
     private fun PageStores() {
         val storeState by storeLoginState
 
-        Text(
-            text = "Stores",
-            color = Color(0xFFE6EDF3),
-            fontFamily = InterFont,
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp
-        )
-        Spacer(Modifier.height(8.dp))
         Text(
             text = "Store sign-in is optional. Each sign-in returns here when it finishes.",
             color = Color(0xFF8B949E),

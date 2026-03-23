@@ -220,23 +220,12 @@ public class XServerDisplayActivity extends AppCompatActivity {
             android.view.InputDevice device = android.view.InputDevice.getDevice(deviceId);
             if (device != null && ExternalController.isGameController(device)) {
                 Log.d("XServerDisplayActivity", "Physical controller connected: " + device.getName());
-                runOnUiThread(() -> hideInputControls());
             }
         }
 
         @Override
         public void onInputDeviceRemoved(int deviceId) {
-            // Check if any physical controllers remain
-            boolean anyControllerLeft = !ExternalController.getControllers().isEmpty();
-            if (!anyControllerLeft) {
-                Log.d("XServerDisplayActivity", "Last physical controller disconnected, switching to Virtual Gamepad");
-                runOnUiThread(() -> {
-                    ControlsProfile virtualProfile = findFirstVirtualProfile();
-                    if (virtualProfile != null) {
-                        showInputControls(virtualProfile);
-                    }
-                });
-            }
+            Log.d("XServerDisplayActivity", "Physical controller disconnected: deviceId=" + deviceId);
         }
 
         @Override
@@ -302,7 +291,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
     }
 
     private boolean hasPerGameDxvkFrameRateOverride() {
-        if (shortcut == null) return false;
+        if (shortcut == null || shortcutUsesContainerDefaults()) return false;
 
         String shortcutDxwrapperConfig = shortcut.getExtra("dxwrapperConfig");
         if (shortcutDxwrapperConfig.isEmpty()) return false;
@@ -338,6 +327,19 @@ public class XServerDisplayActivity extends AppCompatActivity {
         } catch (NumberFormatException ignored) {
             return 0;
         }
+    }
+
+    private boolean shortcutUsesContainerDefaults() {
+        return shortcut != null && shortcut.usesContainerDefaults();
+    }
+
+    private String getShortcutSetting(String key, String containerValue) {
+        return shortcut != null ? shortcut.getSettingExtra(key, containerValue) : containerValue;
+    }
+
+    private String getShortcutWineVersionOverride() {
+        if (shortcut == null || shortcutUsesContainerDefaults()) return "";
+        return shortcut.getExtra("wineVersion");
     }
 
     private void applyPreferredRefreshRate() {
@@ -641,8 +643,8 @@ public class XServerDisplayActivity extends AppCompatActivity {
         taskAffinityMaskWoW64 = (short) ProcessHelper.getAffinityMask(container.getCPUListWoW64(true));
 
         if (shortcut != null) {
-            taskAffinityMask = (short) ProcessHelper.getAffinityMask(shortcut.getExtra("cpuList", container.getCPUList(true)));
-            taskAffinityMaskWoW64 = (short) ProcessHelper.getAffinityMask(shortcut.getExtra("cpuListWoW64", container.getCPUListWoW64(true)));
+            taskAffinityMask = (short) ProcessHelper.getAffinityMask(getShortcutSetting("cpuList", container.getCPUList(true)));
+            taskAffinityMaskWoW64 = (short) ProcessHelper.getAffinityMask(getShortcutSetting("cpuListWoW64", container.getCPUListWoW64(true)));
         }
 
         // Determine the class name for the startup workarounds
@@ -654,7 +656,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
         wineVersion = container.getWineVersion();
         // Override wine version from per-game shortcut settings if available
         if (shortcut != null) {
-            String shortcutWineVersion = shortcut.getExtra("wineVersion");
+            String shortcutWineVersion = getShortcutWineVersionOverride();
             if (shortcutWineVersion != null && !shortcutWineVersion.isEmpty()) {
                 Log.d("XServerDisplayActivity", "Overriding wine version from shortcut: " + shortcutWineVersion);
                 wineVersion = shortcutWineVersion;
@@ -704,7 +706,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
 
                     // RE-EVALUATE wineVersion and wineInfo after container override!
                     wineVersion = container.getWineVersion();
-                    String shortcutWineVersion = shortcut.getExtra("wineVersion");
+                    String shortcutWineVersion = getShortcutWineVersionOverride();
                     if (shortcutWineVersion != null && !shortcutWineVersion.isEmpty()) {
                         Log.d("XServerDisplayActivity", "Overriding wine version from shortcut: " + shortcutWineVersion);
                         wineVersion = shortcutWineVersion;
@@ -812,22 +814,22 @@ public class XServerDisplayActivity extends AppCompatActivity {
                 }
             }
 
-            graphicsDriver = shortcut.getExtra("graphicsDriver", container.getGraphicsDriver());
-            graphicsDriverConfig = shortcut.getExtra("graphicsDriverConfig", container.getGraphicsDriverConfig());
-            audioDriver = shortcut.getExtra("audioDriver", container.getAudioDriver());
-            emulator = shortcut.getExtra("emulator", container.getEmulator());
-            dxwrapper = shortcut.getExtra("dxwrapper", container.getDXWrapper());
-            String rawShortcutDxwrapperConfig = shortcut.getExtra("dxwrapperConfig");
-            dxwrapperConfig = shortcut.getExtra("dxwrapperConfig", container.getDXWrapperConfig());
+            graphicsDriver = getShortcutSetting("graphicsDriver", container.getGraphicsDriver());
+            graphicsDriverConfig = getShortcutSetting("graphicsDriverConfig", container.getGraphicsDriverConfig());
+            audioDriver = getShortcutSetting("audioDriver", container.getAudioDriver());
+            emulator = getShortcutSetting("emulator", container.getEmulator());
+            dxwrapper = getShortcutSetting("dxwrapper", container.getDXWrapper());
+            String rawShortcutDxwrapperConfig = shortcutUsesContainerDefaults() ? "" : shortcut.getExtra("dxwrapperConfig");
+            dxwrapperConfig = getShortcutSetting("dxwrapperConfig", container.getDXWrapperConfig());
             Log.d("XServerDisplayActivity", "DXVK launch config source=shortcutOrContainer shortcutRaw='" +
                     rawShortcutDxwrapperConfig + "' container='" + container.getDXWrapperConfig() +
                     "' effective='" + dxwrapperConfig + "'");
-            screenSize = shortcut.getExtra("screenSize", container.getScreenSize());
-            lc_all = shortcut.getExtra("lc_all", container.getLC_ALL());
-            midiSoundFont = shortcut.getExtra("midiSoundFont", container.getMIDISoundFont());
-            String inputType = shortcut.getExtra("inputType");
+            screenSize = getShortcutSetting("screenSize", container.getScreenSize());
+            lc_all = getShortcutSetting("lc_all", container.getLC_ALL());
+            midiSoundFont = getShortcutSetting("midiSoundFont", container.getMIDISoundFont());
+            String inputType = shortcutUsesContainerDefaults() ? "" : shortcut.getExtra("inputType");
             if (!inputType.isEmpty()) winHandler.setInputType((byte)Integer.parseInt(inputType));
-            String xinputDisabledString = shortcut.getExtra("disableXinput", "false");
+            String xinputDisabledString = getShortcutSetting("disableXinput", "false");
             xinputDisabledFromShortcut = parseBoolean(xinputDisabledString);
             // Pass the value to WinHandler
             winHandler.setXInputDisabled(xinputDisabledFromShortcut);
@@ -839,7 +841,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
             }
             Log.d("XServerDisplayActivity", "XInput Disabled from Shortcut: " + xinputDisabledFromShortcut);
             
-            startupSelection = shortcut.getExtra("startupSelection", String.valueOf(container.getStartupSelection()));
+            startupSelection = getShortcutSetting("startupSelection", String.valueOf(container.getStartupSelection()));
             // Per-game refresh rate override is read in getRefreshRateOverride()
         } else {
             startupSelection = String.valueOf(container.getStartupSelection());
@@ -1599,10 +1601,10 @@ public class XServerDisplayActivity extends AppCompatActivity {
             containerDataChanged = true;
         }
 
-        String dxwrapper = shortcut != null ? shortcut.getExtra("dxwrapper", this.dxwrapper) : this.dxwrapper;
+        String dxwrapper = shortcut != null ? getShortcutSetting("dxwrapper", this.dxwrapper) : this.dxwrapper;
 
         if (dxwrapper.contains("dxvk")) {
-            String dxwrapperConfig = shortcut != null ? shortcut.getExtra("dxwrapperConfig", this.dxwrapperConfig.toString()) : this.dxwrapperConfig.toString();
+            String dxwrapperConfig = shortcut != null ? getShortcutSetting("dxwrapperConfig", this.dxwrapperConfig.toString()) : this.dxwrapperConfig.toString();
             String preNormalizedDxwrapperConfig = dxwrapperConfig;
             dxwrapperConfig = normalizeDxwrapperConfigForCurrentWine(dxwrapperConfig);
             KeyValueSet currentDXWrapperConfig = DXVKConfigDialog.parseConfig(dxwrapperConfig);
@@ -1620,7 +1622,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
             containerDataChanged = true;
         }
 
-        String wincomponents = shortcut != null ? shortcut.getExtra("wincomponents", container.getWinComponents()) : container.getWinComponents();
+        String wincomponents = shortcut != null ? getShortcutSetting("wincomponents", container.getWinComponents()) : container.getWinComponents();
         if (!wincomponents.equals(container.getExtra("wincomponents")) || firstTimeBoot) {
             extractWinComponentFiles();
             container.putExtra("wincomponents", wincomponents);
@@ -1763,7 +1765,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
             }
         }
 
-        String desktopTheme = shortcut != null ? shortcut.getExtra("desktopTheme", container.getDesktopTheme()) : container.getDesktopTheme();
+        String desktopTheme = shortcut != null ? getShortcutSetting("desktopTheme", container.getDesktopTheme()) : container.getDesktopTheme();
         if (!(desktopTheme+","+xServer.screenInfo).equals(container.getExtra("desktopTheme"))) {
             WineThemeManager.apply(this, new WineThemeManager.ThemeInfo(desktopTheme), xServer.screenInfo);
             container.putExtra("desktopTheme", desktopTheme+","+xServer.screenInfo);
@@ -1777,7 +1779,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
         // This aligns behavior with the known-working Ludashi baseline.
 
         if (shortcut != null)
-            startupSelection = shortcut.getExtra("startupSelection", String.valueOf(container.getStartupSelection()));
+            startupSelection = getShortcutSetting("startupSelection", String.valueOf(container.getStartupSelection()));
         else
             startupSelection = String.valueOf(container.getStartupSelection());
 
@@ -1855,14 +1857,14 @@ public class XServerDisplayActivity extends AppCompatActivity {
 
             envVars.putAll(container.getEnvVars());
 
-            if (shortcut != null) envVars.putAll(shortcut.getExtra("envVars"));
+            if (shortcut != null) envVars.putAll(getShortcutSetting("envVars", container.getEnvVars()));
 
             if (!envVars.has("WINEESYNC")) {
                 envVars.put("WINEESYNC", "1");
             }
 
             ArrayList<String> bindingPaths = new ArrayList<>();
-            String drives = shortcut != null ? shortcut.getExtra("drives", container.getDrives()) : container.getDrives();
+            String drives = shortcut != null ? getShortcutSetting("drives", container.getDrives()) : container.getDrives();
             for (String[] drive : Container.drivesIterator(drives)) {
                 bindingPaths.add(drive[1]);
             }
@@ -1871,13 +1873,13 @@ public class XServerDisplayActivity extends AppCompatActivity {
 
             guestProgramLauncherComponent.setBox64Preset(
                     shortcut != null
-                            ? shortcut.getExtra("box64Preset", container.getBox64Preset())
+                            ? getShortcutSetting("box64Preset", container.getBox64Preset())
                             : container.getBox64Preset()
             );
 
             guestProgramLauncherComponent.setFEXCorePreset(
                     shortcut != null
-                            ? shortcut.getExtra("fexcorePreset", container.getFEXCorePreset())
+                            ? getShortcutSetting("fexcorePreset", container.getFEXCorePreset())
                             : container.getFEXCorePreset()
             );
         }
@@ -2022,7 +2024,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
         }
 
         // Get the fullscreen stretched extra from the shortcut if available
-        String shortcutFullscreenStretched = shortcut != null ? shortcut.getExtra("fullscreenStretched") : null;
+        String shortcutFullscreenStretched = shortcut != null && !shortcutUsesContainerDefaults() ? shortcut.getExtra("fullscreenStretched") : null;
 
         // Proceed based on container and shortcut settings
         boolean shouldStretch = false;
@@ -2392,16 +2394,8 @@ public class XServerDisplayActivity extends AppCompatActivity {
         }
 
         if (selectedProfile != null && selectedProfile.isVirtualGamepad()) {
-            return selectedProfile;
-        }
-
-        ControlsProfile virtualFallback = findFirstVirtualProfile();
-        if (virtualFallback != null) {
-            int virtualIndex = profiles.indexOf(virtualFallback);
-            if (virtualIndex >= 0) {
-                preferences.edit().putInt("selected_profile_index", virtualIndex).apply();
-            }
-            return virtualFallback;
+            Log.d("XServerDisplayActivity", "Skipping automatic startup for Virtual Gamepad profile=" + selectedProfile.getName());
+            return null;
         }
 
         return selectedProfile;
@@ -2435,21 +2429,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
 
         Log.d("XServerDisplayActivity", "Input controls simulated confirmation executed. startupProfile=" + (startupProfile != null ? startupProfile.getName() : "none"));
 
-        // After container opens, wait 3 seconds then auto-switch profile based on controller state
-        controllerAutoSwitchRunnable = () -> {
-            boolean hasPhysicalController = !ExternalController.getControllers().isEmpty();
-            if (hasPhysicalController) {
-                Log.d("XServerDisplayActivity", "Auto-switch: physical controller detected after launch, disabling virtual controls");
-                hideInputControls();
-            } else {
-                Log.d("XServerDisplayActivity", "Auto-switch: no physical controller after launch, enabling Virtual Gamepad");
-                ControlsProfile virtualProfile = findFirstVirtualProfile();
-                if (virtualProfile != null) {
-                    showInputControls(virtualProfile);
-                }
-            }
-        };
-        handler.postDelayed(controllerAutoSwitchRunnable, 3000);
+        controllerAutoSwitchRunnable = null;
     }
 
     private void startTouchscreenTimeout() {
@@ -2815,7 +2795,7 @@ public class XServerDisplayActivity extends AppCompatActivity {
             String wincomponentsStr = FileUtils.readString(this, "wincomponents/wincomponents.json");
             JSONObject wincomponentsJSONObject = new JSONObject(wincomponentsStr != null ? wincomponentsStr : "{}");
             ArrayList<String> dlls = new ArrayList<>();
-            String wincomponents = shortcut != null ? shortcut.getExtra("wincomponents", container.getWinComponents()) : container.getWinComponents();
+            String wincomponents = shortcut != null ? getShortcutSetting("wincomponents", container.getWinComponents()) : container.getWinComponents();
 
             Iterator<String[]> oldWinComponentsIter = new KeyValueSet(container.getExtra("wincomponents", Container.FALLBACK_WINCOMPONENTS)).iterator();
 

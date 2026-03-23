@@ -17,7 +17,6 @@ import com.winlator.cmod.steam.service.SteamService
 import com.winlator.cmod.steam.utils.PrefManager
 import com.winlator.cmod.service.DownloadService
 import com.google.android.gms.games.PlayGamesSdk
-import com.winlator.cmod.google.CloudSyncManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -100,7 +99,6 @@ class PluviaApp : Application() {
 
             override fun onActivityResumed(activity: Activity) {
                 currentForegroundActivity = activity
-                CloudSyncManager.flushPendingBackup(activity)
                 if (activity !is XServerDisplayActivity) {
                     RefreshRateUtils.applyPreferredRefreshRate(activity)
                 }

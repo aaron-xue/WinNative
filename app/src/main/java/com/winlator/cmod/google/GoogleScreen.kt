@@ -53,7 +53,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.winlator.cmod.core.AppUtils
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 private val BgDark = Color(0xFF0F0F12)
@@ -91,14 +90,6 @@ fun GoogleScreen() {
         syncState = CloudSyncManager.syncOnGoogleScreenOpened(currentActivity)
         googleSignedIn = syncState.googleSignedIn
         busy = false
-    }
-
-    LaunchedEffect(activity) {
-        CloudSyncManager.savedGamesPermissionEvents.collect { event ->
-            busy = false
-            AppUtils.showToast(context, event.message)
-            refreshState()
-        }
     }
 
     Column(
@@ -276,7 +267,7 @@ private fun GoogleAccountCard(
                 )
             } else {
                 ActionButton(
-                    label = if (busy) "Working..." else "Sign Out",
+                    label = if (busy) "Working..." else "Disable Sync",
                     textColor = DangerRed,
                     enabled = !busy,
                     onClick = onSignOut

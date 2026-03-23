@@ -220,7 +220,7 @@
             android:value="@string/play_games_app_id" />
         <meta-data
             android:name="com.google.android.gms.games.should_auto_sign_in"
-            android:value="false" />
+            android:value="true" />
 
     </application>
 </manifest>

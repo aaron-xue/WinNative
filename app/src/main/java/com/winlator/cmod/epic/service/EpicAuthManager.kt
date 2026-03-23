@@ -1,7 +1,6 @@
 package com.winlator.cmod.epic.service
 
 import android.content.Context
-import com.winlator.cmod.google.CloudSyncManager
 import com.winlator.cmod.epic.data.EpicCredentials
 import com.winlator.cmod.epic.data.EpicGameToken
 import org.json.JSONObject
@@ -276,7 +275,6 @@ object EpicAuthManager {
 
             authFile.writeText(json.toString())
             updateLoginStatus(context)
-            CloudSyncManager.queueStoreLoginBackup(context)
             Timber.d("Credentials saved to ${authFile.absolutePath}")
         } catch (e: Exception) {
             Timber.e(e, "Failed to save Epic credentials")

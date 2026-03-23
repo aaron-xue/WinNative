@@ -1289,6 +1289,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 content.append("container_id=${container.id}\n")
                 content.append("game_install_path=$installPath\n")
                 content.append("launch_exe_path=$launchExecutable\n")
+                content.append("use_container_defaults=1\n")
 
                 com.winlator.cmod.core.FileUtils.writeString(shortcutFile, content.toString())
                 Timber.i("Created Steam shortcut for ${appInfo.name} in container ${container.id}")
@@ -4740,7 +4741,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                 notificationHelper.notify("Connected")
 
                 _loginResult = LoginResult.Success
-                CloudSyncManager.queueStoreLoginBackup(this@SteamService)
             }
 
             else -> {

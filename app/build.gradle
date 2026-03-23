@@ -77,7 +77,7 @@ android {
     buildTypes {
         debug {
             minifyEnabled false
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
         release {
             minifyEnabled true
@@ -206,5 +206,4 @@ dependencies {
 
     // Google Play Games Services SDK
     implementation 'com.google.android.gms:play-services-games-v2:19.0.0'
-    implementation 'com.google.android.gms:play-services-auth:21.0.0'
 }

@@ -339,6 +339,7 @@
     <string name="logs_exported_to">Logs exported to</string>
     -->
     <string name="general">General</string>
+    <string name="display">Display</string>
     <!--
     <string name="msg_warning_install_wine">Warning: Installing a new version of Wine is recommended for testing purposes only.</string>
     -->

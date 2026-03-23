@@ -162,6 +162,14 @@ import java.nio.file.Files;
             }
         }
 
+        public boolean usesContainerDefaults() {
+            return "1".equals(getExtra("use_container_defaults", "0"));
+        }
+
+        public String getSettingExtra(String name, String containerValue) {
+            return usesContainerDefaults() ? containerValue : getExtra(name, containerValue);
+        }
+
         public void putExtra(String name, String value) {
             try {
                 if (value != null) {
