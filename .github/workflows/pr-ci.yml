@@ -61,17 +61,23 @@ jobs:
         validate-wrappers: true
         cache-cleanup: 'on-success'
 
-    - name: Seed Gradle cache
+    - name: Seed caches (full debug build)
       if: github.event_name == 'push'
+      timeout-minutes: 25
+      env:
+        GRADLE_OPTS: -Xmx4g -XX:+UseG1GC
       run: |
         export KEYSTORE_FILE="${{ github.workspace }}/release.jks"
+        export KEYSTORE_PASSWORD="dummypass"
+        export KEY_ALIAS="winnative"
+        export KEY_PASSWORD="dummypass"
         keytool -genkey -v \
           -keystore "$KEYSTORE_FILE" \
           -alias winnative \
           -keyalg RSA -keysize 2048 -validity 1 \
           -storepass dummypass -keypass dummypass \
           -dname "CN=CI, OU=CI, O=CI, L=CI, ST=CI, C=US"
-        ./gradlew :app:dependencies --build-cache
+        ./gradlew :app:assembleDebug --build-cache --parallel -x lint
 
     - name: Decode keystore and build
       if: github.event_name == 'pull_request'
