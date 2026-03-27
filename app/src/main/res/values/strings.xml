@@ -889,6 +889,8 @@ Installed path:
     <string name="google_cloud_error_no_snapshot">No saved store logins were found in Google cloud sync yet.</string>
     <string name="google_cloud_error_generic">Google cloud sync failed: %1$s</string>
     <string name="google_cloud_error_before_open">Google cloud sync failed before Google Saved Games could open.</string>
+    <string name="google_cloud_auto_backup">Cloud Sync Auto Backup</string>
+    <string name="google_cloud_auto_backup_summary">Automatically back up game saves to Google Drive each time you exit a game.</string>
     <string name="cloud_saves_title">Cloud Saves</string>
     <string name="cloud_saves_backup">Backup Cloud Save</string>
     <string name="cloud_saves_restore">Restore Cloud Save</string>

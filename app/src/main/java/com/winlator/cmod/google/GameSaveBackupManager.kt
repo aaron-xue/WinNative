@@ -153,6 +153,80 @@ object GameSaveBackupManager {
     }
 
     /**
+     * Auto-backup: zips the local save directory and uploads to Google Drive.
+     * Unlike [backupToGoogle], this does NOT download from the store provider first —
+     * it assumes the local save was just pushed to the store and mirrors it directly.
+     */
+    suspend fun autoBackupToGoogle(
+        activity: Activity,
+        gameSource: GameSource,
+        gameId: String,
+        gameName: String,
+    ): BackupResult = withContext(Dispatchers.IO) {
+        try {
+            val context = activity.applicationContext
+
+            if (!isGoogleSyncEnabled(context)) {
+                return@withContext BackupResult(false, "Google sync is not enabled.")
+            }
+            if (!isAutoBackupEnabled(context)) {
+                return@withContext BackupResult(false, "Auto backup is not enabled.")
+            }
+            if (!awaitAuthenticatedSession(activity)) {
+                return@withContext BackupResult(false, "Not signed in to Google Play Games.")
+            }
+
+            val accessToken = getDriveAccessToken(activity)
+                ?: return@withContext BackupResult(false, "Google Drive authorization required.")
+
+            // Go straight to zipping local saves — no syncDownFromProvider
+            val saveDir = getLocalSaveDir(context, gameSource, gameId)
+            if (saveDir == null || !saveDir.exists() || saveDir.listFiles().isNullOrEmpty()) {
+                return@withContext BackupResult(false, "No local save files found for auto backup.")
+            }
+
+            val zipBytes = zipDirectory(saveDir)
+            if (zipBytes.isEmpty()) {
+                return@withContext BackupResult(false, "Save files are empty.")
+            }
+
+            val fileName = buildDriveFileName(gameSource, gameId, gameName)
+            val folderId = getOrCreateDriveFolder(accessToken)
+                ?: return@withContext BackupResult(false, "Failed to create WinNative folder on Google Drive.")
+
+            val existingFileId = findDriveFile(accessToken, folderId, fileName)
+            val uploaded = if (existingFileId != null) {
+                updateDriveFile(accessToken, existingFileId, zipBytes)
+            } else {
+                createDriveFile(accessToken, folderId, fileName, zipBytes)
+            }
+
+            if (uploaded) {
+                Timber.tag(TAG).i("Auto backup complete: $fileName (${zipBytes.size} bytes)")
+                BackupResult(true, "Auto backup to Google Drive complete.")
+            } else {
+                BackupResult(false, "Failed to upload auto backup to Google Drive.")
+            }
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "Auto backup failed for $gameSource/$gameId")
+            BackupResult(false, "Auto backup failed: ${e.message}")
+        }
+    }
+
+    fun isAutoBackupEnabled(context: Context): Boolean =
+        prefs(context).getBoolean("cloud_sync_auto_backup", false)
+
+    /**
+     * Triggers the Google Drive account selection / authorization consent flow.
+     * Returns true if authorization was already granted (token obtained),
+     * or false if the consent UI was launched (caller should wait for onDriveAuthResult).
+     */
+    suspend fun requestDriveAuthorization(activity: Activity): Boolean = withContext(Dispatchers.IO) {
+        val token = getDriveAccessToken(activity)
+        token != null
+    }
+
+    /**
      * Restore a game's cloud save from Google Drive.
      */
     suspend fun restoreFromGoogle(

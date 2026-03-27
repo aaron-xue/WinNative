@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ScrollView
+import android.widget.FrameLayout
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 
@@ -13,11 +15,20 @@ class GoogleFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        return ComposeView(requireContext()).apply {
+        val scrollView = ScrollView(requireContext()).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            isFillViewport = true
+        }
+        val composeView = ComposeView(requireContext()).apply {
             setContent {
                 GoogleScreen()
             }
         }
+        scrollView.addView(composeView)
+        return scrollView
     }
 
     fun onSavedGamesPermissionResult(resultCode: Int, data: Intent?) {

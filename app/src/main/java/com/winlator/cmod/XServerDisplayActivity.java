@@ -1527,23 +1527,91 @@ public class XServerDisplayActivity extends AppCompatActivity {
             return;
         }
 
+        // Wrap onComplete to chain auto backup to Google Drive after store sync finishes
+        Runnable afterStoreSync = () -> runAutoBackupIfEnabled(onComplete);
+
         String gameSource = shortcut.getExtra("game_source");
         if ("STEAM".equals(gameSource)) {
-            syncSteamCloudOnExit(onComplete);
+            syncSteamCloudOnExit(afterStoreSync);
             return;
         }
 
         if ("EPIC".equals(gameSource)) {
-            syncEpicCloudOnExit(onComplete);
+            syncEpicCloudOnExit(afterStoreSync);
             return;
         }
 
         if ("GOG".equals(gameSource)) {
-            syncGogCloudOnExit(onComplete);
+            syncGogCloudOnExit(afterStoreSync);
             return;
         }
 
         onComplete.run();
+    }
+
+    /**
+     * If Cloud Sync Auto Backup is enabled, zips the local save and uploads to Google Drive.
+     * Reuses GameSaveBackupManager but skips downloading from the store provider.
+     */
+    private void runAutoBackupIfEnabled(Runnable onComplete) {
+        if (shortcut == null) {
+            onComplete.run();
+            return;
+        }
+
+        if (!com.winlator.cmod.google.GameSaveBackupManager.INSTANCE.isAutoBackupEnabled(this)) {
+            onComplete.run();
+            return;
+        }
+
+        String gameSource = shortcut.getExtra("game_source");
+        String gameId;
+        com.winlator.cmod.google.GameSaveBackupManager.GameSource source;
+
+        if ("STEAM".equals(gameSource)) {
+            gameId = shortcut.getExtra("app_id");
+            source = com.winlator.cmod.google.GameSaveBackupManager.GameSource.STEAM;
+        } else if ("EPIC".equals(gameSource)) {
+            gameId = shortcut.getExtra("app_id");
+            source = com.winlator.cmod.google.GameSaveBackupManager.GameSource.EPIC;
+        } else if ("GOG".equals(gameSource)) {
+            gameId = shortcut.getExtra("gog_id");
+            source = com.winlator.cmod.google.GameSaveBackupManager.GameSource.GOG;
+        } else {
+            onComplete.run();
+            return;
+        }
+
+        if (gameId == null || gameId.isEmpty()) {
+            onComplete.run();
+            return;
+        }
+
+        String gameName = shortcutName != null && !shortcutName.isEmpty() ? shortcutName : (shortcut.name != null ? shortcut.name : "Unknown");
+
+        Log.d("XServerDisplayActivity", "Starting auto backup to Google Drive for " + gameSource + "/" + gameId);
+        preloaderDialog.showOnUiThread("Backing up save to Google Drive...");
+
+        new Thread(() -> {
+            try {
+                com.winlator.cmod.google.GameSaveBackupManager.BackupResult result =
+                    (com.winlator.cmod.google.GameSaveBackupManager.BackupResult) kotlinx.coroutines.BuildersKt.runBlocking(
+                        kotlinx.coroutines.Dispatchers.getIO(),
+                        (scope, continuation) -> com.winlator.cmod.google.GameSaveBackupManager.INSTANCE.autoBackupToGoogle(
+                            this,
+                            source,
+                            gameId,
+                            gameName,
+                            continuation
+                        )
+                    );
+                Log.d("XServerDisplayActivity", "Auto backup result: " + result.getMessage());
+            } catch (Exception e) {
+                Log.w("XServerDisplayActivity", "Auto backup to Google Drive failed", e);
+            } finally {
+                runOnUiThread(onComplete);
+            }
+        }).start();
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.winlator.cmod.google
 
 import android.app.Activity
+import android.content.Context
 import android.text.format.DateUtils
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -15,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,6 +36,8 @@ import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -77,6 +82,13 @@ fun GoogleScreen() {
     var googleSignedIn by remember { mutableStateOf(false) }
     var syncState by remember { mutableStateOf(CloudSyncManager.StoreLoginSyncState()) }
     var busy by remember { mutableStateOf(false) }
+
+    val autoBackupPrefs = remember {
+        context.getSharedPreferences("google_store_login_sync", Context.MODE_PRIVATE)
+    }
+    var autoBackupEnabled by remember {
+        mutableStateOf(autoBackupPrefs.getBoolean("cloud_sync_auto_backup", false))
+    }
 
     fun refreshState() {
         val currentActivity = activity ?: return
@@ -161,6 +173,99 @@ fun GoogleScreen() {
                     }
                 }
             }
+        )
+
+        SectionLabel(stringResource(R.string.google_cloud_auto_backup), modifier = Modifier.padding(top = 8.dp))
+
+        AutoBackupCard(
+            enabled = autoBackupEnabled,
+            googleSignedIn = googleSignedIn,
+            busy = busy,
+            onToggle = { newValue ->
+                if (newValue) {
+                    val currentActivity = activity ?: return@AutoBackupCard
+                    busy = true
+                    scope.launch {
+                        try {
+                            val alreadyAuthorized = GameSaveBackupManager.requestDriveAuthorization(currentActivity)
+                            if (alreadyAuthorized) {
+                                autoBackupEnabled = true
+                                autoBackupPrefs.edit().putBoolean("cloud_sync_auto_backup", true).apply()
+                            } else {
+                                // Consent UI launched — toggle will be enabled after user grants access
+                                autoBackupEnabled = true
+                                autoBackupPrefs.edit().putBoolean("cloud_sync_auto_backup", true).apply()
+                            }
+                        } catch (e: Exception) {
+                            AppUtils.showToast(context, "Drive authorization failed: ${e.message}")
+                        } finally {
+                            busy = false
+                        }
+                    }
+                } else {
+                    autoBackupEnabled = false
+                    autoBackupPrefs.edit().putBoolean("cloud_sync_auto_backup", false).apply()
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun AutoBackupCard(
+    enabled: Boolean,
+    googleSignedIn: Boolean,
+    busy: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .clip(RoundedCornerShape(14.dp))
+            .background(CardDark)
+            .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
+            .clickable(enabled = !busy) { onToggle(!enabled) }
+            .padding(horizontal = 14.dp, vertical = 14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconBox(icon = Icons.Filled.CloudSync, tint = if (enabled && googleSignedIn) StatusGreen else TextSecondary)
+
+            Spacer(Modifier.width(14.dp))
+
+            Text(
+                text = stringResource(R.string.google_cloud_auto_backup),
+                color = TextPrimary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(Modifier.width(10.dp))
+
+            Switch(
+                checked = enabled && googleSignedIn,
+                onCheckedChange = { onToggle(it) },
+                enabled = !busy,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = StatusGreen,
+                    checkedTrackColor = StatusGreen.copy(alpha = 0.3f),
+                    uncheckedThumbColor = TextSecondary,
+                    uncheckedTrackColor = TextSecondary.copy(alpha = 0.2f)
+                )
+            )
+        }
+
+        Spacer(Modifier.height(6.dp))
+
+        Text(
+            text = stringResource(R.string.google_cloud_auto_backup_summary),
+            color = TextSecondary,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(start = 52.dp)
         )
     }
 }
