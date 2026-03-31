@@ -55,6 +55,11 @@ class AdrenotoolsFragment : Fragment() {
             name = GITHUB_REPO_NAME,
             repoUrl = GITHUB_REPO_URL,
             apiUrl = GITHUB_API_URL
+        ),
+        GithubSourceDefinition(
+            name = XNICK_REPO_NAME,
+            repoUrl = XNICK_REPO_URL,
+            apiUrl = XNICK_API_URL
         )
     )
     private var installedDrivers: List<InstalledDriver> = emptyList()
@@ -782,6 +787,11 @@ class AdrenotoolsFragment : Fragment() {
                 repoUrl = GITHUB_REPO_URL,
                 apiUrl = GITHUB_API_URL
             ))
+            newSources.add(GithubSourceDefinition(
+                name = XNICK_REPO_NAME,
+                repoUrl = XNICK_REPO_URL,
+                apiUrl = XNICK_API_URL
+            ))
         } else {
             try {
                 val array = JSONArray(jsonStr)
@@ -918,6 +928,10 @@ class AdrenotoolsFragment : Fragment() {
         private const val GITHUB_REPO_NAME = "StevenMXZ/freedreno_turnip-CI"
         private const val GITHUB_REPO_URL = "https://github.com/StevenMXZ/freedreno_turnip-CI/releases"
         private const val GITHUB_API_URL = "https://api.github.com/repos/StevenMXZ/freedreno_turnip-CI/releases"
+
+        private const val XNICK_REPO_NAME = "Xnick417x"
+        private const val XNICK_REPO_URL = "https://github.com/Xnick417x/Winlator-Bionic-Nightly-wcp/releases"
+        private const val XNICK_API_URL = "https://api.github.com/repos/Xnick417x/Winlator-Bionic-Nightly-wcp/releases"
 
         private val DiffCallback = object : DiffUtil.ItemCallback<DriverRow>() {
             override fun areItemsTheSame(oldItem: DriverRow, newItem: DriverRow): Boolean {
