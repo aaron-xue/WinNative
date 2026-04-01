@@ -7,6 +7,7 @@ import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Environment;
 import android.util.JsonReader;
+import android.util.Log;
 
 import androidx.preference.PreferenceManager;
 
