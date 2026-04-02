@@ -103,6 +103,10 @@ public class ContentDialog extends Dialog {
             dismiss();
         });
 
+        if (getWindow() != null) {
+            getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+        }
+
         setContentView(contentView);
     }
 
