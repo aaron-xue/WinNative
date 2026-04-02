@@ -147,10 +147,19 @@ class InputControlsFragment(private val selectedProfileId: Int) : Fragment() {
                 if (jsonString.isNullOrBlank()) {
                     AppUtils.showToast(requireContext(), getString(R.string.input_controls_editor_unable_to_import) + ": Empty file")
                 } else {
-                    val imported = manager.importProfile(JSONObject(jsonString))
+                    val imported = try {
+                        manager.importProfile(JSONObject(jsonString))
+                    } catch (e: Exception) {
+                        null
+                    }
+
                     if (imported != null) {
                         importProfileCallback?.invoke(imported)
                     } else {
+                        // The profile might have been imported (file written) even if manager.importProfile returns null
+                        // so we reload profiles just in case to let user see it in the list if it partially succeeded
+                        manager.loadProfiles(false)
+                        submitRows()
                         AppUtils.showToast(requireContext(), getString(R.string.input_controls_editor_unable_to_import) + ": Invalid profile data")
                     }
                 }

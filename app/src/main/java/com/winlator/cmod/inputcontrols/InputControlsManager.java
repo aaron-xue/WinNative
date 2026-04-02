@@ -71,10 +71,10 @@ public class InputControlsManager {
         int newVersion = AppUtils.getVersionCode(context);
         int oldVersion = preferences.getInt("inputcontrols_app_version", 0);
         int oldSyncRevision = preferences.getInt("inputcontrols_asset_sync_revision", 0);
-        if (oldVersion == newVersion && oldSyncRevision >= ASSET_PROFILE_SYNC_REVISION) return;
+        if (oldVersion == newVersion && oldSyncRevision >= 1) return;
         preferences.edit()
                 .putInt("inputcontrols_app_version", newVersion)
-                .putInt("inputcontrols_asset_sync_revision", ASSET_PROFILE_SYNC_REVISION)
+                .putInt("inputcontrols_asset_sync_revision", 1)
                 .apply();
 
         File[] files = profilesDir.listFiles();
@@ -113,8 +113,12 @@ public class InputControlsManager {
         if (files != null) {
             for (File file : files) {
                 ControlsProfile profile = loadProfile(context, file);
-                if (!(ignoreTemplates && profile.isTemplate())) profiles.add(profile);
-                maxProfileId = Math.max(maxProfileId, profile.id);
+                if (profile != null) {
+                    if (!ignoreTemplates || !profile.isTemplate()) {
+                        profiles.add(profile);
+                    }
+                    maxProfileId = Math.max(maxProfileId, profile.id);
+                }
             }
         }
 
@@ -125,7 +129,8 @@ public class InputControlsManager {
 
     public ControlsProfile createProfile(String name) {
         if (!profilesLoaded) loadProfiles(false);
-        ControlsProfile profile = new ControlsProfile(context, ++maxProfileId);
+        int newId = ++maxProfileId;
+        ControlsProfile profile = new ControlsProfile(context, newId);
         profile.setName(name);
         profile.save();
         profiles.add(profile);
@@ -183,7 +188,9 @@ public class InputControlsManager {
 
             if (newProfile == null) {
                 Log.e("ICManager", "importProfile: loadProfile returned null for " + newFile.getPath());
-                return null;
+                // If writing was successful, still return a basic profile object
+                newProfile = new ControlsProfile(context, newId);
+                newProfile.setName(data.optString("name", "Imported Profile"));
             }
 
             int foundIndex = -1;
@@ -262,10 +269,14 @@ public class InputControlsManager {
             }
 
             ControlsProfile profile = new ControlsProfile(context, profileId);
-            if (profileName == null) return null;
-            profile.setName(profileName);
-            profile.setCursorSpeed(cursorSpeed);
-            return profile;
+            if (profileName != null) {
+                profile.setName(profileName);
+                profile.setCursorSpeed(cursorSpeed);
+                reader.close();
+                return profile;
+            }
+            reader.close();
+            return null;
         }
         catch (IOException e) {
             return null;
