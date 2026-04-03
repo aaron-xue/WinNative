@@ -137,6 +137,8 @@ public class ControlsEditorActivity extends AppCompatActivity implements View.On
         }
 
         final PopupWindow popupWindow = AppUtils.showPopupWindow(anchorView, view, 300, 0);
+        popupWindow.setFocusable(true);
+        popupWindow.update();
 
         view.findViewById(R.id.BTReset).setOnClickListener(v -> {
             element.setCustomColor(-1);
