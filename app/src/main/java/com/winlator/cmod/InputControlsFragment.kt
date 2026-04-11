@@ -1577,7 +1577,7 @@ class InputControlsFragment : Fragment() {
         private const val ARG_SELECTED_PROFILE_ID = "selectedProfileId"
         private const val OPEN_FILE_REQUEST_CODE = 2
         private const val INPUT_CONTROLS_URL =
-            "https://raw.githubusercontent.com/Xnick417x/WinNative/icp-download/Profiles/%s"
+            "https://raw.githubusercontent.com/Xnick417x/Winlator-Bionic-Nightly-wcp/main/Profiles/%s"
 
         fun newInstance(profileId: Int = 0): InputControlsFragment {
             return InputControlsFragment().apply {
