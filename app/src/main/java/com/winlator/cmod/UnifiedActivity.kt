@@ -6000,9 +6000,12 @@ class UnifiedActivity : AppCompatActivity() {
                 shortcut.putExtra("game_install_path", gameInstallPath)
                 ensureGameDrive(shortcut.container, gameInstallPath)
 
-                // Repair broken Exec line if the executable is missing or still points at the old A: mapping.
+                // Repair broken Exec line if the executable is missing or still points at a legacy placeholder mapping.
                 val currentPath = shortcut.path
-                if (currentPath == null || currentPath == "A:\\" || currentPath == "A:\\\\" || currentPath.startsWith("A:\\")) {
+                if (currentPath == null || currentPath == "D:\\" || currentPath == "D:\\\\"
+                    || currentPath == "A:\\" || currentPath == "A:\\\\"
+                    || currentPath.startsWith("A:\\")
+                ) {
                     var exePath = withContext(kotlinx.coroutines.Dispatchers.IO) { EpicService.getInstalledExe(app.id) }
                     val newExecCmd = if (exePath.isNotEmpty()) {
                         buildStoreWineExecCommand(
@@ -6127,9 +6130,12 @@ class UnifiedActivity : AppCompatActivity() {
                 shortcut.putExtra("game_install_path", gameInstallPath)
                 ensureGameDrive(shortcut.container, gameInstallPath)
 
-                // Repair broken Exec line if the executable is missing or still points at the old A: mapping.
+                // Repair broken Exec line if the executable is missing or still points at a legacy placeholder mapping.
                 val currentPath = shortcut.path
-                if (currentPath == null || currentPath == "A:\\" || currentPath == "A:\\\\" || currentPath.startsWith("A:\\")) {
+                if (currentPath == null || currentPath == "D:\\" || currentPath == "D:\\\\"
+                    || currentPath == "A:\\" || currentPath == "A:\\\\"
+                    || currentPath.startsWith("A:\\")
+                ) {
                     val newExecCmd = if (shortcut.getExtra("launch_exe_path").isNotEmpty()) {
                         val selectedExe = java.io.File(shortcut.getExtra("launch_exe_path"))
                         if (selectedExe.exists()) {
