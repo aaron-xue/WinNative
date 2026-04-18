@@ -332,6 +332,23 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
     };
 
+    private final SensorEventListener gyroListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+                float gyroX = event.values[0]; // Rotation around the X-axis
+                float gyroY = event.values[1]; // Rotation around the Y-axis
+
+                winHandler.updateGyroData(gyroX, gyroY); // Send gyro data to WinHandler
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            // No action needed
+        }
+    };
+
     private final SharedPreferences.OnSharedPreferenceChangeListener prefListener = (sharedPreferences, key) -> {
         if ("gyro_enabled".equals(key) || "mouse_gyro_enabled".equals(key)) {
             boolean gyroEnabled = sharedPreferences.getBoolean("gyro_enabled", false) || sharedPreferences.getBoolean("mouse_gyro_enabled", false);
@@ -361,24 +378,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             configChangedCallback = null;
         }
     }
-
-
-    private final SensorEventListener gyroListener = new SensorEventListener() {
-        @Override
-        public void onSensorChanged(SensorEvent event) {
-            if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
-                float gyroX = event.values[0]; // Rotation around the X-axis
-                float gyroY = event.values[1]; // Rotation around the Y-axis
-
-                winHandler.updateGyroData(gyroX, gyroY); // Send gyro data to WinHandler
-            }
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-            // No action needed
-        }
-    };
 
     /**
      * Returns the effective display refresh rate override.
