@@ -1,5 +1,5 @@
 /* Settings > Stores screen — Jetpack Compose / Material3.
- * Scrolling delegated to a View-level ScrollView in StoresFragment. */
+ * Uses a LazyColumn for the main content. */
 package com.winlator.cmod.feature.settings
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
@@ -19,19 +19,26 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,6 +71,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -101,15 +109,6 @@ data class StoreState(
     val gogFolder: String = "",
 )
 
-// Root
-private val downloadSpeedOptions =
-    listOf(
-        8 to "Conservative",
-        16 to "Balanced",
-        24 to "Standard",
-        32 to "Performance",
-    )
-
 @Composable
 fun StoresScreen(
     state: StoreState,
@@ -128,103 +127,155 @@ fun StoresScreen(
     onPickEpicFolder: () -> Unit,
     onPickGogFolder: () -> Unit,
 ) {
-    Column(
+    val layoutDirection = LocalLayoutDirection.current
+    val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
+    val navBarStartPadding = navBarPadding.calculateStartPadding(layoutDirection)
+    val navBarEndPadding = navBarPadding.calculateEndPadding(layoutDirection)
+    val navBarBottomPadding = navBarPadding.calculateBottomPadding()
+    val downloadSpeedOptions =
+        listOf(
+            8 to stringResource(R.string.stores_accounts_download_speed_conservative),
+            16 to stringResource(R.string.stores_accounts_download_speed_balanced),
+            24 to stringResource(R.string.stores_accounts_download_speed_standard),
+            32 to stringResource(R.string.stores_accounts_download_speed_performance),
+        )
+
+    LazyColumn(
         modifier =
             Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .background(BgDark)
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .fillMaxSize()
+                .background(BgDark),
+        contentPadding =
+            PaddingValues(
+                start = 16.dp + navBarStartPadding,
+                end = 16.dp + navBarEndPadding,
+                top = 16.dp,
+                bottom = 4.dp + navBarBottomPadding,
+            ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SectionLabel("Connected Stores")
+        item(key = "stores_section") {
+            SectionLabel(stringResource(R.string.stores_accounts_connected_stores))
+        }
 
-        StoreCard(
-            name = "Steam",
-            icon = Icons.Outlined.Gamepad,
-            accentColor = Color(0xFF66C0F4),
-            isLoggedIn = state.isSteamLoggedIn,
-            onSignIn = onSteamSignIn,
-            onSignOut = onSteamSignOut,
-        )
-        StoreCard(
-            name = "Epic Games",
-            icon = Icons.Outlined.Gamepad,
-            accentColor = Color(0xFF8BAFD4),
-            isLoggedIn = state.isEpicLoggedIn,
-            onSignIn = onEpicSignIn,
-            onSignOut = onEpicSignOut,
-        )
-        StoreCard(
-            name = "GOG",
-            icon = Icons.Outlined.Gamepad,
-            accentColor = Color(0xFFA855F7),
-            isLoggedIn = state.isGogLoggedIn,
-            onSignIn = onGogSignIn,
-            onSignOut = onGogSignOut,
-        )
+        item(key = "steam_card") {
+            StoreCard(
+                name = stringResource(R.string.stores_accounts_steam_integration_title),
+                icon = Icons.Outlined.Gamepad,
+                accentColor = Color(0xFF66C0F4),
+                isLoggedIn = state.isSteamLoggedIn,
+                onSignIn = onSteamSignIn,
+                onSignOut = onSteamSignOut,
+            )
+        }
+        item(key = "epic_card") {
+            StoreCard(
+                name = stringResource(R.string.preloader_platform_epic),
+                icon = Icons.Outlined.Gamepad,
+                accentColor = Color(0xFF8BAFD4),
+                isLoggedIn = state.isEpicLoggedIn,
+                onSignIn = onEpicSignIn,
+                onSignOut = onEpicSignOut,
+            )
+        }
+        item(key = "gog_card") {
+            StoreCard(
+                name = stringResource(R.string.preloader_platform_gog),
+                icon = Icons.Outlined.Gamepad,
+                accentColor = Color(0xFFA855F7),
+                isLoggedIn = state.isGogLoggedIn,
+                onSignIn = onGogSignIn,
+                onSignOut = onGogSignOut,
+            )
+        }
 
-        SectionLabel("Download Settings", modifier = Modifier.padding(top = 8.dp))
+        item(key = "download_section") {
+            SectionLabel(stringResource(R.string.stores_accounts_download_settings), modifier = Modifier.padding(top = 8.dp))
+        }
 
-        SettingsToggleCard(
-            title = stringResource(R.string.stores_accounts_shared_downloads_folder),
-            subtitle = stringResource(R.string.stores_accounts_shared_downloads_subtitle),
-            icon = Icons.Outlined.FolderShared,
-            checked = state.sharedFolder,
-            onCheckedChange = onSharedFolderChanged,
-        )
+        item(key = "shared_folder_toggle") {
+            SettingsToggleCard(
+                title = stringResource(R.string.stores_accounts_shared_downloads_folder),
+                subtitle = stringResource(R.string.stores_accounts_shared_downloads_subtitle),
+                icon = Icons.Outlined.FolderShared,
+                checked = state.sharedFolder,
+                onCheckedChange = onSharedFolderChanged,
+            )
+        }
 
-        AnimatedContent(
-            targetState = state.sharedFolder,
-            transitionSpec = {
-                fadeIn(tween(220)) togetherWith fadeOut(tween(160)) using
-                    SizeTransform(clip = true, sizeAnimationSpec = { _, _ -> tween(240) })
-            },
-            label = "folderPaths",
-        ) { shared ->
-            if (shared) {
-                FolderPathCard(
-                    label = "Default Downloads Folder",
-                    path = state.defaultFolder,
-                    onBrowse = onPickDefaultFolder,
-                )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FolderPathCard("Steam Downloads", state.steamFolder, onPickSteamFolder)
-                    FolderPathCard("Epic Downloads", state.epicFolder, onPickEpicFolder)
-                    FolderPathCard("GOG Downloads", state.gogFolder, onPickGogFolder)
+        item(key = "folder_paths") {
+            AnimatedContent(
+                targetState = state.sharedFolder,
+                transitionSpec = {
+                    fadeIn(tween(220)) togetherWith fadeOut(tween(160)) using
+                        SizeTransform(clip = true, sizeAnimationSpec = { _, _ -> tween(240) })
+                },
+                label = "folderPaths",
+            ) { shared ->
+                if (shared) {
+                    FolderPathCard(
+                        label = stringResource(R.string.stores_accounts_default_downloads_folder),
+                        path = state.defaultFolder,
+                        onBrowse = onPickDefaultFolder,
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FolderPathCard(
+                            stringResource(R.string.stores_accounts_steam_downloads),
+                            state.steamFolder,
+                            onPickSteamFolder,
+                        )
+                        FolderPathCard(
+                            stringResource(R.string.stores_accounts_epic_downloads),
+                            state.epicFolder,
+                            onPickEpicFolder,
+                        )
+                        FolderPathCard(
+                            stringResource(R.string.stores_accounts_gog_downloads),
+                            state.gogFolder,
+                            onPickGogFolder,
+                        )
+                    }
                 }
             }
         }
 
-        SectionLabel("Steam", modifier = Modifier.padding(top = 8.dp))
+        item(key = "steam_section") {
+            SectionLabel(stringResource(R.string.steam_section_title), modifier = Modifier.padding(top = 8.dp))
+        }
 
-        SettingsDropdownCard(
-            title = stringResource(R.string.stores_accounts_download_speed),
-            subtitle = stringResource(R.string.stores_accounts_download_speed_subtitle),
-            icon = Icons.Outlined.Speed,
-            selectedValue = state.downloadSpeed,
-            options = downloadSpeedOptions,
-            onOptionSelected = onDownloadSpeedChanged,
-            highlightMaxValue = true,
-        )
-        val serverSubtitle =
-            if (!state.downloadServerManuallySet && state.downloadServer != 0) {
-                val name = serverOptions.firstOrNull { it.first == state.downloadServer }?.second ?: ""
-                "Auto-detected: $name"
-            } else {
-                "Steam CDN region for game downloads"
-            }
-        SettingsDropdownCard(
-            title = stringResource(R.string.stores_accounts_download_server),
-            subtitle = serverSubtitle,
-            icon = Icons.Outlined.Public,
-            selectedValue = state.downloadServer,
-            options = serverOptions,
-            onOptionSelected = onDownloadServerChanged,
-        )
+        item(key = "download_speed") {
+            SettingsDropdownCard(
+                title = stringResource(R.string.stores_accounts_download_speed),
+                subtitle = stringResource(R.string.stores_accounts_download_speed_subtitle),
+                icon = Icons.Outlined.Speed,
+                selectedValue = state.downloadSpeed,
+                options = downloadSpeedOptions,
+                onOptionSelected = onDownloadSpeedChanged,
+                highlightMaxValue = true,
+            )
+        }
+        item(key = "download_server") {
+            val serverSubtitle =
+                if (!state.downloadServerManuallySet && state.downloadServer != 0) {
+                    val name = serverOptions.firstOrNull { it.first == state.downloadServer }?.second ?: ""
+                    stringResource(R.string.stores_accounts_download_server_auto_detected, name)
+                } else {
+                    stringResource(R.string.stores_accounts_download_server_subtitle)
+                }
+            SettingsDropdownCard(
+                title = stringResource(R.string.stores_accounts_download_server),
+                subtitle = serverSubtitle,
+                icon = Icons.Outlined.Public,
+                selectedValue = state.downloadServer,
+                options = serverOptions,
+                onOptionSelected = onDownloadServerChanged,
+            )
+        }
 
-        Spacer(Modifier.height(24.dp))
+        item(key = "bottom_spacer") {
+            Spacer(Modifier.height(24.dp))
+        }
     }
 }
 
@@ -279,11 +330,19 @@ private fun SignOutConfirmDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                 ) {
-                    ActionButton(label = "Cancel", textColor = TextSecondary, onClick = onDismiss)
-                    ActionButton(label = "Sign Out", textColor = DangerRed, onClick = {
-                        onConfirm()
-                        onDismiss()
-                    })
+                    ActionButton(
+                        label = stringResource(R.string.common_ui_cancel),
+                        textColor = TextSecondary,
+                        onClick = onDismiss,
+                    )
+                    ActionButton(
+                        label = stringResource(R.string.common_ui_sign_out),
+                        textColor = DangerRed,
+                        onClick = {
+                            onConfirm()
+                            onDismiss()
+                        },
+                    )
                 }
             }
         }
@@ -416,7 +475,7 @@ private fun StoreCard(
             }
 
             ActionButton(
-                label = if (isLoggedIn) "Sign Out" else "Sign In",
+                label = if (isLoggedIn) stringResource(R.string.common_ui_sign_out) else stringResource(R.string.common_ui_sign_in),
                 textColor = if (isLoggedIn) DangerRed else accentColor,
                 onClick = if (isLoggedIn) ({ showSignOutDialog = true }) else onSignIn,
             )
@@ -701,7 +760,7 @@ private fun FolderPathCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(label, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 Text(
-                    text = path.ifEmpty { "Not configured" },
+                    text = path.ifEmpty { stringResource(R.string.common_ui_not_configured) },
                     color = TextSecondary,
                     fontSize = 11.sp,
                     maxLines = 1,

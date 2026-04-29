@@ -1,21 +1,16 @@
-/* Settings > Other fragment — hosts OtherSettingsScreen via ComposeView.
- * Mirrors the ScrollView wrapper used in StoresFragment / DebugFragment. */
+/* Settings > Other fragment — hosts OtherSettingsScreen via ComposeView. */
 package com.winlator.cmod.feature.settings
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.graphics.drawable.GradientDrawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.ScrollView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.MaterialTheme
@@ -32,40 +27,22 @@ import androidx.preference.PreferenceManager
 import com.winlator.cmod.R
 import com.winlator.cmod.app.config.SettingsConfig
 import com.winlator.cmod.app.update.UpdateChecker
+import com.winlator.cmod.feature.setup.SetupWizardActivity
 import com.winlator.cmod.runtime.audio.midi.MidiManager
 import com.winlator.cmod.runtime.display.environment.ImageFsInstaller
 import com.winlator.cmod.shared.android.AppUtils
+import com.winlator.cmod.shared.android.DirectoryPickerDialog
 import com.winlator.cmod.shared.android.LocaleHelper
 import com.winlator.cmod.shared.android.RefreshRateUtils
 import com.winlator.cmod.shared.io.FileUtils
 import com.winlator.cmod.shared.ui.dialog.ContentDialog
 import com.winlator.cmod.shared.ui.dialog.PreloaderDialog
+import com.winlator.cmod.shared.theme.WinNativeTheme
 import java.io.File
 
 class OtherSettingsFragment : Fragment() {
     private lateinit var preferences: SharedPreferences
     private var uiState by mutableStateOf(OtherSettingsState())
-
-    // Activity result launchers
-    private val winlatorPathLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.OpenDocumentTree(),
-        ) { uri ->
-            uri ?: return@registerForActivityResult
-            persistUriPermission(uri)
-            preferences.edit { putString("winlator_path_uri", uri.toString()) }
-            refresh()
-        }
-
-    private val shortcutExportPathLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.OpenDocumentTree(),
-        ) { uri ->
-            uri ?: return@registerForActivityResult
-            persistUriPermission(uri)
-            preferences.edit { putString("shortcuts_export_path_uri", uri.toString()) }
-            refresh()
-        }
 
     private val installSoundFontLauncher =
         registerForActivityResult(
@@ -93,149 +70,107 @@ class OtherSettingsFragment : Fragment() {
         preferences = PreferenceManager.getDefaultSharedPreferences(ctx)
         refresh()
 
-        val composeView =
-            ComposeView(ctx).apply {
-                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-                setContent {
-                    MaterialTheme(
-                        colorScheme =
-                            darkColorScheme(
-                                primary = Color(0xFF1A9FFF),
-                                background = Color(0xFF141B24),
-                                surface = Color(0xFF1E252E),
-                            ),
-                    ) {
-                        OtherSettingsScreen(
-                            state = uiState,
-                            onCheckForUpdatesChanged = { checked ->
-                                preferences.edit { putBoolean("check_for_updates", checked) }
-                                if (checked) {
-                                    UpdateChecker.startBackgroundLoop(ctx)
-                                } else {
-                                    UpdateChecker.stopBackgroundLoop()
-                                }
-                                refresh()
-                            },
-                            onCheckForUpdatesNow = {
-                                val started = UpdateChecker.checkForUpdateManual(ctx)
-                                if (started) {
-                                    AppUtils.showToast(ctx, R.string.settings_other_checking_for_updates)
-                                } else {
-                                    val seconds = UpdateChecker.manualCheckCooldownSeconds()
-                                    AppUtils.showToast(
-                                        ctx,
-                                        getString(R.string.settings_other_update_check_cooldown, seconds),
-                                    )
-                                }
-                            },
-                            onLanguageSelected = { index ->
-                                val currentIndex =
-                                    LocaleHelper.indexForTag(
-                                        LocaleHelper.getAppliedLanguageTag(),
-                                    )
-                                if (index != currentIndex) {
-                                    LocaleHelper.applyLanguageTag(LocaleHelper.tagForIndex(index))
-                                    // AppCompatDelegate recreates attached activities automatically.
-                                }
-                            },
-                            onRefreshRateSelected = { index ->
-                                val hz =
-                                    RefreshRateUtils.parseRefreshRateLabel(
-                                        uiState.refreshRateLabels.getOrNull(index),
-                                    )
-                                preferences.edit { putInt("refresh_rate_override", hz) }
-                                if (isAdded) RefreshRateUtils.applyPreferredRefreshRate(requireActivity())
-                                refresh()
-                            },
-                            onSoundFontSelected = { index ->
-                                // Selection is display-only; no persistence in legacy code.
-                                uiState = uiState.copy(soundFontIndex = index)
-                            },
-                            onInstallSoundFont = {
-                                val intent =
-                                    Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                                        addCategory(Intent.CATEGORY_OPENABLE)
-                                        type = "*/*"
-                                    }
-                                installSoundFontLauncher.launch(intent)
-                            },
-                            onRemoveSoundFont = { removeSelectedSoundFont() },
-                            onPickWinlatorPath = { winlatorPathLauncher.launch(null) },
-                            onPickShortcutExportPath = { shortcutExportPathLauncher.launch(null) },
-                            onCursorSpeedChanged = { percent ->
-                                preferences.edit { putFloat("cursor_speed", percent / 100f) }
-                                refresh()
-                            },
-                            onUseDRI3Changed = { checked ->
-                                preferences.edit { putBoolean("use_dri3", checked) }
-                                refresh()
-                            },
-                            onCursorLockChanged = { checked ->
-                                preferences.edit { putBoolean("cursor_lock", checked) }
-                                refresh()
-                            },
-                            onXinputDisabledChanged = { checked ->
-                                preferences.edit { putBoolean("xinput_toggle", checked) }
-                                refresh()
-                            },
-                            onEnableFileProviderChanged = { checked ->
-                                preferences.edit { putBoolean("enable_file_provider", checked) }
-                                AppUtils.showToast(ctx, R.string.settings_general_take_effect_next_startup)
-                                refresh()
-                            },
-                            onOpenInBrowserChanged = { checked ->
-                                preferences.edit { putBoolean("open_with_android_browser", checked) }
-                                refresh()
-                            },
-                            onShareClipboardChanged = { checked ->
-                                preferences.edit { putBoolean("share_android_clipboard", checked) }
-                                refresh()
-                            },
-                            onReinstallImagefs = { startImagefsReinstall() },
-                        )
-                    }
-                }
-            }
-
-        // View-level ScrollView gives Compose a bounded height, mirroring StoresFragment.
-        // Do NOT add fillMaxSize/verticalScroll inside OtherSettingsScreen while this is here.
-        val density = resources.displayMetrics.density
-        val scrollView =
-            ScrollView(ctx).apply {
-                isFillViewport = true
-                scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
-                scrollBarSize = (3 * density).toInt()
-                isScrollbarFadingEnabled = true
-                scrollBarDefaultDelayBeforeFade = 400
-                scrollBarFadeDuration = 250
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    setVerticalScrollbarThumbDrawable(
-                        GradientDrawable().apply {
-                            shape = GradientDrawable.RECTANGLE
-                            setColor(android.graphics.Color.argb(100, 26, 159, 255))
-                            cornerRadius = 4 * density
+        return ComposeView(ctx).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                WinNativeTheme(
+                    colorScheme =
+                        darkColorScheme(
+                            primary = Color(0xFF1A9FFF),
+                            background = Color(0xFF141B24),
+                            surface = Color(0xFF1E252E),
+                        ),
+                ) {
+                    OtherSettingsScreen(
+                        state = uiState,
+                        onCheckForUpdatesChanged = { checked ->
+                            preferences.edit { putBoolean("check_for_updates", checked) }
+                            if (checked) {
+                                UpdateChecker.startBackgroundLoop(ctx)
+                            } else {
+                                UpdateChecker.stopBackgroundLoop()
+                                UpdateChecker.cancelPostGameCheck()
+                            }
+                            refresh()
                         },
+                        onCheckForUpdatesNow = {
+                            val started = UpdateChecker.checkForUpdateManual(ctx)
+                            if (started) {
+                                AppUtils.showToast(ctx, R.string.settings_other_checking_for_updates)
+                            } else {
+                                val seconds = UpdateChecker.manualCheckCooldownSeconds()
+                                AppUtils.showToast(
+                                    ctx,
+                                    getString(R.string.settings_other_update_check_cooldown, seconds),
+                                )
+                            }
+                        },
+                        onLanguageSelected = { index ->
+                            val currentIndex =
+                                LocaleHelper.indexForTag(
+                                    LocaleHelper.getAppliedLanguageTag(),
+                                )
+                            if (index != currentIndex) {
+                                LocaleHelper.applyLanguageTag(LocaleHelper.tagForIndex(index))
+                                // AppCompatDelegate recreates attached activities automatically.
+                            }
+                        },
+                        onSoundFontSelected = { index ->
+                            // Selection is display-only; no persistence in legacy code.
+                            uiState = uiState.copy(soundFontIndex = index)
+                        },
+                        onInstallSoundFont = {
+                            val intent =
+                                Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                                    addCategory(Intent.CATEGORY_OPENABLE)
+                                    type = "*/*"
+                                }
+                            installSoundFontLauncher.launch(intent)
+                        },
+                        onRemoveSoundFont = { removeSelectedSoundFont() },
+                        onPickWinlatorPath = { pickStoredFolder("winlator_path_uri", SettingsConfig.DEFAULT_WINLATOR_PATH) },
+                        onPickShortcutExportPath = {
+                            pickStoredFolder(
+                                "shortcuts_export_path_uri",
+                                SettingsConfig.DEFAULT_SHORTCUT_EXPORT_PATH,
+                            )
+                        },
+                        onCursorSpeedChanged = { percent ->
+                            preferences.edit { putFloat("cursor_speed", percent / 100f) }
+                            refresh()
+                        },
+                        onUseDRI3Changed = { checked ->
+                            preferences.edit { putBoolean("use_dri3", checked) }
+                            refresh()
+                        },
+                        onCursorLockChanged = { checked ->
+                            preferences.edit { putBoolean("cursor_lock", checked) }
+                            refresh()
+                        },
+                        onXinputDisabledChanged = { checked ->
+                            preferences.edit { putBoolean("xinput_toggle", checked) }
+                            refresh()
+                        },
+                        onEnableFileProviderChanged = { checked ->
+                            preferences.edit { putBoolean("enable_file_provider", checked) }
+                            AppUtils.showToast(ctx, R.string.settings_general_take_effect_next_startup)
+                            refresh()
+                        },
+                        onOpenInBrowserChanged = { checked ->
+                            preferences.edit { putBoolean("open_with_android_browser", checked) }
+                            refresh()
+                        },
+                        onShareClipboardChanged = { checked ->
+                            preferences.edit { putBoolean("share_android_clipboard", checked) }
+                            refresh()
+                        },
+                        onRunSetupWizard = {
+                            startActivity(SetupWizardActivity.createManualRerunIntent(ctx))
+                        },
+                        onReinstallImagefs = { startImagefsReinstall() },
                     )
                 }
-                addView(
-                    composeView,
-                    ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ),
-                )
             }
-
-        return FrameLayout(ctx).apply {
-            setBackgroundColor(android.graphics.Color.parseColor("#0F0F12"))
-            addView(
-                scrollView,
-                FrameLayout
-                    .LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                    ).apply { marginEnd = (10 * density).toInt() },
-            )
         }
     }
 
@@ -255,21 +190,6 @@ class OtherSettingsFragment : Fragment() {
                 addAll(LocaleHelper.NATIVE_LANGUAGE_NAMES)
             }
         val languageIndex = LocaleHelper.indexForTag(LocaleHelper.getAppliedLanguageTag())
-
-        // Refresh rate entries + saved selection
-        val refreshRateLabels =
-            RefreshRateUtils.buildRefreshRateEntryLabels(
-                requireActivity(),
-                getString(R.string.settings_general_refresh_rate_auto_max),
-            )
-        val savedRate = preferences.getInt("refresh_rate_override", 0)
-        val refreshRateIndex =
-            if (savedRate == 0) {
-                0
-            } else {
-                val target = "$savedRate Hz"
-                refreshRateLabels.indexOfFirst { it == target }.coerceAtLeast(0)
-            }
 
         // Sound font files
         val soundFontFiles = loadSoundFontFiles(ctx)
@@ -291,11 +211,9 @@ class OtherSettingsFragment : Fragment() {
 
         uiState =
             OtherSettingsState(
-                checkForUpdates = preferences.getBoolean("check_for_updates", true),
+                checkForUpdates = preferences.getBoolean("check_for_updates", false),
                 languageLabels = languageLabels,
                 languageIndex = languageIndex,
-                refreshRateLabels = refreshRateLabels,
-                refreshRateIndex = refreshRateIndex,
                 soundFontFiles = soundFontFiles,
                 soundFontIndex = soundFontIndex,
                 winlatorPath = winlatorPath,
@@ -338,20 +256,6 @@ class OtherSettingsFragment : Fragment() {
         }
     }
 
-    private fun persistUriPermission(uri: Uri) {
-        try {
-            requireContext().contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-            )
-        } catch (e: SecurityException) {
-            AppUtils.showToast(
-                context,
-                getString(R.string.settings_other_persistable_permission_failed, e.message ?: ""),
-            )
-        }
-    }
-
     private fun startImagefsReinstall() {
         val act = activity ?: return
         // Seed the dialog immediately at 0% so the Compose progress dialog shows up.
@@ -373,6 +277,23 @@ class OtherSettingsFragment : Fragment() {
                 }
             },
         )
+    }
+
+    private fun pickStoredFolder(
+        preferenceKey: String,
+        fallbackPath: String,
+    ) {
+        val hostActivity = activity ?: return
+        val currentPath = resolvePathString(preferences.getString(preferenceKey, null), fallbackPath, hostActivity)
+        DirectoryPickerDialog.show(
+            activity = hostActivity,
+            initialPath = currentPath,
+        ) { path ->
+            preferences.edit {
+                putString(preferenceKey, Uri.fromFile(File(path)).toString())
+            }
+            refresh()
+        }
     }
 
     private fun installSoundFont(uri: Uri) {

@@ -12,18 +12,26 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.safeDrawing
@@ -45,7 +53,6 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.CloudDone
 import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.DeveloperBoard
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Hub
@@ -70,6 +77,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -181,6 +189,11 @@ fun DriversScreen(
     var editingRepo by remember { mutableStateOf<Pair<Int, DriverRepo>?>(null) }
     var driverPendingRemoval by remember { mutableStateOf<InstalledDriverItem?>(null) }
     var repoPendingRemoval by remember { mutableStateOf<Pair<Int, DriverRepo>?>(null) }
+    val layoutDirection = LocalLayoutDirection.current
+    val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
+    val navBarStartPadding = navBarPadding.calculateStartPadding(layoutDirection)
+    val navBarEndPadding = navBarPadding.calculateEndPadding(layoutDirection)
+    val navBarBottomPadding = navBarPadding.calculateBottomPadding()
 
     if (showAddRepoDialog || editingRepo != null) {
         val editing = editingRepo
@@ -234,33 +247,47 @@ fun DriversScreen(
         DownloadProgressDialog(progress = progress)
     }
 
-    Column(
+    LazyColumn(
         modifier =
             Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .background(BgDark)
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .fillMaxSize()
+                .background(BgDark),
+        contentPadding =
+            PaddingValues(
+                start = 16.dp + navBarStartPadding,
+                end = 16.dp + navBarEndPadding,
+                top = 16.dp,
+                bottom = 4.dp + navBarBottomPadding,
+            ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        HeroHeader(
-            installedCount = state.installedDrivers.size,
-            repoCount = state.sources.size,
-            isBusy = state.loadingSourceApiUrl != null,
-            onInstall = onInstallFromFile,
-            onAddRepo = { showAddRepoDialog = true },
-        )
+        item(key = "hero_header") {
+            HeroHeader(
+                installedCount = state.installedDrivers.size,
+                repoCount = state.sources.size,
+                onInstall = onInstallFromFile,
+                onAddRepo = { showAddRepoDialog = true },
+            )
+        }
 
-        if (state.installedDrivers.isEmpty() && state.sources.isEmpty()) {
-            EmptyState()
+        item(key = "empty_state") {
+            if (state.installedDrivers.isEmpty() && state.sources.isEmpty()) {
+                EmptyState()
+            }
         }
 
         if (state.installedDrivers.isNotEmpty()) {
-            SectionLabel(
-                text = stringResource(R.string.common_ui_installed),
-                modifier = Modifier.padding(top = 8.dp),
-            )
-            state.installedDrivers.forEach { driver ->
+            item(key = "installed_section") {
+                SectionLabel(
+                    text = stringResource(R.string.common_ui_installed),
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            items(
+                items = state.installedDrivers,
+                key = { driver -> driver.id },
+                contentType = { "installedDriverCard" },
+            ) { driver ->
                 InstalledDriverCard(
                     driver = driver,
                     onRemove = { driverPendingRemoval = driver },
@@ -268,51 +295,61 @@ fun DriversScreen(
             }
         }
 
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            SectionLabel(
-                text = stringResource(R.string.settings_drivers_github_repos),
-                modifier = Modifier.weight(1f),
-            )
-            if (state.hasMissingDefaults) {
-                SmallPillButton(
-                    label = "Restore defaults",
-                    icon = Icons.Outlined.Restore,
-                    tint = Accent,
-                    onClick = onRestoreDefaultRepos,
+        item(key = "repos_header") {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                SectionLabel(
+                    text = stringResource(R.string.settings_drivers_github_repos),
+                    modifier = Modifier.weight(1f),
                 )
+                if (state.hasMissingDefaults) {
+                    SmallPillButton(
+                        label = "Restore defaults",
+                        icon = Icons.Outlined.Restore,
+                        tint = Accent,
+                        onClick = onRestoreDefaultRepos,
+                    )
+                }
             }
         }
 
         if (state.sources.isEmpty()) {
-            EmptyRepoCard()
+            item(key = "repos_empty") {
+                EmptyRepoCard()
+            }
+        } else {
+            itemsIndexed(
+                items = state.sources,
+                key = { _, source -> source.apiUrl },
+                contentType = { _, _ -> "repoCard" },
+            ) { index, source ->
+                val releases = state.releasesBySource[source.apiUrl].orEmpty()
+                val isExpanded = state.expandedSourceApiUrl == source.apiUrl
+                val isLoading = state.loadingSourceApiUrl == source.apiUrl
+                RepoCard(
+                    source = source,
+                    isExpanded = isExpanded,
+                    isLoading = isLoading,
+                    releases = releases,
+                    expandedReleaseId = state.expandedReleaseId,
+                    installedAssetNames = state.installedAssetNames,
+                    onTap = { onSourceTapped(source) },
+                    onReleaseTap = onReleaseTapped,
+                    onDownloadAsset = onDownloadAsset,
+                    onEdit = { editingRepo = index to source },
+                    onDelete = { repoPendingRemoval = index to source },
+                )
+            }
         }
 
-        state.sources.forEachIndexed { index, source ->
-            val releases = state.releasesBySource[source.apiUrl].orEmpty()
-            val isExpanded = state.expandedSourceApiUrl == source.apiUrl
-            val isLoading = state.loadingSourceApiUrl == source.apiUrl
-            RepoCard(
-                source = source,
-                isExpanded = isExpanded,
-                isLoading = isLoading,
-                releases = releases,
-                expandedReleaseId = state.expandedReleaseId,
-                installedAssetNames = state.installedAssetNames,
-                onTap = { onSourceTapped(source) },
-                onReleaseTap = onReleaseTapped,
-                onDownloadAsset = onDownloadAsset,
-                onEdit = { editingRepo = index to source },
-                onDelete = { repoPendingRemoval = index to source },
-            )
+        item(key = "bottom_spacer") {
+            Spacer(Modifier.height(24.dp))
         }
-
-        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -324,88 +361,120 @@ fun DriversScreen(
 private fun HeroHeader(
     installedCount: Int,
     repoCount: Int,
-    isBusy: Boolean,
     onInstall: () -> Unit,
     onAddRepo: () -> Unit,
 ) {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(CardDark)
-                .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(34.dp)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(IconBoxBg),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.DeveloperBoard,
-                        contentDescription = null,
-                        tint = Accent,
-                        modifier = Modifier.size(17.dp),
-                    )
-                }
-
-                Spacer(Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.settings_drivers_manager_header),
-                        color = TextPrimary,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CountPill(label = "Installed", count = installedCount)
-                        Spacer(Modifier.width(6.dp))
-                        CountPill(label = "Repos", count = repoCount)
-                    }
-                    if (isBusy) {
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = stringResource(R.string.settings_drivers_repo_loading_releases),
-                            color = Accent,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
+    Column(modifier = Modifier.fillMaxWidth()) {
+        SectionLabel(text = stringResource(R.string.settings_drivers_manager_header))
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(CardDark)
+                    .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val compactHeader = maxWidth < 430.dp
+                if (compactHeader) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        DriverManagerCounts(
+                            installedCount = installedCount,
+                            repoCount = repoCount,
+                            stacked = true,
                         )
+                        Spacer(Modifier.width(10.dp))
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            DriverManagerActions(
+                                onAddRepo = onAddRepo,
+                                onInstall = onInstall,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        DriverManagerCounts(
+                            installedCount = installedCount,
+                            repoCount = repoCount,
+                            modifier = Modifier.weight(1f),
+                        )
+
+                        Spacer(Modifier.width(12.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            DriverManagerActions(
+                                onAddRepo = onAddRepo,
+                                onInstall = onInstall,
+                                modifier = Modifier.widthIn(min = 112.dp, max = 132.dp),
+                            )
+                        }
                     }
                 }
-            }
-
-            Spacer(Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                HeroButton(
-                    label = stringResource(R.string.settings_drivers_install),
-                    icon = Icons.Outlined.Upload,
-                    onClick = onInstall,
-                    modifier = Modifier.weight(1f),
-                )
-                HeroButton(
-                    label = "Add Repo",
-                    icon = Icons.Outlined.Add,
-                    onClick = onAddRepo,
-                    modifier = Modifier.weight(1f),
-                )
             }
         }
     }
+}
+
+@Composable
+private fun DriverManagerCounts(
+    installedCount: Int,
+    repoCount: Int,
+    modifier: Modifier = Modifier,
+    stacked: Boolean = false,
+) {
+    if (stacked) {
+        Column(
+            modifier = modifier,
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            CountPill(label = "Installed", count = installedCount)
+            CountPill(label = "Repos", count = repoCount)
+        }
+    } else {
+        Row(
+            modifier = modifier,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CountPill(label = "Installed", count = installedCount)
+            Spacer(Modifier.width(6.dp))
+            CountPill(label = "Repos", count = repoCount)
+        }
+    }
+}
+
+@Composable
+private fun DriverManagerActions(
+    onAddRepo: () -> Unit,
+    onInstall: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    HeroButton(
+        label = "Add Repo",
+        icon = Icons.Outlined.Add,
+        onClick = onAddRepo,
+        modifier = modifier,
+    )
+    HeroButton(
+        label = stringResource(R.string.settings_drivers_install),
+        icon = Icons.Outlined.Upload,
+        onClick = onInstall,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -434,6 +503,8 @@ private fun CountPill(
             color = TextSecondary,
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -452,7 +523,8 @@ private fun HeroButton(
                 .background(Accent.copy(alpha = 0.12f))
                 .border(1.dp, Accent.copy(alpha = 0.32f), RoundedCornerShape(9.dp))
                 .noRippleClickable(onClick = onClick)
-                .padding(vertical = 7.dp),
+                .height(30.dp)
+                .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -460,14 +532,16 @@ private fun HeroButton(
                 imageVector = icon,
                 contentDescription = null,
                 tint = Accent,
-                modifier = Modifier.size(13.dp),
+                modifier = Modifier.size(12.dp),
             )
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(5.dp))
             Text(
                 text = label,
                 color = Accent,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

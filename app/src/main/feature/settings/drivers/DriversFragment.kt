@@ -1,15 +1,10 @@
 package com.winlator.cmod.feature.settings
 import android.content.SharedPreferences
-import android.graphics.drawable.GradientDrawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.ScrollView
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -27,6 +22,8 @@ import com.winlator.cmod.feature.setup.SetupWizardActivity
 import com.winlator.cmod.runtime.content.AdrenotoolsManager
 import com.winlator.cmod.runtime.content.Downloader
 import com.winlator.cmod.shared.android.AppUtils
+import com.winlator.cmod.shared.android.DirectoryPickerDialog
+import com.winlator.cmod.shared.theme.WinNativeTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,11 +52,6 @@ class DriversFragment : Fragment() {
     private var loadingSourceApiUrl: String? = null
     private var downloadProgress: DownloadProgress? = null
 
-    private val driverPicker =
-        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            uri?.let { installDriverPackage(it) }
-        }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         adrenotoolsManager = AdrenotoolsManager(requireContext())
@@ -84,102 +76,60 @@ class DriversFragment : Fragment() {
         refreshInstalledDrivers()
         publishState()
 
-        val composeView =
-            ComposeView(ctx).apply {
-                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-                setContent {
-                    MaterialTheme(
-                        colorScheme =
-                            darkColorScheme(
-                                primary = Color(0xFF1A9FFF),
-                                background = Color(0xFF141B24),
-                                surface = Color(0xFF1E252E),
-                            ),
-                    ) {
-                        DriversScreen(
-                            state = driversState,
-                            onInstallFromFile = {
-                                driverPicker.launch(arrayOf("*/*"))
-                            },
-                            onSourceTapped = { source -> onSourceSelected(source) },
-                            onReleaseTapped = { release ->
-                                expandedReleaseId = if (expandedReleaseId == release.id) null else release.id
-                                publishState()
-                            },
-                            onDownloadAsset = { asset -> downloadReleaseAsset(asset) },
-                            onRemoveDriver = { driver ->
-                                adrenotoolsManager.removeDriver(driver.id)
-                                refreshInstalledDrivers()
-                                publishState()
-                            },
-                            onRepoAdded = { name, apiUrl ->
+        return ComposeView(ctx).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                WinNativeTheme(
+                    colorScheme =
+                        darkColorScheme(
+                            primary = Color(0xFF1A9FFF),
+                            background = Color(0xFF141B24),
+                            surface = Color(0xFF1E252E),
+                        ),
+                ) {
+                    DriversScreen(
+                        state = driversState,
+                        onInstallFromFile = { promptInstallDriverFromFile() },
+                        onSourceTapped = { source -> onSourceSelected(source) },
+                        onReleaseTapped = { release ->
+                            expandedReleaseId = if (expandedReleaseId == release.id) null else release.id
+                            publishState()
+                        },
+                        onDownloadAsset = { asset -> downloadReleaseAsset(asset) },
+                        onRemoveDriver = { driver ->
+                            adrenotoolsManager.removeDriver(driver.id)
+                            refreshInstalledDrivers()
+                            publishState()
+                        },
+                        onRepoAdded = { name, apiUrl ->
+                            val normalized = normalizeRepoInput(name, apiUrl)
+                            sources.add(normalized)
+                            saveRepos()
+                            publishState()
+                        },
+                        onRepoUpdated = { index, name, apiUrl ->
+                            if (index in sources.indices) {
                                 val normalized = normalizeRepoInput(name, apiUrl)
-                                sources.add(normalized)
+                                sources[index] = normalized
+                                releasesBySource.remove(sources[index].apiUrl)
                                 saveRepos()
                                 publishState()
-                            },
-                            onRepoUpdated = { index, name, apiUrl ->
-                                if (index in sources.indices) {
-                                    val normalized = normalizeRepoInput(name, apiUrl)
-                                    sources[index] = normalized
-                                    releasesBySource.remove(sources[index].apiUrl)
-                                    saveRepos()
-                                    publishState()
-                                }
-                            },
-                            onRepoDeleted = { index ->
-                                if (index in sources.indices) {
-                                    val removed = sources.removeAt(index)
-                                    releasesBySource.remove(removed.apiUrl)
-                                    if (expandedSourceApiUrl == removed.apiUrl) expandedSourceApiUrl = null
-                                    if (loadingSourceApiUrl == removed.apiUrl) loadingSourceApiUrl = null
-                                    saveRepos()
-                                    publishState()
-                                }
-                            },
-                            onRestoreDefaultRepos = { restoreDefaultRepos() },
-                        )
-                    }
-                }
-            }
-
-        val density = resources.displayMetrics.density
-        val scrollView =
-            ScrollView(ctx).apply {
-                isFillViewport = true
-                scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
-                scrollBarSize = (3 * density).toInt()
-                isScrollbarFadingEnabled = true
-                scrollBarDefaultDelayBeforeFade = 400
-                scrollBarFadeDuration = 250
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    setVerticalScrollbarThumbDrawable(
-                        GradientDrawable().apply {
-                            shape = GradientDrawable.RECTANGLE
-                            setColor(android.graphics.Color.argb(100, 26, 159, 255))
-                            cornerRadius = 4 * density
+                            }
                         },
+                        onRepoDeleted = { index ->
+                            if (index in sources.indices) {
+                                val removed = sources.removeAt(index)
+                                releasesBySource.remove(removed.apiUrl)
+                                if (expandedSourceApiUrl == removed.apiUrl) expandedSourceApiUrl = null
+                                if (loadingSourceApiUrl == removed.apiUrl) loadingSourceApiUrl = null
+                                saveRepos()
+                                publishState()
+                            }
+                        },
+                        onRestoreDefaultRepos = { restoreDefaultRepos() },
                     )
                 }
-                addView(
-                    composeView,
-                    ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ),
-                )
             }
-
-        return FrameLayout(ctx).apply {
-            setBackgroundColor(android.graphics.Color.parseColor("#18181D"))
-            addView(
-                scrollView,
-                FrameLayout
-                    .LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                    ).apply { marginEnd = (10 * density).toInt() },
-            )
         }
     }
 
@@ -187,6 +137,17 @@ class DriversFragment : Fragment() {
         super.onResume()
         refreshInstalledDrivers()
         publishState()
+    }
+
+    private fun promptInstallDriverFromFile() {
+        val activity = activity ?: return
+        DirectoryPickerDialog.showFile(
+            activity = activity,
+            title = getString(R.string.settings_drivers_install),
+            allowedExtensions = setOf("zip"),
+        ) { path ->
+            installDriverPackage(Uri.fromFile(File(path)))
+        }
     }
 
     private fun publishState() {
@@ -226,7 +187,11 @@ class DriversFragment : Fragment() {
     private fun defaultRepoList(): List<DriverRepo> =
         listOf(
             DriverRepo(name = GITHUB_REPO_NAME, repoUrl = GITHUB_REPO_URL, apiUrl = GITHUB_API_URL),
-            DriverRepo(name = XNICK_REPO_NAME, repoUrl = XNICK_REPO_URL, apiUrl = XNICK_API_URL),
+            DriverRepo(
+                name = WHITEBELYASH_REPO_NAME,
+                repoUrl = WHITEBELYASH_REPO_URL,
+                apiUrl = WHITEBELYASH_API_URL,
+            ),
         )
 
     private fun loadRepos() {
@@ -587,9 +552,9 @@ class DriversFragment : Fragment() {
         private const val GITHUB_REPO_URL = "https://github.com/StevenMXZ/freedreno_turnip-CI/releases"
         private const val GITHUB_API_URL = "https://api.github.com/repos/StevenMXZ/freedreno_turnip-CI/releases"
 
-        private const val XNICK_REPO_NAME = "Xnick417x"
-        private const val XNICK_REPO_URL = "https://github.com/Xnick417x/Winlator-Bionic-Nightly-wcp/releases"
-        private const val XNICK_API_URL = "https://api.github.com/repos/Xnick417x/Winlator-Bionic-Nightly-wcp/releases"
+        private const val WHITEBELYASH_REPO_NAME = "whitebelyash/freedreno_turnip-CI"
+        private const val WHITEBELYASH_REPO_URL = "https://github.com/whitebelyash/freedreno_turnip-CI/releases"
+        private const val WHITEBELYASH_API_URL = "https://api.github.com/repos/whitebelyash/freedreno_turnip-CI/releases"
     }
 }
 

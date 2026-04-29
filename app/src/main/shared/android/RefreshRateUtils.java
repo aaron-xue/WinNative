@@ -5,16 +5,23 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 import android.view.Display;
+import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import androidx.annotation.Nullable;
 import androidx.preference.PreferenceManager;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
+import java.util.WeakHashMap;
 
 public final class RefreshRateUtils {
   private static final String TAG = "RefreshRateUtils";
   private static final float DEFAULT_REFRESH_RATE = 60f;
+  private static final float FRAME_CADENCE_EPSILON = 0.01f;
+  private static final Map<Activity, ViewTreeObserver.OnWindowFocusChangeListener>
+      WINDOW_FOCUS_LISTENERS = new WeakHashMap<>();
 
   private RefreshRateUtils() {}
 
@@ -174,6 +181,56 @@ public final class RefreshRateUtils {
     return requestedHz <= 0 ? currentMode.getModeId() : 0;
   }
 
+  public static int resolveFramePacedRefreshRate(Activity activity, int requestedHz, int fpsLimit) {
+    if (fpsLimit <= 0) {
+      return requestedHz;
+    }
+
+    float preferredRefreshRate = resolvePreferredRefreshRate(activity, requestedHz);
+    if (isFrameCadenceCompatible(preferredRefreshRate, fpsLimit)) {
+      return Math.round(preferredRefreshRate);
+    }
+
+    Display display = getDisplay(activity);
+    if (display == null) {
+      return fpsLimit;
+    }
+
+    Display.Mode currentMode = display.getMode();
+    Display.Mode bestMode = null;
+    float bestModeRate = 0f;
+
+    for (Display.Mode mode : display.getSupportedModes()) {
+      if (!isSameModeGroup(currentMode, mode)) continue;
+
+      float refreshRate = mode.getRefreshRate();
+      if (refreshRate <= 0f || refreshRate < fpsLimit) continue;
+      if (!isFrameCadenceCompatible(refreshRate, fpsLimit)) continue;
+
+      if (bestMode == null
+          || Math.round(refreshRate) == fpsLimit
+          || refreshRate < bestModeRate) {
+        bestMode = mode;
+        bestModeRate = refreshRate;
+      }
+    }
+
+    if (bestMode != null) {
+      return Math.round(bestModeRate);
+    }
+    return fpsLimit;
+  }
+
+  private static boolean isFrameCadenceCompatible(float refreshRate, int fpsLimit) {
+    if (refreshRate <= 0f || fpsLimit <= 0 || refreshRate < fpsLimit) {
+      return false;
+    }
+
+    float ratio = refreshRate / fpsLimit;
+    int nearestMultiple = Math.round(ratio);
+    return nearestMultiple >= 1 && Math.abs(ratio - nearestMultiple) <= FRAME_CADENCE_EPSILON;
+  }
+
   private static boolean isSameModeGroup(Display.Mode currentMode, Display.Mode candidateMode) {
     return currentMode.getPhysicalWidth() == candidateMode.getPhysicalWidth()
         && currentMode.getPhysicalHeight() == candidateMode.getPhysicalHeight();
@@ -183,16 +240,66 @@ public final class RefreshRateUtils {
     return activity.getWindow().getDecorView().getDisplay();
   }
 
+  public static void onActivityCreated(Activity activity) {
+    attachWindowFocusListener(activity);
+    applyPreferredRefreshRate(activity);
+  }
+
+  public static void onActivityResumed(Activity activity) {
+    applyPreferredRefreshRate(activity);
+  }
+
+  public static void onActivityDestroyed(Activity activity) {
+    detachWindowFocusListener(activity);
+  }
+
+  private static void attachWindowFocusListener(Activity activity) {
+    if (WINDOW_FOCUS_LISTENERS.containsKey(activity)) return;
+
+    View decorView = activity.getWindow().getDecorView();
+    if (decorView == null) return;
+
+    ViewTreeObserver observer = decorView.getViewTreeObserver();
+    if (!observer.isAlive()) return;
+
+    // Some devices do not fully honor the preferred mode until the window regains focus.
+    ViewTreeObserver.OnWindowFocusChangeListener listener =
+        hasFocus -> {
+          if (hasFocus) {
+            applyPreferredRefreshRate(activity);
+          }
+        };
+    observer.addOnWindowFocusChangeListener(listener);
+    WINDOW_FOCUS_LISTENERS.put(activity, listener);
+  }
+
+  private static void detachWindowFocusListener(Activity activity) {
+    ViewTreeObserver.OnWindowFocusChangeListener listener = WINDOW_FOCUS_LISTENERS.remove(activity);
+    if (listener == null) return;
+
+    View decorView = activity.getWindow().getDecorView();
+    if (decorView == null) return;
+
+    ViewTreeObserver observer = decorView.getViewTreeObserver();
+    if (!observer.isAlive()) return;
+    observer.removeOnWindowFocusChangeListener(listener);
+  }
+
   public static void applyPreferredRefreshRate(Activity activity) {
     applyPreferredRefreshRate(activity, getSavedGlobalRefreshRateOverride(activity));
   }
 
   public static void applyPreferredRefreshRate(Activity activity, int requestedHz) {
+    applyPreferredRefreshRate(activity, requestedHz, 0);
+  }
+
+  public static void applyPreferredRefreshRate(Activity activity, int requestedHz, int fpsLimit) {
     if (activity.isFinishing() || activity.isDestroyed()) return;
 
+    int effectiveRequestedHz = resolveFramePacedRefreshRate(activity, requestedHz, fpsLimit);
     WindowManager.LayoutParams params = activity.getWindow().getAttributes();
-    int modeId = resolvePreferredDisplayModeId(activity, requestedHz);
-    float refreshRate = resolvePreferredRefreshRate(activity, requestedHz);
+    int modeId = resolvePreferredDisplayModeId(activity, effectiveRequestedHz);
+    float refreshRate = resolvePreferredRefreshRate(activity, effectiveRequestedHz);
     params.preferredDisplayModeId = modeId;
     params.preferredRefreshRate = refreshRate;
     activity.getWindow().setAttributes(params);
@@ -201,6 +308,10 @@ public final class RefreshRateUtils {
         activity.getClass().getSimpleName()
             + " applyPreferredRefreshRate requestedHz="
             + requestedHz
+            + " fpsLimit="
+            + fpsLimit
+            + " effectiveRequestedHz="
+            + effectiveRequestedHz
             + " modeId="
             + modeId
             + " refreshRate="

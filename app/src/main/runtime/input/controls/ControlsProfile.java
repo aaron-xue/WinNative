@@ -86,7 +86,11 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
 
   public ExternalController addController(String id) {
     ExternalController controller = getController(id);
-    if (controller == null) controllers.add(controller = ExternalController.getController(id));
+    if (controller == null) {
+      controller = ExternalController.getController(id);
+      if (controller != null) controller.setContext(context);
+      controllers.add(controller);
+    }
     controllersLoaded = true;
     return controller;
   }
@@ -240,6 +244,7 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
         JSONObject controllerJSONObject = controllersJSONArray.getJSONObject(i);
         String id = controllerJSONObject.getString("id");
         ExternalController controller = new ExternalController();
+        controller.setContext(context);
         controller.setId(id);
         controller.setName(controllerJSONObject.getString("name"));
 
@@ -292,9 +297,12 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
           element.setRange(ControlElement.Range.valueOf(elementJSONObject.getString("range")));
         if (elementJSONObject.has("orientation"))
           element.setOrientation((byte) elementJSONObject.getInt("orientation"));
+        if (elementJSONObject.has("opacity"))
+          element.setOpacity((float) elementJSONObject.getDouble("opacity"));
 
         boolean hasGamepadBinding = false;
         JSONArray bindingsJSONArray = elementJSONObject.getJSONArray("bindings");
+        element.setBindingCount(bindingsJSONArray.length());
         for (int j = 0; j < bindingsJSONArray.length(); j++) {
           Binding binding = Binding.fromString(bindingsJSONArray.getString(j));
           element.setBindingAt(j, Binding.fromString(bindingsJSONArray.getString(j)));

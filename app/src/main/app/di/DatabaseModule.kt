@@ -1,7 +1,5 @@
 package com.winlator.cmod.app.di
 import android.content.Context
-import androidx.room.Room
-import com.winlator.cmod.app.db.DATABASE_NAME
 import com.winlator.cmod.app.db.PluviaDatabase
 import com.winlator.cmod.feature.stores.steam.db.dao.*
 import dagger.Module
@@ -18,11 +16,7 @@ class DatabaseModule {
     @Singleton
     fun provideDatabase(
         @ApplicationContext context: Context,
-    ): PluviaDatabase =
-        Room
-            .databaseBuilder(context, PluviaDatabase::class.java, DATABASE_NAME)
-            .fallbackToDestructiveMigration()
-            .build()
+    ): PluviaDatabase = PluviaDatabase.getInstance(context)
 
     @Provides
     @Singleton
@@ -63,4 +57,8 @@ class DatabaseModule {
     @Provides
     @Singleton
     fun provideGogGameDao(db: PluviaDatabase): com.winlator.cmod.feature.stores.gog.db.dao.GOGGameDao = db.gogGameDao()
+
+    @Provides
+    @Singleton
+    fun provideDownloadRecordDao(db: PluviaDatabase): com.winlator.cmod.app.db.download.DownloadRecordDao = db.downloadRecordDao()
 }

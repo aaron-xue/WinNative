@@ -21,6 +21,7 @@ public class XClient implements XResourceManager.OnResourceLifecycleListener {
   private final ArrayList<XResource> resources = new ArrayList<>();
 
   public XClient(XServer xServer, XInputStream inputStream, XOutputStream outputStream) {
+
     this.xServer = xServer;
     this.inputStream = inputStream;
     this.outputStream = outputStream;
@@ -151,5 +152,11 @@ public class XClient implements XResourceManager.OnResourceLifecycleListener {
 
   public boolean isValidResourceId(int id) {
     return xServer.resourceIDs.isInInterval(id, resourceIDBase);
+  }
+
+  public void enforceAbsoluteFramerate() {
+    com.winlator.cmod.runtime.display.renderer.GLRenderer renderer = xServer.getRenderer();
+    if (renderer == null) return;
+    renderer.enforceFpsLimit();
   }
 }

@@ -11,6 +11,8 @@ import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.content.pm.ShortcutInfo;
 import android.content.pm.ShortcutManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Build;
@@ -23,7 +25,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.compose.ui.platform.ComposeView;
-import androidx.documentfile.provider.DocumentFile;
 import androidx.fragment.app.Fragment;
 import androidx.preference.PreferenceManager;
 import com.winlator.cmod.BuildConfig;
@@ -235,13 +236,12 @@ public class ShortcutsFragment extends Fragment {
 
     File shortcutsDir;
     if (uriString != null) {
-      Uri folderUri = Uri.parse(uriString);
-      DocumentFile pickedDir = DocumentFile.fromTreeUri(getContext(), folderUri);
-      if (pickedDir == null || !pickedDir.canWrite()) {
+      String resolvedPath = FileUtils.getFilePathFromUri(getContext(), Uri.parse(uriString));
+      if (resolvedPath == null || resolvedPath.isEmpty()) {
         AppUtils.showToast(getContext(), R.string.common_ui_cannot_write_folder);
         return;
       }
-      shortcutsDir = new File(FileUtils.getFilePathFromUri(getContext(), folderUri));
+      shortcutsDir = new File(resolvedPath);
     } else {
       shortcutsDir = new File(SettingsConfig.DEFAULT_SHORTCUT_EXPORT_PATH);
     }
@@ -368,6 +368,7 @@ public class ShortcutsFragment extends Fragment {
     intent.putExtra("shortcut_path", shortcutPath);
     intent.putExtra("shortcut_name", shortcutName);
     intent.putExtra("shortcut_uuid", uuid);
+    intent.putExtra(XServerDisplayActivity.EXTRA_LAUNCHED_FROM_PINNED_SHORTCUT, true);
     return intent;
   }
 
@@ -439,9 +440,10 @@ public class ShortcutsFragment extends Fragment {
     if (shortcutManager == null || !shortcutManager.isRequestPinShortcutSupported())
       return PinShortcutResult.FAILED;
 
+    Bitmap shortcutBitmap = resolveShortcutIcon(shortcut);
     Icon shortcutIcon =
-        shortcut.icon != null
-            ? Icon.createWithBitmap(shortcut.icon)
+        shortcutBitmap != null
+            ? Icon.createWithBitmap(shortcutBitmap)
             : Icon.createWithResource(requireContext(), R.drawable.icon_shortcut);
 
     return pinOrUpdateShortcut(
@@ -486,6 +488,19 @@ public class ShortcutsFragment extends Fragment {
       } catch (Exception ignored) {
       }
     }
+  }
+
+  private Bitmap resolveShortcutIcon(Shortcut shortcut) {
+    if (shortcut == null) return null;
+
+    File customIconFile = LibraryShortcutArtwork.findPreferredHomeIconFile(requireContext(), shortcut);
+    if (customIconFile != null) {
+      Bitmap bitmap = BitmapFactory.decodeFile(customIconFile.getAbsolutePath());
+      if (bitmap != null) return bitmap;
+    }
+
+    if (shortcut.getCoverArt() != null) return shortcut.getCoverArt();
+    return shortcut.icon;
   }
 
   public void updateShortcutOnScreen(

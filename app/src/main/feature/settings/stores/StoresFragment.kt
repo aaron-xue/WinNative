@@ -1,15 +1,11 @@
 // Settings > Stores fragment — hosts StoresScreen via ComposeView.
 package com.winlator.cmod.feature.settings
 import android.content.Intent
-import android.graphics.drawable.GradientDrawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.ScrollView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.MaterialTheme
@@ -30,8 +26,10 @@ import com.winlator.cmod.feature.stores.gog.ui.auth.GOGOAuthActivity
 import com.winlator.cmod.feature.stores.steam.SteamLoginActivity
 import com.winlator.cmod.feature.stores.steam.service.SteamService
 import com.winlator.cmod.feature.stores.steam.utils.PrefManager
+import com.winlator.cmod.shared.android.DirectoryPickerDialog
 import com.winlator.cmod.shared.io.AssetPaths
 import com.winlator.cmod.shared.io.FileUtils
+import com.winlator.cmod.shared.theme.WinNativeTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,51 +38,6 @@ import org.json.JSONObject
 class StoresFragment : Fragment() {
     private var storeState by mutableStateOf(StoreState())
     private lateinit var serverOptions: List<Pair<Int, String>>
-
-    // Folder-picker launchers
-    private val defaultFolderLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.OpenDocumentTree(),
-        ) { uri ->
-            uri?.let {
-                persistUri(it)
-                PrefManager.defaultDownloadFolder = it.toString()
-                refresh()
-            }
-        }
-
-    private val steamFolderLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.OpenDocumentTree(),
-        ) { uri ->
-            uri?.let {
-                persistUri(it)
-                PrefManager.steamDownloadFolder = it.toString()
-                refresh()
-            }
-        }
-
-    private val epicFolderLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.OpenDocumentTree(),
-        ) { uri ->
-            uri?.let {
-                persistUri(it)
-                PrefManager.epicDownloadFolder = it.toString()
-                refresh()
-            }
-        }
-
-    private val gogFolderLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.OpenDocumentTree(),
-        ) { uri ->
-            uri?.let {
-                persistUri(it)
-                PrefManager.gogDownloadFolder = it.toString()
-                refresh()
-            }
-        }
 
     private val gogLoginLauncher =
         registerForActivityResult(
@@ -148,103 +101,57 @@ class StoresFragment : Fragment() {
         serverOptions = loadServerOptions()
         refresh()
 
-        val composeView =
-            ComposeView(requireContext()).apply {
-                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-                setContent {
-                    MaterialTheme(
-                        colorScheme =
-                            darkColorScheme(
-                                primary = Color(0xFF1A9FFF),
-                                background = Color(0xFF141B24),
-                                surface = Color(0xFF1E252E),
-                            ),
-                    ) {
-                        StoresScreen(
-                            state = storeState,
-                            serverOptions = serverOptions,
-                            onSteamSignIn = { steamLoginLauncher.launch(Intent(requireContext(), SteamLoginActivity::class.java)) },
-                            onSteamSignOut = {
-                                SteamService.logOut()
-                                refresh()
-                            },
-                            onEpicSignIn = { epicLoginLauncher.launch(Intent(requireContext(), EpicOAuthActivity::class.java)) },
-                            onEpicSignOut = {
-                                EpicAuthManager.logoutSync(requireContext())
-                                refresh()
-                            },
-                            onGogSignIn = { gogLoginLauncher.launch(Intent(requireContext(), GOGOAuthActivity::class.java)) },
-                            onGogSignOut = {
-                                CoroutineScope(Dispatchers.Main).launch {
-                                    GOGService.logout(requireContext())
-                                    refresh()
-                                }
-                            },
-                            onSharedFolderChanged = {
-                                PrefManager.useSingleDownloadFolder = it
-                                refresh()
-                            },
-                            onDownloadSpeedChanged = {
-                                PrefManager.downloadSpeed = it
-                                refresh()
-                            },
-                            onDownloadServerChanged = { cellId ->
-                                PrefManager.cellId = cellId
-                                PrefManager.cellIdManuallySet = cellId != 0
-                                refresh()
-                            },
-                            onPickDefaultFolder = { defaultFolderLauncher.launch(null) },
-                            onPickSteamFolder = { steamFolderLauncher.launch(null) },
-                            onPickEpicFolder = { epicFolderLauncher.launch(null) },
-                            onPickGogFolder = { gogFolderLauncher.launch(null) },
-                        )
-                    }
-                }
-            }
-
-        // View level ScrollView gives Compose a bounded height required because ComposeView
-        // sits inside a weighted LinearLayout that passes unbounded constraints to its children.
-        // WARNING: Do NOT add verticalScroll/fillMaxSize to StoresScreen while this is here;
-        // fillMaxSize inside an unbounded container crashes at runtime.
-        // TODO: Remove this block and use Compose native scrolling once fully migrated off Fragments.
-        val density = resources.displayMetrics.density
-        val scrollView =
-            ScrollView(requireContext()).apply {
-                isFillViewport = true
-                scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
-                scrollBarSize = (3 * density).toInt()
-                isScrollbarFadingEnabled = true
-                scrollBarDefaultDelayBeforeFade = 400
-                scrollBarFadeDuration = 250
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    setVerticalScrollbarThumbDrawable(
-                        GradientDrawable().apply {
-                            shape = GradientDrawable.RECTANGLE
-                            setColor(android.graphics.Color.argb(100, 26, 159, 255))
-                            cornerRadius = 4 * density
+        return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                WinNativeTheme(
+                    colorScheme =
+                        darkColorScheme(
+                            primary = Color(0xFF1A9FFF),
+                            background = Color(0xFF141B24),
+                            surface = Color(0xFF1E252E),
+                        ),
+                ) {
+                    StoresScreen(
+                        state = storeState,
+                        serverOptions = serverOptions,
+                        onSteamSignIn = { steamLoginLauncher.launch(Intent(requireContext(), SteamLoginActivity::class.java)) },
+                        onSteamSignOut = {
+                            SteamService.logOut()
+                            refresh()
                         },
+                        onEpicSignIn = { epicLoginLauncher.launch(Intent(requireContext(), EpicOAuthActivity::class.java)) },
+                        onEpicSignOut = {
+                            EpicAuthManager.logoutSync(requireContext())
+                            refresh()
+                        },
+                        onGogSignIn = { gogLoginLauncher.launch(Intent(requireContext(), GOGOAuthActivity::class.java)) },
+                        onGogSignOut = {
+                            CoroutineScope(Dispatchers.Main).launch {
+                                GOGService.logout(requireContext())
+                                refresh()
+                            }
+                        },
+                        onSharedFolderChanged = {
+                            PrefManager.useSingleDownloadFolder = it
+                            refresh()
+                        },
+                        onDownloadSpeedChanged = {
+                            PrefManager.downloadSpeed = it
+                            refresh()
+                        },
+                        onDownloadServerChanged = { cellId ->
+                            PrefManager.cellId = cellId
+                            PrefManager.cellIdManuallySet = cellId != 0
+                            refresh()
+                        },
+                        onPickDefaultFolder = { pickFolder(PrefManager.defaultDownloadFolder) { PrefManager.defaultDownloadFolder = it } },
+                        onPickSteamFolder = { pickFolder(PrefManager.steamDownloadFolder) { PrefManager.steamDownloadFolder = it } },
+                        onPickEpicFolder = { pickFolder(PrefManager.epicDownloadFolder) { PrefManager.epicDownloadFolder = it } },
+                        onPickGogFolder = { pickFolder(PrefManager.gogDownloadFolder) { PrefManager.gogDownloadFolder = it } },
                     )
                 }
-                addView(
-                    composeView,
-                    ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ),
-                )
             }
-        // Outer FrameLayout with right margin so the scrollbar never touches the screen edge.
-        // Background matches the content area so the gap is invisible.
-        return FrameLayout(requireContext()).apply {
-            setBackgroundColor(android.graphics.Color.parseColor("#0F0F12"))
-            addView(
-                scrollView,
-                FrameLayout
-                    .LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                    ).apply { marginEnd = (10 * density).toInt() },
-            )
         }
     }
 
@@ -291,16 +198,6 @@ class StoresFragment : Fragment() {
             listOf(0 to "Automatic")
         }
 
-    private fun persistUri(uri: Uri) {
-        try {
-            requireContext().contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-            )
-        } catch (_: SecurityException) {
-        }
-    }
-
     private fun resolveUri(
         uriStr: String,
         ctx: android.content.Context,
@@ -310,6 +207,22 @@ class StoresFragment : Fragment() {
             FileUtils.getFilePathFromUri(ctx, Uri.parse(uriStr)) ?: uriStr
         } catch (_: Exception) {
             uriStr
+        }
+    }
+
+    private fun pickFolder(
+        currentValue: String,
+        onPicked: (String) -> Unit,
+    ) {
+        val hostActivity = activity ?: return
+        val currentPath = resolveUri(currentValue, hostActivity).ifBlank { null }
+        DirectoryPickerDialog.show(
+            activity = hostActivity,
+            initialPath = currentPath,
+            title = getString(R.string.settings_content_install_directory),
+        ) { path ->
+            onPicked(Uri.fromFile(java.io.File(path)).toString())
+            refresh()
         }
     }
 }

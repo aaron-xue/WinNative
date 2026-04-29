@@ -10,10 +10,8 @@ import com.winlator.cmod.app.config.SettingsConfig;
 import com.winlator.cmod.runtime.container.Container;
 import com.winlator.cmod.runtime.container.Shortcut;
 import com.winlator.cmod.runtime.container.ContainerManager;
-import com.winlator.cmod.runtime.wine.DefaultVersion;
 import com.winlator.cmod.runtime.wine.EnvVars;
 import com.winlator.cmod.shared.io.FileUtils;
-import com.winlator.cmod.runtime.system.GPUInformation;
 import com.winlator.cmod.feature.settings.GraphicsDriverConfigUtils;
 import com.winlator.cmod.shared.io.TarCompressorUtils;
 import com.winlator.cmod.runtime.display.environment.ImageFs;
@@ -116,13 +114,7 @@ public class AdrenotoolsManager {
             Log.d("AdrenotoolsManager", "Checking if container driver version " + version + " matches " + driverName);
             if (version != null && driverName != null && version.contains(driverName)) {
                 Log.d("AdrenotoolsManager", "Found a match for container " + container.getName());
-                String defaultVersion;
-                try {
-                    defaultVersion = GPUInformation.isDriverSupported(DefaultVersion.WRAPPER_ADRENO, mContext) ? DefaultVersion.WRAPPER_ADRENO : DefaultVersion.WRAPPER;
-                } catch (Throwable e) {
-                    defaultVersion = DefaultVersion.WRAPPER;
-                }
-                config.put("version", defaultVersion);
+                config.put("version", "System");
                 container.setGraphicsDriverConfig(GraphicsDriverConfigUtils.toGraphicsDriverConfig(config));
                 container.saveData();
             }     
@@ -133,13 +125,7 @@ public class AdrenotoolsManager {
             Log.d("AdrenotoolsManager", "Checking if shortcut driver version " + version + " matches " + driverName);
             if (version != null && driverName != null && version.contains(driverName)) {
                 Log.d("AdrenotoolsManager", "Found a match for shortcut " + shortcut.name);
-                String defaultVersion;
-                try {
-                    defaultVersion = GPUInformation.isDriverSupported(DefaultVersion.WRAPPER_ADRENO, mContext) ? DefaultVersion.WRAPPER_ADRENO : DefaultVersion.WRAPPER;
-                } catch (Throwable e) {
-                    defaultVersion = DefaultVersion.WRAPPER;
-                }
-                config.put("version", defaultVersion);
+                config.put("version", "System");
                 shortcut.putExtra("graphicsDriverConfig", GraphicsDriverConfigUtils.toGraphicsDriverConfig(config));
                 shortcut.saveData();
             }
@@ -270,21 +256,35 @@ public class AdrenotoolsManager {
     }
     
     public void setDriverById(EnvVars envVars, ImageFs imagefs, String adrenotoolsDriverId) {
-        boolean isFromResources = isFromResources(adrenotoolsDriverId);
-
-        if (isFromResources || enumarateInstalledDrivers().contains(adrenotoolsDriverId)) {
-            String driverPath = getDriverPath(adrenotoolsDriverId);
-
-            if (!getLibraryName(adrenotoolsDriverId).equals("")) {
-                envVars.put("ADRENOTOOLS_DRIVER_PATH", driverPath);
-                envVars.put("ADRENOTOOLS_HOOKS_PATH", imagefs.getLibDir());
-                envVars.put("ADRENOTOOLS_DRIVER_NAME", getLibraryName(adrenotoolsDriverId));
-
-                File winlatorDir = new File(SettingsConfig.DEFAULT_WINLATOR_PATH);
-                File qglConfig = new File(winlatorDir, "qgl_config.txt");
-                if (qglConfig.exists())
-                    envVars.put("ADRENOTOOLS_REDIRECT_DIR", winlatorDir.getAbsolutePath() + "/");
-            }
+        if (adrenotoolsDriverId == null || adrenotoolsDriverId.isEmpty()) {
+            Log.w("AdrenotoolsManager", "setDriverById called with empty driver id - system driver will be used");
+            return;
         }
+
+        boolean isFromResources = isFromResources(adrenotoolsDriverId);
+        boolean isInstalled = enumarateInstalledDrivers().contains(adrenotoolsDriverId);
+
+        if (!isFromResources && !isInstalled) {
+            Log.w("AdrenotoolsManager", "Driver '" + adrenotoolsDriverId
+                    + "' not installed and not bundled - system driver will be used");
+            return;
+        }
+
+        String libraryName = getLibraryName(adrenotoolsDriverId);
+        if (libraryName.equals("")) {
+            Log.w("AdrenotoolsManager", "Driver '" + adrenotoolsDriverId
+                    + "' has no libraryName in meta.json - system driver will be used");
+            return;
+        }
+
+        String driverPath = getDriverPath(adrenotoolsDriverId);
+        envVars.put("ADRENOTOOLS_DRIVER_PATH", driverPath);
+        // adrenotools requires the hooks path to be the APK's nativeLibraryDir
+        // so that android_dlopen_ext can load the hook libraries within the
+        // app's linker namespace.  Using imagefs/usr/lib causes a silent
+        // fallback to the system GPU driver.
+        String nativeLibDir = mContext.getApplicationInfo().nativeLibraryDir;
+        envVars.put("ADRENOTOOLS_HOOKS_PATH", nativeLibDir);
+        envVars.put("ADRENOTOOLS_DRIVER_NAME", libraryName);
     }
  }
