@@ -1454,19 +1454,25 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     }
 
     private String resolveCustomExecutableWinPath(@NonNull Shortcut shortcut) {
+        String customGameFolder = resolveCustomMountPath(shortcut);
         String customExe = shortcut.getExtra("custom_exe");
         if (customExe != null && !customExe.isEmpty()) {
             File customExeFile = new File(customExe);
+            if (customExeFile.isFile()) {
+                return mapCustomExecutableWinPath(customGameFolder, customExeFile);
+            }
             return WineUtils.hostPathToRootWinePath(container, customExeFile.getAbsolutePath());
         }
 
         String launchExePath = shortcut.getExtra("launch_exe_path");
         if (launchExePath != null && !launchExePath.isEmpty()) {
             File launchExeFile = new File(launchExePath);
+            if (launchExeFile.isFile()) {
+                return mapCustomExecutableWinPath(customGameFolder, launchExeFile);
+            }
             return WineUtils.hostPathToRootWinePath(container, launchExeFile.getAbsolutePath());
         }
 
-        String customGameFolder = resolveCustomMountPath(shortcut);
         if (!customGameFolder.isEmpty()) {
             File exeFile = findGameExe(new File(customGameFolder));
             if (exeFile != null) {
@@ -1474,10 +1480,80 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     shortcut.putExtra("launch_exe_path", exeFile.getAbsolutePath());
                     shortcut.saveData();
                 }
-                return WineUtils.hostPathToRootWinePath(container, exeFile.getAbsolutePath());
+                return mapCustomExecutableWinPath(customGameFolder, exeFile);
             }
         }
         return shortcut.path;
+    }
+
+    private String mapCustomExecutableWinPath(String customGameFolder, @NonNull File exeFile) {
+        if (container != null && customGameFolder != null && !customGameFolder.isEmpty()) {
+            String mappedPath =
+                    WineUtils.getDriveCGameWindowsPath(
+                            container, "CUSTOM", customGameFolder, exeFile.getAbsolutePath());
+            if (mappedPath != null && !mappedPath.isEmpty()) {
+                return mappedPath;
+            }
+        }
+        return WineUtils.hostPathToRootWinePath(container, exeFile.getAbsolutePath());
+    }
+
+    private void updateShortcutExecLine(@NonNull String windowsPath) {
+        if (shortcut == null) return;
+
+        String execLine = "Exec=wine \"" + windowsPath + "\"";
+        StringBuilder content = new StringBuilder();
+        boolean replaced = false;
+        for (String line : FileUtils.readLines(shortcut.file)) {
+            if (line.startsWith("Exec=")) {
+                content.append(execLine).append("\n");
+                replaced = true;
+            } else {
+                content.append(line).append("\n");
+            }
+        }
+        if (!replaced) {
+            content.append(execLine).append("\n");
+        }
+        FileUtils.writeString(shortcut.file, content.toString());
+    }
+
+    private String repairStoreExecutableWinPath(String source, String gameInstallPath, String currentPath) {
+        if (container == null
+                || source == null
+                || source.isEmpty()
+                || gameInstallPath == null
+                || gameInstallPath.isEmpty()
+                || currentPath == null
+                || currentPath.isEmpty()) {
+            return currentPath;
+        }
+
+        String relativePath = extractRelativeDriveCGameExecutablePath(currentPath, source);
+        if (relativePath == null || relativePath.isEmpty()) return currentPath;
+
+        File nativeExe = new File(gameInstallPath, relativePath.replace("\\", File.separator));
+        if (!nativeExe.isFile()) return currentPath;
+
+        String repairedPath =
+                WineUtils.getDriveCGameWindowsPath(
+                        container, source, gameInstallPath, nativeExe.getAbsolutePath());
+        if (repairedPath == null || repairedPath.isEmpty() || repairedPath.equals(currentPath)) {
+            return currentPath;
+        }
+
+        updateShortcutExecLine(repairedPath);
+        return repairedPath;
+    }
+
+    private String extractRelativeDriveCGameExecutablePath(String windowsPath, String source) {
+        String prefix = "C:\\WinNative\\Games\\" + source + "\\";
+        if (!windowsPath.regionMatches(true, 0, prefix, 0, prefix.length())) return null;
+
+        String remainder = windowsPath.substring(prefix.length());
+        int aliasSeparator = remainder.indexOf("\\");
+        if (aliasSeparator < 0 || aliasSeparator + 1 >= remainder.length()) return null;
+        return remainder.substring(aliasSeparator + 1);
     }
 
     private String getActiveGameDirectoryPath() {
@@ -4878,6 +4954,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     extraArgs = getIntent().getStringExtra("extra_exec_args");
                 }
                 extraArgs = (extraArgs != null && !extraArgs.isEmpty()) ? " " + extraArgs : "";
+                String gameInstallPath = shortcut.getExtra("game_install_path");
 
                 // Re-provision the per-container C:\WinNative\Games\<source>\<game> symlink in
                 // the CURRENT container. Needed after a user changes the shortcut's container
@@ -4894,7 +4971,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                         || "D:\\".equals(path) || "D:\\\\".equals(path)
                         || "A:\\".equals(path) || "A:\\\\".equals(path);
                 if (needsAutoDetect) {
-                    String gameInstallPath = shortcut.getExtra("game_install_path");
                     if ((gameInstallPath == null || gameInstallPath.isEmpty()) && gameSource.equals("GOG")) {
                         String gogId = shortcut.getExtra("gog_id");
                         if (!gogId.isEmpty()) {
@@ -4917,28 +4993,14 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                         String detectedPath = findGameExeWinPath(0, gameDir);
                         if (detectedPath != null && !detectedPath.isEmpty()) {
                             path = detectedPath;
-
-                            String execLine = "Exec=wine \"" + detectedPath + "\"";
-                            StringBuilder content = new StringBuilder();
-                            boolean replaced = false;
-                            for (String line : FileUtils.readLines(shortcut.file)) {
-                                if (line.startsWith("Exec=")) {
-                                    content.append(execLine).append("\n");
-                                    replaced = true;
-                                } else {
-                                    content.append(line).append("\n");
-                                }
-                            }
-                            if (!replaced) {
-                                content.append(execLine).append("\n");
-                            }
-                            FileUtils.writeString(shortcut.file, content.toString());
+                            updateShortcutExecLine(detectedPath);
                         }
                     }
                 }
+                path = repairStoreExecutableWinPath(gameSource, gameInstallPath, path);
                 
                 String filename = path;
-                String dir = "F:\\";
+                String dir = null;
                 
                 if (path != null && path.contains("\\")) {
                     int lastBackslash = path.lastIndexOf("\\");
@@ -4948,6 +5010,13 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 } else if (path != null && path.contains(":")) {
                     filename = path.substring(path.indexOf(":") + 1);
                     dir = path.substring(0, path.indexOf(":") + 1) + "\\";
+                }
+                if ((dir == null || dir.isEmpty()) && gameInstallPath != null && !gameInstallPath.isEmpty()) {
+                    dir = com.winlator.cmod.runtime.wine.WineUtils.hostPathToRootWinePath(container, gameInstallPath);
+                    if (dir != null && dir.endsWith(":")) dir += "\\";
+                }
+                if (dir == null || dir.isEmpty()) {
+                    dir = "F:\\";
                 }
 
                 File nativeDir = com.winlator.cmod.runtime.wine.WineUtils.getNativePath(imageFs, dir);
@@ -5342,6 +5411,21 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         if (shortcut != null) {
             String launchExe = shortcut.getExtra("launch_exe_path");
             if (launchExe != null && !launchExe.isEmpty() && gameInstPath != null) {
+                File configuredLaunchExe = new File(launchExe);
+                if (configuredLaunchExe.isAbsolute()) {
+                    String configuredAbsolutePath = getCanonicalPathOrAbsolute(configuredLaunchExe);
+                    String gameInstallPath = getCanonicalPathOrAbsolute(new File(gameInstPath));
+                    String gameInstallPrefix = gameInstallPath.endsWith(File.separator)
+                            ? gameInstallPath
+                            : gameInstallPath + File.separator;
+                    if (configuredLaunchExe.isFile()
+                            && configuredAbsolutePath.startsWith(gameInstallPrefix)) {
+                        String relative = configuredAbsolutePath.substring(gameInstallPrefix.length());
+                        Log.d("XServerDisplayActivity", "resolveRelativeGameExe: normalized absolute shortcut.launch_exe_path: " + relative);
+                        return relative;
+                    }
+                }
+
                 File test = new File(gameInstPath, launchExe.replace("\\", "/"));
                 if (test.isFile()) {
                     Log.d("XServerDisplayActivity", "resolveRelativeGameExe: found via shortcut.launch_exe_path: " + launchExe);
