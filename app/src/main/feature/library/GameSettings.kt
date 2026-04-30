@@ -2812,6 +2812,7 @@ private fun EnvVarValueEditor(
             )
         }
         "NUMBER" -> EnvValueTextField(value, onValueChange, numeric = true)
+        "DECIMAL" -> EnvValueTextField(value, onValueChange, decimal = true)
         else -> EnvValueTextField(value, onValueChange, numeric = false)
     }
 }
@@ -2952,7 +2953,8 @@ private fun EnvValueMultiDropdown(
 private fun EnvValueTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    numeric: Boolean
+    numeric: Boolean = false,
+    decimal: Boolean = false
 ) {
     BasicTextField(
         value = value,
@@ -2960,9 +2962,11 @@ private fun EnvValueTextField(
         textStyle = TextStyle(color = TextPrimary, fontSize = 13.sp),
         cursorBrush = SolidColor(AccentBlue),
         singleLine = true,
-        keyboardOptions = if (numeric)
-            KeyboardOptions(keyboardType = KeyboardType.Number)
-        else KeyboardOptions.Default,
+        keyboardOptions = when {
+            numeric -> KeyboardOptions(keyboardType = KeyboardType.Number)
+            decimal -> KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            else -> KeyboardOptions.Default
+        },
         modifier = Modifier.fillMaxWidth(),
         decorationBox = { innerTextField ->
             Box(
