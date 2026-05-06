@@ -412,7 +412,11 @@ class PresetsFragment : Fragment() {
         val suffix =
             when (engine) {
                 PresetEngine.BOX64 -> envVarName.removePrefix("BOX64_").lowercase(Locale.ENGLISH)
-                PresetEngine.FEXCORE -> envVarName.removePrefix("FEX_").lowercase(Locale.ENGLISH)
+                PresetEngine.FEXCORE ->
+                    when (envVarName) {
+                        "FEX_SMCCHECKS" -> "smc_checks"
+                        else -> envVarName.removePrefix("FEX_").lowercase(Locale.ENGLISH)
+                    }
             }
         return StringUtils.getString(requireContext(), "${engine.helpKeyPrefix}$suffix").orEmpty()
     }
@@ -542,8 +546,8 @@ class PresetsFragment : Fragment() {
     private val PresetEngine.defaultPresetId: String
         get() =
             when (this) {
-                PresetEngine.BOX64 -> Box64Preset.COMPATIBILITY
-                PresetEngine.FEXCORE -> FEXCorePreset.INTERMEDIATE
+                PresetEngine.BOX64 -> Box64Preset.PERFORMANCE
+                PresetEngine.FEXCORE -> FEXCorePreset.PERFORMANCE
             }
 
     private val PresetEngine.assetFile: String

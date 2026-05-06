@@ -285,6 +285,7 @@ class UnifiedActivity :
         val item: SettingsNavItem = SettingsNavItem.CONTAINERS,
         val profileId: Int = 0,
         val editContainerId: Int = 0,
+        val returnToGameOnBack: Boolean = false,
     )
 
     private data class ControllerConnectionState(
@@ -676,14 +677,15 @@ class UnifiedActivity :
         item: SettingsNavItem = SettingsNavItem.CONTAINERS,
         profileId: Int = 0,
         editContainerId: Int = 0,
+        returnToGameOnBack: Boolean = false,
     ) {
         // Settings is an in-activity navigation target, so entering it does not trigger an
         // Activity resume. Reassert the preferred display mode at the activity boundary.
         reapplyPreferredRefreshRate()
-        val route = buildSettingsRoute(item, profileId, editContainerId)
+        val route = buildSettingsRoute(item, profileId, editContainerId, returnToGameOnBack)
         val nav = rootNavController
         if (nav == null) {
-            pendingNavigation = PendingNavigation(item, profileId, editContainerId)
+            pendingNavigation = PendingNavigation(item, profileId, editContainerId, returnToGameOnBack)
             return
         }
         isPoppingSettings = false
@@ -696,7 +698,9 @@ class UnifiedActivity :
         item: SettingsNavItem = SettingsNavItem.CONTAINERS,
         profileId: Int = 0,
         editContainerId: Int = 0,
-    ): String = "settings?item=${item.name}&profileId=$profileId&editContainerId=$editContainerId"
+        returnToGameOnBack: Boolean = false,
+    ): String =
+        "settings?item=${item.name}&profileId=$profileId&editContainerId=$editContainerId&returnToGameOnBack=$returnToGameOnBack"
 
     private fun extractSettingsNavigation(intent: Intent?): PendingNavigation? {
         if (intent == null) return null
@@ -708,7 +712,8 @@ class UnifiedActivity :
 
         if (intent.getBooleanExtra("edit_input_controls", false)) {
             val profileId = intent.getIntExtra("selected_profile_id", 0)
-            return PendingNavigation(SettingsNavItem.INPUT_CONTROLS, profileId, 0)
+            val returnToGameOnBack = intent.getBooleanExtra("return_to_game_on_back", false)
+            return PendingNavigation(SettingsNavItem.INPUT_CONTROLS, profileId, 0, returnToGameOnBack)
         }
 
         val selectedMenuItemId = intent.getIntExtra("selected_menu_item_id", 0)
@@ -726,12 +731,13 @@ class UnifiedActivity :
         intent.removeExtra("edit_input_controls")
         intent.removeExtra("selected_profile_id")
         intent.removeExtra("selected_menu_item_id")
+        intent.removeExtra("return_to_game_on_back")
     }
 
     private fun handleSettingsIntent(intent: Intent?) {
         val request = extractSettingsNavigation(intent) ?: return
         consumeSettingsIntent(intent)
-        navigateToSettings(request.item, request.profileId, request.editContainerId)
+        navigateToSettings(request.item, request.profileId, request.editContainerId, request.returnToGameOnBack)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -860,7 +866,12 @@ class UnifiedActivity :
             LaunchedEffect(Unit) {
                 val pending = pendingNavigation
                 if (pending != null) {
-                    navigateToSettings(pending.item, pending.profileId, pending.editContainerId)
+                    navigateToSettings(
+                        pending.item,
+                        pending.profileId,
+                        pending.editContainerId,
+                        pending.returnToGameOnBack,
+                    )
                     pendingNavigation = null
                 } else {
                     handleSettingsIntent(intent)
@@ -880,7 +891,7 @@ class UnifiedActivity :
                     navController = navController,
                     startDestination =
                         initialSettingsNavigation?.let {
-                            buildSettingsRoute(it.item, it.profileId, it.editContainerId)
+                            buildSettingsRoute(it.item, it.profileId, it.editContainerId, it.returnToGameOnBack)
                         } ?: "hub",
                     modifier = Modifier.fillMaxSize(),
                     enterTransition = {
@@ -947,7 +958,7 @@ class UnifiedActivity :
                         UnifiedHub()
                     }
                     composable(
-                        "settings?item={item}&profileId={profileId}&editContainerId={editContainerId}",
+                        "settings?item={item}&profileId={profileId}&editContainerId={editContainerId}&returnToGameOnBack={returnToGameOnBack}",
                         arguments =
                             listOf(
                                 navArgument("item") {
@@ -962,6 +973,10 @@ class UnifiedActivity :
                                     type = NavType.IntType
                                     defaultValue = 0
                                 },
+                                navArgument("returnToGameOnBack") {
+                                    type = NavType.BoolType
+                                    defaultValue = false
+                                },
                             ),
                     ) { backStackEntry ->
                         val itemName = backStackEntry.arguments?.getString("item") ?: SettingsNavItem.CONTAINERS.name
@@ -973,29 +988,39 @@ class UnifiedActivity :
                             }
                         val profileId = backStackEntry.arguments?.getInt("profileId") ?: 0
                         val editContainerId = backStackEntry.arguments?.getInt("editContainerId") ?: 0
+                        val returnToGameOnBack =
+                            backStackEntry.arguments?.getBoolean("returnToGameOnBack") ?: false
 
-                        // Idempotent pop: the first Back press pops, any further presses during
-                        // the 220ms exit animation are absorbed here so NavHost state stays
-                        // consistent (see isPoppingSettings field for full context).
-                        val popSettingsOnce: () -> Unit = {
+                        // Idempotent exit: the first Back press returns to the hub, any further
+                        // presses during the 220ms exit animation are absorbed here so NavHost
+                        // state stays consistent (see isPoppingSettings field for full context).
+                        val exitSettingsToHubOnce: () -> Unit = {
                             if (!isPoppingSettings) {
                                 isPoppingSettings = true
-                                if (navController.previousBackStackEntry != null) {
-                                    navController.popBackStack()
-                                } else {
+                                if (returnToGameOnBack) {
                                     setResult(android.app.Activity.RESULT_OK)
                                     finish()
+                                } else {
+                                    val poppedToHub = navController.popBackStack("hub", inclusive = false)
+                                    if (!poppedToHub) {
+                                        navController.navigate("hub") {
+                                            popUpTo(navController.graph.startDestinationId) {
+                                                inclusive = true
+                                            }
+                                            launchSingleTop = true
+                                        }
+                                    }
                                 }
                             }
                         }
-                        BackHandler(enabled = true) { popSettingsOnce() }
 
                         SettingsHost(
                             startItem = startItem,
                             selectedProfileId = profileId,
                             bordersPaused = chasingBordersPaused.value,
-                            onBack = popSettingsOnce,
+                            onBack = exitSettingsToHubOnce,
                         )
+                        BackHandler(enabled = true) { exitSettingsToHubOnce() }
 
                         // Handle edit_container_id deep link — show dialog on main thread outside composition
                         if (editContainerId > 0) {
@@ -1008,10 +1033,10 @@ class UnifiedActivity :
                                         .ContainerSettingsComposeDialog(
                                             activity,
                                             container,
-                                        ) { navController.popBackStack() }
+                                        ) { exitSettingsToHubOnce() }
                                         .show()
                                 } else {
-                                    navController.popBackStack()
+                                    exitSettingsToHubOnce()
                                 }
                             }
                         }
@@ -2753,9 +2778,19 @@ class UnifiedActivity :
     ) {
         Dialog(
             onDismissRequest = onDismissRequest,
-            properties = DialogProperties(usePlatformDefaultWidth = false),
+            properties =
+                DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false,
+                ),
         ) {
-            BoxWithConstraints(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            BoxWithConstraints(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .windowInsetsPadding(WindowInsets.navigationBars),
+                contentAlignment = Alignment.Center,
+            ) {
                 val widthModifier =
                     if (wide) {
                         Modifier.widthIn(min = 320.dp, max = (maxWidth - 32.dp).coerceAtMost(560.dp))
@@ -5920,9 +5955,20 @@ class UnifiedActivity :
         infoContent: @Composable ColumnScope.() -> Unit = {},
         actionsContent: @Composable ColumnScope.() -> Unit,
     ) {
-        Dialog(onDismissRequest = onDismissRequest, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Dialog(
+            onDismissRequest = onDismissRequest,
+            properties =
+                DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false,
+                ),
+        ) {
             Surface(
-                modifier = Modifier.fillMaxWidth(0.864f).fillMaxHeight(0.92f),
+                modifier =
+                    Modifier
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .fillMaxWidth(0.864f)
+                        .fillMaxHeight(0.92f),
                 shape = RoundedCornerShape(20.dp),
                 color = CardDark,
             ) {
@@ -7630,18 +7676,38 @@ class UnifiedActivity :
                                 stringResource(R.string.downloads_queue_phase_unknown)
                             }
                         }
+                    val statusColor =
+                        when (status) {
+                            DownloadPhase.COMPLETE -> StatusOnline
+                            DownloadPhase.FAILED,
+                            DownloadPhase.CANCELLED,
+                            -> DangerRed
+                            DownloadPhase.PAUSED,
+                            DownloadPhase.QUEUED,
+                            -> StatusAway
+                            DownloadPhase.DOWNLOADING,
+                            DownloadPhase.PREPARING,
+                            DownloadPhase.VERIFYING,
+                            DownloadPhase.PATCHING,
+                            DownloadPhase.APPLYING_DATA,
+                            DownloadPhase.FINALIZING,
+                            DownloadPhase.UNPACKING,
+                            -> Accent
+                            else -> TextSecondary
+                        }
 
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Text(
                             stringResource(R.string.downloads_queue_status_label),
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextPrimary,
+                            color = TextSecondary,
                             maxLines = 1,
                         )
+                        Spacer(Modifier.width(4.dp))
                         Text(
                             statusText,
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (status == DownloadPhase.COMPLETE) StatusOnline else TextPrimary,
+                            color = statusColor,
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,

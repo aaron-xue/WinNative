@@ -55,6 +55,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -155,6 +158,14 @@ private val SetupDownloadChaseGradientStops =
         0.875f to Color(0xFF29B6F6),
         1.00f to Color(0xFF2196F3),
     )
+
+private const val SetupGlassSurfaceAlpha = 0.03f
+private const val SetupGlassActiveSurfaceAlpha = 0.075f
+private const val SetupGlassCompletedSurfaceAlpha = 0.065f
+private const val SetupGlassBorderAlpha = 0.24f
+private const val SetupGlassCompletedBorderAlpha = 0.82f
+private const val SetupGlassCompletedSoftBorderAlpha = 0.62f
+private const val SetupGlassTransferAlpha = 0.78f
 
 private data class TabInfo(
     val key: String,
@@ -1901,7 +1912,7 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF111822).copy(alpha = 0.92f), glassShape)
+                    .background(Color(0xFF111822).copy(alpha = SetupGlassTransferAlpha), glassShape)
                     .border(1.dp, turquoise.copy(alpha = 0.55f), glassShape)
                     .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -2234,9 +2245,9 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
         val turquoise = Color(0xFF57CBDE)
         val completedTurquoise = Color(0xFF3FAFBE)
         val glassShape = RoundedCornerShape(12.dp)
-        val glassSurface = Color.White.copy(alpha = 0.045f)
-        val glassSurfaceActive = turquoise.copy(alpha = 0.10f)
-        val glassBorder = Color.White.copy(alpha = 0.18f)
+        val glassSurface = Color.White.copy(alpha = SetupGlassSurfaceAlpha)
+        val glassSurfaceActive = turquoise.copy(alpha = SetupGlassActiveSurfaceAlpha)
+        val glassBorder = Color.White.copy(alpha = SetupGlassBorderAlpha)
         val mutedDot = Color(0xFF4A5568)
 
         // Build tab keys/labels
@@ -2578,8 +2589,18 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
         val turquoise = Color(0xFF57CBDE)
         val completedTurquoise = Color(0xFF3FAFBE)
         val cardShape = RoundedCornerShape(12.dp)
-        val bgColor = if (installed) completedTurquoise.copy(alpha = 0.085f) else Color.White.copy(alpha = 0.045f)
-        val outlineColor = if (installed) completedTurquoise.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.18f)
+        val bgColor =
+            if (installed) {
+                completedTurquoise.copy(alpha = SetupGlassCompletedSurfaceAlpha)
+            } else {
+                Color.White.copy(alpha = SetupGlassSurfaceAlpha)
+            }
+        val outlineColor =
+            if (installed) {
+                completedTurquoise.copy(alpha = SetupGlassCompletedBorderAlpha)
+            } else {
+                Color.White.copy(alpha = SetupGlassBorderAlpha)
+            }
         Row(
             modifier =
                 Modifier
@@ -2672,8 +2693,8 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
                 modifier =
                     Modifier
                         .widthIn(max = 420.dp)
-                        .background(Color.White.copy(alpha = 0.045f), RoundedCornerShape(12.dp))
-                        .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = SetupGlassSurfaceAlpha), RoundedCornerShape(12.dp))
+                        .border(1.dp, Color.White.copy(alpha = SetupGlassBorderAlpha), RoundedCornerShape(12.dp))
                         .padding(horizontal = 18.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -2695,21 +2716,25 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
                 )
             }
         } else {
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.TopCenter,
             ) {
-                LazyColumn(
+                val gridColumns = 3
+                val compactGrid = maxWidth < 720.dp || maxHeight < 280.dp
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(gridColumns),
                     modifier =
                         Modifier
-                            .widthIn(max = 420.dp)
+                            .widthIn(max = 960.dp)
                             .fillMaxWidth()
                             .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (compactGrid) 8.dp else 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (compactGrid) 6.dp else 10.dp),
+                    contentPadding = PaddingValues(bottom = if (compactGrid) 4.dp else 12.dp),
                 ) {
-                    items(installedRuntimes) { profile ->
-                        RuntimeContainerCard(profile)
+                    gridItems(installedRuntimes) { profile ->
+                        RuntimeContainerCard(profile, compact = compactGrid)
                     }
                 }
             }
@@ -2717,7 +2742,10 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
     }
 
     @Composable
-    private fun RuntimeContainerCard(profile: ContentProfile) {
+    private fun RuntimeContainerCard(
+        profile: ContentProfile,
+        compact: Boolean = false,
+    ) {
         val entryName = ContentsManager.getEntryName(profile)
         val displayName = runtimeDisplayLabel(profile)
         val isArm64 = profile.verName.contains("arm64ec", ignoreCase = true)
@@ -2735,10 +2763,14 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
         val turquoise = Color(0xFF57CBDE)
         val completedTurquoise = Color(0xFF3FAFBE)
         val cardShape = RoundedCornerShape(12.dp)
-        val bgColor = Color.White.copy(alpha = 0.045f)
+        val bgColor = Color.White.copy(alpha = SetupGlassSurfaceAlpha)
         val activeColor = if (hasContainer) completedTurquoise else Color(0xFF4A5260)
         val outlineColor =
-            if (hasContainer) completedTurquoise.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.18f)
+            if (hasContainer) {
+                completedTurquoise.copy(alpha = SetupGlassCompletedSoftBorderAlpha)
+            } else {
+                Color.White.copy(alpha = SetupGlassBorderAlpha)
+            }
 
         Row(
             modifier =
@@ -2746,7 +2778,7 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
                     .fillMaxWidth()
                     .background(bgColor, cardShape)
                     .border(1.dp, outlineColor, cardShape)
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .padding(horizontal = if (compact) 10.dp else 12.dp, vertical = if (compact) 6.dp else 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -2765,23 +2797,23 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
                         text = archLabel,
                         color = if (hasContainer) activeColor else Color(0xFF8B949E),
                         fontFamily = InterFont,
-                        fontSize = 9.sp,
+                        fontSize = if (compact) 8.sp else 9.sp,
                         letterSpacing = 1.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
-                Spacer(Modifier.height(3.dp))
+                Spacer(Modifier.height(if (compact) 1.dp else 3.dp))
                 Text(
                     text = displayName,
                     color = Color(0xFFE6EDF3),
                     fontFamily = InterFont,
                     fontWeight = FontWeight.Medium,
-                    fontSize = 12.sp,
+                    fontSize = if (compact) 11.sp else 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(if (compact) 6.dp else 8.dp))
             if (existingContainer == null) {
                 Button(
                     onClick = {
@@ -2812,8 +2844,8 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
                     },
                     enabled = !creating && transferState.value == null,
                     shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.height(28.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    modifier = Modifier.height(if (compact) 24.dp else 28.dp),
+                    contentPadding = PaddingValues(horizontal = if (compact) 9.dp else 12.dp, vertical = 0.dp),
                     colors =
                         ButtonDefaults.buttonColors(
                             containerColor = turquoise.copy(alpha = 0.14f),
@@ -2825,20 +2857,20 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
                 ) {
                     if (creating) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(if (compact) 12.dp else 14.dp),
                             color = turquoise,
                             strokeWidth = 2.dp,
                         )
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(if (compact) 4.dp else 6.dp))
                     }
                     Text(
                         text =
                             stringResource(
                                 if (creating) R.string.setup_wizard_creating_container else R.string.setup_wizard_create_container,
-                            ),
+                        ),
                         fontFamily = InterFont,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp,
+                        fontSize = if (compact) 9.sp else 10.sp,
                     )
                 }
             } else {
@@ -2849,8 +2881,8 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
                         openContainerDefaultSettings(id, type)
                     },
                     shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.height(28.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    modifier = Modifier.height(if (compact) 24.dp else 28.dp),
+                    contentPadding = PaddingValues(horizontal = if (compact) 9.dp else 12.dp, vertical = 0.dp),
                     colors =
                         ButtonDefaults.buttonColors(
                             containerColor = completedTurquoise.copy(alpha = 0.14f),
@@ -2861,7 +2893,7 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
                         text = stringResource(R.string.setup_wizard_default_settings),
                         fontFamily = InterFont,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp,
+                        fontSize = if (compact) 9.sp else 10.sp,
                     )
                 }
             }
@@ -2882,12 +2914,17 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity() {
         val turquoise = Color(0xFF57CBDE)
         val completedTurquoise = Color(0xFF3FAFBE)
         val glassShape = RoundedCornerShape(12.dp)
-        val glassSurface = if (completed) completedTurquoise.copy(alpha = 0.085f) else Color.White.copy(alpha = 0.045f)
+        val glassSurface =
+            if (completed) {
+                completedTurquoise.copy(alpha = SetupGlassCompletedSurfaceAlpha)
+            } else {
+                Color.White.copy(alpha = SetupGlassSurfaceAlpha)
+            }
         val borderColor =
             when {
-                completed -> completedTurquoise.copy(alpha = 0.85f)
+                completed -> completedTurquoise.copy(alpha = SetupGlassCompletedBorderAlpha)
                 progress != null -> turquoise
-                else -> Color.White.copy(alpha = 0.18f)
+                else -> Color.White.copy(alpha = SetupGlassBorderAlpha)
             }
         Column(
             modifier =

@@ -65,8 +65,34 @@ public class FEXCorePresetManager {
       }
     }
 
+    normalizeSmcChecksEnvVars(envVars);
     Log.d(TAG, "getEnvVars resolved presetId='" + id + "' -> envVars='" + envVars.toString() + "'");
     return envVars;
+  }
+
+  public static void normalizeSmcChecksEnvVars(EnvVars envVars) {
+    normalizeSmcChecksEnvVars(envVars, null);
+  }
+
+  public static void normalizeSmcChecksEnvVars(EnvVars envVars, EnvVars preferredEnvVars) {
+    String smcChecks = envVars.get("FEX_SMCCHECKS");
+    String legacySmcChecks = envVars.get("FEX_SMC_CHECKS");
+    if (preferredEnvVars != null) {
+      String preferredSmcChecks = preferredEnvVars.get("FEX_SMCCHECKS");
+      String preferredLegacySmcChecks = preferredEnvVars.get("FEX_SMC_CHECKS");
+      if (!preferredSmcChecks.isEmpty()) {
+        smcChecks = preferredSmcChecks;
+      } else if (!preferredLegacySmcChecks.isEmpty()) {
+        smcChecks = preferredLegacySmcChecks;
+      }
+    }
+    if (smcChecks.isEmpty()) {
+      smcChecks = legacySmcChecks;
+    }
+    if (!smcChecks.isEmpty()) {
+      envVars.put("FEX_SMCCHECKS", smcChecks);
+      envVars.put("FEX_SMC_CHECKS", smcChecks);
+    }
   }
 
   public static ArrayList<FEXCorePreset> getPresets(Context context) {
@@ -299,6 +325,6 @@ public class FEXCorePresetManager {
     int selectedPosition = spinner.getSelectedItemPosition();
     if (adapter != null && adapter.getCount() > 0 && selectedPosition >= 0) {
       return ((FEXCorePreset) adapter.getItem(selectedPosition)).id;
-    } else return FEXCorePreset.COMPATIBILITY;
+    } else return FEXCorePreset.PERFORMANCE;
   }
 }
