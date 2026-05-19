@@ -7,6 +7,10 @@
 .DS_Store
 /build
 /captures
+/CMakeFiles
+/adrenotools
+/patchelf
+/shaders
 .externalNativeBuild
 .cxx
 # app/src/main/assets/imagefs.txz
@@ -39,6 +43,9 @@ local.properties
 logcat*.txt
 *.py
 steam.tzst
+build.ninja
+cmake_install.cmake
+CMakeCache.txt
 
 # Room schema exports
 app/schemas/
