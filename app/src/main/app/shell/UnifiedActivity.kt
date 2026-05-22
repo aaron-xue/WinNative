@@ -379,6 +379,8 @@ class UnifiedActivity :
             val result =
                 runCatching {
                     withContext(Dispatchers.IO) { SteamService.checkForAppUpdate(appId) }
+                }.onFailure { e ->
+                    android.util.Log.e("LibraryCarousel", "Exception in shortcut scan: ${e.javaClass.name} - ${e.message}", e)
                 }.getOrNull()
             try {
             when {

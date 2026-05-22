@@ -126,6 +126,7 @@ android {
             applicationId "com.ludashi.benchmark"
         }
         pubg {
+            isDefault true
             dimension "branding"
             applicationId "com.tencent.ig"
         }

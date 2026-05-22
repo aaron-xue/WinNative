@@ -12,6 +12,7 @@ import java.nio.ByteOrder
  * Parses PE resource section to find RT_GROUP_ICON / RT_ICON entries.
  */
 object PeIconExtractor {
+    @JvmStatic
     fun extractIcon(exeFile: File): Bitmap? {
         if (!exeFile.exists()) return null
         return try {
@@ -21,6 +22,7 @@ object PeIconExtractor {
         }
     }
 
+    @JvmStatic
     fun extractAndSave(
         exeFile: File,
         outPng: File,

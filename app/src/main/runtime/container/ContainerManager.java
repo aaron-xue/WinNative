@@ -428,11 +428,19 @@ public class ContainerManager {
             File desktopFile =
                 new File(filePath.substring(0, filePath.lastIndexOf(".")) + ".desktop");
             if (!desktopFile.exists()) {
-              MSLink.createDesktopFile(file, context, container);
-              shortcuts.add(new Shortcut(container, desktopFile));
+              try {
+                MSLink.createDesktopFile(file, context, container);
+                shortcuts.add(new Shortcut(container, desktopFile));
+              } catch (Exception e) {
+                Log.e("ContainerManager", "Error loading shortcut: " + file.getPath(), e);
+              }
             }
           } else if (fileName.endsWith(".desktop")) {
-            shortcuts.add(new Shortcut(container, file));
+            try {
+              shortcuts.add(new Shortcut(container, file));
+            } catch (Exception e) {
+                Log.e("ContainerManager", "Error loading shortcut: " + file.getPath(), e);
+            }
           }
         }
       }

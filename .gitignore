@@ -49,6 +49,7 @@ CMakeCache.txt
 
 # Room schema exports
 app/schemas/
+app/pubg/
 
 # Signing keys
 *.jks
