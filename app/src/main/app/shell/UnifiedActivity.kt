@@ -340,6 +340,8 @@ class UnifiedActivity :
     private var taskCheckingGameName by mutableStateOf("")
     private var taskCheckingLabel by mutableStateOf("")
 
+    private var taskProgressCompleteAsToast by mutableStateOf(false)
+
     /** Opens the task progress pop-up for a freshly started verify/update task. */
     private fun showTaskProgressPopup(
         info: DownloadInfo,
@@ -347,6 +349,7 @@ class UnifiedActivity :
         label: String,
         completeMsg: String,
         failedMsg: String,
+        completeAsToast: Boolean = false,
     ) {
         taskCheckingShown = false
         taskProgressInfo = info
@@ -354,6 +357,7 @@ class UnifiedActivity :
         taskProgressLabel = label
         taskProgressCompleteMsg = completeMsg
         taskProgressFailedMsg = failedMsg
+        taskProgressCompleteAsToast = completeAsToast
         taskProgressShown = true
         taskDoneMessage = null
     }
@@ -370,6 +374,14 @@ class UnifiedActivity :
      */
     private fun startUpdateCheck(appId: Int, gameName: String) {
         if (updateCheckInProgress) return
+        if (!com.winlator.cmod.app.service.NetworkMonitor.hasInternet.value) {
+            com.winlator.cmod.shared.ui.toast.WinToast.show(
+                this,
+                getString(R.string.downloads_no_internet),
+                android.widget.Toast.LENGTH_SHORT,
+            )
+            return
+        }
         updateCheckInProgress = true
         taskCheckingGameName = gameName
         taskCheckingLabel = getString(R.string.store_game_check_for_update)
@@ -4252,6 +4264,22 @@ class UnifiedActivity :
         val isGog = gogGame != null
         val epicId = if (isEpic) app.id - 2000000000 else 0
 
+        val libraryDownloadRecords by com.winlator.cmod.app.service.download.DownloadCoordinator.records.collectAsState(
+            initial = com.winlator.cmod.app.service.download.DownloadCoordinator.snapshotRecords(),
+        )
+        val hasBlockingSteamDownloadForLibrary =
+            !isCustom && !isEpic && !isGog &&
+                libraryDownloadRecords.any {
+                    it.store == com.winlator.cmod.app.db.download.DownloadRecord.STORE_STEAM &&
+                        it.storeGameId == app.id.toString() &&
+                        it.status in setOf(
+                            com.winlator.cmod.app.db.download.DownloadRecord.STATUS_QUEUED,
+                            com.winlator.cmod.app.db.download.DownloadRecord.STATUS_DOWNLOADING,
+                            com.winlator.cmod.app.db.download.DownloadRecord.STATUS_PAUSED,
+                            com.winlator.cmod.app.db.download.DownloadRecord.STATUS_FAILED,
+                        )
+                }
+
         val epicGame by produceState<EpicGame?>(initialValue = null, key1 = epicId) {
             value = if (isEpic) db.epicGameDao().getById(epicId) else null
         }
@@ -4736,6 +4764,39 @@ class UnifiedActivity :
                         // Bottom content
                         when (currentScreen) {
                             LibraryDetailScreen.Main -> {
+                                // Lock Play while VERIFY / UPDATE is rewriting depots in place
+                                // for this game — launching mid-write can corrupt the install.
+                                val activePlayBlockingTask =
+                                    if (isCustom || isEpic || isGog) {
+                                        null
+                                    } else {
+                                        val appIdStr = app.id.toString()
+                                        libraryDownloadRecords.firstOrNull { rec ->
+                                            rec.store == com.winlator.cmod.app.db.download
+                                                .DownloadRecord.STORE_STEAM &&
+                                                rec.storeGameId == appIdStr &&
+                                                rec.status ==
+                                                com.winlator.cmod.app.db.download
+                                                    .DownloadRecord.STATUS_DOWNLOADING &&
+                                                (
+                                                    rec.taskType ==
+                                                        com.winlator.cmod.app.db.download
+                                                            .DownloadRecord.TASK_VERIFY ||
+                                                        rec.taskType ==
+                                                            com.winlator.cmod.app.db.download
+                                                                .DownloadRecord.TASK_UPDATE
+                                                )
+                                        }?.taskType
+                                    }
+                                val playEnabled = activePlayBlockingTask == null
+                                val playDisabledLabel =
+                                    when (activePlayBlockingTask) {
+                                        com.winlator.cmod.app.db.download.DownloadRecord.TASK_VERIFY ->
+                                            stringResource(R.string.downloads_queue_phase_verifying)
+                                        com.winlator.cmod.app.db.download.DownloadRecord.TASK_UPDATE ->
+                                            stringResource(R.string.downloads_queue_phase_updating)
+                                        else -> null
+                                    }
                                 LibraryGameLaunchScreen(
                                     appName = app.name,
                                     subtitle = subtitle,
@@ -4750,6 +4811,8 @@ class UnifiedActivity :
                                     isCustom = isCustom,
                                     hasPinnedShortcut = hasPinnedShortcut,
                                     showSavesAction = isCustom || isEpic || isGog,
+                                    playEnabled = playEnabled,
+                                    playDisabledLabel = playDisabledLabel,
                                     onBack = onDismissRequest,
                                     onPlay = {
                                         val containerManager = ContainerManager(context)
@@ -4846,25 +4909,29 @@ class UnifiedActivity :
                                     // The Steam source tag opens a menu (Verify Files /
                                     // Check for Update / Workshop) for installed Steam games.
                                     steamMenuEnabled = !isCustom && !isEpic && !isGog,
+                                    areSteamActionsEnabled = !hasBlockingSteamDownloadForLibrary,
                                     onVerifyFiles = {
-                                        scope.launch {
-                                            val started =
-                                                withContext(Dispatchers.IO) {
-                                                    SteamService.downloadAppForVerify(app.id)
+                                        context.runIfOnlineOrToast {
+                                            scope.launch {
+                                                val started =
+                                                    withContext(Dispatchers.IO) {
+                                                        SteamService.downloadAppForVerify(app.id)
+                                                    }
+                                                if (started != null) {
+                                                    // Hand off to the activity-root host so the
+                                                    // pop-up + completion notice outlive this dialog.
+                                                    showTaskProgressPopup(
+                                                        started,
+                                                        app.name,
+                                                        getString(R.string.store_game_verify_files),
+                                                        getString(R.string.store_game_verify_complete),
+                                                        getString(R.string.store_game_verify_failed_notice),
+                                                        completeAsToast = true,
+                                                    )
                                                 }
-                                            if (started != null) {
-                                                // Hand off to the activity-root host so the
-                                                // pop-up + completion notice outlive this dialog.
-                                                showTaskProgressPopup(
-                                                    started,
-                                                    app.name,
-                                                    getString(R.string.store_game_verify_files),
-                                                    getString(R.string.store_game_verify_complete),
-                                                    getString(R.string.store_game_verify_failed_notice),
-                                                )
+                                                // else: a download is already running —
+                                                // downloadApp surfaced its own conflict toast.
                                             }
-                                            // else: a download is already running —
-                                            // downloadApp surfaced its own conflict toast.
                                         }
                                     },
                                     onCheckForUpdate = { startUpdateCheck(app.id, app.name) },
@@ -6222,8 +6289,10 @@ class UnifiedActivity :
                             } else {
                                 EpicConstants.getGameInstallPath(context, app.title)
                             }
-                        EpicService.downloadGame(context, app.id, selectedDlcIds.toList(), installPath, "en-US")
-                        onDismissRequest()
+                        context.runIfOnlineOrToast {
+                            EpicService.downloadGame(context, app.id, selectedDlcIds.toList(), installPath, "en-US")
+                            onDismissRequest()
+                        }
                     },
                     onCloudSync = {
                         scope.launch(Dispatchers.IO) {
@@ -6581,8 +6650,10 @@ class UnifiedActivity :
                     selectedDlcIds = emptySet(),
                     onBack = onDismissRequest,
                     onInstall = {
-                        GOGService.downloadGame(context, app.id, installPathDisplay, PrefManager.containerLanguage)
-                        onDismissRequest()
+                        context.runIfOnlineOrToast {
+                            GOGService.downloadGame(context, app.id, installPathDisplay, PrefManager.containerLanguage)
+                            onDismissRequest()
+                        }
                     },
                     onCloudSync = {
                         scope.launch(Dispatchers.IO) {
@@ -7033,7 +7104,10 @@ class UnifiedActivity :
             ) {
                 val selectedInfo = downloads.find { it.first == selectedId }?.second
                 val selectedStatus = selectedInfo?.getStatusFlow()?.value
-                val isPaused = selectedStatus == DownloadPhase.PAUSED
+                // FAILED is resumable: the dispatcher preserves every breadcrumb
+                // on failure, so one click continues from where it left off.
+                val isResumable =
+                    selectedStatus == DownloadPhase.PAUSED || selectedStatus == DownloadPhase.FAILED
                 val isComplete = selectedStatus == DownloadPhase.COMPLETE
                 val isCancelled = selectedStatus == DownloadPhase.CANCELLED
                 val pausableDownloads =
@@ -7044,7 +7118,8 @@ class UnifiedActivity :
                 val allPausableDownloadsPaused =
                     pausableDownloads.isNotEmpty() &&
                         pausableDownloads.all {
-                            it.second.getStatusFlow().value == DownloadPhase.PAUSED
+                            val s = it.second.getStatusFlow().value
+                            s == DownloadPhase.PAUSED || s == DownloadPhase.FAILED
                         }
 
                 val pauseResumeLabel =
@@ -7057,7 +7132,11 @@ class UnifiedActivity :
                             stringResource(R.string.downloads_queue_pause_all)
                         }
                     } else {
-                        if (isPaused) stringResource(R.string.session_drawer_resume) else stringResource(R.string.session_drawer_pause)
+                        when {
+                            selectedStatus == DownloadPhase.FAILED -> stringResource(R.string.session_drawer_retry)
+                            isResumable -> stringResource(R.string.session_drawer_resume)
+                            else -> stringResource(R.string.session_drawer_pause)
+                        }
                     }
 
                 val cancelLabel =
@@ -7086,19 +7165,17 @@ class UnifiedActivity :
                     label = pauseResumeLabel,
                     accentColor = Accent,
                     onClick = {
-                        if (selectedId == null) {
-                            if (allPausableDownloadsPaused) {
-                                DownloadService.resumeAll()
-                            } else {
-                                DownloadService.pauseAll()
-                            }
-                        } else {
-                            if (isPaused) {
-                                DownloadService.resumeDownload(selectedId)
-                            } else {
-                                DownloadService.pauseDownload(selectedId)
+                        val isResumeAction =
+                            if (selectedId == null) allPausableDownloadsPaused else isResumable
+                        val run = {
+                            when {
+                                selectedId == null && allPausableDownloadsPaused -> DownloadService.resumeAll()
+                                selectedId == null -> DownloadService.pauseAll()
+                                isResumable -> DownloadService.resumeDownload(selectedId)
+                                else -> DownloadService.pauseDownload(selectedId)
                             }
                         }
+                        if (isResumeAction) this@UnifiedActivity.runIfOnlineOrToast(run) else run()
                     },
                     enabled = pauseResumeEnabled,
                 )
@@ -7212,10 +7289,12 @@ class UnifiedActivity :
                         DownloadPhase.UNPACKING,
                         DownloadPhase.UNKNOWN,
                         -> 0
+                        // FAILED sorts with PAUSED — both are user-resumable;
+                        // don't bury them under finished downloads.
                         DownloadPhase.PAUSED -> 1
+                        DownloadPhase.FAILED -> 1
                         DownloadPhase.QUEUED -> 2
                         DownloadPhase.COMPLETE -> 3
-                        DownloadPhase.FAILED -> 4
                         DownloadPhase.CANCELLED -> 5
                     }
                 }
@@ -7452,8 +7531,8 @@ class UnifiedActivity :
             )
             Text(
                 if (totalBytes > 0L) {
-                    "${StorageUtils.formatBinarySize(doneBytes)} / " +
-                        StorageUtils.formatBinarySize(totalBytes)
+                    "${StorageUtils.formatDecimalSize(doneBytes)} / " +
+                        StorageUtils.formatDecimalSize(totalBytes)
                 } else {
                     " "
                 },
@@ -7482,10 +7561,22 @@ class UnifiedActivity :
             info.getStatusFlow().collect { st ->
                 when (st) {
                     DownloadPhase.COMPLETE -> {
+                        // Snapshot first: `taskProgressShown = false` can trigger
+                        // a follow-up task that overwrites these fields before we read.
+                        val msg = taskProgressCompleteMsg
+                        val asToast = taskProgressCompleteAsToast
                         taskProgressShown = false
-                        taskDoneFailed = false
-                        taskDoneMessage = taskProgressCompleteMsg
                         taskProgressInfo = null
+                        if (asToast) {
+                            com.winlator.cmod.shared.ui.toast.WinToast.show(
+                                this@UnifiedActivity,
+                                msg,
+                                android.widget.Toast.LENGTH_SHORT,
+                            )
+                        } else {
+                            taskDoneFailed = false
+                            taskDoneMessage = msg
+                        }
                     }
                     DownloadPhase.FAILED -> {
                         taskProgressShown = false
@@ -7974,7 +8065,7 @@ class UnifiedActivity :
 
                         // Centered Size Info
                         Text(
-                            text = "${StorageUtils.formatBinarySize(downloadedBytes)} / ${StorageUtils.formatBinarySize(totalBytes)}",
+                            text = "${StorageUtils.formatDecimalSize(downloadedBytes)} / ${StorageUtils.formatDecimalSize(totalBytes)}",
                             style = MaterialTheme.typography.labelMedium,
                             color = TextSecondary,
                             modifier = Modifier.weight(1f),
@@ -7984,7 +8075,7 @@ class UnifiedActivity :
                         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                             if (showDownloadSpeed) {
                                 Text(
-                                    text = "${StorageUtils.formatBinarySize(speed)}/s",
+                                    text = StorageUtils.formatBitsPerSecond(speed),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Accent,
                                     fontWeight = FontWeight.Bold,
@@ -8294,6 +8385,17 @@ class UnifiedActivity :
                         com.winlator.cmod.app.db.download.DownloadRecord.STATUS_PAUSED,
                     )
         }
+        val hasBlockingSteamDownload =
+            downloadRecords.any {
+                it.store == com.winlator.cmod.app.db.download.DownloadRecord.STORE_STEAM &&
+                    it.storeGameId == app.id.toString() &&
+                    it.status in setOf(
+                        com.winlator.cmod.app.db.download.DownloadRecord.STATUS_QUEUED,
+                        com.winlator.cmod.app.db.download.DownloadRecord.STATUS_DOWNLOADING,
+                        com.winlator.cmod.app.db.download.DownloadRecord.STATUS_PAUSED,
+                        com.winlator.cmod.app.db.download.DownloadRecord.STATUS_FAILED,
+                    )
+            }
         val updateActionEnabled = steamDownloadRecord == null
         val installActionEnabled = isInstallEnabled && steamDownloadRecord == null
         val activeSteamDownloadText = stringResource(R.string.store_game_download_already_active)
@@ -8346,6 +8448,7 @@ class UnifiedActivity :
                     // open to an empty Workshop window (handled gracefully).
                     showWorkshop = isReallyInstalled,
                     showVerifyFiles = isReallyInstalled,
+                    areSteamActionsEnabled = !hasBlockingSteamDownload,
                     dlcs = dlcItems,
                     selectedDlcIds = selectedDlcIds.toSet(),
                     isDlcSelectionEnabled = steamDownloadRecord == null,
@@ -8359,12 +8462,14 @@ class UnifiedActivity :
                             )
                             return@StoreGameDetailScreen
                         }
-                        scope.launch(Dispatchers.IO) {
-                            val installableDlcIds = dlcItems
-                                .filter { !it.isInstalled && it.id in selectedDlcIds }
-                                .map { it.id }
-                            SteamService.downloadApp(app.id, installableDlcIds, false, customPath)
-                            withContext(Dispatchers.Main) { onDismissRequest() }
+                        context.runIfOnlineOrToast {
+                            scope.launch(Dispatchers.IO) {
+                                val installableDlcIds = dlcItems
+                                    .filter { !it.isInstalled && it.id in selectedDlcIds }
+                                    .map { it.id }
+                                SteamService.downloadApp(app.id, installableDlcIds, false, customPath)
+                                withContext(Dispatchers.Main) { onDismissRequest() }
+                            }
                         }
                     },
                     onCheckForUpdate = { startUpdateCheck(app.id, app.name) },
@@ -8378,55 +8483,60 @@ class UnifiedActivity :
                             )
                             return@StoreGameDetailScreen
                         }
-                        scope.launch {
-                            val started =
-                                withContext(Dispatchers.IO) {
-                                    SteamService.downloadAppForVerify(app.id)
+                        context.runIfOnlineOrToast {
+                            scope.launch {
+                                val started =
+                                    withContext(Dispatchers.IO) {
+                                        SteamService.downloadAppForVerify(app.id)
+                                    }
+                                if (started != null) {
+                                    // Hand off to the activity-root host so the
+                                    // pop-up + completion notice outlive this dialog.
+                                    showTaskProgressPopup(
+                                        started,
+                                        app.name,
+                                        getString(R.string.store_game_verify_files),
+                                        getString(R.string.store_game_verify_complete),
+                                        getString(R.string.store_game_verify_failed_notice),
+                                        completeAsToast = true,
+                                    )
                                 }
-                            if (started != null) {
-                                // Hand off to the activity-root host so the
-                                // pop-up + completion notice outlive this dialog.
-                                showTaskProgressPopup(
-                                    started,
-                                    app.name,
-                                    getString(R.string.store_game_verify_files),
-                                    getString(R.string.store_game_verify_complete),
-                                    getString(R.string.store_game_verify_failed_notice),
-                                )
                             }
                         }
                     },
                     onDownloadUpdate = {
                         if (!updateActionEnabled || updateInfo?.hasUpdate != true) return@StoreGameDetailScreen
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val latest = SteamService.checkForAppUpdate(app.id)
-                                withContext(Dispatchers.Main) {
-                                    updateInfo = latest
-                                    updateStatusText =
-                                        when {
-                                            latest.hasUpdate -> updateAvailableText
-                                            latest.message != null -> updateFailedText
-                                            else -> null
-                                        }
-                                }
-                                if (!latest.hasUpdate) {
+                        context.runIfOnlineOrToast {
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val latest = SteamService.checkForAppUpdate(app.id)
                                     withContext(Dispatchers.Main) {
-                                        com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                            context,
-                                            noUpdateAvailableText,
-                                            android.widget.Toast.LENGTH_SHORT,
-                                        )
+                                        updateInfo = latest
+                                        updateStatusText =
+                                            when {
+                                                latest.hasUpdate -> updateAvailableText
+                                                latest.message != null -> updateFailedText
+                                                else -> null
+                                            }
                                     }
-                                    return@launch
-                                }
+                                    if (!latest.hasUpdate) {
+                                        withContext(Dispatchers.Main) {
+                                            com.winlator.cmod.shared.ui.toast.WinToast.show(
+                                                context,
+                                                noUpdateAvailableText,
+                                                android.widget.Toast.LENGTH_SHORT,
+                                            )
+                                        }
+                                        return@launch
+                                    }
 
-                                SteamService.downloadAppForUpdate(app.id, latest.depotIds)
-                                withContext(Dispatchers.Main) { onDismissRequest() }
-                            } catch (e: Exception) {
-                                Log.w("UnifiedActivity", "Steam update download failed to start for appId=${app.id}", e)
-                                withContext(Dispatchers.Main) {
-                                    updateStatusText = updateFailedText
+                                    SteamService.downloadAppForUpdate(app.id, latest.depotIds)
+                                    withContext(Dispatchers.Main) { onDismissRequest() }
+                                } catch (e: Exception) {
+                                    Log.w("UnifiedActivity", "Steam update download failed to start for appId=${app.id}", e)
+                                    withContext(Dispatchers.Main) {
+                                        updateStatusText = updateFailedText
+                                    }
                                 }
                             }
                         }
@@ -10513,6 +10623,18 @@ fun ControllerBadge(
             fontWeight = FontWeight.Bold,
             lineHeight = 15.sp,
             style = MaterialTheme.typography.labelSmall,
+        )
+    }
+}
+
+private inline fun android.content.Context.runIfOnlineOrToast(action: () -> Unit) {
+    if (com.winlator.cmod.app.service.NetworkMonitor.hasInternet.value) {
+        action()
+    } else {
+        com.winlator.cmod.shared.ui.toast.WinToast.show(
+            this,
+            getString(R.string.downloads_no_internet),
+            android.widget.Toast.LENGTH_SHORT,
         )
     }
 }
