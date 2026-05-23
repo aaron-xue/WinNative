@@ -48,10 +48,8 @@ class PluviaApp : Application() {
         PrefManager.install(this)
         GOGConstants.init(this)
 
-        // Eagerly initialize the Play Games SDK so its silent re-auth bootstrap kicks off at
-        // process start. Without this, the first call to listBackupHistory races the SDK
-        // and `isAuthenticated.await()` resolves false before the background auth lands —
-        // visible to users as an empty Cloud Saves history right after reopening the app.
+        // Eagerly initialize the Play Games SDK so store-login sync can rehydrate its
+        // silent auth state before the Google settings screen asks for remote state.
         // The call itself is synchronous-fast; the real auth work happens off-thread.
         com.winlator.cmod.feature.sync.google.PlayGamesBootstrap.ensureInitialized(this)
 
@@ -207,10 +205,6 @@ class PluviaApp : Application() {
 
                 runCatching { PluviaDatabase.init(this@PluviaApp) }
                     .onFailure { Log.e("PluviaApp", "Database warmup failed", it) }
-
-                runCatching {
-                    com.winlator.cmod.feature.configs.SupabaseClient.init(this@PluviaApp)
-                }.onFailure { Log.e("PluviaApp", "SupabaseClient init failed", it) }
 
                 // Initialize the cross-store DownloadCoordinator and auto-resume any
                 // downloads that were running when the app was killed. PAUSED downloads

@@ -336,6 +336,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private float hudScale = 1.0f;
     private boolean[] hudElements = new boolean[]{true, true, true, true, true, true, true};
     private boolean dualSeriesBattery = false;
+    private boolean frametimeNumericMode = false;
     private boolean hudCardExpanded = false;
     private boolean screenEffectsCardExpanded = false;
     private boolean sgsrEnabled = false;
@@ -635,6 +636,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
 
         dualSeriesBattery = preferences.getBoolean(FrameRating.PREF_HUD_DUAL_SERIES_BATTERY, false);
+        frametimeNumericMode = preferences.getBoolean(FrameRating.PREF_HUD_FRAMETIME_NUMERIC, false);
 
         // Check for Dark Mode
         isDarkMode = preferences.getBoolean("dark_mode", false);
@@ -2493,8 +2495,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             return;
         }
 
-        // Wrap onComplete to chain auto backup to Google Drive after store sync finishes
-        Runnable afterStoreSync = () -> runAutoBackupIfEnabled(onComplete);
+        Runnable afterStoreSync = onComplete;
 
         String gameSource = shortcut.getExtra("game_source");
         if ("STEAM".equals(gameSource)) {
@@ -2640,107 +2641,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             final ExitUploadResult finalResult = result;
             runOnUiThread(() -> callback.onComplete(finalResult));
         }, workerName).start();
-    }
-
-    private boolean isRetryableGoogleDriveBackupMessage(@Nullable String message) {
-        if (message == null || message.isEmpty()) {
-            return true;
-        }
-        String normalized = message.toLowerCase(java.util.Locale.US);
-        return !normalized.contains("not enabled")
-                && !normalized.contains("not signed in")
-                && !normalized.contains("authorization required")
-                && !normalized.contains("no local save files")
-                && !normalized.contains("save files are empty")
-                && !normalized.contains("cannot determine save directory");
-    }
-
-    /**
-     * If Cloud Sync Auto Backup is enabled, zips the local save and uploads to Google Saves
-     * (Play Games Snapshots API). Steam saves are intentionally excluded — Steam Cloud
-     * handles them via SteamCloudSyncHelper / SteamService.syncCloudOnExit.
-     */
-    private void runAutoBackupIfEnabled(Runnable onComplete) {
-        if (shortcut == null) {
-            onComplete.run();
-            return;
-        }
-
-        if (!isCloudSyncEnabledForShortcut() || com.winlator.cmod.feature.sync.CloudSyncHelper.isOfflineMode(shortcut)) {
-            onComplete.run();
-            return;
-        }
-
-        if (!com.winlator.cmod.feature.sync.google.GameSaveBackupManager.INSTANCE.isAutoBackupEnabled(this)) {
-            onComplete.run();
-            return;
-        }
-
-        String gameSource = shortcut.getExtra("game_source");
-        String gameId;
-        com.winlator.cmod.feature.sync.google.GameSaveBackupManager.GameSource source;
-
-        if ("STEAM".equals(gameSource)) {
-            // Steam saves use Steam Cloud (handled by syncSteamCloudOnExit). Google Saves is intentionally not used.
-            onComplete.run();
-            return;
-        } else if ("EPIC".equals(gameSource)) {
-            gameId = shortcut.getExtra("app_id");
-            source = com.winlator.cmod.feature.sync.google.GameSaveBackupManager.GameSource.EPIC;
-        } else if ("GOG".equals(gameSource)) {
-            gameId = shortcut.getExtra("gog_id");
-            source = com.winlator.cmod.feature.sync.google.GameSaveBackupManager.GameSource.GOG;
-        } else if ("CUSTOM".equals(gameSource)) {
-            // Custom shortcuts opt in by either picking a folder via "Select Save Folder"
-            // (sets customSaveWindowsPath) or by having the legacy custom_game_folder extra.
-            String winPath = shortcut.getExtra(
-                    com.winlator.cmod.feature.sync.google.GameSaveBackupManager.CUSTOM_SAVE_WINDOWS_PATH_KEY);
-            String legacyFolder = shortcut.getExtra("custom_game_folder");
-            if ((winPath == null || winPath.isEmpty()) && (legacyFolder == null || legacyFolder.isEmpty())) {
-                onComplete.run();
-                return;
-            }
-            gameId = com.winlator.cmod.feature.sync.google.GameSaveBackupManager.INSTANCE.customGameId(shortcut);
-            source = com.winlator.cmod.feature.sync.google.GameSaveBackupManager.GameSource.CUSTOM;
-        } else {
-            onComplete.run();
-            return;
-        }
-
-        if (gameId == null || gameId.isEmpty()) {
-            onComplete.run();
-            return;
-        }
-
-        String gameName = shortcutName != null && !shortcutName.isEmpty() ? shortcutName : (shortcut.name != null ? shortcut.name : "Unknown");
-
-        Log.d("XServerDisplayActivity", "Starting auto backup to Google Saves for " + gameSource + "/" + gameId);
-        preloaderDialog.showOnUiThread("Backing up save to Google Saves...");
-
-        runExitUploadWithRetries(
-                "Google Saves auto backup",
-                "Backing up save to Google Saves...",
-                callback -> runBlockingExitUpload(
-                        "GoogleDriveExitBackup",
-                        () -> {
-                            com.winlator.cmod.feature.sync.google.GameSaveBackupManager.BackupResult result =
-                                    (com.winlator.cmod.feature.sync.google.GameSaveBackupManager.BackupResult)
-                                            kotlinx.coroutines.BuildersKt.runBlocking(
-                                                    kotlinx.coroutines.Dispatchers.getIO(),
-                                                    (scope, continuation) ->
-                                                            com.winlator.cmod.feature.sync.google.GameSaveBackupManager.INSTANCE.autoBackupToGoogle(
-                                                                    this,
-                                                                    source,
-                                                                    gameId,
-                                                                    gameName,
-                                                                    continuation));
-                            return new ExitUploadResult(
-                                    result.getSuccess(),
-                                    result.getMessage(),
-                                    isRetryableGoogleDriveBackupMessage(result.getMessage()));
-                        },
-                        callback),
-                onComplete);
     }
 
     private boolean isCloudSyncEnabledForShortcut() {
@@ -3106,6 +3006,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 hudScale,
                 hudElements,
                 dualSeriesBattery,
+                frametimeNumericMode,
                 hudCardExpanded,
                 preferences.getBoolean("gyro_enabled", false),
                 preferences.getInt("gyro_mode", 0),
@@ -3177,6 +3078,14 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                         dualSeriesBattery = enabled;
                         preferences.edit().putBoolean(FrameRating.PREF_HUD_DUAL_SERIES_BATTERY, enabled).apply();
                         if (frameRating != null) frameRating.setDualSeriesBattery(enabled);
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onFrametimeNumericChanged(boolean enabled) {
+                        frametimeNumericMode = enabled;
+                        preferences.edit().putBoolean(FrameRating.PREF_HUD_FRAMETIME_NUMERIC, enabled).apply();
+                        if (frameRating != null) frameRating.setFrametimeNumericMode(enabled);
                         renderDrawerMenu();
                     }
 
@@ -3868,6 +3777,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             frameRating.setHudAlpha(hudTransparency);
             frameRating.setHudScale(hudScale);
             frameRating.setDualSeriesBattery(dualSeriesBattery);
+            frameRating.setFrametimeNumericMode(frametimeNumericMode);
             frameRating.setIsNative(isNativeRenderingEnabled);
             for (int i = 0; i < hudElements.length; i++) {
                 frameRating.toggleElement(i, hudElements[i]);
@@ -4814,10 +4724,15 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     )
             );
         } else if (audioDriver.equals("pulseaudio")) {
+            PulseAudioComponent.Options pulseOptions = PulseAudioComponent.Options.fromEnvVars(envVars);
+            if (!envVars.has("PULSE_LATENCY_MSEC")) {
+                envVars.put("PULSE_LATENCY_MSEC", pulseOptions.latencyMillis);
+            }
             envVars.put("PULSE_SERVER", rootPath + UnixSocketConfig.PULSE_SERVER_PATH);
             environment.addComponent(
                     new PulseAudioComponent(
-                            UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.PULSE_SERVER_PATH)
+                            UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.PULSE_SERVER_PATH),
+                            pulseOptions
                     )
             );
         }

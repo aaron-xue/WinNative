@@ -3,7 +3,6 @@ package com.winlator.cmod.app.shell
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
-import android.content.IntentSender
 import android.content.res.Configuration
 import android.hardware.input.InputManager
 import android.graphics.Bitmap
@@ -18,7 +17,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContent
@@ -150,8 +148,6 @@ import com.winlator.cmod.app.update.UpdateChecker
 import com.winlator.cmod.feature.settings.InputControlsFragment
 import com.winlator.cmod.feature.settings.SettingsHost
 import com.winlator.cmod.feature.settings.SettingsNavItem
-import com.winlator.cmod.feature.configs.ui.BestConfigsScreen
-import com.winlator.cmod.feature.configs.ui.BestConfigsViewModel
 import com.winlator.cmod.feature.setup.SetupWizardActivity
 import com.winlator.cmod.feature.shortcuts.LibraryShortcutUtils
 import com.winlator.cmod.feature.shortcuts.LibraryShortcutArtwork
@@ -505,17 +501,8 @@ class UnifiedActivity :
             }
         }
 
-    private val driveAuthLauncher =
-        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-            GameSaveBackupManager.onDriveAuthResult(this, result.resultCode)
-        }
-
     override fun launchWallpaperImagePicker() {
         wallpaperImagePickerLauncher.launch("image/*")
-    }
-
-    override fun launchDriveAuthRequest(intentSender: IntentSender) {
-        driveAuthLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
     }
 
     private fun moveLibraryFocus(
@@ -814,21 +801,6 @@ class UnifiedActivity :
         returnToGameOnBack: Boolean = false,
     ): String =
         "settings?item=${item.name}&profileId=$profileId&editContainerId=$editContainerId&returnToGameOnBack=$returnToGameOnBack"
-
-    /**
-     * Navigate to the per-game "Best Configs" board (Supabase-backed community config
-     * library). Filters client-side by (gameSource, gameId). Safe to call before the
-     * NavHost is composed — the request is dropped in that edge case rather than
-     * crashing.
-     */
-    fun navigateToBestConfigs(gameSource: String, gameId: String, gameName: String) {
-        val nav = rootNavController ?: return
-        val encodedName = android.net.Uri.encode(gameName)
-        val encodedId = android.net.Uri.encode(gameId)
-        nav.navigate("bestconfigs?gameSource=$gameSource&gameId=$encodedId&gameName=$encodedName") {
-            launchSingleTop = true
-        }
-    }
 
     private fun extractSettingsNavigation(intent: Intent?): PendingNavigation? {
         if (intent == null) return null
@@ -1173,25 +1145,6 @@ class UnifiedActivity :
                                 }
                             }
                         }
-                    }
-                    composable(
-                        "bestconfigs?gameSource={gameSource}&gameId={gameId}&gameName={gameName}",
-                        arguments = listOf(
-                            navArgument(BestConfigsViewModel.NAV_ARG_GAME_SOURCE) {
-                                type = NavType.StringType
-                                defaultValue = "CUSTOM_GAME"
-                            },
-                            navArgument(BestConfigsViewModel.NAV_ARG_GAME_ID) {
-                                type = NavType.StringType
-                                defaultValue = ""
-                            },
-                            navArgument(BestConfigsViewModel.NAV_ARG_GAME_NAME) {
-                                type = NavType.StringType
-                                defaultValue = ""
-                            },
-                        ),
-                    ) {
-                        BestConfigsScreen(onBack = { rootNavController?.popBackStack() })
                     }
                 }
 
@@ -3749,46 +3702,6 @@ class UnifiedActivity :
                             offlineModeEnabled = enabled
                             setShortcutOfflineMode(shortcut, enabled)
                         },
-                        onBackup = {
-                            if (!isWorking) {
-                                isWorking = true
-                                scope.launch {
-                                    val result =
-                                        GameSaveBackupManager.backupToGoogle(
-                                            this@UnifiedActivity,
-                                            gameSource,
-                                            gameIdStr,
-                                            app.name,
-                                        )
-                                    isWorking = false
-                                    com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                        context,
-                                        result.message,
-                                        android.widget.Toast.LENGTH_SHORT,
-                                    )
-                                }
-                            }
-                        },
-                        onRestore = {
-                            if (!isWorking) {
-                                isWorking = true
-                                scope.launch {
-                                    val result =
-                                        GameSaveBackupManager.restoreFromGoogle(
-                                            this@UnifiedActivity,
-                                            gameSource,
-                                            gameIdStr,
-                                            app.name,
-                                        )
-                                    isWorking = false
-                                    com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                        context,
-                                        result.message,
-                                        android.widget.Toast.LENGTH_SHORT,
-                                    )
-                                }
-                            }
-                        },
                         onSyncFromCloud = {
                             if (!isWorking) {
                                 isWorking = true
@@ -4125,46 +4038,6 @@ class UnifiedActivity :
                         onOfflineModeToggle = { enabled ->
                             offlineModeEnabled = enabled
                             setShortcutOfflineMode(shortcut, enabled)
-                        },
-                        onBackup = {
-                            if (!isWorking) {
-                                isWorking = true
-                                scope.launch {
-                                    val result =
-                                        GameSaveBackupManager.backupToGoogle(
-                                            this@UnifiedActivity,
-                                            GameSaveBackupManager.GameSource.GOG,
-                                            app.id,
-                                            app.title,
-                                        )
-                                    isWorking = false
-                                    com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                        context,
-                                        result.message,
-                                        android.widget.Toast.LENGTH_SHORT,
-                                    )
-                                }
-                            }
-                        },
-                        onRestore = {
-                            if (!isWorking) {
-                                isWorking = true
-                                scope.launch {
-                                    val result =
-                                        GameSaveBackupManager.restoreFromGoogle(
-                                            this@UnifiedActivity,
-                                            GameSaveBackupManager.GameSource.GOG,
-                                            app.id,
-                                            app.title,
-                                        )
-                                    isWorking = false
-                                    com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                        context,
-                                        result.message,
-                                        android.widget.Toast.LENGTH_SHORT,
-                                    )
-                                }
-                            }
                         },
                         onSyncFromCloud = {
                             if (!isWorking) {
@@ -5144,46 +5017,6 @@ class UnifiedActivity :
                                         offlineModeEnabled = enabled
                                         setShortcutOfflineMode(detailShortcut, enabled)
                                     },
-                                    onBackup = {
-                                        if (!isWorking) {
-                                            isWorking = true
-                                            scope.launch {
-                                                val result =
-                                                    GameSaveBackupManager.backupToGoogle(
-                                                        this@UnifiedActivity,
-                                                        detailGameSource,
-                                                        detailGameId,
-                                                        app.name,
-                                                    )
-                                                isWorking = false
-                                                com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                                    context,
-                                                    result.message,
-                                                    android.widget.Toast.LENGTH_SHORT,
-                                                )
-                                            }
-                                        }
-                                    },
-                                    onRestore = {
-                                        if (!isWorking) {
-                                            isWorking = true
-                                            scope.launch {
-                                                val result =
-                                                    GameSaveBackupManager.restoreFromGoogle(
-                                                        this@UnifiedActivity,
-                                                        detailGameSource,
-                                                        detailGameId,
-                                                        app.name,
-                                                    )
-                                                isWorking = false
-                                                com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                                    context,
-                                                    result.message,
-                                                    android.widget.Toast.LENGTH_SHORT,
-                                                )
-                                            }
-                                        }
-                                    },
                                     onSyncFromCloud = {
                                         if (!isWorking) {
                                             isWorking = true
@@ -5394,49 +5227,9 @@ class UnifiedActivity :
                                             offlineModeEnabled = enabled
                                             setShortcutOfflineMode(detailShortcut, enabled)
                                         },
-                                        onBackup = {
-                                            if (!isWorking) {
-                                                isWorking = true
-                                                scope.launch {
-                                                    val result =
-                                                        GameSaveBackupManager.backupToGoogle(
-                                                            this@UnifiedActivity,
-                                                            detailGameSource,
-                                                            detailGameId,
-                                                            app.name,
-                                                        )
-                                                    isWorking = false
-                                                    com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                                        context,
-                                                        result.message,
-                                                        android.widget.Toast.LENGTH_SHORT,
-                                                    )
-                                                }
-                                            }
-                                        },
-                                        onRestore = {
-                                            if (!isWorking) {
-                                                isWorking = true
-                                                scope.launch {
-                                                    val result =
-                                                        GameSaveBackupManager.restoreFromGoogle(
-                                                            this@UnifiedActivity,
-                                                            detailGameSource,
-                                                            detailGameId,
-                                                            app.name,
-                                                        )
-                                                    isWorking = false
-                                                    com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                                        context,
-                                                        result.message,
-                                                        android.widget.Toast.LENGTH_SHORT,
-                                                    )
-                                                }
-                                            }
-                                        },
-                                        onSyncFromCloud = {
-                                            if (!isWorking) {
-                                                isWorking = true
+                                    onSyncFromCloud = {
+                                        if (!isWorking) {
+                                            isWorking = true
                                                 scope.launch(Dispatchers.IO) {
                                                     val ok =
                                                         CloudSyncHelper.downloadCloudSaves(
@@ -6269,15 +6062,6 @@ class UnifiedActivity :
                     showCustomPath = true,
                     showCloudSync = app.cloudSaveEnabled,
                     showUninstall = true,
-                    showBestConfigs = installed,
-                    onBestConfigs = {
-                        navigateToBestConfigs(
-                            gameSource = "EPIC",
-                            gameId = app.id.toString(),
-                            gameName = app.title,
-                        )
-                        onDismissRequest()
-                    },
                     dlcs = dlcItems,
                     selectedDlcIds = selectedDlcIds.toSet(),
                     onBack = onDismissRequest,
@@ -6637,15 +6421,6 @@ class UnifiedActivity :
                     showCustomPath = true,
                     showCloudSync = true,
                     showUninstall = true,
-                    showBestConfigs = installed,
-                    onBestConfigs = {
-                        navigateToBestConfigs(
-                            gameSource = "GOG",
-                            gameId = app.id.toString(),
-                            gameName = app.title,
-                        )
-                        onDismissRequest()
-                    },
                     dlcs = emptyList(),
                     selectedDlcIds = emptySet(),
                     onBack = onDismissRequest,
