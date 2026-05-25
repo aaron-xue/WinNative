@@ -205,6 +205,8 @@ import com.winlator.cmod.shared.android.RefreshRateUtils
 import com.winlator.cmod.shared.io.StorageUtils
 import com.winlator.cmod.shared.io.FileUtils
 import com.winlator.cmod.shared.ui.CarouselView
+import com.winlator.cmod.shared.ui.dialog.PopupDialog
+import com.winlator.cmod.shared.ui.dialog.PopupTextAction
 import com.winlator.cmod.shared.ui.FourByTwoGridView
 import com.winlator.cmod.shared.ui.JoystickGridScroll
 import com.winlator.cmod.shared.ui.JoystickListScroll
@@ -332,7 +334,6 @@ class UnifiedActivity :
     // watcher before it observes COMPLETE.
     private var taskProgressInfo by mutableStateOf<DownloadInfo?>(null)
     private var taskProgressGameName by mutableStateOf("")
-    private var taskProgressLabel by mutableStateOf("")
     private var taskProgressCompleteMsg by mutableStateOf("")
     private var taskProgressFailedMsg by mutableStateOf("")
     private var taskProgressShown by mutableStateOf(false)
@@ -342,7 +343,6 @@ class UnifiedActivity :
     // task (if any) is known.
     private var taskCheckingShown by mutableStateOf(false)
     private var taskCheckingGameName by mutableStateOf("")
-    private var taskCheckingLabel by mutableStateOf("")
 
     private var taskProgressCompleteAsToast by mutableStateOf(false)
 
@@ -350,7 +350,6 @@ class UnifiedActivity :
     private fun showTaskProgressPopup(
         info: DownloadInfo,
         gameName: String,
-        label: String,
         completeMsg: String,
         failedMsg: String,
         completeAsToast: Boolean = false,
@@ -358,7 +357,6 @@ class UnifiedActivity :
         taskCheckingShown = false
         taskProgressInfo = info
         taskProgressGameName = gameName
-        taskProgressLabel = label
         taskProgressCompleteMsg = completeMsg
         taskProgressFailedMsg = failedMsg
         taskProgressCompleteAsToast = completeAsToast
@@ -388,7 +386,6 @@ class UnifiedActivity :
         }
         updateCheckInProgress = true
         taskCheckingGameName = gameName
-        taskCheckingLabel = getString(R.string.store_game_check_for_update)
         taskCheckingShown = true
         taskDoneMessage = null
         lifecycleScope.launch {
@@ -414,7 +411,6 @@ class UnifiedActivity :
                         showTaskProgressPopup(
                             started,
                             gameName,
-                            getString(R.string.store_game_update),
                             getString(R.string.store_game_update_complete),
                             getString(R.string.store_game_update_failed_notice),
                         )
@@ -447,7 +443,6 @@ class UnifiedActivity :
         }
         updateCheckInProgress = true
         taskCheckingGameName = gameName
-        taskCheckingLabel = getString(R.string.store_game_check_for_update)
         taskCheckingShown = true
         taskDoneMessage = null
         lifecycleScope.launch {
@@ -471,7 +466,6 @@ class UnifiedActivity :
                             showTaskProgressPopup(
                                 started,
                                 gameName,
-                                getString(R.string.store_game_update),
                                 getString(R.string.store_game_update_complete),
                                 getString(R.string.store_game_update_failed_notice),
                             )
@@ -503,7 +497,6 @@ class UnifiedActivity :
         }
         updateCheckInProgress = true
         taskCheckingGameName = gameName
-        taskCheckingLabel = getString(R.string.store_game_check_for_update)
         taskCheckingShown = true
         taskDoneMessage = null
         lifecycleScope.launch {
@@ -527,7 +520,6 @@ class UnifiedActivity :
                             showTaskProgressPopup(
                                 started,
                                 gameName,
-                                getString(R.string.store_game_update),
                                 getString(R.string.store_game_update_complete),
                                 getString(R.string.store_game_update_failed_notice),
                             )
@@ -1785,13 +1777,7 @@ class UnifiedActivity :
                             Box(
                                 Modifier
                                     .matchParentSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            0f to BgDark.copy(alpha = 0.62f),
-                                            0.55f to BgDark.copy(alpha = 0.78f),
-                                            1f to BgDark.copy(alpha = 0.92f),
-                                        ),
-                                    ),
+                                    .background(BgDark.copy(alpha = 0.5f)),
                             )
                         }
                     }
@@ -5173,7 +5159,6 @@ class UnifiedActivity :
                                                     showTaskProgressPopup(
                                                         started,
                                                         if (isGog) gogGame!!.title else app.name,
-                                                        getString(R.string.store_game_verify_files),
                                                         getString(R.string.store_game_verify_complete),
                                                         getString(R.string.store_game_verify_failed_notice),
                                                         completeAsToast = true,
@@ -6450,7 +6435,6 @@ class UnifiedActivity :
                                     showTaskProgressPopup(
                                         started,
                                         app.title,
-                                        getString(R.string.store_game_verify_files),
                                         getString(R.string.store_game_verify_complete),
                                         getString(R.string.store_game_verify_failed_notice),
                                         completeAsToast = true,
@@ -7063,7 +7047,6 @@ class UnifiedActivity :
                                     showTaskProgressPopup(
                                         started,
                                         app.title,
-                                        getString(R.string.store_game_verify_files),
                                         getString(R.string.store_game_verify_complete),
                                         getString(R.string.store_game_verify_failed_notice),
                                         completeAsToast = true,
@@ -8081,7 +8064,6 @@ class UnifiedActivity :
         if (taskCheckingShown) {
             TaskCheckingDialog(
                 gameName = taskCheckingGameName,
-                taskLabel = taskCheckingLabel,
                 onDismissRequest = { taskCheckingShown = false },
             )
         }
@@ -8089,7 +8071,6 @@ class UnifiedActivity :
             SteamTaskProgressDialog(
                 info = info,
                 gameName = taskProgressGameName,
-                taskLabel = taskProgressLabel,
                 onDismissRequest = { taskProgressShown = false },
             )
         }
@@ -8110,96 +8091,37 @@ class UnifiedActivity :
     @Composable
     private fun TaskCheckingDialog(
         gameName: String,
-        taskLabel: String,
         onDismissRequest: () -> Unit,
     ) {
-        Dialog(
-            onDismissRequest = onDismissRequest,
-            properties =
-                DialogProperties(
-                    usePlatformDefaultWidth = false,
-                    decorFitsSystemWindows = false,
-                ),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) { onDismissRequest() }
-                        .windowInsetsPadding(WindowInsets.navigationBars),
-                contentAlignment = Alignment.Center,
-            ) {
-                Surface(
-                    modifier =
-                        Modifier
-                            .widthIn(min = 300.dp, max = 380.dp)
-                            .fillMaxWidth(0.92f)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            ) {},
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardDark,
-                    border = BorderStroke(1.dp, CardBorder),
-                    tonalElevation = 8.dp,
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
+        Dialog(onDismissRequest = onDismissRequest) {
+            PopupDialog(
+                title = gameName,
+                message = stringResource(R.string.store_game_checking_updates),
+                icon = Icons.Outlined.Sync,
+                accentColor = Accent,
+                modifier = Modifier.widthIn(min = 280.dp, max = 360.dp),
+                content = {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = Accent,
+                    )
+                },
+                footer = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    taskLabel.uppercase(),
-                                    color = TextSecondary,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.9.sp,
-                                )
-                                Text(
-                                    gameName,
-                                    color = TextPrimary,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            IconButton(onClick = onDismissRequest, modifier = Modifier.size(34.dp)) {
-                                Icon(
-                                    Icons.Outlined.Close,
-                                    contentDescription = "Close",
-                                    tint = TextSecondary,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                        }
-                        Text(
-                            stringResource(R.string.store_game_checking_updates),
-                            color = TextPrimary,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        LinearProgressIndicator(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
-                            color = Accent,
-                            trackColor = CardBorder,
+                        PopupTextAction(
+                            label = stringResource(R.string.common_ui_close),
+                            textColor = Accent,
+                            onClick = onDismissRequest,
                         )
                     }
-                }
-            }
+                },
+            )
         }
     }
 
@@ -8213,87 +8135,35 @@ class UnifiedActivity :
     private fun SteamTaskProgressDialog(
         info: DownloadInfo,
         gameName: String,
-        taskLabel: String,
         onDismissRequest: () -> Unit,
     ) {
-        Dialog(
-            onDismissRequest = onDismissRequest,
-            properties =
-                DialogProperties(
-                    usePlatformDefaultWidth = false,
-                    decorFitsSystemWindows = false,
-                ),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) { onDismissRequest() }
-                        .windowInsetsPadding(WindowInsets.navigationBars),
-                contentAlignment = Alignment.Center,
-            ) {
-                Surface(
-                    modifier =
-                        Modifier
-                            .widthIn(min = 300.dp, max = 380.dp)
-                            .fillMaxWidth(0.92f)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            ) {},
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardDark,
-                    border = BorderStroke(1.dp, CardBorder),
-                    tonalElevation = 8.dp,
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
+        Dialog(onDismissRequest = onDismissRequest) {
+            PopupDialog(
+                title = gameName,
+                icon = Icons.Outlined.Download,
+                accentColor = Accent,
+                modifier = Modifier.widthIn(min = 280.dp, max = 360.dp),
+                content = {
+                    SteamTaskProgressBody(info)
+                    Text(
+                        stringResource(R.string.store_game_progress_background_hint),
+                        color = TextSecondary,
+                        fontSize = 11.sp,
+                    )
+                },
+                footer = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    taskLabel.uppercase(),
-                                    color = TextSecondary,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.9.sp,
-                                )
-                                Text(
-                                    gameName,
-                                    color = TextPrimary,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            IconButton(onClick = onDismissRequest, modifier = Modifier.size(34.dp)) {
-                                Icon(
-                                    Icons.Outlined.Close,
-                                    contentDescription = "Close",
-                                    tint = TextSecondary,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                        }
-                        SteamTaskProgressBody(info)
-                        Text(
-                            stringResource(R.string.store_game_progress_background_hint),
-                            color = TextSecondary,
-                            fontSize = 11.sp,
+                        PopupTextAction(
+                            label = stringResource(R.string.common_ui_close),
+                            textColor = Accent,
+                            onClick = onDismissRequest,
                         )
                     }
-                }
-            }
+                },
+            )
         }
     }
 
@@ -8303,78 +8173,16 @@ class UnifiedActivity :
      */
     @Composable
     private fun TaskCompleteDialog(message: String, failed: Boolean, onClose: () -> Unit) {
-        Dialog(
-            onDismissRequest = onClose,
-            properties =
-                DialogProperties(
-                    usePlatformDefaultWidth = false,
-                    decorFitsSystemWindows = false,
-                ),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) { onClose() }
-                        .windowInsetsPadding(WindowInsets.navigationBars),
-                contentAlignment = Alignment.Center,
-            ) {
-                Surface(
-                    modifier =
-                        Modifier
-                            .widthIn(min = 280.dp, max = 340.dp)
-                            .fillMaxWidth(0.86f)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            ) {},
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardDark,
-                    border = BorderStroke(1.dp, CardBorder),
-                    tonalElevation = 8.dp,
-                ) {
-                    Column(
-                        modifier = Modifier.padding(22.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Icon(
-                            if (failed) Icons.Outlined.Warning else Icons.Outlined.CheckCircle,
-                            contentDescription = null,
-                            tint = if (failed) DangerRed else StatusOnline,
-                            modifier = Modifier.size(42.dp),
-                        )
-                        Text(
-                            message,
-                            color = TextPrimary,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center,
-                        )
-                        Surface(
-                            modifier =
-                                Modifier
-                                    .clip(RoundedCornerShape(9.dp))
-                                    .clickable(onClick = onClose),
-                            color = Accent.copy(alpha = 0.16f),
-                            shape = RoundedCornerShape(9.dp),
-                            border = BorderStroke(1.dp, Accent.copy(alpha = 0.4f)),
-                        ) {
-                            Text(
-                                "Close",
-                                color = Accent,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 28.dp, vertical = 10.dp),
-                            )
-                        }
-                    }
-                }
-            }
+        Dialog(onDismissRequest = onClose) {
+            PopupDialog(
+                title = message,
+                icon = if (failed) Icons.Outlined.Warning else Icons.Outlined.CheckCircle,
+                accentColor = if (failed) DangerRed else StatusOnline,
+                confirmButtonColor = Accent,
+                confirmLabel = stringResource(R.string.common_ui_close),
+                onConfirm = onClose,
+                modifier = Modifier.widthIn(min = 280.dp, max = 360.dp),
+            )
         }
     }
 
@@ -8983,7 +8791,6 @@ class UnifiedActivity :
                                     showTaskProgressPopup(
                                         started,
                                         app.name,
-                                        getString(R.string.store_game_verify_files),
                                         getString(R.string.store_game_verify_complete),
                                         getString(R.string.store_game_verify_failed_notice),
                                         completeAsToast = true,
