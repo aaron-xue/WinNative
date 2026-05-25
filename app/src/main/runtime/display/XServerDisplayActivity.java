@@ -5969,18 +5969,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
             Iterator<String[]> oldWinComponentsIter = new KeyValueSet(container.getExtra("wincomponents", Container.FALLBACK_WINCOMPONENTS)).iterator();
 
-            // Bundled wincomponents/*.tzst archives only carry x86_64 PEs in system32/
-            // (and i386 in syswow64/). Extracting them into an ARM64EC prefix poisons
-            // system32 with wrong-arch DLLs, which kills the PE loader for any process
-            // that imports them — e.g. vc_redist refusing to launch.
-            boolean isArm64EC = wineInfo != null && wineInfo.isArm64EC();
-
             for (String[] wincomponent : new KeyValueSet(wincomponents)) {
                 if (wincomponent[1].equals(oldWinComponentsIter.next()[1]) && !firstTimeBoot) continue;
                 String identifier = wincomponent[0];
                 boolean useNative = wincomponent[1].equals("1");
 
-                if (useNative && !isArm64EC) {
+                if (useNative) {
                     TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "wincomponents/"+identifier+".tzst", windowsDir, onExtractFileListener);
                 }
                 else {
@@ -5990,8 +5984,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                         dlls.add(!dlname.endsWith(".exe") ? dlname+".dll" : dlname);
                     }
                 }
-                Log.d("XServerDisplayActivity", "Setting wincomponent " + identifier + " to " + useNative
-                        + (useNative && isArm64EC ? " (arm64ec: tzst skipped, restoring arch-correct DLLs)" : ""));
                 WineUtils.overrideWinComponentDlls(this, container, identifier, useNative);
                 WineUtils.setWinComponentRegistryKeys(systemRegFile, identifier, useNative, this);
             }
