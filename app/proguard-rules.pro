@@ -102,37 +102,6 @@
     *;
 }
 
-# JNI FindClass + GetMethodID from wn_steam_jni.cpp
--keep class com.winlator.cmod.feature.stores.steam.wnsteam.WnConnectionObserver {
-    *;
-}
-
-# JNI FindClass + GetMethodID from wn_session_jni.cpp
--keep class com.winlator.cmod.feature.stores.steam.wnsteam.WnAuthResult {
-    *;
-}
--keep class com.winlator.cmod.feature.stores.steam.wnsteam.WnAuthCallback {
-    *;
-}
--keep class com.winlator.cmod.feature.stores.steam.wnsteam.WnQrCallback {
-    *;
-}
--keep class com.winlator.cmod.feature.stores.steam.wnsteam.WnSteamStateObserver {
-    *;
-}
--keep class com.winlator.cmod.feature.stores.steam.wnsteam.WnAuthenticator {
-    *;
-}
--keep class com.winlator.cmod.feature.stores.steam.wnsteam.WnPrepareAppCallback {
-    *;
-}
--keep class com.winlator.cmod.feature.stores.steam.wnsteam.WnLibraryObserver {
-    *;
-}
--keep class com.winlator.cmod.feature.stores.steam.wnsteam.WnDownloadListener {
-    *;
-}
-
 # Legacy rule (DownloadListener is not in Wn* but directly referenced)
 -keep class com.winlator.cmod.runtime.content.Downloader$DownloadListener {
     public void onProgress(long, long);
@@ -140,8 +109,6 @@
 
 # BouncyCastle JCA provider — keep BKS KeyStore (OkHttp TLS dependency)
 # R8 strips META-INF/services and unused JCA provider SPI classes, breaking BKS
--keep class org.bouncycastle.jce.provider.** { *; }
--keep class org.bouncycastle.jcajce.provider.** { *; }
 -dontwarn org.bouncycastle.jce.**
 -dontwarn org.bouncycastle.jcajce.**
 
