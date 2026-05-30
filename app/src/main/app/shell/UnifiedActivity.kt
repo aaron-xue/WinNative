@@ -226,7 +226,6 @@ import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-// Color palette
 private val BgDark = Color(0xFF18181D)
 private val SurfaceDark = Color(0xFF1E252E)
 private val CardDark = Color(0xFF12121B)
@@ -282,7 +281,6 @@ enum class LibraryLayoutMode {
     LIST,
 }
 
-//test
 @AndroidEntryPoint
 class UnifiedActivity :
     FixedFontScaleAppCompatActivity(),
@@ -304,34 +302,24 @@ class UnifiedActivity :
         val isPlayStation: Boolean = ControllerHelper.isPlayStationController(),
     )
 
-    // Root navigation controller for hub <-> settings transitions
     private var rootNavController: NavHostController? = null
 
-    // Queued navigation to process once the nav controller is ready
     private var pendingNavigation: PendingNavigation? = null
 
-    // Guards against rapid Back presses during the settings → hub exit animation.
-    // Without this, two popBackStack() calls inside the 300ms transition can desync
-    // the NavHost state and leave the root composable rendering nothing (black screen).
+    // Absorb rapid Back presses during the settings exit animation.
     private var isPoppingSettings: Boolean = false
 
-    // Track the currently selected game in the carousel for Game Settings button
     private var selectedSteamAppId: Int = 0
     private var selectedSteamAppName: String = ""
     private var selectedLibrarySource: String = ""
     private var selectedGogGameId: String = ""
 
-    // Full library refresh trigger for installs, shortcuts, and external changes.
     var libraryRefreshSignal by mutableIntStateOf(0)
-    // Lightweight refresh trigger for playtime/order changes when returning from a game.
+
     var libraryPlaytimeRefreshSignal by mutableIntStateOf(0)
     private var hasCompletedInitialResume = false
 
-    // Verify Files / Check for Update task pop-up state, hosted at the activity
-    // root (see [TaskProgressHost]) so it survives game-detail dialog teardown —
-    // a verify/update completing fires LibraryInstallStatusChanged, which
-    // refreshes the library and would otherwise kill a dialog-scoped progress
-    // watcher before it observes COMPLETE.
+    // Activity-level so task progress survives game-detail dialog teardown.
     private var taskProgressInfo by mutableStateOf<DownloadInfo?>(null)
     private var taskProgressGameName by mutableStateOf("")
     private var taskProgressCompleteMsg by mutableStateOf("")
@@ -339,14 +327,11 @@ class UnifiedActivity :
     private var taskProgressShown by mutableStateOf(false)
     private var taskDoneMessage by mutableStateOf<String?>(null)
     private var taskDoneFailed by mutableStateOf(false)
-    // Indeterminate "Checking for updates…" pop-up shown before a download
-    // task (if any) is known.
     private var taskCheckingShown by mutableStateOf(false)
     private var taskCheckingGameName by mutableStateOf("")
 
     private var taskProgressCompleteAsToast by mutableStateOf(false)
 
-    /** Opens the task progress pop-up for a freshly started verify/update task. */
     private fun showTaskProgressPopup(
         info: DownloadInfo,
         gameName: String,
@@ -364,16 +349,10 @@ class UnifiedActivity :
         taskDoneMessage = null
     }
 
-    // Re-entrancy guard for [startUpdateCheck] — taps after the checking
-    // pop-up is dismissed shouldn't launch overlapping checks.
+    // Prevent overlapping checks after the checking pop-up is dismissed.
     private var updateCheckInProgress = false
 
-    /**
-     * Runs a Steam update check behind the "Checking for updates…" pop-up.
-     * On a hit it starts the update download and hands off to the progress
-     * pop-up; otherwise it shows a "No Updates Available" / failure notice.
-     * The check runs on [lifecycleScope] so it outlives the calling dialog.
-     */
+    // Runs a Steam update check behind the checking pop-up.
     private fun startUpdateCheck(appId: Int, gameName: String) {
         if (updateCheckInProgress) return
         if (!com.winlator.cmod.app.service.NetworkMonitor.hasInternet.value) {
@@ -539,37 +518,27 @@ class UnifiedActivity :
         }
     }
 
-    // Freezes the library/store card chasing borders while any full-screen
-    // dialog is open, so the ~120 Hz animation cost isn't paid for content
-    // the user can't see or interact with.
+    // Avoid paying card border animation cost behind full-screen dialogs.
     private val chasingBordersPaused = mutableStateOf(false)
 
-    // Keep the first composition light until secure prefs/auth state and the Room DB
-    // are primed off the UI thread. Rapid relaunches after task removal otherwise
-    // hit cold-start work here and can stall input.
+    // Keep first composition light while prefs/auth state and Room warm up.
     private var startupBootstrapReady by mutableStateOf(false)
     private var startupLibraryLayoutMode by mutableStateOf<LibraryLayoutMode?>(null)
     private var startupStoreVisible: Map<String, Boolean>? = null
     private var startupContentFilters: Map<String, Boolean>? = null
 
-    // LibraryCarousel is always composed (kept alive behind an alpha(0f) when
-    // another tab is active). This flag lets GameCapsule skip its animation
-    // while the library is invisible.
+    // Lets kept-alive library cards skip animation while their tab is hidden.
     private val libraryTabActive = mutableStateOf(true)
 
     val rightStickScrollState = kotlinx.coroutines.flow.MutableStateFlow(0f)
     val leftStickScrollState = kotlinx.coroutines.flow.MutableStateFlow(0f)
     val keyEventFlow = kotlinx.coroutines.flow.MutableSharedFlow<android.view.KeyEvent>(extraBufferCapacity = 10)
 
-    // Library grid focus: tracked index and item count, controlled by DPAD
     val libraryFocusIndex = kotlinx.coroutines.flow.MutableStateFlow(0)
     var libraryItemCount: Int = 0
     private var currentLibraryLayoutMode: LibraryLayoutMode = LibraryLayoutMode.GRID_4
 
-    // Immersive Mode: hero/cover artwork of the currently focused library item, used as a
-    // full-bleed background behind the library grid/carousel/list views when enabled.
-    // Value is an arbitrary Coil image model — typically a java.io.File for custom Game Card
-    // uploads, a cached File for the store hero, or a URL String when no cache exists yet.
+    // Coil model for the focused game's immersive background.
     val immersiveBackgroundRef = kotlinx.coroutines.flow.MutableStateFlow<Any?>(null)
 
     private val defaultNavigationBarColor: Int = android.graphics.Color.TRANSPARENT
@@ -581,20 +550,15 @@ class UnifiedActivity :
         }
     }
 
-    // Store grid focus: same pattern for store/steam/epic/gog tabs
     val storeFocusIndex = kotlinx.coroutines.flow.MutableStateFlow(0)
     var storeItemCount: Int = 0
     private var storeColumns: Int = 4
 
-    // Reference to the active store tab's grid state so we can snap focus to visible area
     var storeGridState: androidx.compose.foundation.lazy.grid.LazyGridState? = null
 
-    // Single shared gate for ALL navigation inputs (dpad keys, hat axes, joystick)
-    // so that simultaneous events from the same physical input don't cause double moves.
+    // Shared gate for d-pad, hat, and joystick navigation events.
     private var lastMoveTime = 0L
 
-    // Tracks whether a d-pad direction is currently held so we can distinguish
-    // a fresh press (fires immediately) from a held repeat (throttled at 250ms).
     private var dpadHeld = false
     private var joystickActive = false
 
@@ -673,8 +637,7 @@ class UnifiedActivity :
         if (count <= 0) return
         val cols = storeColumns
 
-        // If the current focus index is not visible (e.g. user scrolled with right joystick),
-        // snap focus to the top-left of the visible area first.
+        // Snap to visible content before applying another store-grid move.
         var idx = storeFocusIndex.value
         val grid = storeGridState
         if (grid != null) {
@@ -685,7 +648,7 @@ class UnifiedActivity :
                 if (idx < firstVisible || idx > lastVisible) {
                     idx = firstVisible
                     storeFocusIndex.value = idx
-                    return // just snap, don't move further this press
+                    return
                 }
             }
         }
@@ -703,8 +666,7 @@ class UnifiedActivity :
         return 1_500_000_000 + normalized
     }
 
-    // Cached reference to avoid fragment tree traversal on every input event.
-    // Invalidated via FragmentLifecycleCallbacks.
+    // Avoid fragment tree traversal on every input event.
     private var cachedInputControlsFragment: InputControlsFragment? = null
     private val inputControlsFragmentTracker =
         object : androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {
@@ -724,7 +686,6 @@ class UnifiedActivity :
         }
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
-        // Forward to InputControlsFragment if it's active (for gamepad binding capture)
         cachedInputControlsFragment?.let { fragment ->
             if (fragment.dispatchKeyEvent(event)) return true
         }
@@ -732,7 +693,7 @@ class UnifiedActivity :
         val keyCode = event.keyCode
         val action = event.action
 
-        // Intercept keys we handle globally to prevent fall-through (e.g. Start button launching a game)
+        // Prevent global controller buttons from falling through to launch actions.
         val isHandledGlobally =
             when (keyCode) {
                 android.view.KeyEvent.KEYCODE_BUTTON_START,
@@ -748,7 +709,6 @@ class UnifiedActivity :
                 else -> false
             }
 
-        // Intercept DPAD events on all tabs for throttled, grid-aware navigation
         val isDpad =
             keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT ||
                 keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT ||
@@ -756,13 +716,11 @@ class UnifiedActivity :
                 keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN
         if (isDpad) {
             if (action == android.view.KeyEvent.ACTION_UP) {
-                // Release: allow next press to fire immediately
                 dpadHeld = false
                 return true
             }
             if (action == android.view.KeyEvent.ACTION_DOWN) {
                 val now = android.os.SystemClock.uptimeMillis()
-                // Fresh press fires immediately; held repeat is throttled at 250ms
                 if (!dpadHeld || (now - lastMoveTime >= MOVE_INTERVAL_MS)) {
                     val left = keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT
                     val right = keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT
@@ -776,7 +734,7 @@ class UnifiedActivity :
                     dpadHeld = true
                 }
             }
-            return true // consume both DOWN and UP
+            return true
         }
 
         if (action == android.view.KeyEvent.ACTION_DOWN) {
@@ -785,7 +743,6 @@ class UnifiedActivity :
                 return true
             }
         } else if (action == android.view.KeyEvent.ACTION_UP && isHandledGlobally) {
-            // Consume ACTION_UP for handled keys to ensure balanced event stream for super
             return true
         }
 
@@ -808,7 +765,6 @@ class UnifiedActivity :
             hasCompletedInitialResume = true
         }
 
-        // (Re)start the background update loop (checks hourly + on first tick)
         UpdateChecker.startBackgroundLoop(this)
     }
 
@@ -824,7 +780,6 @@ class UnifiedActivity :
     }
 
     override fun dispatchGenericMotionEvent(event: android.view.MotionEvent): Boolean {
-        // Forward to InputControlsFragment if it's active (for gamepad binding capture)
         cachedInputControlsFragment?.let { fragment ->
             if (fragment.dispatchGenericMotionEvent(event)) return true
         }
@@ -832,15 +787,12 @@ class UnifiedActivity :
         if ((event.source and android.view.InputDevice.SOURCE_JOYSTICK) == android.view.InputDevice.SOURCE_JOYSTICK &&
             event.action == android.view.MotionEvent.ACTION_MOVE
         ) {
-            // Handle Right Joystick Y axis for scrolling in stores
             val rz = event.getAxisValue(android.view.MotionEvent.AXIS_RZ)
             rightStickScrollState.value = rz
 
-            // Handle Left Joystick Y axis for scrolling in stores
             val leftY = event.getAxisValue(android.view.MotionEvent.AXIS_Y)
             leftStickScrollState.value = leftY
 
-            // Handle Left Joystick/D-pad for grid navigation on all tabs
             val x = event.getAxisValue(android.view.MotionEvent.AXIS_X)
             val y = event.getAxisValue(android.view.MotionEvent.AXIS_Y)
             val hatX = event.getAxisValue(android.view.MotionEvent.AXIS_HAT_X)
@@ -877,7 +829,6 @@ class UnifiedActivity :
                 }
                 return true
             } else if (joystickActive) {
-                // Joystick returned to center — reset so next flick fires immediately
                 joystickActive = false
                 lastMoveTime = 0L
             }
@@ -887,7 +838,6 @@ class UnifiedActivity :
 
     private var currentTabKey: String = "library"
 
-    // Callback set by the active store tab so the A-button handler can trigger a click on the focused item
     var storeItemClickCallback: ((Int) -> Unit)? = null
 
     private fun injectKeyEvent(keyCode: Int) {
@@ -906,8 +856,7 @@ class UnifiedActivity :
         editContainerId: Int = 0,
         returnToGameOnBack: Boolean = false,
     ) {
-        // Settings is an in-activity navigation target, so entering it does not trigger an
-        // Activity resume. Reassert the preferred display mode at the activity boundary.
+        // In-activity settings navigation does not trigger Activity resume.
         reapplyPreferredRefreshRate()
         val route = buildSettingsRoute(item, profileId, editContainerId, returnToGameOnBack)
         val nav = rootNavController
@@ -1043,7 +992,7 @@ class UnifiedActivity :
         supportFragmentManager.registerFragmentLifecycleCallbacks(inputControlsFragmentTracker, true)
         bootstrapStartupState()
 
-        // Surface store-session events (e.g. Epic refresh-token death, cloud restore) as toasts.
+        // Surface store-session events as toasts.
         lifecycleScope.launch {
             com.winlator.cmod.feature.stores.common.StoreSessionBus.events.collect { event ->
                 val label =
@@ -1062,7 +1011,7 @@ class UnifiedActivity :
                     }
                     is com.winlator.cmod.feature.stores.common.StoreSessionEvent.SessionRestored -> Unit
                     is com.winlator.cmod.feature.stores.common.StoreSessionEvent.SessionRefreshed -> {
-                        // informational — no UI surface
+                        Unit
                     }
                 }
             }
@@ -1097,7 +1046,6 @@ class UnifiedActivity :
             val navController = rememberNavController()
             rootNavController = navController
 
-            // Drain any queued navigation or process the launch intent
             LaunchedEffect(Unit) {
                 val pending = pendingNavigation
                 if (pending != null) {
@@ -1187,8 +1135,6 @@ class UnifiedActivity :
                     },
                 ) {
                     composable("hub") {
-                        // Once hub is the current destination, the previous settings-pop is
-                        // complete — clear the guard so the next settings session starts fresh.
                         LaunchedEffect(Unit) { isPoppingSettings = false }
                         UnifiedHub()
                     }
@@ -1226,9 +1172,6 @@ class UnifiedActivity :
                         val returnToGameOnBack =
                             backStackEntry.arguments?.getBoolean("returnToGameOnBack") ?: false
 
-                        // Idempotent exit: the first Back press returns to the hub, any further
-                        // presses during the 220ms exit animation are absorbed here so NavHost
-                        // state stays consistent (see isPoppingSettings field for full context).
                         val exitSettingsToHubOnce: () -> Unit = {
                             if (!isPoppingSettings) {
                                 isPoppingSettings = true
@@ -1257,7 +1200,6 @@ class UnifiedActivity :
                         )
                         BackHandler(enabled = true) { exitSettingsToHubOnce() }
 
-                        // Handle edit_container_id deep link — show dialog on main thread outside composition
                         if (editContainerId > 0) {
                             LaunchedEffect(editContainerId) {
                                 val activity = this@UnifiedActivity
@@ -1278,9 +1220,6 @@ class UnifiedActivity :
                     }
                 }
 
-                // Verify Files progress pop-up + completion notice. Hosted here,
-                // outside the NavHost, so it survives both hub<->settings
-                // navigation and game-detail dialog teardown.
                 TaskProgressHost()
             }
         }
@@ -1293,8 +1232,7 @@ class UnifiedActivity :
             lifecycleScope.launch(Dispatchers.IO) {
                 if (EpicService.hasStoredCredentials(this@UnifiedActivity)) {
                     EpicService.start(this@UnifiedActivity)
-                    // Refresh outside the first-frame path so the UI can render before
-                    // token validation/network work begins.
+                    // Keep token validation off the first-frame path.
                     EpicAuthManager.getStoredCredentials(this@UnifiedActivity)
                     com.winlator.cmod.feature.stores.epic.service.EpicTokenRefreshWorker
                         .schedule(this@UnifiedActivity)
@@ -1313,7 +1251,6 @@ class UnifiedActivity :
         }
     }
 
-    // Tab definitions
     private data class TabDef(
         val label: String,
         val key: String,
@@ -1393,7 +1330,6 @@ class UnifiedActivity :
         return installStateMap
     }
 
-    // Main scaffold
     @Composable
     fun UnifiedHub() {
         val horizontalNavigationInsets =
@@ -1460,7 +1396,6 @@ class UnifiedActivity :
             ?: remember { mutableStateOf(null) }
         val scope = rememberCoroutineScope()
 
-        // Collect Epic/GOG apps from DB flows (Room flows auto-update on data changes)
         val epicApps by db.epicGameDao().getAll().collectAsState(initial = emptyList())
         val gogApps by db.gogGameDao().getAll().collectAsState(initial = emptyList())
 
@@ -1578,7 +1513,6 @@ class UnifiedActivity :
                 }
             }
 
-        // Clamp selectedIdx if tabs shrink
         var globalSettingsApp by remember { mutableStateOf<SteamApp?>(null) }
         var globalSettingsGogGame by remember { mutableStateOf<GOGGame?>(null) }
 
@@ -1614,7 +1548,6 @@ class UnifiedActivity :
                     }
 
                     android.view.KeyEvent.KEYCODE_BUTTON_B -> {
-                        // Close menus in order, or show exit confirmation if none are open
                         if (drawerState.isOpen) {
                             drawerState.close()
                         } else if (globalSettingsApp != null) {
@@ -1637,7 +1570,6 @@ class UnifiedActivity :
                             val isCustom = selectedSteamAppId < 0
                             val epicId = if (selectedSteamAppId >= 2000000000) selectedSteamAppId - 2000000000 else 0
 
-                            // Handle Steam, Custom, and Epic semi-unified logic for the settings dialog trigger
                             globalSettingsApp = (
                                 steamApps.find { it.id == selectedSteamAppId }
                                     ?: if (isCustom) {
@@ -1682,7 +1614,6 @@ class UnifiedActivity :
                                 }
                             }
                         } else if (key != "library" && key != "downloads") {
-                            // Store tabs: trigger click on focused item
                             storeItemClickCallback?.invoke(storeFocusIndex.value)
                         }
                     }
@@ -1737,8 +1668,6 @@ class UnifiedActivity :
                     .background(BgDark)
                     .windowInsetsPadding(horizontalNavigationInsets),
             ) {
-                // Immersive Mode: focused game's hero/cover image fills the entire shell behind
-                // the top bar + library content, dimmed so text/cards remain legible.
                 val currentTabKeyForImmersive = tabs.getOrNull(selectedIdx)?.key ?: "library"
                 val immersiveActive = immersiveMode && currentTabKeyForImmersive == "library"
                 DisposableEffect(immersiveActive) {
@@ -1751,8 +1680,7 @@ class UnifiedActivity :
                         remember(immersiveModel, context) {
                             val builder = ImageRequest.Builder(context).data(immersiveModel)
                             (immersiveModel as? java.io.File)?.takeIf { it.isFile }?.let { file ->
-                                // Custom uploads can be overwritten in place — bind cache keys to
-                                // lastModified so Coil reloads instead of serving the stale bitmap.
+                                // Custom uploads can be overwritten in place.
                                 val key = "library_immersive_bg:${file.absolutePath}:${file.lastModified()}"
                                 builder.memoryCacheKey(key).diskCacheKey(key)
                             }
@@ -1796,11 +1724,9 @@ class UnifiedActivity :
                             if (selectedLibrarySource == "GOG") {
                                 globalSettingsGogGame = gogApps.find { it.id == selectedGogGameId }
                             } else {
-                                // Try Steam apps first, then fall back to custom or epic pseudo-apps
                                 globalSettingsApp = (
                                     steamApps.find { it.id == selectedSteamAppId }
                                         ?: if (selectedSteamAppId < 0) {
-                                            // Build a pseudo SteamApp for the custom game
                                             SteamApp(
                                                 id = selectedSteamAppId,
                                                 name = selectedSteamAppName,
@@ -1825,7 +1751,6 @@ class UnifiedActivity :
                 ) { padding ->
                     LaunchedEffect(selectedIdx, tabs) {
                         currentTabKey = tabs.getOrNull(selectedIdx)?.key ?: "library"
-                        // Reset store focus when switching tabs
                         storeFocusIndex.value = 0
                         storeItemClickCallback = null
                     }
@@ -1837,7 +1762,7 @@ class UnifiedActivity :
 
                         LaunchedEffect(key) { libraryTabActive.value = (key == "library") }
 
-                        // Keep Library tab always composed so its state survives tab switches
+                        // Keep Library composed so its state survives tab switches.
                         Box(
                             Modifier.fillMaxSize().let {
                                 if (key == "library") {
@@ -1906,7 +1831,6 @@ class UnifiedActivity :
                         val addGameFabMargin = (libraryFabBase * 0.035f).dp.coerceIn(12.dp, 20.dp)
                         val addGameFabIconSize = (libraryFabBase * 0.055f).dp.coerceIn(24.dp, 28.dp)
 
-                        // Bottom-right Add Custom Game button
                         if (key == "library") {
                             Box(
                                 modifier =
@@ -1965,9 +1889,7 @@ class UnifiedActivity :
             })
         }
 
-        // Back button exit confirmation
         BackHandler(enabled = true) {
-            // Consistent behavior: close overlays first, then show exit confirmation
             if (drawerState.isOpen) {
                 scope.launch { drawerState.close() }
             } else if (globalSettingsApp != null) {
@@ -2007,7 +1929,6 @@ class UnifiedActivity :
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            // Cancel button
                             OutlinedButton(
                                 onClick = { showExitDialog = false },
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
@@ -2017,7 +1938,6 @@ class UnifiedActivity :
                             ) {
                                 Text(stringResource(R.string.common_ui_cancel), fontWeight = FontWeight.Medium)
                             }
-                            // Exit button
                             Button(
                                 onClick = {
                                     AppTerminationHelper.exitApplication(this@UnifiedActivity, "hub_exit_menu")
@@ -2073,7 +1993,6 @@ class UnifiedActivity :
         )
     }
 
-    // Top bar
     @Composable
     private fun TopBar(
         tabs: List<TabDef>,
@@ -2095,7 +2014,6 @@ class UnifiedActivity :
         val keyboardController = LocalSoftwareKeyboardController.current
         val isDownloadsTab = tabs.getOrNull(selectedIdx)?.key == "downloads"
 
-        // Auto-collapse search when switching tabs
         LaunchedEffect(selectedIdx) {
             if (isSearchExpanded) {
                 onSearchQueryChange(TextFieldValue(""))
@@ -2220,12 +2138,10 @@ class UnifiedActivity :
                     }
                 }
 
-                // Left Block: Settings & Search
                 Row(
                     modifier = Modifier.align(Alignment.CenterStart).fillMaxHeight(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Settings Button
                     Box(
                         modifier =
                             Modifier
@@ -2247,7 +2163,6 @@ class UnifiedActivity :
                         ControllerBadge(if (isPS) "\u2261" else "Start")
                     }
 
-                    // Search Button (disabled on downloads tab)
                     Spacer(Modifier.width(12.dp))
 
                     val searchIconRotation by animateFloatAsState(
@@ -2311,7 +2226,6 @@ class UnifiedActivity :
                     }
                 }
 
-                // Right Block: Status & Actions
                 Row(
                     modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
                     horizontalArrangement = Arrangement.End,
@@ -2325,7 +2239,6 @@ class UnifiedActivity :
 
                     Spacer(Modifier.width(8.dp))
 
-                    // Filter button (opens drawer)
                     Box(
                         modifier =
                             Modifier
@@ -2346,7 +2259,6 @@ class UnifiedActivity :
                 }
             }
 
-            // Dropdown Search Bar
             AnimatedVisibility(
                 visible = isSearchExpanded && !isDownloadsTab,
                 enter =
@@ -2420,7 +2332,7 @@ class UnifiedActivity :
                                     Box(contentAlignment = Alignment.CenterStart) {
                                         if (searchQuery.text.isEmpty()) {
                                             Text(
-                                                "Search games...",
+                                                "Search games",
                                                 style =
                                                     TextStyle(
                                                         color = TextSecondary,
@@ -2452,7 +2364,6 @@ class UnifiedActivity :
         } // end Column
     }
 
-    // PS5-style Library Carousel
     @Composable
     fun LibraryCarousel(
         isLoggedIn: Boolean,
@@ -2469,7 +2380,6 @@ class UnifiedActivity :
     ) {
         val context = LocalContext.current
 
-        // Load all shortcuts once and cache for both custom app discovery and GameCapsule icon lookup
         var cachedShortcuts by remember { mutableStateOf<List<Shortcut>>(emptyList()) }
         var customApps by remember { mutableStateOf<List<SteamApp>>(emptyList()) }
         var localLibraryRefreshKey by remember { mutableIntStateOf(0) }
@@ -2499,7 +2409,6 @@ class UnifiedActivity :
                                     
                                     val uuid = shortcut.getExtra("uuid")
                                     val customId = if (uuid.isNotEmpty()) {
-                                        // Use UUID hash to ensure ID stability across renames
                                         -(uuid.hashCode().and(0x7FFFFFFF) + 1)
                                     } else {
                                         -(displayName.hashCode().and(0x7FFFFFFF) + 1)
@@ -2529,8 +2438,7 @@ class UnifiedActivity :
             shortcutsLoaded = true
         }
 
-        // Move expensive filtering (runBlocking DB queries, file I/O) off the main thread.
-        // This set only changes on real library mutations; playtime resorts are handled separately.
+        // Move library filtering and file checks off the main thread.
         var mergedInstalledApps by remember { mutableStateOf<List<SteamApp>>(emptyList()) }
         var installedApps by remember { mutableStateOf<List<SteamApp>>(emptyList()) }
         var stableInstalledApps by remember { mutableStateOf<List<SteamApp>>(emptyList()) }
@@ -2550,9 +2458,7 @@ class UnifiedActivity :
         var stableCustomIconPathByAppId by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
         var artworkCacheRefreshKey by remember { mutableIntStateOf(0) }
         var libraryLoaded by remember { mutableStateOf(false) }
-        // Track whether a new source snapshot is awaiting recomputation. The token
-        // changes during composition as soon as any input list changes, so we can
-        // suppress transient empty states before the background coroutine starts.
+        // Suppress transient empty states before background recomputation starts.
         val scanInputToken =
             remember(steamApps, epicApps, gogApps, customApps, libraryRefreshKey) { Any() }
         var processedScanToken by remember { mutableStateOf<Any?>(null) }
@@ -2563,8 +2469,7 @@ class UnifiedActivity :
 
                 val epicInstalled = epicApps.filter { it.isInstalled }
 
-                // Match Epic's filter: read DB.isInstalled directly so verify/update (which flip
-                // disk markers) don't transiently drop the game out of the library list.
+                // Match Epic's DB-backed install filter during verify/update.
                 val gogInstalled = gogApps.filter { it.isInstalled }
 
                 val gogMap = gogInstalled.associateBy { gogPseudoId(it.id) }
@@ -3597,7 +3502,6 @@ class UnifiedActivity :
         }
     }
 
-    // Game Settings Dialog
     @Composable
     private fun GameSettingsDialog(
         app: SteamApp,
@@ -3657,7 +3561,6 @@ class UnifiedActivity :
         }
         val hasPinnedShortcut = pinnedShortcutOverride ?: homeShortcutState.isPinned
 
-        // Export logic
         val exportLauncher =
             rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
                 if (uri != null) {
@@ -3673,13 +3576,11 @@ class UnifiedActivity :
 
                             val dirsToZip = mutableListOf<java.io.File>()
 
-                            // Goldberg saves: SteamService.getAppDirPath(app.id)/steam_settings/saves
                             val goldbergSaves = java.io.File(SteamService.getAppDirPath(app.id), "steam_settings/saves")
                             if (goldbergSaves.exists() && goldbergSaves.isDirectory) {
                                 dirsToZip.add(goldbergSaves)
                             }
 
-                            // Also prefix documents/saved games/appdata if shortcut exists
                             if (shortcut != null) {
                                 val prefixDir = java.io.File(shortcut.container.getRootDir(), ".wine/drive_c/users/xuser")
                                 val docs = java.io.File(prefixDir, "Documents")
@@ -3690,7 +3591,6 @@ class UnifiedActivity :
                                 if (appData.exists()) dirsToZip.add(appData)
                             }
 
-                            // recursive zip function
                             fun zipDir(
                                 dir: java.io.File,
                                 baseName: String,
@@ -3717,8 +3617,7 @@ class UnifiedActivity :
                             }
 
                             for (dir in dirsToZip) {
-                                // We put them in a folder under the zip by their semantic name
-                                val baseName = dir.name // e.g. "saves", "Documents"
+                                val baseName = dir.name
                                 zos.putNextEntry(java.util.zip.ZipEntry("$baseName/"))
                                 zos.closeEntry()
                                 zipDir(dir, baseName)
@@ -3747,7 +3646,6 @@ class UnifiedActivity :
                 }
             }
 
-        // Import logic
         val importLauncher =
             rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
                 if (uri != null) {
@@ -3772,7 +3670,6 @@ class UnifiedActivity :
                             while (zis.nextEntry.also { ze = it } != null) {
                                 val entry = ze!!
                                 val name = entry.name
-                                // Determine destination
                                 var destFile: java.io.File? = null
                                 if (name.startsWith("saves/")) {
                                     destFile = java.io.File(goldbergSavesParent, name)
@@ -7562,7 +7459,6 @@ class UnifiedActivity :
                 .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
                 .tabScreenPadding(top = DownloadsHeaderTopPadding),
         ) {
-            // Read tick to ensure global button state reacts to per-download status changes.
             @Suppress("UNUSED_EXPRESSION")
             tick
 
@@ -7956,19 +7852,19 @@ class UnifiedActivity :
 
         val phaseText =
             when (status) {
-                DownloadPhase.VERIFYING -> "Verifying…"
-                DownloadPhase.DOWNLOADING -> "Downloading…"
-                DownloadPhase.PAUSED -> "Paused"
-                DownloadPhase.QUEUED -> "Queued"
-                DownloadPhase.PREPARING -> "Preparing…"
-                DownloadPhase.PATCHING -> "Patching…"
-                DownloadPhase.APPLYING_DATA -> "Installing…"
-                DownloadPhase.UNPACKING -> "Unpacking…"
-                DownloadPhase.FINALIZING -> "Finalizing…"
-                DownloadPhase.COMPLETE -> "Complete"
-                DownloadPhase.FAILED -> "Failed"
-                DownloadPhase.CANCELLED -> "Cancelled"
-                else -> "Working…"
+                DownloadPhase.VERIFYING -> stringResource(R.string.downloads_queue_phase_verifying)
+                DownloadPhase.DOWNLOADING -> stringResource(R.string.downloads_queue_phase_downloading)
+                DownloadPhase.PAUSED -> stringResource(R.string.downloads_queue_phase_paused)
+                DownloadPhase.QUEUED -> stringResource(R.string.downloads_queue_phase_queued)
+                DownloadPhase.PREPARING -> stringResource(R.string.downloads_queue_phase_preparing)
+                DownloadPhase.PATCHING -> stringResource(R.string.downloads_queue_phase_patching)
+                DownloadPhase.APPLYING_DATA -> stringResource(R.string.downloads_queue_phase_applying_data)
+                DownloadPhase.UNPACKING -> stringResource(R.string.downloads_queue_phase_unpacking)
+                DownloadPhase.FINALIZING -> stringResource(R.string.downloads_queue_phase_finalizing)
+                DownloadPhase.COMPLETE -> stringResource(R.string.downloads_queue_phase_complete)
+                DownloadPhase.FAILED -> stringResource(R.string.common_ui_failed)
+                DownloadPhase.CANCELLED -> stringResource(R.string.downloads_queue_phase_cancelled)
+                else -> stringResource(R.string.common_ui_working)
             }
         val phaseColor =
             when (status) {
@@ -8084,7 +7980,7 @@ class UnifiedActivity :
     }
 
     /**
-     * Indeterminate "Checking for updates…" pop-up — same frame as
+     * Indeterminate "Checking for updates" pop-up — same frame as
      * [SteamTaskProgressDialog] but without a known task to track. Dismissable;
      * the underlying check keeps running and the host shows the result.
      */
@@ -8168,7 +8064,7 @@ class UnifiedActivity :
     }
 
     /**
-     * Small completion notice ("Verify Files Complete" / "… Failed") with a
+     * Small completion notice ("Verify Files Complete" / " Failed") with a
      * single Close button. Shown by the host once a watched task finishes.
      */
     @Composable
@@ -10817,7 +10713,6 @@ class UnifiedActivity :
         }
     }
 
-    // Add Custom Game Dialog
     @Composable
     private fun AddCustomGameDialog(onDismiss: () -> Unit) {
         val context = LocalContext.current
@@ -11081,7 +10976,6 @@ class UnifiedActivity :
         return false
     }
 
-    // Create custom game shortcut + container
     private fun addCustomGame(
         context: android.content.Context,
         name: String,
@@ -11099,7 +10993,6 @@ class UnifiedActivity :
         normalizeContainerDrives(container)
         val execCmd = buildWineExecCommand(container, gameFolderPath, exeFile)
 
-        // Write .desktop shortcut
         val desktopDir = container.getDesktopDir()
         if (!desktopDir.exists()) desktopDir.mkdirs()
         val safeName = name.replace("/", "_").replace("\\", "_")
