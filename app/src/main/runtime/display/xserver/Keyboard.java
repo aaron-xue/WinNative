@@ -127,6 +127,8 @@ public class Keyboard {
         xServer.injectKeyRelease(XKeycode.KEY_SHIFT_L);
         xServer.injectKeyRelease(xKeycode);
       }
+    } else if (action == KeyEvent.ACTION_MULTIPLE) {
+        return E02_KeyInput.handleAndroidKeyEvent(xServer, event);
     }
     return true;
   }
