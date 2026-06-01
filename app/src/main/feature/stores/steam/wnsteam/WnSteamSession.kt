@@ -1,5 +1,4 @@
 // JNI symbols depend on this package path and class name.
-// Update app/src/main/cpp/wn-steam-client/jni/wn_session_jni.cpp if either changes.
 package com.winlator.cmod.feature.stores.steam.wnsteam
 
 import java.util.concurrent.atomic.AtomicLong
@@ -42,7 +41,21 @@ class WnSteamSession : AutoCloseable {
         nativeDisconnect(h)
     }
 
-    // Start credentials login; [callback] runs on a native worker thread.
+    fun logOffAndDisconnect(flushMs: Int = 500) {
+        val h = nativeHandle.get(); if (h == 0L) return
+        nativeLogOffAndDisconnect(h, flushMs)
+    }
+
+    fun renewRefreshToken(
+        currentToken: String,
+        steamId64: Long,
+        timeoutMs: Int = 15_000,
+    ): String? {
+        if (currentToken.isEmpty() || steamId64 == 0L) return null
+        val h = nativeHandle.get(); if (h == 0L) return null
+        return nativeRenewRefreshToken(h, currentToken, steamId64, timeoutMs)
+    }
+
     fun startLoginWithCredentials(
         username: String,
         password: String,
@@ -55,6 +68,8 @@ class WnSteamSession : AutoCloseable {
             authenticator, callback)
     }
 
+    // [resultCallback] may receive a remote-approval update before the final
+    // token-bearing success result when the Steam Guard app approves the QR.
     fun startLoginWithQr(
         qrCallback: WnQrCallback,
         resultCallback: WnAuthCallback,
@@ -68,7 +83,8 @@ class WnSteamSession : AutoCloseable {
         nativeCancelLogin(h)
     }
 
-    // Log on with a refresh token. [accountName] is required by Steam.
+    // Log on with a refresh token. [accountName] is preferred when Steam provides it,
+    // but auth polling can omit it after device confirmation.
     fun logonWithRefreshToken(refreshToken: String, accountName: String, steamId: Long = 0L): Boolean {
         val h = nativeHandle.get(); if (h == 0L) return false
         return nativeLogonWithRefreshToken(h, refreshToken, accountName, steamId)
@@ -196,63 +212,81 @@ class WnSteamSession : AutoCloseable {
         return nativeGetCloudFileList(h, appId)
     }
 
-    // Blocking resolver for a remote cloud-save download URL and headers.
+    fun getCloudUserQuota(): LongArray? {
+        val h = nativeHandle.get(); if (h == 0L) return null
+        return try { nativeGetCloudUserQuota(h) } catch (_: UnsatisfiedLinkError) { null }
+    }
+
     fun getCloudDownloadInfo(appId: Int, filename: String): String? {
         val h = nativeHandle.get(); if (h == 0L) return null
         return nativeGetCloudDownloadInfo(h, appId, filename)
     }
 
-    // Blocking Steam Cloud file download; decompresses Steam's zip wrapper.
+    // Blocking Steam Cloud file download. Steam may store a save compressed (fileSize <
+    // rawFileSize) in any of several wrappers (single-entry PKZip, gzip, zlib, or raw deflate),
+    // or serve it via transport Content-Encoding. We request `identity` to get the exact stored
+    // blob, then auto-detect and decode it, validating the result against rawFileSize. The old
+    // code assumed a single-entry zip, which silently failed for games whose (typically larger)
+    // saves use a different wrapper or get transparently decoded by the HTTP stack — leaving the
+    // file un-restored and the launch conflict prompt recurring forever (e.g. Monster Hunter Rise).
     fun downloadCloudFile(appId: Int, filename: String): ByteArray? {
         val infoJson = getCloudDownloadInfo(appId, filename) ?: return null
         return try {
             val obj = org.json.JSONObject(infoJson)
             val host = obj.optString("urlHost")
             if (host.isEmpty()) return null
-            val fileSize = obj.optInt("fileSize", 0)
             val rawFileSize = obj.optInt("rawFileSize", 0)
-            val scheme = if (obj.optBoolean("useHttps", false)) "https" else "http"
-            val url = java.net.URL("$scheme://$host${obj.optString("urlPath")}")
-            val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 15_000
-                readTimeout = 30_000
-                instanceFollowRedirects = true
-                obj.optJSONArray("headers")?.let { headers ->
-                    for (i in 0 until headers.length()) {
-                        val hd = headers.getJSONObject(i)
-                        setRequestProperty(hd.optString("name"), hd.optString("value"))
-                    }
-                }
-            }
-            val raw = try {
-                val code = conn.responseCode
-                if (code != 200) {
-                    android.util.Log.w("WnSteamSession", "cloud GET $filename → HTTP $code")
-                    return null
-                }
-                conn.inputStream.use { it.readBytes() }
-            } finally {
-                conn.disconnect()
-            }
-            // Steam may serve compressed files as a single-entry zip.
-            val body =
-                if (fileSize != rawFileSize && raw.isNotEmpty()) {
-                    java.util.zip.ZipInputStream(raw.inputStream()).use { zin ->
-                        zin.nextEntry ?: run {
-                            android.util.Log.w("WnSteamSession", "cloud file $filename: empty zip")
-                            return null
+            val encrypted = obj.optBoolean("encrypted", false)
+            // Steam CM gives http/https per file; force https on Android (cleartext is blocked by
+            // default and the CDN serves both) but keep the host/path it handed us.
+            val url = java.net.URL("https://$host${obj.optString("urlPath")}")
+
+            // Up to 3 attempts — a transient HTTP/network blip must NOT strand the save and
+            // re-trigger the conflict dialog next launch.
+            var raw: ByteArray? = null
+            var lastCode = -1
+            for (attempt in 0 until 3) {
+                val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 15_000
+                    readTimeout = 30_000
+                    instanceFollowRedirects = true
+                    // Get the exact stored bytes; we decode below. Prevents the HTTP stack from
+                    // transparently gunzipping a Content-Encoding:gzip response (which left the
+                    // body already-decoded yet still routed through the unzip path).
+                    setRequestProperty("Accept-Encoding", "identity")
+                    obj.optJSONArray("headers")?.let { headers ->
+                        for (i in 0 until headers.length()) {
+                            val hd = headers.getJSONObject(i)
+                            setRequestProperty(hd.optString("name"), hd.optString("value"))
                         }
-                        zin.readBytes()
                     }
-                } else {
-                    raw
                 }
-            // Never let a partial HTTP read replace a good local save.
-            if (body.size != rawFileSize) {
+                try {
+                    lastCode = conn.responseCode
+                    if (lastCode == 200) {
+                        raw = conn.inputStream.use { it.readBytes() }
+                        break
+                    }
+                    android.util.Log.w("WnSteamSession", "cloud GET $filename → HTTP $lastCode (attempt ${attempt + 1})")
+                } catch (e: Exception) {
+                    android.util.Log.w("WnSteamSession", "cloud GET $filename failed (attempt ${attempt + 1})", e)
+                } finally {
+                    conn.disconnect()
+                }
+                if (attempt < 2) Thread.sleep(400L * (attempt + 1))
+            }
+            if (raw == null) {
+                android.util.Log.w("WnSteamSession", "cloud file $filename: download failed (last HTTP $lastCode)")
+                return null
+            }
+
+            val body = decodeCloudPayload(raw, rawFileSize)
+            if (body == null || body.size != rawFileSize) {
                 android.util.Log.w(
                     "WnSteamSession",
-                    "cloud file $filename: size mismatch (got ${body.size}, expected $rawFileSize) — rejecting",
+                    "cloud file $filename: could not decode to expected size " +
+                        "(got ${body?.size ?: -1}, expected $rawFileSize, encrypted=$encrypted) — rejecting",
                 )
                 return null
             }
@@ -261,6 +295,59 @@ class WnSteamSession : AutoCloseable {
             android.util.Log.w("WnSteamSession", "cloud file download failed: $filename", e)
             null
         }
+    }
+
+    /**
+     * Decode a Steam Cloud download payload to the raw file bytes. Tries, in order: already-raw
+     * (uncompressed or transport-decoded), single-entry PKZip, gzip, zlib, and raw DEFLATE — and
+     * accepts the first candidate whose length equals [rawFileSize]. Returns null if nothing
+     * decodes to the expected size (e.g. an encrypted file we can't decrypt).
+     */
+    private fun decodeCloudPayload(raw: ByteArray, rawFileSize: Int): ByteArray? {
+        if (raw.isEmpty()) return if (rawFileSize == 0) raw else null
+        // Already the raw file (uncompressed, or the HTTP stack decoded transport compression).
+        if (raw.size == rawFileSize) return raw
+
+        // PKZip single-entry wrapper ("PK").
+        if (raw.size >= 4 && raw[0] == 0x50.toByte() && raw[1] == 0x4B.toByte()) {
+            runCatching {
+                java.util.zip.ZipInputStream(raw.inputStream()).use { zin ->
+                    if (zin.nextEntry == null) null else zin.readBytes()
+                }
+            }.getOrNull()?.let { if (it.size == rawFileSize) return it }
+        }
+        // gzip (0x1f 0x8b).
+        if (raw.size >= 2 && raw[0] == 0x1f.toByte() && raw[1] == 0x8b.toByte()) {
+            runCatching {
+                java.util.zip.GZIPInputStream(raw.inputStream()).use { it.readBytes() }
+            }.getOrNull()?.let { if (it.size == rawFileSize) return it }
+        }
+        // zlib-wrapped DEFLATE (RFC 1950) then raw DEFLATE (RFC 1951).
+        for (nowrap in booleanArrayOf(false, true)) {
+            runCatching { inflateBytes(raw, nowrap, rawFileSize) }
+                .getOrNull()
+                ?.let { if (it.size == rawFileSize) return it }
+        }
+        return null
+    }
+
+    private fun inflateBytes(data: ByteArray, nowrap: Boolean, sizeHint: Int): ByteArray {
+        val inflater = java.util.zip.Inflater(nowrap)
+        inflater.setInput(data)
+        val out = java.io.ByteArrayOutputStream(if (sizeHint > 0) sizeHint else data.size * 2)
+        val buf = ByteArray(64 * 1024)
+        try {
+            while (!inflater.finished()) {
+                val n = inflater.inflate(buf)
+                if (n == 0) {
+                    if (inflater.finished() || inflater.needsDictionary() || inflater.needsInput()) break
+                }
+                out.write(buf, 0, n)
+            }
+        } finally {
+            inflater.end()
+        }
+        return out.toByteArray()
     }
 
     // Result of [beginCloudUploadBatch].
@@ -301,6 +388,19 @@ class WnSteamSession : AutoCloseable {
         val beginJson = nativeCloudBeginFileUpload(
             h, appId, filename, fileBytes.size, fileBytes.size, fileShaHex, timestamp, batchId,
         ) ?: return false
+        try {
+            val blocks0 = org.json.JSONObject(beginJson).optJSONArray("blocks")
+            if (blocks0 == null || blocks0.length() == 0) {
+                android.util.Log.i(
+                    "WnSteamSession",
+                    "cloud upload short-circuit: blocks=0 for $filename — file already in cloud, treating as success"
+                )
+                nativeCloudCommitFileUpload(h, true, appId, fileShaHex, filename)
+                return true
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("WnSteamSession", "uploadCloudFile early-parse failed: $filename", e)
+        }
         var allOk = true
         try {
             val blocks = org.json.JSONObject(beginJson).optJSONArray("blocks")
@@ -314,15 +414,13 @@ class WnSteamSession : AutoCloseable {
                         allOk = false
                         continue
                     }
-                    val slice = fileBytes.copyOfRange(off, off + len)
-                    val scheme = if (blk.optBoolean("useHttps", false)) "https" else "http"
-                    val url = java.net.URL("$scheme://$host${blk.optString("urlPath")}")
+                    val url = java.net.URL("https://$host${blk.optString("urlPath")}")
                     val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
                         requestMethod = "PUT"
                         doOutput = true
                         connectTimeout = 15_000
                         readTimeout = 30_000
-                        setFixedLengthStreamingMode(slice.size)
+                        setFixedLengthStreamingMode(len)
                         blk.optJSONArray("headers")?.let { hs ->
                             for (k in 0 until hs.length()) {
                                 val hd = hs.getJSONObject(k)
@@ -332,7 +430,7 @@ class WnSteamSession : AutoCloseable {
                         setRequestProperty("User-Agent", "Valve/Steam HTTP Client 1.0")
                     }
                     try {
-                        conn.outputStream.use { it.write(slice) }
+                        conn.outputStream.use { it.write(fileBytes, off, len) }
                         val code = conn.responseCode
                         if (code !in 200..299) {
                             allOk = false
@@ -425,13 +523,27 @@ class WnSteamSession : AutoCloseable {
         nativeSetPersonaState(h, personaState)
     }
 
-    // Request persona data; poll [getSelfPersona] for the cached reply.
+    fun setPersonaName(name: String, personaState: Int = 1) {
+        if (name.isEmpty()) return
+        val h = nativeHandle.get(); if (h == 0L) return
+        nativeSetPersonaName(h, name, personaState)
+    }
+
     fun requestUserPersona() {
         val h = nativeHandle.get(); if (h == 0L) return
         nativeRequestUserPersona(h)
     }
 
-    // Local user's cached persona JSON, or null until the first push.
+    fun requestFriendPersonas(
+        steamIds: LongArray,
+        personaStateRequested: Int = 1,
+    ) {
+        val h = nativeHandle.get(); if (h == 0L) return
+        if (steamIds.isEmpty()) return
+        try { nativeRequestFriendPersonas(h, steamIds, personaStateRequested) }
+        catch (_: UnsatisfiedLinkError) {}
+    }
+
     fun getSelfPersona(): String? {
         val h = nativeHandle.get(); if (h == 0L) return null
         return nativeGetSelfPersona(h)
@@ -449,7 +561,17 @@ class WnSteamSession : AutoCloseable {
         return nativeGetLicenseList(h)
     }
 
-    // Blocking owned-games lookup; private libraries return "[]".
+    fun getFriendsList(): LongArray {
+        val h = nativeHandle.get(); if (h == 0L) return LongArray(0)
+        return try { nativeGetFriendsList(h) } catch (_: UnsatisfiedLinkError) { LongArray(0) }
+    }
+
+    fun getFriendPersonas(): String {
+        val h = nativeHandle.get(); if (h == 0L) return "[]"
+        return try { nativeGetFriendPersonas(h) ?: "[]" }
+               catch (_: UnsatisfiedLinkError) { "[]" }
+    }
+
     fun getOwnedGames(steamId: Long): String? {
         val h = nativeHandle.get(); if (h == 0L) return null
         return nativeGetOwnedGames(h, steamId)
@@ -536,6 +658,13 @@ class WnSteamSession : AutoCloseable {
         @JvmStatic private external fun nativeSetAutoPopulateLibrary(handle: Long, enabled: Boolean)
         @JvmStatic private external fun nativeConnect(handle: Long, url: String): Boolean
         @JvmStatic private external fun nativeDisconnect(handle: Long)
+        @JvmStatic private external fun nativeLogOffAndDisconnect(handle: Long, flushMs: Int)
+        @JvmStatic private external fun nativeRenewRefreshToken(
+            handle: Long,
+            currentToken: String,
+            steamId64: Long,
+            timeoutMs: Int,
+        ): String?
         @JvmStatic private external fun nativeStartLoginWithCredentials(
             handle: Long,
             username: String,
@@ -604,6 +733,7 @@ class WnSteamSession : AutoCloseable {
             handle: Long, appId: Int, steamId: Long, crcStats: Int,
             statIds: IntArray, statValues: IntArray)
         @JvmStatic private external fun nativeGetCloudFileList(handle: Long, appId: Int): String?
+        @JvmStatic private external fun nativeGetCloudUserQuota(handle: Long): LongArray?
         @JvmStatic private external fun nativeGetCloudDownloadInfo(handle: Long, appId: Int, filename: String): String?
         @JvmStatic private external fun nativeCloudBeginUploadBatch(handle: Long, appId: Int, files: String, filesToDelete: String, clientId: Long): String?
         @JvmStatic private external fun nativeCloudBeginFileUpload(handle: Long, appId: Int, filename: String, fileSize: Int, rawFileSize: Int, shaHex: String, timestamp: Long, batchId: Long): String?
@@ -619,11 +749,16 @@ class WnSteamSession : AutoCloseable {
         @JvmStatic private external fun nativeIsPlayingBlocked(handle: Long): Boolean
         @JvmStatic private external fun nativeMarkPlayingBlocked(handle: Long)
         @JvmStatic private external fun nativeSetPersonaState(handle: Long, personaState: Int)
+        @JvmStatic private external fun nativeSetPersonaName(handle: Long, name: String, personaState: Int)
         @JvmStatic private external fun nativeRequestUserPersona(handle: Long)
+        @JvmStatic private external fun nativeRequestFriendPersonas(
+            handle: Long, steamIds: LongArray, flags: Int)
         @JvmStatic private external fun nativeGetSelfPersona(handle: Long): String?
         @JvmStatic private external fun nativeGetFamilyGroup(
             handle: Long, familyGroupId: Long): String?
         @JvmStatic private external fun nativeGetLicenseList(handle: Long): String?
+        @JvmStatic private external fun nativeGetFriendsList(handle: Long): LongArray
+        @JvmStatic private external fun nativeGetFriendPersonas(handle: Long): String?
         @JvmStatic private external fun nativeGetOwnedGames(
             handle: Long, steamId: Long): String?
         @JvmStatic private external fun nativeSignalAppLaunchIntent(handle: Long, appId: Int, clientId: Long, machineName: String, ignorePending: Boolean, osType: Int): String?

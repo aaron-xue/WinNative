@@ -73,7 +73,6 @@ import com.winlator.cmod.feature.sync.EpicLaunchCloudSync;
 import com.winlator.cmod.feature.sync.GogLaunchCloudSync;
 import com.winlator.cmod.feature.steamcloudsync.SteamExitCloudSync;
 import com.winlator.cmod.feature.steamcloudsync.SteamLaunchCloudSync;
-import com.winlator.cmod.feature.stores.steam.ui.SteamClientDownloadFailureDialog;
 import com.winlator.cmod.feature.settings.WineD3DConfigUtils;
 import com.winlator.cmod.runtime.compat.SteamBridge;
 import com.winlator.cmod.runtime.content.ContentProfile;
@@ -315,6 +314,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private String midiSoundFont = "";
     private String lc_all = "";
     PreloaderDialog preloaderDialog = null;
+    private com.winlator.cmod.feature.stores.steam.wnsteam.WnLauncherStatusTailer wnLauncherStatusTailer = null;
+    private final java.util.concurrent.atomic.AtomicBoolean wnLauncherDrivesDismiss =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
     private Runnable configChangedCallback = null;
     private boolean isPaused = false;
     private boolean reusingSession = false;
@@ -361,11 +363,14 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private long startTime;
     private SharedPreferences playtimePrefs;
     private String shortcutName;
-    private String cachedDisplayName = "";
-    private String cachedPlatform = "";
-    private String cachedContainerLabel = "";
+    private String cachedPreloaderTitle = "";
+    private String cachedPreloaderBadge = "";
+    private String cachedPreloaderSubtitle = "";
     private Handler handler;
     private Runnable savePlaytimeRunnable;
+    private android.hardware.display.DisplayManager displayManager;
+    private android.hardware.display.DisplayManager.DisplayListener displayListener;
+    private int lastKnownMaxRefreshRate;
     private static final long SAVE_INTERVAL_MS = 1000;
     private static final int EXIT_CLOUD_UPLOAD_MAX_ATTEMPTS = 3;
     private static final long EXIT_CLOUD_UPLOAD_RETRY_DELAY_MS = 1000L;
@@ -373,12 +378,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private Handler  timeoutHandler = new Handler(Looper.getMainLooper());
     private Runnable hideControlsRunnable;
 
-    private final java.util.concurrent.atomic.AtomicBoolean firstAppWindowAppeared =
-            new java.util.concurrent.atomic.AtomicBoolean(false);
-    private Runnable realSteamWatchdogRunnable;
     private final AtomicBoolean exitRequested = new AtomicBoolean(false);
     private final AtomicBoolean steamExitWatchRunning = new AtomicBoolean(false);
     private final AtomicBoolean activityDestroyed = new AtomicBoolean(false);
+    private final AtomicBoolean steamStateSanitizedForClose = new AtomicBoolean(false);
     private final AtomicBoolean sessionCleanupStarted = new AtomicBoolean(false);
     private final AtomicBoolean switchLaunchInProgress = new AtomicBoolean(false);
     private final AtomicBoolean winHandlerStopped = new AtomicBoolean(false);
@@ -510,11 +513,89 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
     }
 
+    /**
+     * Watch for the display's refresh rate / supported modes changing while a game
+     * is running (e.g. the user toggles the system refresh rate, or an external
+     * display with different capabilities is connected). Without this, the in-game
+     * FPS-limiter slider's ceiling — and a previously chosen limit — could be left
+     * stranded above what the panel can actually present.
+     */
+    private void registerDisplayChangeListener() {
+        if (displayListener != null) return;
+        displayManager = (android.hardware.display.DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
+        if (displayManager == null) return;
+        lastKnownMaxRefreshRate = RefreshRateUtils.getMaxSupportedRefreshRate(this);
+        displayListener = new android.hardware.display.DisplayManager.DisplayListener() {
+            @Override
+            public void onDisplayAdded(int displayId) {
+                handleDisplayCapabilitiesChanged();
+            }
+
+            @Override
+            public void onDisplayRemoved(int displayId) {
+                handleDisplayCapabilitiesChanged();
+            }
+
+            @Override
+            public void onDisplayChanged(int displayId) {
+                handleDisplayCapabilitiesChanged();
+            }
+        };
+        // Callbacks are delivered on the main thread via this handler.
+        displayManager.registerDisplayListener(displayListener, handler);
+    }
+
+    private void unregisterDisplayChangeListener() {
+        if (displayManager != null && displayListener != null) {
+            try {
+                displayManager.unregisterDisplayListener(displayListener);
+            } catch (Exception ignored) {}
+        }
+        displayListener = null;
+    }
+
+    private void handleDisplayCapabilitiesChanged() {
+        if (isFinishing() || isDestroyed()) return;
+
+        int maxRate = RefreshRateUtils.getMaxSupportedRefreshRate(this);
+        boolean maxChanged = maxRate != lastKnownMaxRefreshRate;
+        lastKnownMaxRefreshRate = maxRate;
+
+        // If the panel can no longer reach the configured limit, cap it so we don't
+        // keep rendering — and requesting a refresh cadence — above what it can show.
+        if (runtimeFpsLimit > 0 && runtimeFpsLimit > maxRate) {
+            runtimeFpsLimit = maxRate;
+            if (xServerView != null && xServerView.getRenderer() != null) {
+                xServerView.getRenderer().setFpsLimit(runtimeFpsLimit);
+            }
+            if (shortcut != null) {
+                shortcut.putExtra("fpsLimit", String.valueOf(runtimeFpsLimit));
+                shortcut.saveData();
+            }
+            applyPreferredRefreshRate();
+        }
+
+        // Keep the in-drawer slider's ceiling in sync, but only if the drawer has
+        // been opened (otherwise the next open rebuilds state with a fresh value).
+        if (maxChanged && drawerStateHolder != null) {
+            renderDrawerMenu();
+        }
+    }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         if (intent == null) return;
+
+        if ("com.winnative.cmod.DEBUG_INJECT_TAP".equals(intent.getAction())) {
+            handleDebugInjectTap(intent);
+            return;
+        }
+
+        if ("com.winnative.cmod.DEBUG_INJECT_KEY".equals(intent.getAction())) {
+            handleDebugInjectKey(intent);
+            return;
+        }
 
         String incomingShortcutPath = intent.getStringExtra("shortcut_path");
         String incomingShortcutUuid = intent.getStringExtra("shortcut_uuid");
@@ -538,6 +619,91 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             Log.d("XServerDisplayActivity", "onNewIntent: launch target changed, cleaning up before recreation");
             switchLaunchTargetAfterCleanup(intent);
         }
+    }
+
+    private void handleDebugInjectKey(Intent intent) {
+        if (xServer == null) {
+            Log.w("XServerDisplayActivity", "DEBUG_INJECT_KEY: xServer not ready");
+            return;
+        }
+        String key = intent.getStringExtra("key");
+        if (key == null || key.isEmpty()) {
+            Log.w("XServerDisplayActivity", "DEBUG_INJECT_KEY: missing `key` extra");
+            return;
+        }
+        com.winlator.cmod.runtime.display.xserver.XKeycode kc;
+        try {
+            kc = com.winlator.cmod.runtime.display.xserver.XKeycode
+                    .valueOf("KEY_" + key.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            Log.w("XServerDisplayActivity", "DEBUG_INJECT_KEY: unknown key " + key);
+            return;
+        }
+        int holdMs = intent.getIntExtra("hold_ms", 80);
+        Log.i("XServerDisplayActivity", "DEBUG_INJECT_KEY: " + kc + " hold=" + holdMs);
+        xServer.injectKeyPress(kc);
+        final com.winlator.cmod.runtime.display.xserver.XKeycode finalKc = kc;
+        new android.os.Handler(android.os.Looper.getMainLooper())
+                .postDelayed(() -> xServer.injectKeyRelease(finalKc), holdMs);
+    }
+
+    private void handleDebugInjectTap(Intent intent) {
+        if (xServer == null) {
+            Log.w("XServerDisplayActivity", "DEBUG_INJECT_TAP: xServer not ready");
+            return;
+        }
+        int x = intent.getIntExtra("x", -1);
+        int y = intent.getIntExtra("y", -1);
+        float nx = intent.getFloatExtra("nx", -1f);
+        float ny = intent.getFloatExtra("ny", -1f);
+        if (nx >= 0f && ny >= 0f) {
+            x = (int) (nx * xServer.screenInfo.width);
+            y = (int) (ny * xServer.screenInfo.height);
+        }
+        String button = intent.getStringExtra("button");
+        if (x < 0 || y < 0) {
+            Log.w("XServerDisplayActivity", "DEBUG_INJECT_TAP: bad coords x=" + x + " y=" + y);
+            return;
+        }
+        final Pointer.Button btn = "right".equalsIgnoreCase(button)
+                ? Pointer.Button.BUTTON_RIGHT
+                : Pointer.Button.BUTTON_LEFT;
+        int pressDelay = intent.getIntExtra("press_delay", 80);
+        int holdMs = intent.getIntExtra("hold_ms", 80);
+        boolean useWinHandler = intent.getBooleanExtra("winhandler", true);
+        final int btnDown = btn == Pointer.Button.BUTTON_RIGHT
+                ? MouseEventFlags.RIGHTDOWN
+                : MouseEventFlags.LEFTDOWN;
+        final int btnUp = btn == Pointer.Button.BUTTON_RIGHT
+                ? MouseEventFlags.RIGHTUP
+                : MouseEventFlags.LEFTUP;
+        Log.i("XServerDisplayActivity",
+                "DEBUG_INJECT_TAP: x=" + x + " y=" + y + " btn=" + btn
+                        + " screen=" + xServer.screenInfo.width + "x" + xServer.screenInfo.height
+                        + " press_delay=" + pressDelay + " hold_ms=" + holdMs
+                        + " winhandler=" + useWinHandler);
+        xServer.injectPointerMove(x, y);
+        if (useWinHandler && xServer.getWinHandler() != null) {
+            xServer.getWinHandler().mouseEvent(
+                    MouseEventFlags.MOVE | MouseEventFlags.ABSOLUTE, x, y, 0);
+        }
+        final int finalX = x;
+        final int finalY = y;
+        final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        h.postDelayed(() -> {
+            xServer.injectPointerButtonPress(btn);
+            if (useWinHandler && xServer.getWinHandler() != null) {
+                xServer.getWinHandler().mouseEvent(
+                        btnDown | MouseEventFlags.ABSOLUTE, finalX, finalY, 0);
+            }
+            h.postDelayed(() -> {
+                xServer.injectPointerButtonRelease(btn);
+                if (useWinHandler && xServer.getWinHandler() != null) {
+                    xServer.getWinHandler().mouseEvent(
+                            btnUp | MouseEventFlags.ABSOLUTE, finalX, finalY, 0);
+                }
+            }, holdMs);
+        }, pressDelay);
     }
 
     private void switchLaunchTargetAfterCleanup(Intent intent) {
@@ -574,6 +740,27 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         super.onCreate(savedInstanceState);
         AppUtils.hideSystemUI(this);
         AppUtils.keepScreenOn(this);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true);
+            setTurnScreenOn(true);
+        } else {
+            getWindow().addFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                | android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                | android.view.WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            try {
+                android.app.KeyguardManager km = (android.app.KeyguardManager)
+                    getSystemService(Context.KEYGUARD_SERVICE);
+                if (km != null && km.isKeyguardLocked()) {
+                    km.requestDismissKeyguard(this, null);
+                }
+            } catch (Throwable t) {
+                Log.w("XServerDisplayActivity",
+                    "requestDismissKeyguard failed: " + t.getMessage());
+            }
+        }
         DebugFragment.Companion.cleanupSharedLogs();
         com.winlator.cmod.runtime.system.LogManager.prepareForNewSession(this);
 
@@ -621,8 +808,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             wineRequestHandler = new WineRequestHandler(this);
 
         if (controller != null) {
-            int triggerType = preferences.getInt("trigger_type", ExternalController.TRIGGER_IS_AXIS);
-            controller.setTriggerType((byte) triggerType);
+            // Only force a type when explicitly chosen; else keep the auto-detected value.
+            int triggerType = preferences.getInt("trigger_type", -1);
+            if (triggerType != -1) {
+                controller.setTriggerType((byte) triggerType);
+            }
         }
 
 
@@ -657,6 +847,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         };
         handler.postDelayed(savePlaytimeRunnable, SAVE_INTERVAL_MS);
 
+        registerDisplayChangeListener();
 
         hideControlsRunnable = () -> {
             if (!isMouseDisabled && xServer != null && xServer.getRenderer() != null
@@ -681,7 +872,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         });
 
         enableLogsMenu = preferences.getBoolean("enable_wine_debug", false) || preferences.getBoolean("enable_box64_logs", false);
-        isNativeRenderingEnabled = preferences.getBoolean("use_dri3", true);
+        // Native rendering (DRI3) is always on; the toggle was removed. Hardcoded so stale "use_dri3=false" prefs can't disable it.
+        isNativeRenderingEnabled = true;
         displayHostComposeView.setPointerIcon(PointerIcon.getSystemIcon(this, PointerIcon.TYPE_ARROW));
         displayHostComposeView.setFocusable(true);
         displayHostComposeView.setFocusableInTouchMode(true);
@@ -1143,12 +1335,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             };
         }
 
-        cachedPlatform = shortcut != null ? shortcut.getExtra("game_source") : "";
-        if (cachedPlatform == null) cachedPlatform = "";
-        cachedDisplayName = (shortcutName != null && !shortcutName.isEmpty())
+        cachedPreloaderBadge = shortcut != null ? shortcut.getExtra("game_source") : "";
+        if (cachedPreloaderBadge == null) cachedPreloaderBadge = "";
+        cachedPreloaderTitle = (shortcutName != null && !shortcutName.isEmpty())
                 ? shortcutName
                 : getString(R.string.preloader_default_name);
-        cachedContainerLabel = container != null ? container.getName() : "";
+        cachedPreloaderSubtitle = container != null ? container.getName() : "";
         showLaunchPreloader(getString(R.string.preloader_initializing));
 
         if (preferences.getBoolean("enable_background_session", false)) {
@@ -1178,10 +1370,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     } else {
                         xServerView.getRenderer().setCursorVisible(false);
                     }
-                    preloaderDialog.closeOnUiThread();
+                    if (!wnLauncherDrivesDismiss.get()) {
+                        preloaderDialog.closeOnUiThread();
+                        stopWnLauncherStatusTailer();
+                    }
                     winStarted[0] = true;
-                    firstAppWindowAppeared.set(true);
-                    cancelRealSteamWatchdog();
                 }
             }
            
@@ -1253,24 +1446,71 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 UpdateChecker.INSTANCE.cancelPostGameCheck();
 
                 if (!sessionToReuse) {
-                    SteamLaunchCloudSync.syncBeforeLaunch(
-                            this,
-                            shortcut,
-                            isCloudSyncEnabledForShortcut(),
-                            this::showLaunchPreloader);
-                    EpicLaunchCloudSync.syncBeforeLaunch(
-                            this,
-                            shortcut,
-                            isCloudSyncEnabledForShortcut(),
-                            this::showLaunchPreloader);
-                    GogLaunchCloudSync.syncBeforeLaunch(
-                            this,
-                            shortcut,
-                            isCloudSyncEnabledForShortcut(),
-                            this::showLaunchPreloader);
+                    if (isSteamShortcut()) {
+                        try {
+                            setSteamClientVisibility(true, isColdClientEnabledForShortcut());
+                        } catch (Throwable t) {
+                            Log.w("XServerDisplayActivity",
+                                    "Failed to select Steam client store before cloud sync", t);
+                        }
+                    }
+
+                    // Parallel prep:
+                    //   - Cloud sync (Steam/Epic/GOG) — independent of prefix files
+                    //   - Steam game prefix setup (DLL injects, Plan W assets) —
+                    //     touches Steam dir + game install dir, independent of
+                    //     the wine prefix bring-up + graphics/audio driver setup
+                    // Joined before setupXEnvironment so the launcher sees a
+                    // complete prefix.
+                    java.util.concurrent.ExecutorService prepExec =
+                            java.util.concurrent.Executors.newFixedThreadPool(2);
+                    java.util.concurrent.Future<?> cloudFuture = prepExec.submit(() -> {
+                        try {
+                            SteamLaunchCloudSync.syncBeforeLaunch(
+                                    this, shortcut, isCloudSyncEnabledForShortcut(),
+                                    this::showLaunchPreloader);
+                            EpicLaunchCloudSync.syncBeforeLaunch(
+                                    this, shortcut, isCloudSyncEnabledForShortcut(),
+                                    this::showLaunchPreloader);
+                            GogLaunchCloudSync.syncBeforeLaunch(
+                                    this, shortcut, isCloudSyncEnabledForShortcut(),
+                                    this::showLaunchPreloader);
+                        } catch (Throwable t) {
+                            Log.w("XServerDisplayActivity",
+                                    "Pre-launch cloud sync failed", t);
+                        }
+                    });
+                    java.util.concurrent.Future<?> steamFuture = isSteamShortcut()
+                            ? prepExec.submit(() -> {
+                                try {
+                                    setupSteamGameFiles();
+                                } catch (Throwable t) {
+                                    Log.w("XServerDisplayActivity",
+                                            "Pre-launch Steam game setup failed", t);
+                                }
+                            })
+                            : null;
+                    prepExec.shutdown();
+
+                    if (preloaderDialog != null && isSteamShortcut()) {
+                        preloaderDialog.setStepOnUiThread(R.string.preloader_preparing_steam_environment);
+                    }
                     setupWineSystemFiles();
                     extractGraphicsDriverFiles();
                     changeWineAudioDriver();
+
+                    try {
+                        if (steamFuture != null) steamFuture.get();
+                    } catch (Throwable t) {
+                        Log.w("XServerDisplayActivity",
+                                "Steam game setup wait interrupted", t);
+                    }
+                    try {
+                        cloudFuture.get();
+                    } catch (Throwable t) {
+                        Log.w("XServerDisplayActivity",
+                                "Cloud sync wait interrupted", t);
+                    }
                 } else {
                     Log.i("XServerDisplayActivity", "Skipping pre-game setup for active background session");
                     applyPreferredRefreshRate();
@@ -1596,21 +1836,197 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         return null;
     }
 
+    private boolean isSuspiciousSteamGameInstallDir(String path) {
+        if (path == null || path.isEmpty()) return false;
+
+        String normalized = path.replace('\\', '/');
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+
+        String lower = normalized.toLowerCase(java.util.Locale.ROOT);
+        return lower.endsWith("/steamapps/common") || lower.endsWith("/steamapps");
+    }
+
+    private boolean isSuspiciousSteamInstallLeaf(String value) {
+        if (value == null || value.isEmpty()) return false;
+
+        String normalized = value.replace('\\', '/');
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+
+        int lastSlash = normalized.lastIndexOf('/');
+        if (lastSlash >= 0 && lastSlash + 1 < normalized.length()) {
+            normalized = normalized.substring(lastSlash + 1);
+        }
+
+        return "common".equalsIgnoreCase(normalized) || "steamapps".equalsIgnoreCase(normalized);
+    }
+
+    private String normalizeRelativeExeCandidate(String value) {
+        if (value == null) return "";
+
+        String normalized = value.trim().replace('\\', '/');
+        while (normalized.startsWith("/")) {
+            normalized = normalized.substring(1);
+        }
+        if (normalized.matches("^[A-Za-z]:/.*")) {
+            normalized = normalized.substring(3);
+        }
+        return normalized;
+    }
+
+    private File resolveImmediateChildCaseInsensitive(File parent, String childName) {
+        if (parent == null || childName == null || childName.isEmpty() || !parent.isDirectory()) {
+            return null;
+        }
+
+        File directChild = new File(parent, childName);
+        if (directChild.exists()) return directChild;
+
+        File[] children = parent.listFiles();
+        if (children == null) return null;
+
+        for (File child : children) {
+            if (childName.equalsIgnoreCase(child.getName())) {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    private boolean hasKnownGameExeUnderDir(File dir, java.util.List<String> relativeExeCandidates) {
+        if (dir == null || !dir.isDirectory()) return false;
+
+        for (String relativeExe : relativeExeCandidates) {
+            File candidateExe = resolvePathCaseInsensitive(dir, relativeExe);
+            if (candidateExe != null && candidateExe.isFile()) {
+                return true;
+            }
+        }
+
+        return findGameExe(dir) != null;
+    }
+
+    private String recoverSteamGameInstallPath(int appId, String libraryRootPath) {
+        if (libraryRootPath == null || libraryRootPath.isEmpty()) return null;
+
+        File libraryRoot = new File(libraryRootPath);
+        if (!libraryRoot.isDirectory()) return null;
+
+        java.util.LinkedHashSet<String> relativeExeCandidates = new java.util.LinkedHashSet<>();
+        String shortcutLaunchExe = shortcut != null ? shortcut.getExtra("launch_exe_path") : "";
+        String containerLaunchExe = container != null ? container.getExecutablePath() : "";
+        String installedExe = SteamBridge.getInstalledExe(appId);
+
+        for (String candidate : new String[]{shortcutLaunchExe, containerLaunchExe, installedExe}) {
+            String normalized = normalizeRelativeExeCandidate(candidate);
+            if (!normalized.isEmpty()) {
+                relativeExeCandidates.add(normalized);
+            }
+        }
+
+        java.util.LinkedHashSet<String> preferredDirNames = new java.util.LinkedHashSet<>();
+        if (shortcut != null && shortcut.name != null && !shortcut.name.trim().isEmpty()) {
+            preferredDirNames.add(shortcut.name.trim());
+        }
+
+        String serviceInstallPath = SteamBridge.getAppDirPath(appId);
+        if (serviceInstallPath != null && !serviceInstallPath.isEmpty()) {
+            String serviceLeaf = new File(serviceInstallPath).getName();
+            if (!serviceLeaf.isEmpty()) {
+                preferredDirNames.add(serviceLeaf);
+            }
+        }
+
+        java.util.ArrayList<String> relativeExeList = new java.util.ArrayList<>(relativeExeCandidates);
+        for (String preferredDirName : preferredDirNames) {
+            if (isSuspiciousSteamInstallLeaf(preferredDirName)) continue;
+
+            File preferredDir = resolveImmediateChildCaseInsensitive(libraryRoot, preferredDirName);
+            if (preferredDir != null && preferredDir.isDirectory()
+                    && hasKnownGameExeUnderDir(preferredDir, relativeExeList)) {
+                return getCanonicalPathOrAbsolute(preferredDir);
+            }
+        }
+
+        if (relativeExeList.isEmpty()) return null;
+
+        java.util.ArrayList<File> matches = new java.util.ArrayList<>();
+        File[] children = libraryRoot.listFiles();
+        if (children == null) return null;
+
+        for (File child : children) {
+            if (!child.isDirectory()) continue;
+            if (hasKnownGameExeUnderDir(child, relativeExeList)) {
+                matches.add(child);
+            }
+        }
+
+        if (matches.size() == 1) {
+            return getCanonicalPathOrAbsolute(matches.get(0));
+        }
+
+        if (matches.size() > 1) {
+            Log.w("XServerDisplayActivity",
+                    "Ambiguous Steam install-path recovery for appId=" + appId
+                            + " libraryRoot=" + libraryRootPath
+                            + " matches=" + matches.size());
+        }
+        return null;
+    }
+
+    private String sanitizeSteamGameInstallPath(int appId, String candidatePath, String source) {
+        if (candidatePath == null || candidatePath.isEmpty()) return candidatePath;
+
+        File candidateDir = new File(candidatePath);
+        if (!candidateDir.isDirectory()) return candidatePath;
+
+        String canonicalPath = getCanonicalPathOrAbsolute(candidateDir);
+        if (!isSuspiciousSteamGameInstallDir(canonicalPath)) {
+            return canonicalPath;
+        }
+
+        String recoveredPath = recoverSteamGameInstallPath(appId, canonicalPath);
+        if (recoveredPath != null && !recoveredPath.isEmpty()) {
+            Log.w("XServerDisplayActivity",
+                    "Recovered Steam game install path from " + source
+                            + " root " + canonicalPath + " -> " + recoveredPath
+                            + " for appId=" + appId);
+            return recoveredPath;
+        }
+
+        Log.w("XServerDisplayActivity",
+                "Ignoring suspicious Steam game install path from " + source
+                        + " for appId=" + appId + ": " + canonicalPath);
+        return null;
+    }
+
     private String resolveSteamGameInstallPath(int appId) {
         if (shortcut != null) {
             String shortcutInstallPath = shortcut.getExtra("game_install_path");
-            if (shortcutInstallPath != null && !shortcutInstallPath.isEmpty()) {
-                File shortcutInstallDir = new File(shortcutInstallPath);
-                if (shortcutInstallDir.isDirectory()) {
-                    return getCanonicalPathOrAbsolute(shortcutInstallDir);
+            String resolvedShortcutInstallPath =
+                    sanitizeSteamGameInstallPath(appId, shortcutInstallPath, "shortcut");
+            if (resolvedShortcutInstallPath != null && !resolvedShortcutInstallPath.isEmpty()) {
+                if (!resolvedShortcutInstallPath.equals(shortcutInstallPath)) {
+                    shortcut.putExtra("game_install_path", resolvedShortcutInstallPath);
+                    shortcut.saveData();
                 }
+                return resolvedShortcutInstallPath;
             }
         }
 
         String serviceInstallPath = SteamBridge.getAppDirPath(appId);
         if (serviceInstallPath == null || serviceInstallPath.isEmpty()) return serviceInstallPath;
 
-        File serviceInstallDir = new File(serviceInstallPath);
+        String resolvedServiceInstallPath =
+                sanitizeSteamGameInstallPath(appId, serviceInstallPath, "service");
+        if (resolvedServiceInstallPath == null || resolvedServiceInstallPath.isEmpty()) {
+            return serviceInstallPath;
+        }
+
+        File serviceInstallDir = new File(resolvedServiceInstallPath);
         if (serviceInstallDir.isDirectory() && shortcut != null) {
             String shortcutInstallPath = shortcut.getExtra("game_install_path");
             String canonicalInstallPath = getCanonicalPathOrAbsolute(serviceInstallDir);
@@ -2034,12 +2450,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
 
         try {
-            cancelRealSteamWatchdog();
-        } catch (Exception e) {
-            Log.w("XServerLeakCheck", "Failed to cancel Steam watchdog during " + trigger, e);
-        }
-
-        try {
             if (handler != null) {
                 if (savePlaytimeRunnable != null) {
                     handler.removeCallbacks(savePlaytimeRunnable);
@@ -2222,6 +2632,21 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
     }
 
+    // SIGTERM->SIGKILL grace before end-of-session process kill. In PlanW the
+    // launcher already closed+saved the game before we reach here, so only Wine
+    // infra stubs remain — shorten it for that case; other sessions keep 2s so a
+    // slow save-on-exit isn't cut short.
+    private long sessionTerminateGraceMs() {
+        try {
+            if (isSteamShortcut()
+                    && com.winlator.cmod.feature.stores.steam.utils.PrefManager
+                            .INSTANCE.getWnPlanW()) {
+                return 800L;
+            }
+        } catch (Throwable ignored) {}
+        return 2000L;
+    }
+
     private void performForcedSessionCleanup(String trigger) {
         if (!beginSessionCleanup(trigger)) {
             Log.d("XServerLeakCheck", "Forced session cleanup already ran; skipping duplicate request from " + trigger);
@@ -2250,6 +2675,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         new Thread(() -> {
             performForcedEpicCloudUpload("forced cleanup (" + trigger + ")");
             performForcedGogCloudUpload("forced cleanup (" + trigger + ")");
+            sanitizeSteamStateForNextSession("forced cleanup (" + trigger + ")", true);
 
             try {
                 AppTerminationHelper.stopManagedServices(getApplicationContext(), "xserver_forced_cleanup_" + trigger);
@@ -2281,7 +2707,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 Log.e("XServerLeakCheck", "Failed to stop WineRequestHandler during forced cleanup", e);
             }
 
-            ArrayList<String> remaining = ProcessHelper.terminateSessionProcessesAndWait(2000, true);
+            ArrayList<String> remaining = ProcessHelper.terminateSessionProcessesAndWait(sessionTerminateGraceMs(), true);
             ProcessHelper.drainDeadChildren("forced cleanup (" + trigger + ")");
             ProcessHelper.scheduleDeadChildReapSweep("forced cleanup (" + trigger + ")", 4000, 200);
 
@@ -2327,18 +2753,21 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
         
         syncStoreCloudOnExit(() -> {
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (!beginSessionCleanup("exit")) {
-                        return;
-                    }
-                    savePlaytimeData(true);
-                    cleanupActivityCallbacks("exit");
+            handler.postDelayed(() -> {
+                if (!beginSessionCleanup("exit")) {
+                    return;
+                }
+                savePlaytimeData(true);
+                cleanupActivityCallbacks("exit");
+                // Teardown blocks for several seconds (the in-Wine cloud upload + clean-shutdown
+                // wait), so run it off the UI thread or the closing splash freezes. Mirrors
+                // performForcedSessionCleanup's threading; UI-touching calls are marshalled back.
+                new Thread(() -> {
+                    sanitizeSteamStateForNextSession("exit", true);
                     if (midiHandler != null) midiHandler.stop();
                     stopWinHandler("exit");
                     if (wineRequestHandler != null) wineRequestHandler.stop();
-                    ArrayList<String> remaining = ProcessHelper.terminateSessionProcessesAndWait(2000, true);
+                    ArrayList<String> remaining = ProcessHelper.terminateSessionProcessesAndWait(sessionTerminateGraceMs(), true);
                     ProcessHelper.drainDeadChildren("activity exit cleanup");
                     ProcessHelper.scheduleDeadChildReapSweep("activity exit cleanup", 4000, 200);
                     if (!remaining.isEmpty()) {
@@ -2355,11 +2784,13 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     midiHandler = null;
                     xServer = null;
                     xServerView = null;
-                    if (preloaderDialog != null && preloaderDialog.isShowing()) preloaderDialog.closeOnUiThread();
-                    cleanupDebugDialog("exit");
                     SessionKeepAliveService.stopSession(XServerDisplayActivity.this);
-                    closeAfterSessionExit();
-                }
+                    runOnUiThread(() -> {
+                        if (preloaderDialog != null && preloaderDialog.isShowing()) preloaderDialog.closeOnUiThread();
+                        cleanupDebugDialog("exit");
+                        closeAfterSessionExit();
+                    });
+                }, "XServerExitCleanup").start();
             }, 1000);
         });
     }
@@ -2822,36 +3253,246 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
     private void showLaunchPreloader(String text) {
         if (preloaderDialog == null) return;
-        preloaderDialog.showOnUiThread(text, cachedDisplayName, cachedPlatform, cachedContainerLabel);
+        preloaderDialog.showOnUiThread(
+                text,
+                cachedPreloaderTitle,
+                cachedPreloaderBadge,
+                cachedPreloaderSubtitle);
     }
 
     private void showLaunchPreloaderProgress(String text, int percent) {
         if (preloaderDialog == null) return;
         preloaderDialog.showProgressOnUiThread(
                 text,
-                cachedDisplayName,
-                cachedPlatform,
-                cachedContainerLabel,
+                cachedPreloaderTitle,
+                cachedPreloaderBadge,
+                cachedPreloaderSubtitle,
                 Math.max(0, Math.min(100, percent))
         );
+    }
+
+    private void stopWnLauncherStatusTailer() {
+        wnLauncherDrivesDismiss.set(false);
+        if (wnLauncherStatusTailer == null) return;
+        wnLauncherStatusTailer.stop();
+        wnLauncherStatusTailer = null;
+    }
+
+    private void resetWnLauncherLog(File launcherLog) {
+        if (launcherLog == null) return;
+        try {
+            File parent = launcherLog.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
+            if (launcherLog.exists() && !launcherLog.delete()) {
+                new FileWriter(launcherLog, false).close();
+            }
+            Log.d("XServerDisplayActivity",
+                    "Steam Launcher: reset launch log at " + launcherLog.getPath());
+        } catch (Exception e) {
+            Log.w("XServerDisplayActivity",
+                    "Steam Launcher: failed to reset launch log at "
+                            + launcherLog.getPath(), e);
+        }
+    }
+
+    private void scrubPlanWBridgeFilesForNextSession() {
+        if (container == null) return;
+        try {
+            int scrubbed = 0;
+            File sys32Bridge = new File(container.getRootDir(),
+                    ".wine/drive_c/windows/system32/lsteamclient.dll");
+            File syswow64Bridge = new File(container.getRootDir(),
+                    ".wine/drive_c/windows/syswow64/lsteamclient.dll");
+            if (sys32Bridge.exists() && sys32Bridge.delete()) scrubbed++;
+            if (syswow64Bridge.exists() && syswow64Bridge.delete()) scrubbed++;
+            Log.i("XServerDisplayActivity",
+                    "Steam Launcher: scrubbed " + scrubbed
+                            + " bridge file(s) during close cleanup");
+        } catch (Exception e) {
+            Log.w("XServerDisplayActivity",
+                    "Steam Launcher: failed to scrub bridge files during close cleanup", e);
+        }
+    }
+
+    private void sanitizeSteamStateForNextSession(String trigger, boolean waitForPlayingSessionClear) {
+        if (!steamStateSanitizedForClose.compareAndSet(false, true)) {
+            Log.d("XServerDisplayActivity",
+                    "Steam cleanup already ran; skipping duplicate request from " + trigger);
+            return;
+        }
+
+        stopWnLauncherStatusTailer();
+        if (!isSteamShortcut()) return;
+
+        boolean bionicSteam = false;
+        try {
+            bionicSteam = isBionicSteamEnabledForShortcut();
+        } catch (Throwable t) {
+            Log.w("XServerDisplayActivity",
+                    "Steam cleanup: failed to resolve bionic/PlanW state during " + trigger, t);
+        }
+
+        boolean planWActive = com.winlator.cmod.feature.stores.steam.utils
+                .PrefManager.INSTANCE.getWnPlanW();
+
+        // Ask the in-Wine launcher to log off Steam cleanly before we kill it; a
+        // SIGKILL'd launcher leaves the app registered "running" (~40s) and the next
+        // launch hits AlreadyRunning → fallback. No-op until the launcher advertises
+        // the armed marker.
+        if (bionicSteam && planWActive) {
+            try {
+                signalPlanWLauncherCleanShutdown(trigger);
+            } catch (Throwable t) {
+                Log.w("XServerDisplayActivity",
+                        "Steam cleanup: launcher clean-shutdown handshake failed during "
+                                + trigger, t);
+            }
+        }
+
+        if (container != null) {
+            resetWnLauncherLog(new File(container.getRootDir(), ".wine/drive_c/wn-launcher.log"));
+        }
+
+        if (!bionicSteam) return;
+
+        try {
+            if (waitForPlayingSessionClear) {
+                // Fire-and-forget: blocking on the kick wasted ~4s every exit (in PlanW
+                // the wn-session is offline during the reap window so it can't fire). The
+                // release is synchronous; the kick retries in the background after reconnect.
+                com.winlator.cmod.feature.stores.steam.service.SteamService
+                        .Companion.bionicHandoffReleaseAndKickPlayingSessionAsync(true);
+            } else {
+                com.winlator.cmod.feature.stores.steam.service.SteamService
+                        .Companion.bionicHandoffRelease();
+            }
+            Log.i("XServerDisplayActivity",
+                    "Steam cleanup: release issued from " + trigger
+                            + " planW=" + planWActive
+                            + " (playing-session kick dispatched async)");
+        } catch (Throwable t) {
+            Log.w("XServerDisplayActivity",
+                    "Steam cleanup: release/kick failed during " + trigger, t);
+        }
+
+        try {
+            clearBionicActiveProcessRegistry();
+        } catch (Throwable t) {
+            Log.w("XServerDisplayActivity",
+                    "Steam cleanup: failed to clear ActiveProcess registry during "
+                            + trigger, t);
+        }
+
+        if (planWActive) {
+            scrubPlanWBridgeFilesForNextSession();
+        }
+    }
+
+    // ---- Plan-W launcher clean-shutdown handshake ---------------------------
+    // Hand the in-Wine launcher a file sentinel it watches; on seeing it the
+    // launcher does a clean Steam_LogOff + teardown and exits, reaping the server
+    // session so the next launch doesn't hit AlreadyRunning. No-op until the
+    // launcher advertises the armed marker in wn-launcher.log.
+    private static final String WN_LAUNCHER_SHUTDOWN_SENTINEL = "wn-launcher.shutdown";
+    private static final String WN_LAUNCHER_ARMED_MARKER = "[wn-launcher] clean-shutdown armed";
+    private static final String WN_LAUNCHER_LOGOFF_DONE_MARKER = "[wn-launcher] clean logoff complete";
+    // Ceiling; returns early as soon as the "clean logoff complete" marker appears.
+    // Covers the in-Wine cloud exit upload (up to ~15s) plus the logoff flush.
+    private static final long WN_LAUNCHER_SHUTDOWN_TIMEOUT_MS = 20000L;
+    private static final long WN_LAUNCHER_SHUTDOWN_POLL_MS = 150L;
+
+    private void signalPlanWLauncherCleanShutdown(String trigger) {
+        if (container == null) return;
+        File driveC = new File(container.getRootDir(), ".wine/drive_c");
+        File log = new File(driveC, "wn-launcher.log");
+        if (!wnLauncherLogContains(log, WN_LAUNCHER_ARMED_MARKER)) {
+            Log.i("XServerDisplayActivity",
+                    "Plan-W launcher clean-shutdown: launcher did not advertise support ("
+                            + WN_LAUNCHER_ARMED_MARKER + " absent) — skipping handshake from "
+                            + trigger);
+            return;
+        }
+        File sentinel = new File(driveC, WN_LAUNCHER_SHUTDOWN_SENTINEL);
+        try {
+            FileUtils.writeString(sentinel, Long.toString(System.currentTimeMillis()));
+        } catch (Exception e) {
+            Log.w("XServerDisplayActivity",
+                    "Plan-W launcher clean-shutdown: failed to write sentinel "
+                            + sentinel.getAbsolutePath(), e);
+            return;
+        }
+        Log.i("XServerDisplayActivity",
+                "Plan-W launcher clean-shutdown: wrote " + sentinel.getAbsolutePath()
+                        + " from " + trigger + " — waiting up to "
+                        + WN_LAUNCHER_SHUTDOWN_TIMEOUT_MS + "ms for clean logoff");
+
+        long deadline = System.currentTimeMillis() + WN_LAUNCHER_SHUTDOWN_TIMEOUT_MS;
+        boolean cleanLogoff = false;
+        boolean launcherExited = false;
+        while (System.currentTimeMillis() < deadline) {
+            if (wnLauncherLogContains(log, WN_LAUNCHER_LOGOFF_DONE_MARKER)) {
+                cleanLogoff = true;
+                break;
+            }
+            if (!isSteamExeRunning()) {
+                launcherExited = true;
+                break;
+            }
+            try {
+                Thread.sleep(WN_LAUNCHER_SHUTDOWN_POLL_MS);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        Log.i("XServerDisplayActivity",
+                "Plan-W launcher clean-shutdown: done from " + trigger
+                        + " (cleanLogoff=" + cleanLogoff + " launcherExited=" + launcherExited
+                        + " elapsedMs=" + (WN_LAUNCHER_SHUTDOWN_TIMEOUT_MS
+                                - Math.max(0, deadline - System.currentTimeMillis())) + ")");
+        try {
+            if (sentinel.exists()) sentinel.delete();
+        } catch (Exception ignored) {}
+    }
+
+    private static boolean isSteamExeRunning() {
+        for (String detail : ProcessHelper.listRunningWineProcessDetails()) {
+            if (detail.toLowerCase().contains("steam.exe")) return true;
+        }
+        return false;
+    }
+
+    private static boolean wnLauncherLogContains(File log, String marker) {
+        if (log == null || !log.isFile()) return false;
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(new java.io.FileInputStream(log)))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.contains(marker)) return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
     }
 
     @Override
     protected void onDestroy() {
         activityDestroyed.set(true);
+        unregisterDisplayChangeListener();
         if (preloaderDialog != null) {
             preloaderDialog.close();
         }
+        stopWnLauncherStatusTailer();
         if (multicastLock != null && multicastLock.isHeld()) {
             try {
                 multicastLock.release();
             } catch (Exception ignored) {}
         }
 
-        if (xServerView != null) {
-            VulkanRenderer renderer = xServerView.getRenderer();
-            if (renderer != null) renderer.destroy();
-        }
+        // Don't call renderer.destroy() here — the render thread's
+        // onSurfaceDestroyed already drives nativeDestroy. A UI-thread destroy
+        // here races and SIGABRTs in Surface::disconnect when both run.
 
         if (exitRequested.get()) {
             SessionKeepAliveService.stopSession(this);
@@ -2910,26 +3551,47 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     }
 
     private boolean isRealSteamLaunchEnabledForShortcut() {
-        if (!isSteamShortcut()) {
-            return false;
-        }
-        return shortcut != null
-                ? parseBoolean(getShortcutSetting("launchRealSteam", container.isLaunchRealSteam() ? "1" : "0"))
-                : container != null && container.isLaunchRealSteam();
+        return false;
     }
 
     private boolean isBionicSteamEnabledForShortcut() {
         if (!isSteamShortcut()) return false;
-        return shortcut != null
+        if (isRealSteamLaunchEnabledForShortcut()) return false;
+        boolean cold = shortcut != null
+                ? parseBoolean(getShortcutSetting("useColdClient", container.isUseColdClient() ? "1" : "0"))
+                : container != null && container.isUseColdClient();
+        if (cold) return false;
+        boolean explicit = shortcut != null
                 ? parseBoolean(getShortcutSetting("launchBionicSteam", container.isLaunchBionicSteam() ? "1" : "0"))
                 : container != null && container.isLaunchBionicSteam();
+        if (explicit) return true;
+
+        boolean planW = com.winlator.cmod.feature.stores.steam.utils
+                .PrefManager.INSTANCE.getWnPlanW();
+        if (planW) {
+            String tok = com.winlator.cmod.feature.stores.steam.utils
+                    .PrefManager.INSTANCE.getRefreshToken();
+            long sid = com.winlator.cmod.feature.stores.steam.utils
+                    .PrefManager.INSTANCE.getSteamUserSteamId64();
+            if (tok != null && !tok.isEmpty() && sid > 0) {
+                Log.i("XServerDisplayActivity",
+                        "Steam Launcher auto-promote: Steam shortcut without explicit "
+                        + "Bionic flag, user signed in — routing through Steam Launcher "
+                        + "(set wn_plan_w=false to opt out)");
+                return true;
+            } else {
+                Log.w("XServerDisplayActivity",
+                        "Steam Launcher auto-promote: skipped (signed-in check failed) "
+                        + "tokEmpty=" + (tok == null || tok.isEmpty())
+                        + " sidIsZero=" + (sid == 0));
+            }
+        }
+        return false;
     }
 
     private boolean isColdClientEnabledForShortcut() {
         if (!isSteamShortcut()) return false;
-        if (isRealSteamLaunchEnabledForShortcut()) return false;
-        // Bionic Steam uses the ColdClient/Goldberg path for DRM and achievements.
-        if (isBionicSteamEnabledForShortcut()) return true;
+        if (isRealSteamLaunchEnabledForShortcut()) return false; // mutually exclusive
         return shortcut != null
                 ? parseBoolean(getShortcutSetting("useColdClient", container.isUseColdClient() ? "1" : "0"))
                 : container != null && container.isUseColdClient();
@@ -3030,9 +3692,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 true,
                 magnifierView != null,
                 enableLogsMenu,
-                isNativeRenderingEnabled,
-                getString(R.string.session_xserver_native_rendering),
-                getString(isNativeRenderingEnabled ? R.string.session_xserver_native_rendering_enabled : R.string.session_xserver_native_rendering_disabled),
                 hudTransparency,
                 hudScale,
                 hudElements,
@@ -3070,7 +3729,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 preferences.getFloat("overlay_opacity", InputControlsView.DEFAULT_OVERLAY_OPACITY),
                 preferences.getBoolean("touchscreen_haptics_enabled", false),
                 preferences.getBoolean(ControllerManager.PREF_VIBRATION_GLOBAL, false),
-                xServerView != null && xServerView.getRenderer() != null && xServerView.getRenderer().isFullscreen()
+                xServerView != null && xServerView.getRenderer() != null && xServerView.getRenderer().isFullscreen(),
+                RefreshRateUtils.getMaxSupportedRefreshRate(this)
         );
 
         if (drawerActionListener == null) {
@@ -3451,7 +4111,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     new XServerDisplayHostCallbacks() {
                         @Override
                         public void onDrawerSlide() {
-                            AppUtils.hideSystemUI(XServerDisplayActivity.this);
+                            // Per frame: avoid hideSystemUI's relayout unless bars actually showed.
+                            AppUtils.hideSystemUIIfVisible(XServerDisplayActivity.this);
                         }
 
                         @Override
@@ -3918,15 +4579,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 }
                 renderDrawerMenu();
                 break;
-            case R.id.main_menu_native_rendering:
-                isNativeRenderingEnabled = !isNativeRenderingEnabled;
-                preferences.edit().putBoolean("use_dri3", isNativeRenderingEnabled).apply();
-                if (frameRating != null) frameRating.setIsNative(isNativeRenderingEnabled);
-                renderDrawerMenu();
-                WinToast.show(this, getString(isNativeRenderingEnabled
-                    ? R.string.session_xserver_native_rendering_enabled_toast
-                    : R.string.session_xserver_native_rendering_disabled_toast));
-                break;
             case R.id.main_menu_exit:
                 closeDrawerMenu();
                 exit();
@@ -4038,6 +4690,224 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         return (isGamepad || isJoystick) && !isPointerMotionEvent(event);
     }
 
+    // Steam-game-specific prefix setup: DLL injection / bridge install / asset
+    // staging. Independent of the general Wine prefix bring-up in
+    // setupWineSystemFiles, so run as a parallel Future from the launch executor.
+    private void setupSteamGameFiles() {
+        if (!isSteamShortcut()) return;
+        try {
+            int appId = Integer.parseInt(shortcut.getExtra("app_id"));
+            String gameInstallPath = resolveSteamGameInstallPath(appId);
+            File gameDir = new File(gameInstallPath);
+            String language = container.getExtra("containerLanguage", "english");
+            if (language == null || language.isEmpty()) language = "english";
+            boolean isOfflineMode = parseBoolean(
+                    getShortcutSetting("steamOfflineMode",
+                            container.isSteamOfflineMode() ? "1" : "0"));
+            boolean useSteamInput = parseBoolean(
+                    getShortcutSetting("useSteamInput",
+                            container.getExtra("useSteamInput", "0")));
+            boolean unpackFiles = parseBoolean(
+                    getShortcutSetting("unpackFiles",
+                            container.isUnpackFiles() ? "1" : "0"));
+            boolean runtimePatcher = parseBoolean(
+                    getShortcutSetting("runtimePatcher",
+                            container.isRuntimePatcher() ? "1" : "0"));
+
+            boolean wnPlanWActive = com.winlator.cmod.feature.stores.steam.utils
+                    .PrefManager.INSTANCE.getWnPlanW();
+            String ticketBase64 = null;
+            if (!wnPlanWActive) {
+                try {
+                    ticketBase64 = SteamBridge.getEncryptedAppTicketBase64(appId);
+                } catch (Exception e) {
+                    Log.w("XServerDisplayActivity", "Failed to get encrypted app ticket", e);
+                }
+            }
+
+            if (!gameDir.exists()) return;
+
+            syncContainerSteamExecutableFromShortcut(appId, gameInstallPath);
+            boolean useColdClient = isColdClientEnabledForShortcut();
+
+            if (useColdClient) {
+                clearBionicActiveProcessRegistry();
+                new File(container.getRootDir(),
+                        ".wine/drive_c/windows/system32/lsteamclient.dll").delete();
+                new File(container.getRootDir(),
+                        ".wine/drive_c/windows/syswow64/lsteamclient.dll").delete();
+
+                MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED);
+                MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DLL_RESTORED);
+
+                boolean sidecarReady = ensureColdClientStore();
+                if (!sidecarReady) {
+                    Log.w("XServerDisplayActivity", "ColdClient sidecar store not ready — loader/Goldberg stubs missing");
+                }
+
+                boolean coldClientProvisioned =
+                        MarkerUtils.INSTANCE.hasMarker(gameInstallPath, Marker.STEAM_COLDCLIENT_USED);
+                if (!coldClientProvisioned) {
+                    SteamUtils.putBackSteamDlls(gameInstallPath);
+                    SteamUtils.restoreUnpackedExecutable(this, appId);
+                    generateSteamInterfacesForGame(gameDir);
+                } else {
+                    Log.d("XServerDisplayActivity", "ColdClient prefix already provisioned for appId=" + appId);
+                }
+
+                File steamDir = new File(container.getRootDir(), ".wine/drive_c/Program Files (x86)/Steam");
+                steamDir.mkdirs();
+                SteamUtils.writeCompleteSettingsDir(steamDir, appId, language, isOfflineMode, useSteamInput, ticketBase64);
+                SteamUtils.enrichSteamSettings(this, appId, new File(steamDir, "steam_settings"));
+                setupSteamSettingsForAllDirs(gameDir, appId, language, isOfflineMode, useSteamInput, ticketBase64);
+
+                File steamappsDir = new File(steamDir, "steamapps");
+                new File(steamappsDir, "common").mkdirs();
+                WineUtils.ensureSteamappsCommonSymlink(container, gameInstallPath);
+
+                String relativeExeForIni = resolveRelativeGameExe(appId, gameInstallPath);
+                if (!relativeExeForIni.isEmpty()) {
+                    String gameDirNameForIni = new File(gameInstallPath).getName();
+                    writeColdClientIniDirect(appId, gameDirNameForIni, relativeExeForIni, runtimePatcher);
+                    Log.d("XServerDisplayActivity", "ColdClient INI: exe=" + relativeExeForIni);
+                } else {
+                    Log.w("XServerDisplayActivity", "Could not find game exe for ColdClient INI, appId=" + appId);
+                }
+
+                MarkerUtils.INSTANCE.addMarker(gameInstallPath, Marker.STEAM_COLDCLIENT_USED);
+            } else if (isBionicSteamEnabledForShortcut()) {
+                MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED);
+                MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_COLDCLIENT_USED);
+                MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DRM_PATCHED);
+                MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DRM_UNPACK_CHECKED);
+
+                SteamUtils.restoreOriginalExecutable(this, appId);
+
+                boolean bionicRuntimeOk = com.winlator.cmod.feature.stores.steam.wnsteam
+                        .WnSteamAssetsInstaller.INSTANCE.installBionicRuntime(this);
+                boolean bionicBridgeOk;
+                if (wnPlanWActive) {
+                    File sys32Bridge = new File(container.getRootDir(),
+                            ".wine/drive_c/windows/system32/lsteamclient.dll");
+                    File syswow64Bridge = new File(container.getRootDir(),
+                            ".wine/drive_c/windows/syswow64/lsteamclient.dll");
+                    int scrubbed = 0;
+                    if (sys32Bridge.exists() && sys32Bridge.delete()) scrubbed++;
+                    if (syswow64Bridge.exists() && syswow64Bridge.delete()) scrubbed++;
+                    Log.i("XServerDisplayActivity",
+                            "Steam Launcher: scrubbed " + scrubbed
+                            + " stale lsteamclient.dll bridge file(s) from system32/syswow64");
+                    bionicBridgeOk = false;
+                } else {
+                    bionicBridgeOk = com.winlator.cmod.feature.stores.steam.wnsteam
+                            .WnSteamAssetsInstaller.INSTANCE
+                            .installSteamclientBridgeIntoContainer(this, container);
+                }
+
+                if (wnPlanWActive) {
+                    restoreSteamApiDlls(gameDir);
+                } else {
+                    int steampipeSwapped = com.winlator.cmod.feature.stores.steam.wnsteam
+                            .WnSteamAssetsInstaller.INSTANCE
+                            .installSteampipeBridgeIntoApp(this, gameDir);
+                    Log.d("XServerDisplayActivity",
+                            "Bionic Steam: " + steampipeSwapped
+                            + " steam_api*.dll(s) replaced with steampipe bridge");
+                }
+
+                writeBionicActiveProcessRegistry();
+
+                File bionicSteamDir = new File(container.getRootDir(),
+                        ".wine/drive_c/Program Files (x86)/Steam");
+                bionicSteamDir.mkdirs();
+                WineUtils.ensureSteamappsCommonSymlink(container, gameInstallPath);
+
+                boolean bionicOverlayOk = false;
+                if (!wnPlanWActive) {
+                    bionicOverlayOk = installBionicSteamPathOverlay(container, bionicSteamDir);
+                }
+
+                boolean planWValveOk = false;
+                boolean planWLauncherOk = false;
+                boolean planWServiceOk = false;
+                if (wnPlanWActive) {
+                    try {
+                        planWValveOk = com.winlator.cmod.feature.stores.steam.wnsteam
+                                .WnSteamAssetsInstaller.INSTANCE
+                                .installPlanWValveSteam(this, container);
+                        planWLauncherOk = com.winlator.cmod.feature.stores.steam.wnsteam
+                                .WnSteamAssetsInstaller.INSTANCE
+                                .installPlanWLauncher(this, container);
+                        planWServiceOk = com.winlator.cmod.feature.stores.steam.wnsteam
+                                .WnSteamAssetsInstaller.INSTANCE
+                                .installPlanWSteamService(this, container);
+                        Log.i("XServerDisplayActivity",
+                                "Steam Launcher asset stage: valveSteam=" + planWValveOk
+                                + " launcher=" + planWLauncherOk
+                                + " service=" + planWServiceOk);
+                    } catch (Exception e) {
+                        Log.e("XServerDisplayActivity",
+                                "Steam Launcher asset stage failed", e);
+                    }
+                }
+
+                Log.d("XServerDisplayActivity",
+                        "Bionic Steam game-side setup complete for appId=" + appId
+                                + " runtime=" + bionicRuntimeOk
+                                + " bridge=" + bionicBridgeOk
+                                + " steamPathOverlay=" + bionicOverlayOk
+                                + " planWValve=" + planWValveOk
+                                + " planWLauncher=" + planWLauncherOk);
+            } else {
+                if (MarkerUtils.INSTANCE.hasMarker(gameInstallPath, Marker.STEAM_COLDCLIENT_USED)) {
+                    SteamUtils.restoreSteamclientFiles(this, appId);
+                    MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_COLDCLIENT_USED);
+                    Log.d("XServerDisplayActivity", "Restored steamclient DLLs from prior ColdClient mode");
+                }
+
+                if (!MarkerUtils.INSTANCE.hasMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED)) {
+                    MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DLL_RESTORED);
+
+                    replaceSteamApiDlls(gameDir, gameInstallPath, language, isOfflineMode, useSteamInput, ticketBase64);
+
+                    if (unpackFiles) {
+                        SteamUtils.restoreUnpackedExecutable(this, appId);
+                    } else {
+                        SteamUtils.restoreOriginalExecutable(this, appId);
+                    }
+
+                    SteamUtils.restoreSteamclientFiles(this, appId);
+                    SteamUtils.enrichSteamSettings(this, appId,
+                            new File(gameInstallPath, "steam_settings"));
+
+                    MarkerUtils.INSTANCE.addMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED);
+                } else {
+                    boolean hasSteamApiDll = hasSteamApiDllInTree(gameDir);
+                    if (!hasSteamApiDll) {
+                        Log.w("XServerDisplayActivity",
+                                "STEAM_DLL_REPLACED marker set but no steam_api DLL found — clearing marker and re-injecting");
+                        MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED);
+                        replaceSteamApiDlls(gameDir, gameInstallPath, language, isOfflineMode, useSteamInput, ticketBase64);
+                        MarkerUtils.INSTANCE.addMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED);
+                    } else {
+                        setupSteamSettingsForAllDirs(gameDir, appId, language, isOfflineMode, useSteamInput, ticketBase64);
+                    }
+                    SteamUtils.enrichSteamSettings(this, appId,
+                            new File(gameInstallPath, "steam_settings"));
+                    copySteamclientStubs(gameDir);
+                }
+            }
+
+            setupSteamEnvironment(appId, gameDir);
+            SteamUtils.syncGoldbergAchievementsAndStats(this, appId);
+            cleanupEmbeddedSteamRuntime(gameDir);
+
+            Log.d("XServerDisplayActivity", "Steam environment physical readiness verified for appId=" + appId);
+        } catch (Exception e) {
+            Log.e("XServerDisplayActivity", "Failed to set up Steam environment", e);
+        }
+    }
+
     private void setupWineSystemFiles() {
         Log.d("ContainerLaunch", "=== setupWineSystemFiles START === container=" + container.id +
                 " wine=" + wineVersion + " arch=" + (wineInfo != null ? wineInfo.getArch() : "null") +
@@ -4101,207 +4971,47 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             containerDataChanged = true;
         }
 
-        if (!dxwrapper.equals(container.getExtra("dxwrapper")) || firstTimeBoot) {
+        String wineArchKey = wineVersion != null && wineVersion.contains("arm64ec") ? "arm64ec" : "x86_64";
+        String dxwrapperGateKey = dxwrapper + "|arch=" + wineArchKey;
+        if (!dxwrapperGateKey.equals(container.getExtra("dxwrapper")) || firstTimeBoot) {
+            Log.i("XServerDisplayActivity",
+                    "DXVK/VKD3D extract: gate fired (key='" + dxwrapperGateKey
+                            + "' prev='" + container.getExtra("dxwrapper")
+                            + "' firstTimeBoot=" + firstTimeBoot + ")");
+            wipeDxwrapperDllsForReextract();
             extractDXWrapperFiles(dxwrapper);
-            container.putExtra("dxwrapper", dxwrapper);
+            container.putExtra("dxwrapper", dxwrapperGateKey);
             containerDataChanged = true;
         }
 
         boolean isSteamGame = isSteamShortcut();
         boolean isCustomGame = isCustomShortcut();
-        boolean launchRealSteamSetup = isRealSteamLaunchEnabledForShortcut();
         boolean coldClientSetup = isColdClientEnabledForShortcut();
 
-        // Keep Real Steam and ColdClient sidecar stores separate.
-        if (isSteamGame || launchRealSteamSetup) {
+        if (isSteamGame) {
             setSteamClientVisibility(true, coldClientSetup);
         } else if (isCustomGame) {
             setSteamClientVisibility(false);
         }
 
-        if (launchRealSteamSetup) {
-            Log.d("XServerDisplayActivity", "Ensuring real Steam client is ready...");
-            boolean steamReady = false;
-            while (!steamReady) {
-                steamReady = SteamBridge.ensureSteamReady(this);
-                Log.d("XServerDisplayActivity", "Steam client ready: " + steamReady);
-                if (!steamReady) {
-                    boolean shouldRetry = promptSteamClientDownloadRetry();
-                    if (!shouldRetry) {
-                        closeLaunchAttempt();
-                        return;
-                    }
-                    preloaderDialog.showOnUiThread(getString(R.string.preloader_retrying_steam_client_download));
-                }
-            }
-
-            SteamBridge.ensureRealSteamSupportReady(this);
-
-            verifySteamClientFiles(false);
-        } else if (isSteamGame) {
-            Log.d("XServerDisplayActivity", "Real Steam client disabled; preparing ColdClient support only");
+        boolean steamLauncherActive = com.winlator.cmod.feature.stores.steam.utils
+                .PrefManager.INSTANCE.getWnPlanW();
+        if (isSteamGame && !steamLauncherActive) {
+            Log.d("XServerDisplayActivity", "Preparing Steam support");
             SteamBridge.ensureColdClientSupportReady(this);
-
             verifySteamClientFiles(true);
         }
 
-        if (launchRealSteamSetup || isSteamGame) {
-            if (isSteamGame) {
-                try {
-                    int appId = Integer.parseInt(shortcut.getExtra("app_id"));
-                    String gameInstallPath = resolveSteamGameInstallPath(appId);
-                    File gameDir = new File(gameInstallPath);
-                    String language = container.getExtra("containerLanguage", "english");
-                    if (language == null || language.isEmpty()) language = "english";
-                    boolean isOfflineMode = shortcut != null
-                            ? parseBoolean(getShortcutSetting("steamOfflineMode", container.isSteamOfflineMode() ? "1" : "0"))
-                            : container.isSteamOfflineMode();
-                    boolean forceDlc = shortcut != null
-                            ? parseBoolean(getShortcutSetting("forceDlc", container.isForceDlc() ? "1" : "0"))
-                            : container.isForceDlc();
-                    boolean useSteamInput = shortcut != null
-                            ? parseBoolean(getShortcutSetting("useSteamInput", container.getExtra("useSteamInput", "0")))
-                            : parseBoolean(container.getExtra("useSteamInput", "0"));
-                    boolean unpackFiles = shortcut != null
-                            ? parseBoolean(getShortcutSetting("unpackFiles", container.isUnpackFiles() ? "1" : "0"))
-                            : container.isUnpackFiles();
-                    boolean runtimePatcher = shortcut != null
-                            ? parseBoolean(getShortcutSetting("runtimePatcher", container.isRuntimePatcher() ? "1" : "0"))
-                            : container.isRuntimePatcher();
-
-                    String ticketBase64 = null;
-                    try {
-                        ticketBase64 = SteamBridge.getEncryptedAppTicketBase64(appId);
-                    } catch (Exception e) {
-                        Log.w("XServerDisplayActivity", "Failed to get encrypted app ticket", e);
-                    }
-
-                    if (gameDir.exists()) {
-                        syncContainerSteamExecutableFromShortcut(appId, gameInstallPath);
-                        // Bionic Steam also uses ColdClient, not plain Goldberg.
-                        boolean useColdClient = isColdClientEnabledForShortcut();
-                        
-                        if (launchRealSteamSetup) {
-                            // Real Steam keeps its sidecar pristine.
-                            MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED);
-                            MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_COLDCLIENT_USED);
-                            MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DRM_PATCHED);
-                            MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DRM_UNPACK_CHECKED);
-
-                            // Old MoveSteamExe copies break Real Steam integrity.
-                            File copiedSteamExe = new File(gameInstallPath, "steam.exe");
-                            if (copiedSteamExe.exists()) {
-                                copiedSteamExe.delete();
-                                Log.d("XServerDisplayActivity",
-                                        "Real Steam Setup: Purged orphaned local steam.exe from "
-                                                + copiedSteamExe.getAbsolutePath());
-                            }
-                            cleanupEmbeddedSteamRuntime(gameDir);
-
-                            restoreSteamApiDlls(gameDir);
-                            SteamUtils.restoreOriginalExecutable(this, appId);
-
-                            Log.d("XServerDisplayActivity",
-                                    "Real Steam Setup: Game-side state restored for appId=" + appId);
-                        } else if (useColdClient) {
-                            // ColdClient uses emulated steamclient DLLs.
-                            MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED);
-                            MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DLL_RESTORED);
-
-                            boolean sidecarReady = ensureColdClientStore();
-                            if (!sidecarReady) {
-                                Log.w("XServerDisplayActivity", "ColdClient sidecar store not ready — loader/Goldberg stubs missing");
-                            }
-
-                            boolean coldClientProvisioned =
-                                    MarkerUtils.INSTANCE.hasMarker(gameInstallPath, Marker.STEAM_COLDCLIENT_USED);
-                            if (!coldClientProvisioned) {
-                                SteamUtils.putBackSteamDlls(gameInstallPath);
-                                SteamUtils.restoreUnpackedExecutable(this, appId);
-                                generateSteamInterfacesForGame(gameDir);
-                            } else {
-                                Log.d("XServerDisplayActivity", "ColdClient prefix already provisioned for appId=" + appId);
-                            }
-
-                            File steamDir = new File(container.getRootDir(), ".wine/drive_c/Program Files (x86)/Steam");
-                            steamDir.mkdirs();
-                            SteamUtils.writeCompleteSettingsDir(steamDir, appId, language, isOfflineMode, forceDlc, useSteamInput, ticketBase64);
-                            SteamUtils.enrichSteamSettings(this, appId, new File(steamDir, "steam_settings"));
-                            setupSteamSettingsForAllDirs(gameDir, appId, language, isOfflineMode, forceDlc, useSteamInput, ticketBase64);
-
-                            File steamappsDir = new File(steamDir, "steamapps");
-                            new File(steamappsDir, "common").mkdirs();
-                            WineUtils.ensureSteamappsCommonSymlink(container, gameInstallPath);
-
-                            String relativeExeForIni = resolveRelativeGameExe(appId, gameInstallPath);
-                            if (!relativeExeForIni.isEmpty()) {
-                                String gameDirNameForIni = new File(gameInstallPath).getName();
-                                writeColdClientIniDirect(appId, gameDirNameForIni, relativeExeForIni, runtimePatcher);
-                                Log.d("XServerDisplayActivity", "ColdClient INI: exe=" + relativeExeForIni);
-                            } else {
-                                Log.w("XServerDisplayActivity", "Could not find game exe for ColdClient INI, appId=" + appId);
-                            }
-
-                            MarkerUtils.INSTANCE.addMarker(gameInstallPath, Marker.STEAM_COLDCLIENT_USED);
-                        } else {
-                            // Goldberg owns steam_api replacement.
-                            if (MarkerUtils.INSTANCE.hasMarker(gameInstallPath, Marker.STEAM_COLDCLIENT_USED)) {
-                                SteamUtils.restoreSteamclientFiles(this, appId);
-                                MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_COLDCLIENT_USED);
-                                Log.d("XServerDisplayActivity", "Restored steamclient DLLs from prior ColdClient mode");
-                            }
-
-                            if (!MarkerUtils.INSTANCE.hasMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED)) {
-                                MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DLL_RESTORED);
-
-                                replaceSteamApiDlls(gameDir, gameInstallPath, language, isOfflineMode, forceDlc, useSteamInput, ticketBase64);
-
-                                if (unpackFiles) {
-                                    SteamUtils.restoreUnpackedExecutable(this, appId);
-                                } else {
-                                    SteamUtils.restoreOriginalExecutable(this, appId);
-                                }
-
-                                SteamUtils.restoreSteamclientFiles(this, appId);
-
-                                SteamUtils.enrichSteamSettings(this, appId,
-                                        new File(gameInstallPath, "steam_settings"));
-
-                                MarkerUtils.INSTANCE.addMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED);
-                                Log.d("XServerDisplayActivity", "Goldberg Steam setup complete for appId=" + appId);
-                            } else {
-                                // Recover stale markers from games that shipped without steam_api DLLs.
-                                boolean hasSteamApiDll = hasSteamApiDllInTree(gameDir);
-                                if (!hasSteamApiDll) {
-                                    Log.w("XServerDisplayActivity",
-                                            "STEAM_DLL_REPLACED marker set but no steam_api DLL found — clearing marker and re-injecting");
-                                    MarkerUtils.INSTANCE.removeMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED);
-                                    replaceSteamApiDlls(gameDir, gameInstallPath, language, isOfflineMode, forceDlc, useSteamInput, ticketBase64);
-                                    MarkerUtils.INSTANCE.addMarker(gameInstallPath, Marker.STEAM_DLL_REPLACED);
-                                } else {
-                                    setupSteamSettingsForAllDirs(gameDir, appId, language, isOfflineMode, forceDlc, useSteamInput, ticketBase64);
-                                }
-                                SteamUtils.enrichSteamSettings(this, appId,
-                                        new File(gameInstallPath, "steam_settings"));
-                                copySteamclientStubs(gameDir);
-                                Log.d("XServerDisplayActivity", "Goldberg: refreshed steam_settings for appId=" + appId);
-                            }
-                        }
-
-                        setupSteamEnvironment(appId, gameDir);
-
-                        SteamUtils.syncGoldbergAchievementsAndStats(this, appId);
-
-                        // Embedded Steam runtimes can shadow the intended stubs.
-                        cleanupEmbeddedSteamRuntime(gameDir);
-
-                        Log.d("XServerDisplayActivity", "Steam environment physical readiness verified for appId=" + appId);
-                    }
-                } catch (Exception e) {
-                    Log.e("XServerDisplayActivity", "Failed to set up Steam environment", e);
-                }
-            }
+        if (xServer == null || isFinishing() || isDestroyed()) {
+            Log.w("XServerDisplayActivity",
+                    "setupWineSystemFiles: activity torn down mid-setup (xServer="
+                    + (xServer == null ? "null" : "ok")
+                    + " finishing=" + isFinishing()
+                    + " destroyed=" + isDestroyed()
+                    + ") — aborting stale background setup, no crash");
+            return;
         }
+
         String desktopTheme = shortcut != null ? getShortcutSetting("desktopTheme", container.getDesktopTheme()) : container.getDesktopTheme();
         if (!(desktopTheme+","+xServer.screenInfo).equals(container.getExtra("desktopTheme"))) {
             WineThemeManager.apply(this, new WineThemeManager.ThemeInfo(desktopTheme), xServer.screenInfo);
@@ -4327,6 +5037,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 exclusiveXInput = extra.equals("1");
             }
         }
+        WineUtils.ensureControllerDllOverrides(container);
         WineUtils.setJoystickRegistryKeys(container, dinputEnabled, exclusiveXInput);
         WineUtils.ensureWinebusConfig(container);
 
@@ -4541,6 +5252,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             wineDebugValue = "-all";
         }
         envVars.put("WINEDEBUG", wineDebugValue);
+        Log.i("XServerDisplayActivity",
+                "WINEDEBUG resolved: enable=" + enableWineDebug
+                        + " channels='" + wineDebugChannels + "' value='" + wineDebugValue + "'");
 
         String rootPath = imageFs.getRootDir().getPath();
         FileUtils.clear(imageFs.getTmpDir());
@@ -4556,10 +5270,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 guestProgramLauncherComponent.setContainer(this.container);
                 guestProgramLauncherComponent.setWineInfo(this.wineInfo);
 
-                String steamType = isSteamShortcut()
-                        ? (shortcut != null ? getShortcutSetting("steamType", container.getSteamType()) : container.getSteamType())
-                        : Container.STEAM_TYPE_NORMAL;
-                guestProgramLauncherComponent.setSteamType(steamType);
                 GameFixes.applyForLaunch(container, shortcut);
 
                 String wineStartCmd = getWineStartCommand(guestProgramLauncherComponent);
@@ -4626,10 +5336,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 if (isSteamGameForUnpack) {
                     guestProgramLauncherComponent.setPreUnpack(() -> {
                         try {
-                            boolean currentLaunchRealSteam = shortcut != null
-                                    ? parseBoolean(getShortcutSetting("launchRealSteam", container.isLaunchRealSteam() ? "1" : "0"))
-                                    : container.isLaunchRealSteam();
-                            if (currentLaunchRealSteam) {
+                            if (isBionicSteamEnabledForShortcut()) {
                                 return;
                             }
 
@@ -4639,8 +5346,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                             runPreGameSetup(
                                     guestProgramLauncherComponent,
                                     container.isNeedsUnpacking(),
-                                    currentUnpackFiles,
-                                    false);
+                                    currentUnpackFiles);
                         } catch (Exception e) {
                             Log.e("XServerDisplayActivity", "preUnpack failed", e);
                         }
@@ -4693,39 +5399,251 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         // Wine cannot enumerate Android network interfaces; Steam treats that as offline.
         environment.addComponent(new NetworkInfoUpdateComponent());
 
-        boolean launchRealSteamMode = shortcut != null
-                ? parseBoolean(getShortcutSetting("launchRealSteam", container.isLaunchRealSteam() ? "1" : "0"))
-                : (container != null && container.isLaunchRealSteam());
-        if (shortcut != null && "STEAM".equals(shortcut.getExtra("game_source")) && !launchRealSteamMode) {
+        if (shortcut != null && "STEAM".equals(shortcut.getExtra("game_source"))) {
             Log.d("XServerDisplayActivity", "Adding SteamClientComponent for Steam game");
             environment.addComponent(new SteamClientComponent());
         }
 
-        // Real Steam handles auth itself; bionic-only Steam env keys can trap it in an install loop.
-        if (launchRealSteamMode) {
-            final String[] bionicKeys = {
-                "WINESTEAMCLIENTPATH64", "WINESTEAMCLIENTPATH",
-                "_STEAM_SETENV_MANAGER", "BREAKPAD_DUMP_LOCATION",
-                "STEAM_BASE_FOLDER", "ENABLE_VK_LAYER_VALVE_steam_overlay_1",
-                "STEAMVIDEOTOKEN", "Steam3Master", "SteamClientService",
-                "SteamUser", "SteamAppUser", "SteamClientLaunch", "SteamEnv",
-                "SteamPath", "ValvePlatformMutex", "STEAMID",
-                "SteamGameId", "SteamAppId", "OWNED_DLCS",
-            };
-            int scrubbed = 0;
-            for (String k : bionicKeys) {
-                if (envVars.has(k)) { envVars.remove(k); scrubbed++; }
-            }
-            if (scrubbed > 0) {
+        if (isBionicSteamEnabledForShortcut()) {
+            try {
+                long bsSteamId = com.winlator.cmod.feature.stores.steam.utils
+                        .PrefManager.INSTANCE.getSteamUserSteamId64();
+                String bsUser = com.winlator.cmod.feature.stores.steam.utils
+                        .PrefManager.INSTANCE.getUsername();
+                int bsAppId = -1;
+                try {
+                    if (shortcut != null) bsAppId = Integer.parseInt(shortcut.getExtra("app_id"));
+                } catch (Exception ignored) {}
+                envVars.put("Steam3Master", "127.0.0.1:57343");
+                envVars.put("SteamClientService", "127.0.0.1:57344");
+                String bridgeLib = com.winlator.cmod.feature.stores.steam.wnsteam
+                        .WnSteamAssetsInstaller.INSTANCE.bridgeLibPath(this).getAbsolutePath();
+                envVars.put("WINESTEAMCLIENTPATH64", bridgeLib);
+                envVars.put("WINESTEAMCLIENTPATH", bridgeLib);
+                envVars.put("_STEAM_SETENV_MANAGER", "1");
+                String steamRootLinux = imageFs.wineprefix
+                        + "/drive_c/Program Files (x86)/Steam";
+                envVars.put("STEAM_BASE_FOLDER", steamRootLinux);
+                File bsBreakpad = new File(imageFs.getRootDir(), "usr/tmp/breakpad");
+                bsBreakpad.mkdirs();
+                envVars.put("BREAKPAD_DUMP_LOCATION", bsBreakpad.getAbsolutePath());
+                envVars.put("STEAMVIDEOTOKEN", "1");
+                envVars.put("ENABLE_VK_LAYER_VALVE_steam_overlay_1", "0");
+                envVars.put("SteamEnv", "1");
+                envVars.put("SteamClientLaunch", "1");
+                if (bsUser != null && !bsUser.isEmpty()) {
+                    envVars.put("SteamUser", bsUser);
+                    envVars.put("SteamAppUser", bsUser);
+                }
+                if (bsSteamId > 0) envVars.put("STEAMID", String.valueOf(bsSteamId));
+                if (bsAppId > 0) {
+                    envVars.put("SteamAppId", String.valueOf(bsAppId));
+                    envVars.put("SteamGameId", String.valueOf(bsAppId));
+                }
+                envVars.put("SteamPath", "C:\\Program Files (x86)\\Steam");
+                envVars.put("ValvePlatformMutex", "c:\\Program Files (x86)\\Steam/");
+                String currentWineDebug = envVars.get("WINEDEBUG");
+                if (currentWineDebug == null || currentWineDebug.equals("-all")) {
+                    envVars.put("WINEDEBUG", "+module,+loaddll");
+                }
                 Log.i("XServerDisplayActivity",
-                      "real-Steam mode: scrubbed " + scrubbed +
-                      " bionic env keys from envVars");
+                        "Bionic Steam: published bridge env (Steam3Master=127.0.0.1:57343, appId="
+                                + bsAppId + ", steamBase=" + steamRootLinux
+                                + ", WINEDEBUG=" + envVars.get("WINEDEBUG") + ")");
+
+                try {
+                    File steamDirPrefix = new File(container.getRootDir(),
+                            ".wine/drive_c/Program Files (x86)/Steam");
+                    if (steamDirPrefix.isDirectory()) {
+                        File helperDst = new File(steamDirPrefix, "wn-steam-helper.exe");
+                        if (!helperDst.exists() || helperDst.length() != 176128) {
+                            try (java.io.InputStream in = getAssets().open(
+                                        "wnsteam/bionic/wn-steam-helper.exe");
+                                 java.io.FileOutputStream out =
+                                        new java.io.FileOutputStream(helperDst)) {
+                                byte[] buf = new byte[64 * 1024];
+                                int n; while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                            }
+                            Log.i("XServerDisplayActivity",
+                                  "Bionic Steam: installed wn-steam-helper.exe ("
+                                  + helperDst.length() + " B) at " + helperDst.getPath());
+                        }
+                    } else {
+                        Log.w("XServerDisplayActivity",
+                              "Bionic Steam: container Steam dir missing, helper not staged: "
+                              + steamDirPrefix.getPath());
+                    }
+                } catch (Exception e) {
+                    Log.e("XServerDisplayActivity",
+                          "Bionic Steam: helper install failed", e);
+                }
+
+                if (com.winlator.cmod.feature.stores.steam.utils
+                        .PrefManager.INSTANCE.getWnPlanW()) {
+                    String currentOverrides = envVars.get("WINEDLLOVERRIDES");
+                    String planWOverride = "lsteamclient=";
+                    if (currentOverrides == null || currentOverrides.isEmpty()) {
+                        envVars.put("WINEDLLOVERRIDES", planWOverride);
+                    } else if (!currentOverrides.contains("lsteamclient=")) {
+                        envVars.put("WINEDLLOVERRIDES",
+                                currentOverrides + ";" + planWOverride);
+                    }
+                    Log.i("XServerDisplayActivity",
+                            "Steam Launcher: WINEDLLOVERRIDES set to '"
+                            + envVars.get("WINEDLLOVERRIDES")
+                            + "' to disable lsteamclient export-hijack");
+                    envVars.put("PROTON_DISABLE_LSTEAMCLIENT", "1");
+                    Log.i("XServerDisplayActivity",
+                            "Steam Launcher: PROTON_DISABLE_LSTEAMCLIENT=1 "
+                            + "(bypass ntdll lsteamclient hooks for Proton 10+)");
+                    String planWUser = com.winlator.cmod.feature.stores.steam.utils
+                            .PrefManager.INSTANCE.getUsername();
+                    String planWSid  = String.valueOf(com.winlator.cmod.feature.stores.steam.utils
+                            .PrefManager.INSTANCE.getSteamUserSteamId64());
+                    String planWTok = com.winlator.cmod.feature.stores.steam.utils
+                            .PrefManager.INSTANCE.getRefreshToken();
+                    if (planWTok != null && !planWTok.isEmpty()
+                            && planWUser != null && !planWUser.isEmpty()
+                            && !planWSid.equals("0")
+                            && bsAppId > 0) {
+                        envVars.put("WN_STEAM_USERNAME", planWUser);
+                        envVars.put("WN_STEAM_STEAMID", planWSid);
+                        envVars.put("WN_STEAM_TOKEN", planWTok);
+                        envVars.put("WN_STEAM_APPID", String.valueOf(bsAppId));
+                        File planWCa = new File(container.getRootDir(),
+                                ".wine/drive_c/Program Files (x86)/Steam/wnsteam_cacert.pem");
+                        if (planWCa.exists() && planWCa.length() > 0) {
+                            envVars.put("STEAM_SSL_CERT_FILE",
+                                    "C:\\Program Files (x86)\\Steam\\wnsteam_cacert.pem");
+                            Log.i("XServerDisplayActivity",
+                                    "Steam Launcher: STEAM_SSL_CERT_FILE -> staged CA bundle ("
+                                    + planWCa.length() + " bytes)");
+                        } else {
+                            Log.w("XServerDisplayActivity",
+                                    "Steam Launcher: CA bundle not staged at " + planWCa.getPath()
+                                    + " — launcher CM logon may fail TLS verification");
+                        }
+                        Log.i("XServerDisplayActivity",
+                                "Steam Launcher: token+identity published (user=" + planWUser
+                                + " sid=" + planWSid
+                                + " appId=" + bsAppId
+                                + " tokenLen=" + planWTok.length() + ")");
+                    } else {
+                        Log.w("XServerDisplayActivity",
+                                "Steam Launcher: refresh token / user / steamId missing "
+                                + "(user='" + planWUser + "' sidIsZero="
+                                + planWSid.equals("0") + " tokenEmpty="
+                                + (planWTok == null || planWTok.isEmpty())
+                                + " bsAppId=" + bsAppId
+                                + ") — launcher will refuse to start; "
+                                + "sign into Steam first");
+                    }
+                }
+            } catch (Exception e) {
+                Log.e("XServerDisplayActivity", "Bionic Steam: failed to publish bridge env", e);
+            }
+        }
+
+        if (com.winlator.cmod.feature.stores.steam.utils.PrefManager.INSTANCE.getWnPlanW()
+                && shortcut != null && "STEAM".equals(shortcut.getExtra("game_source"))) {
+            try {
+                java.io.File launcherLog = new java.io.File(
+                        container.getRootDir(), ".wine/drive_c/wn-launcher.log");
+                String gameName = shortcut != null && !shortcut.name.isEmpty()
+                        ? shortcut.name : "game";
+                resetWnLauncherLog(launcherLog);
+                stopWnLauncherStatusTailer();
+                wnLauncherStatusTailer = new com.winlator.cmod.feature.stores.steam.wnsteam
+                        .WnLauncherStatusTailer(
+                            this,
+                            launcherLog,
+                            gameName,
+                            100L,
+                            (phaseText) -> {
+                                if (preloaderDialog != null) {
+                                    preloaderDialog.setStepOnUiThread(phaseText);
+                                }
+                                return kotlin.Unit.INSTANCE;
+                            },
+                            () -> {
+                                stopWnLauncherStatusTailer();
+                                if (preloaderDialog != null) {
+                                    preloaderDialog.closeOnUiThread();
+                                }
+                                return kotlin.Unit.INSTANCE;
+                            },
+                            (reason) -> {
+                                // Invalidate the broken Steam-dir staging so the next launch
+                                // re-runs installPlanW* through a fresh symlink, restoring
+                                // visibility of the shared-store DLLs.
+                                try {
+                                    File brokenStage = new File(container.getRootDir(),
+                                            ".wine/drive_c/Program Files (x86)/Steam/.wn-planw-stage.stamp");
+                                    if (brokenStage.exists()) brokenStage.delete();
+                                    File brokenLauncher = new File(container.getRootDir(),
+                                            ".wine/drive_c/Program Files (x86)/Steam/.wn-planw-launcher.stamp");
+                                    if (brokenLauncher.exists()) brokenLauncher.delete();
+                                } catch (Exception ignored) {}
+                                try {
+                                    com.winlator.cmod.feature.stores.steam.service.SteamService
+                                            .Companion.bionicHandoffRelease();
+                                } catch (Throwable t) {
+                                    Log.w("XServerDisplayActivity",
+                                            "Steam Launcher: Bionic hand-off release failed after launch failure", t);
+                                }
+                                runOnUiThread(() -> {
+                                    stopWnLauncherStatusTailer();
+                                    WinToast.show(this, reason);
+                                    if (preloaderDialog != null) preloaderDialog.closeWithDelay(0L);
+                                    exit();
+                                });
+                                return kotlin.Unit.INSTANCE;
+                            });
+                wnLauncherStatusTailer.start();
+                wnLauncherDrivesDismiss.set(true);
+                Log.i("XServerDisplayActivity",
+                        "Steam Launcher: status tailer attached to " + launcherLog.getPath());
+            } catch (Exception e) {
+                stopWnLauncherStatusTailer();
+                Log.w("XServerDisplayActivity",
+                        "Steam Launcher: failed to start status tailer: " + e.getMessage());
             }
         }
 
         guestProgramLauncherComponent.setEnvVars(envVars);
         guestProgramLauncherComponent.setTerminationCallback((status) -> {
             Log.d("XServerDisplayActivity", "Guest process terminated with status: " + status);
+            stopWnLauncherStatusTailer();
+
+
+            boolean planWActiveTerm = com.winlator.cmod.feature.stores.steam.utils
+                    .PrefManager.INSTANCE.getWnPlanW();
+            if (isBionicSteamEnabledForShortcut() && planWActiveTerm) {
+                try {
+                    com.winlator.cmod.feature.stores.steam.service.SteamService
+                            .Companion.bionicHandoffReleaseAndKickPlayingSessionAsync(true);
+                    Log.d("XServerDisplayActivity",
+                            "Steam Launcher: game exited — released Bionic hand-off "
+                                    + "and scheduled kickPlayingSessionIfReady");
+                } catch (Throwable t) {
+                    Log.w("XServerDisplayActivity",
+                            "Steam Launcher: Bionic hand-off release/kick failed", t);
+                }
+            } else if (isBionicSteamEnabledForShortcut()
+                    && !com.winlator.cmod.feature.stores.steam.utils
+                            .PrefManager.INSTANCE.getWnHybridMode()) {
+                try {
+                    com.winlator.cmod.feature.stores.steam.service.SteamService
+                            .Companion.bionicHandoffRelease();
+                } catch (Throwable t) {
+                    Log.w("XServerDisplayActivity", "Bionic hand-off release failed", t);
+                }
+            } else if (isBionicSteamEnabledForShortcut()) {
+                Log.d("XServerDisplayActivity",
+                        "Hybrid mode: keeping bootstrap alive past game end "
+                                + "(release skipped — bootstrap is the SOLE "
+                                + "Steam session for this app run)");
+            }
 
             if (shouldWatchSteamTermination(status)) {
                 return;
@@ -4738,26 +5656,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
         FEXCoreManager.ensureAppConfigOverrides(this);
 
-        if (container != null && launchRealSteamMode) {
-            try {
-                String steamId64 = String.valueOf(com.winlator.cmod.feature.stores.steam.utils.PrefManager.INSTANCE.getSteamUserSteamId64());
-                String username = com.winlator.cmod.feature.stores.steam.utils.PrefManager.INSTANCE.getUsername();
-                String refreshToken = com.winlator.cmod.feature.stores.steam.utils.PrefManager.INSTANCE.getRefreshToken();
-                if (refreshToken != null && !refreshToken.isEmpty()) {
-                    com.winlator.cmod.feature.stores.steam.utils.SteamTokenLogin tokenLogin =
-                            new com.winlator.cmod.feature.stores.steam.utils.SteamTokenLogin(
-                                    steamId64, username, refreshToken, imageFs, guestProgramLauncherComponent);
-                    tokenLogin.setupSteamFiles(true);
-                    Log.d("XServerDisplayActivity", "SteamTokenLogin set up for real Steam mode");
-                }
-            } catch (Exception e) {
-                Log.w("XServerDisplayActivity", "Failed to set up SteamTokenLogin", e);
-            }
-        }
-
         winHandler.preAssignConnectedControllers();
 
         if (!reusingSession) {
+            if (preloaderDialog != null) {
+                preloaderDialog.setStepOnUiThread(R.string.preloader_starting_wine);
+            }
             environment.startEnvironmentComponents();
             SessionKeepAliveService.setActiveEnvironment(environment);
             SessionKeepAliveService.setActiveXServer(xServer);
@@ -5014,38 +5918,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         SetupWizardActivity.promptToInstallWineOrCreateContainer(this, wineVersion);
         finish();
         return false;
-    }
-
-    private boolean promptSteamClientDownloadRetry() {
-        final CountDownLatch dialogLatch = new CountDownLatch(1);
-        final boolean[] retry = {false};
-
-        runOnUiThread(() -> {
-            if (preloaderDialog != null && preloaderDialog.isShowing()) {
-                preloaderDialog.close();
-            }
-            SteamClientDownloadFailureDialog.show(
-                    this,
-                    "Steam Client Download Failed",
-                    "WinNative couldn't download the Steam client files needed for this launch.\n\nRetry will try the download again. Close will cancel this launch and return to your library.",
-                    () -> {
-                        retry[0] = true;
-                        dialogLatch.countDown();
-                    },
-                    () -> {
-                        retry[0] = false;
-                        dialogLatch.countDown();
-                    }
-            );
-        });
-
-        try {
-            dialogLatch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-        return retry[0];
     }
 
     private void closeLaunchAttempt() {
@@ -5332,10 +6204,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         envVars.put("WRAPPER_RESOURCE_TYPE", resourceType);
 
         ArrayList<String> wsiDebugFlags = new ArrayList<>();
-        if (!isNativeRenderingEnabled) {
-            wsiDebugFlags.add("sw");
-            envVars.put("LIBGL_DRI3_DISABLE", "1");
-        }
         String syncFrame = graphicsDriverConfig.get("syncFrame");
         if ("1".equals(syncFrame)) {
             wsiDebugFlags.add("forcesync");
@@ -5343,7 +6211,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         if (!wsiDebugFlags.isEmpty()) {
             envVars.put("MESA_VK_WSI_DEBUG", String.join(",", wsiDebugFlags));
         }
-        Log.d("NativeRendering", "use_dri3=" + isNativeRenderingEnabled + " MESA_VK_WSI_DEBUG=" + envVars.get("MESA_VK_WSI_DEBUG"));
 
         String disablePresentWait = graphicsDriverConfig.get("disablePresentWait");
         envVars.put("WRAPPER_DISABLE_PRESENT_WAIT", disablePresentWait);
@@ -5419,7 +6286,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 float dy = event.getY(pointerIndex) - drawerEdgeGestureStartY;
                 int slop = android.view.ViewConfiguration.get(this).getScaledTouchSlop();
 
-                if (dx > slop && dx > Math.abs(dy)) {
+                if (dx > getDrawerOpenTriggerPx()
+                        && dx > Math.abs(dy) * XServerDisplayHostKt.XSERVER_DRAWER_OPEN_HORIZONTAL_RATIO) {
                     if (touchpadView != null) {
                         touchpadView.resetInputState();
                     }
@@ -5442,6 +6310,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
     private int getDrawerEdgeSwipePx() {
         return (int) (XServerDisplayHostKt.XSERVER_DRAWER_EDGE_SWIPE_DP * getResources().getDisplayMetrics().density);
+    }
+
+    private int getDrawerOpenTriggerPx() {
+        return (int) (XServerDisplayHostKt.XSERVER_DRAWER_OPEN_TRIGGER_DP * getResources().getDisplayMetrics().density);
     }
 
     private boolean isTouchInsideMagnifier(float x, float y) {
@@ -5555,8 +6427,33 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
     private static final String TAG = "DXWrapperExtraction";
 
+    private static final String[] DXWRAPPER_DLLS = {
+            "d3d10.dll", "d3d10_1.dll", "d3d10core.dll",
+            "d3d11.dll", "d3d12.dll", "d3d12core.dll",
+            "d3d8.dll", "d3d9.dll", "dxgi.dll",
+            "ddraw.dll", "d3dimm.dll"
+    };
+
+    private void wipeDxwrapperDllsForReextract() {
+        if (imageFs == null) return;
+        File rootDir = imageFs.getRootDir();
+        File system32 = new File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows/system32");
+        File syswow64 = new File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows/syswow64");
+        int deleted = 0;
+        for (String name : DXWRAPPER_DLLS) {
+            File a = new File(system32, name);
+            File b = new File(syswow64, name);
+            if (a.exists() && a.delete()) deleted++;
+            if (b.exists() && b.delete()) deleted++;
+        }
+        if (deleted > 0) {
+            Log.i("XServerDisplayActivity",
+                    "DXVK/VKD3D pre-extract wipe removed " + deleted + " stale DLL(s) from system32/syswow64");
+        }
+    }
+
     private void extractDXWrapperFiles(String dxwrapper) {
-        final String[] dlls = {"d3d10.dll", "d3d10_1.dll", "d3d10core.dll", "d3d11.dll", "d3d12.dll", "d3d12core.dll", "d3d8.dll", "d3d9.dll", "dxgi.dll", "ddraw.dll", "d3dimm.dll"};
+        final String[] dlls = DXWRAPPER_DLLS;
         final String[] d3d12Dlls = {"d3d12.dll", "d3d12core.dll"};
         final String[] nonD3D12WrapperDlls = {"d3d10.dll", "d3d10_1.dll", "d3d10core.dll", "d3d11.dll", "d3d8.dll", "d3d9.dll", "dxgi.dll", "ddraw.dll", "d3dimm.dll"};
 
@@ -5732,12 +6629,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 steamExtraArgs = (steamExtraArgs != null && !steamExtraArgs.isEmpty()) ? " " + steamExtraArgs : "";
 
                 boolean useColdClient = parseBoolean(getShortcutSetting("useColdClient", container.isUseColdClient() ? "1" : "0"));
-                boolean launchRealSteam = parseBoolean(getShortcutSetting("launchRealSteam", container.isLaunchRealSteam() ? "1" : "0"));
-                boolean launchBionicSteam = parseBoolean(getShortcutSetting("launchBionicSteam", container.isLaunchBionicSteam() ? "1" : "0"));
-                // Bionic Steam uses the ColdClient path.
-                if (launchBionicSteam) {
-                    launchRealSteam = false;
-                    useColdClient = true;
+                boolean launchBionicSteam = isBionicSteamEnabledForShortcut();
+                if (useColdClient) {
+                    launchBionicSteam = false;
+                } else if (launchBionicSteam) {
+                    useColdClient = false;
                 }
 
                 String gameInstPath = resolveSteamGameInstallPath(appId);
@@ -5748,16 +6644,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 File containerSteamDir = new File(container.getRootDir(),
                         ".wine/drive_c/Program Files (x86)/Steam");
 
-                if (launchRealSteam) {
-                    // CEF GPU flags avoid steamwebhelper taking DXVK's dxgi path.
-                    if (containerSteamDir.exists()) launcherComponent.setWorkingDir(containerSteamDir);
-                    args = "\"C:\\Program Files (x86)\\Steam\\steam.exe\" -silent -vgui -tcp "
-                            + "-nobigpicture -nofriendsui -nochatui -nointro "
-                            + "-cef-disable-gpu -cef-disable-gpu-compositor -no-cef-sandbox "
-                            + "-applaunch " + appId;
-                    Log.d("XServerDisplayActivity", "Real Steam launch via steam.exe for appId=" + appId);
-                    scheduleRealSteamWatchdog(launcherComponent);
-                } else if (useColdClient) {
+                if (useColdClient) {
                     // ColdClient needs the game exe dir for relative assets.
                     File coldClientWorkDir = null;
                     String gameDirNameCC = (gameInstPath != null) ? new File(gameInstPath).getName() : "";
@@ -5808,12 +6695,24 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                             Log.d("XServerDisplayActivity", "Goldberg working dir: " + actualWorkDir.getPath());
                         }
 
-                        args = "\"" + steamGameExe + "\"" + steamExtraArgs;
                         int lastBackslash = steamGameExe.lastIndexOf("\\");
                         if (lastBackslash > 0) {
                             envVars.put("WINEPATH", steamGameExe.substring(0, lastBackslash));
                         }
-                        Log.d("XServerDisplayActivity", "Goldberg launch: " + steamGameExe);
+                        if (launchBionicSteam) {
+                            boolean planW = com.winlator.cmod.feature.stores.steam.utils
+                                    .PrefManager.INSTANCE.getWnPlanW();
+                            String wrapperExe = planW
+                                    ? "steam.exe" : "wn-steam-helper.exe";
+                            args = "\"C:\\Program Files (x86)\\Steam\\" + wrapperExe
+                                    + "\" \"" + steamGameExe + "\"" + steamExtraArgs;
+                            Log.d("XServerDisplayActivity",
+                                    "Bionic Steam launch via " + wrapperExe
+                                    + " (planW=" + planW + "): " + steamGameExe);
+                        } else {
+                            args = "\"" + steamGameExe + "\"" + steamExtraArgs;
+                            Log.d("XServerDisplayActivity", "Goldberg launch: " + steamGameExe);
+                        }
                     } else {
                         String gameExeWinPath = findGameExeWinPath(appId,
                                 new File(gameInstPath != null ? gameInstPath : ""));
@@ -6111,29 +7010,55 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         String perGameExecArgs = shortcut != null ? shortcut.getSettingExtra("execArgs", container.getExecArgs()) : container.getExecArgs();
         String exeCommandLine = perGameExecArgs != null ? perGameExecArgs : "";
 
-        StringBuilder injectionBuilder = new StringBuilder("[Injection]\nIgnoreLoaderArchDifference=1\n");
-        if (runtimePatcher) {
-            injectionBuilder.append("DllsToInjectFolder=extra_dlls\n");
-        }
-        String injectionSection = injectionBuilder.toString();
-
-        String iniContent = "[SteamClient]\n" +
-                "\n" +
-                "Exe=" + exePath + "\n" +
-                "ExeRunDir=" + exeRunDir + "\n" +
-                "ExeCommandLine=" + exeCommandLine + "\n" +
-                "AppId=" + appId + "\n" +
-                "\n" +
-                "# path to the steamclient dlls, both must be set, absolute paths or relative to the loader directory\n" +
-                "SteamClientDll=steamclient.dll\n" +
-                "SteamClient64Dll=steamclient64.dll\n" +
-                "\n" +
-                injectionSection;
+        String iniContent = buildColdClientIni(appId, exePath, exeRunDir, exeCommandLine, runtimePatcher);
 
         FileUtils.writeString(iniFile, iniContent);
+        if (runtimePatcher) ensureExtraDllsLoadOrder();
         Log.d("XServerDisplayActivity",
                 "Wrote ColdClientLoader.ini: Exe=" + exePath + " ExeRunDir=" + exeRunDir
                         + " AppId=" + appId + " runtimePatcher=" + runtimePatcher);
+    }
+
+    private String buildColdClientIni(int appId, String exePath, String exeRunDir,
+                                       String exeCommandLine, boolean runtimePatcher) {
+        StringBuilder sb = new StringBuilder(1024);
+        sb.append("[SteamClient]\n\n");
+        sb.append("Exe=").append(exePath).append('\n');
+        sb.append("ExeRunDir=").append(exeRunDir).append('\n');
+        sb.append("ExeCommandLine=").append(exeCommandLine).append('\n');
+        sb.append("AppId=").append(appId).append('\n');
+        sb.append('\n');
+        sb.append("# path to the steamclient dlls, both must be set, absolute paths or relative to the loader directory\n");
+        sb.append("SteamClientDll=steamclient.dll\n");
+        sb.append("SteamClient64Dll=steamclient64.dll\n");
+        sb.append('\n');
+        sb.append("[Injection]\n");
+        sb.append("ForceInjectSteamClient=0\n");
+        sb.append("ForceInjectGameOverlayRenderer=0\n");
+        if (runtimePatcher) {
+            sb.append("DllsToInjectFolder=C:\\Program Files (x86)\\Steam\\extra_dlls\n");
+        }
+        sb.append("IgnoreInjectionError=1\n");
+        sb.append("IgnoreLoaderArchDifference=1\n");
+        sb.append('\n');
+        sb.append("[Persistence]\n");
+        sb.append("Mode=0\n");
+        sb.append('\n');
+        sb.append("[Debug]\n");
+        sb.append("ResumeByDebugger=0\n");
+        return sb.toString();
+    }
+
+    private void ensureExtraDllsLoadOrder() {
+        File extraDlls = new File(container.getRootDir(),
+                ".wine/drive_c/Program Files (x86)/Steam/extra_dlls");
+        File stubDrm = new File(extraDlls, "StubDRM64.dll");
+        if (!stubDrm.exists()) return;
+        File loadOrder = new File(extraDlls, "load_order.txt");
+        String body = "StubDRM64.dll\n";
+        if (loadOrder.exists() && body.equals(FileUtils.readString(loadOrder))) return;
+        FileUtils.writeString(loadOrder, body);
+        Log.d("XServerDisplayActivity", "Wrote " + loadOrder.getAbsolutePath());
     }
 
     private void writeColdClientIniForLaunch(int appId, String gameInstallPath, String gameExeWinPath, boolean runtimePatcher) {
@@ -6161,27 +7086,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         String perGameExecArgs = shortcut != null ? shortcut.getSettingExtra("execArgs", container.getExecArgs()) : container.getExecArgs();
         String exeCommandLine = perGameExecArgs != null ? perGameExecArgs : "";
 
-        StringBuilder injectionBuilder = new StringBuilder("[Injection]\nIgnoreLoaderArchDifference=1\n");
-        if (runtimePatcher) {
-            injectionBuilder.append("DllsToInjectFolder=extra_dlls\n");
-        }
-        String injectionSection = injectionBuilder.toString();
-
-        String iniContent = "[SteamClient]\n" +
-                "\n" +
-                "Exe=" + exePath + "\n" +
-                "ExeRunDir=" + exeRunDir + "\n" +
-                "ExeCommandLine=" + exeCommandLine + "\n" +
-                "AppId=" + appId + "\n" +
-                "\n" +
-                "# path to the steamclient dlls, both must be set, absolute paths or relative to the loader directory\n" +
-                "SteamClientDll=steamclient.dll\n" +
-                "SteamClient64Dll=steamclient64.dll\n" +
-                "\n" +
-                injectionSection;
+        String iniContent = buildColdClientIni(appId, exePath, exeRunDir, exeCommandLine, runtimePatcher);
 
         FileUtils.writeString(iniFile, iniContent);
-        Log.d("XServerDisplayActivity", "Wrote ColdClientLoader.ini: Exe=" + exePath + " ExeRunDir=" + exeRunDir + " AppId=" + appId);
+        if (runtimePatcher) ensureExtraDllsLoadOrder();
+        Log.d("XServerDisplayActivity", "Wrote ColdClientLoader.ini: Exe=" + exePath + " ExeRunDir=" + exeRunDir + " AppId=" + appId + " runtimePatcher=" + runtimePatcher);
 
         // Embedded Steam/ copies can shadow the main loader config.
         if (gameInstallPath != null) {
@@ -6313,10 +7222,17 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         if (gameInstPath != null) {
             File gameDir = new File(gameInstPath);
             if (gameDir.exists()) {
+                String canonicalGameDir = getCanonicalPathOrAbsolute(gameDir);
+                if (isSuspiciousSteamGameInstallDir(canonicalGameDir)) {
+                    Log.w("XServerDisplayActivity",
+                            "resolveRelativeGameExe: refusing auto-detect inside shared Steam library root: "
+                                    + canonicalGameDir + " for appId=" + appId);
+                    return "";
+                }
                 File detected = findGameExe(gameDir);
                 if (detected != null) {
                     String absPath = getCanonicalPathOrAbsolute(detected);
-                    String basePath = getCanonicalPathOrAbsolute(gameDir);
+                    String basePath = canonicalGameDir;
                     if (absPath.startsWith(basePath)) {
                         String relative = absPath.substring(basePath.length());
                         if (relative.startsWith(File.separator)) relative = relative.substring(1);
@@ -6436,7 +7352,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     }
 
     private void injectSteamApiIfMissing(File gameDir, String appDirPath, String language,
-            boolean isOffline, boolean forceDlc, boolean useSteamInput, String ticketBase64, java.util.List<String> backupPaths) {
+            boolean isOffline, boolean useSteamInput, String ticketBase64, java.util.List<String> backupPaths) {
         Log.w("XServerDisplayActivity", "No steam_api DLLs found in game directory — injecting Goldberg steam_api next to game exe");
         try {
             String exePath = resolveShortcutSteamExecutablePath(getCanonicalPathOrAbsolute(gameDir));
@@ -6528,13 +7444,13 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                         
                         SteamUtils.writeCompleteSettingsDir(gameSteamDir,
                                 Integer.parseInt(shortcut.getExtra("app_id")),
-                                language, isOffline, forceDlc, useSteamInput, ticketBase64);
+                                language, isOffline, useSteamInput, ticketBase64);
                     }
                 }
 
                 SteamUtils.writeCompleteSettingsDir(exeDir,
                         Integer.parseInt(shortcut.getExtra("app_id")),
-                        language, isOffline, forceDlc, useSteamInput, ticketBase64);
+                        language, isOffline, useSteamInput, ticketBase64);
 
                 if (backupPaths != null && appDirPath != null) {
                     String relPath = targetDll.getAbsolutePath();
@@ -6553,16 +7469,16 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     }
 
     private void replaceSteamApiDlls(File gameDir, String appDirPath, String language,
-            boolean isOffline, boolean forceDlc, boolean useSteamInput, String ticketBase64) {
+            boolean isOffline, boolean useSteamInput, String ticketBase64) {
         if (gameDir == null || !gameDir.exists()) return;
 
         java.util.List<String> backupPaths = new java.util.ArrayList<>();
-        replaceSteamApiDllsRecursive(gameDir, appDirPath, language, isOffline, forceDlc,
+        replaceSteamApiDllsRecursive(gameDir, appDirPath, language, isOffline,
                 useSteamInput, ticketBase64, backupPaths);
 
         // Games without steam_api*.dll need an injected hook next to the exe.
         if (backupPaths.isEmpty()) {
-            injectSteamApiIfMissing(gameDir, appDirPath, language, isOffline, forceDlc, useSteamInput, ticketBase64, backupPaths);
+            injectSteamApiIfMissing(gameDir, appDirPath, language, isOffline, useSteamInput, ticketBase64, backupPaths);
         }
 
         if (!backupPaths.isEmpty()) {
@@ -6606,7 +7522,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     }
 
     private void replaceSteamApiDllsRecursive(File dir, String appDirPath, String language,
-            boolean isOffline, boolean forceDlc, boolean useSteamInput, String ticketBase64,
+            boolean isOffline, boolean useSteamInput, String ticketBase64,
             java.util.List<String> backupPaths) {
         if (dir == null || !dir.exists()) return;
 
@@ -6674,19 +7590,19 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         if (hasSteamDll) {
             SteamUtils.writeCompleteSettingsDir(dir,
                     Integer.parseInt(shortcut.getExtra("app_id")),
-                    language, isOffline, forceDlc, useSteamInput, ticketBase64);
+                    language, isOffline, useSteamInput, ticketBase64);
         }
 
         for (File file : files) {
             if (file.isDirectory() && !file.getName().equals("steam_settings")) {
-                replaceSteamApiDllsRecursive(file, appDirPath, language, isOffline, forceDlc,
+                replaceSteamApiDllsRecursive(file, appDirPath, language, isOffline,
                         useSteamInput, ticketBase64, backupPaths);
             }
         }
     }
 
     private void setupSteamSettingsForAllDirs(File dir, int appId, String language,
-            boolean isOffline, boolean forceDlc, boolean useSteamInput, String ticketBase64) {
+            boolean isOffline, boolean useSteamInput, String ticketBase64) {
         if (dir == null || !dir.exists()) return;
 
         File[] files = dir.listFiles();
@@ -6703,12 +7619,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
 
         if (hasSteamDll) {
-            SteamUtils.writeCompleteSettingsDir(dir, appId, language, isOffline, forceDlc, useSteamInput, ticketBase64);
+            SteamUtils.writeCompleteSettingsDir(dir, appId, language, isOffline, useSteamInput, ticketBase64);
         }
 
         for (File file : files) {
             if (file.isDirectory() && !file.getName().equals("steam_settings")) {
-                setupSteamSettingsForAllDirs(file, appId, language, isOffline, forceDlc, useSteamInput, ticketBase64);
+                setupSteamSettingsForAllDirs(file, appId, language, isOffline, useSteamInput, ticketBase64);
             }
         }
     }
@@ -6746,7 +7662,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
     }
 
-    // Restore real steam_api DLLs when leaving Goldberg for ColdClient or Real Steam.
+    // Restore real steam_api DLLs when leaving Goldberg for ColdClient.
     private void restoreSteamApiDlls(File gameDir) {
         if (gameDir == null || !gameDir.exists()) return;
 
@@ -6854,15 +7770,14 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     }
 
     private void runPreGameSetup(GuestProgramLauncherComponent launcher,
-                                  boolean needsUnpacking, boolean unpackFiles, boolean launchRealSteam) {
+                                  boolean needsUnpacking, boolean unpackFiles) {
         boolean monoReady = installMonoIfNeeded(launcher);
 
         installRedistributablesIfNeeded(launcher);
 
-        // Steamless is the fallback for SteamStub variants the runtime patcher misses.
-        if (launchRealSteam) {
+        if (!unpackFiles) {
             Log.d("XServerDisplayActivity",
-                    "Skipping Steamless/unpack flow because Launch Steam Client is enabled");
+                    "Skipping Steamless: 'Unpack Files' shortcut toggle is OFF");
             return;
         }
         if (!monoReady) {
@@ -6873,13 +7788,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             Log.d("XServerDisplayActivity", "Skipping Steamless/unpack check; executable already handled");
             return;
         }
-        boolean unpackedExeExists = doesUnpackedExeExist();
-        if (needsUnpacking || unpackFiles || !unpackedExeExists) {
-            if (needsUnpacking || !unpackedExeExists) {
-                runSteamlessOnExe(launcher);
-            } else {
-                ensureUnpackedExeActive();
-            }
+        if (doesUnpackedExeExist()) {
+            ensureUnpackedExeActive();
+        } else {
+            runSteamlessOnExe(launcher);
         }
     }
 
@@ -7692,44 +8604,126 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         return rebuilt.toString();
     }
 
+    private void writeBionicActiveProcessRegistry() {
+        try {
+            long steamId64 = com.winlator.cmod.feature.stores.steam.utils
+                    .PrefManager.INSTANCE.getSteamUserSteamId64();
+            int accountId = (int) (steamId64 & 0xFFFFFFFFL);
+            File userReg = new File(container.getRootDir(), ".wine/user.reg");
+            int steamPid = android.os.Process.myPid();
+            try (com.winlator.cmod.runtime.wine.WineRegistryEditor editor =
+                         new com.winlator.cmod.runtime.wine.WineRegistryEditor(userReg)) {
+                editor.setCreateKeyIfNotExist(true);
+                String key = "Software\\Valve\\Steam\\ActiveProcess";
+                editor.setDwordValue(key, "ActiveUser", accountId);
+                editor.setDwordValue(key, "pid", steamPid);
+                editor.setStringValue(key, "SteamClientDll",
+                        "C:\\windows\\syswow64\\lsteamclient.dll");
+                editor.setStringValue(key, "SteamClientDll64",
+                        "C:\\windows\\system32\\lsteamclient.dll");
+                editor.setStringValue(key, "Universe", "Public");
+            }
+            Log.d("XServerDisplayActivity",
+                    "Bionic: wrote ActiveProcess registry (ActiveUser=" + accountId
+                            + " pid=" + steamPid + ")");
+        } catch (Exception e) {
+            Log.e("XServerDisplayActivity", "Bionic: ActiveProcess registry write failed", e);
+        }
+    }
+
+    private boolean installBionicSteamPathOverlay(Container container, File bionicSteamDir) {
+        try {
+            File sharedStore = getSharedSteamStore();
+            if (!sharedStore.isDirectory()) {
+                Log.w("XServerDisplayActivity",
+                        "installBionicSteamPathOverlay: shared steam-client-store missing at "
+                                + sharedStore.getAbsolutePath()
+                                + " — falling back to bridge-in-system32 only (game may fail to "
+                                + "find steamclient64.dll because stock steam_api64.dll searches "
+                                + "SteamPath first)");
+                return false;
+            }
+            File bridge64Src = new File(container.getRootDir(),
+                    ".wine/drive_c/windows/system32/lsteamclient.dll");
+            File bridge32Src = new File(container.getRootDir(),
+                    ".wine/drive_c/windows/syswow64/lsteamclient.dll");
+            if (!bridge64Src.exists()) {
+                Log.w("XServerDisplayActivity",
+                        "installBionicSteamPathOverlay: bridge missing at "
+                                + bridge64Src.getAbsolutePath());
+                return false;
+            }
+            java.nio.file.Path bionicPath = bionicSteamDir.toPath();
+            if (java.nio.file.Files.isSymbolicLink(bionicPath)) {
+                java.nio.file.Files.delete(bionicPath);
+            }
+            if (!bionicSteamDir.exists()) {
+                bionicSteamDir.mkdirs();
+            }
+            File[] storeEntries = sharedStore.listFiles();
+            int symlinkedCount = 0;
+            if (storeEntries != null) {
+                for (File entry : storeEntries) {
+                    String name = entry.getName();
+                    if (name.equalsIgnoreCase("steamclient.dll")
+                            || name.equalsIgnoreCase("steamclient64.dll")
+                            || name.equalsIgnoreCase("steamapps")) {
+                        continue;
+                    }
+                    File dest = new File(bionicSteamDir, name);
+                    if (dest.exists() || java.nio.file.Files.isSymbolicLink(dest.toPath())) {
+                        continue;
+                    }
+                    java.nio.file.Files.createSymbolicLink(
+                            dest.toPath(), entry.toPath().toAbsolutePath());
+                    ++symlinkedCount;
+                }
+            }
+            File dest64 = new File(bionicSteamDir, "steamclient64.dll");
+            FileUtils.copy(bridge64Src, dest64);
+            File dest32 = new File(bionicSteamDir, "steamclient.dll");
+            if (bridge32Src.exists()) {
+                FileUtils.copy(bridge32Src, dest32);
+            } else {
+                FileUtils.copy(bridge64Src, dest32);
+            }
+            Log.d("XServerDisplayActivity",
+                    "installBionicSteamPathOverlay: " + symlinkedCount + " store entries"
+                            + " symlinked, bridge written as steamclient64.dll ("
+                            + dest64.length() + "B) + steamclient.dll ("
+                            + dest32.length() + "B)");
+            return true;
+        } catch (Exception e) {
+            Log.e("XServerDisplayActivity",
+                    "installBionicSteamPathOverlay failed", e);
+            return false;
+        }
+    }
+
+    private void clearBionicActiveProcessRegistry() {
+        try {
+            File userReg = new File(container.getRootDir(), ".wine/user.reg");
+            if (!userReg.exists()) return;
+            try (com.winlator.cmod.runtime.wine.WineRegistryEditor editor =
+                         new com.winlator.cmod.runtime.wine.WineRegistryEditor(userReg)) {
+                String key = "Software\\Valve\\Steam\\ActiveProcess";
+                editor.removeValue(key, "SteamClientDll");
+                editor.removeValue(key, "SteamClientDll64");
+                editor.removeValue(key, "ActiveUser");
+                editor.removeValue(key, "pid");
+                editor.removeValue(key, "Universe");
+            }
+            Log.d("XServerDisplayActivity", "Cleared Bionic ActiveProcess registry redirector");
+        } catch (Exception e) {
+            Log.e("XServerDisplayActivity", "Failed to clear Bionic ActiveProcess registry", e);
+        }
+    }
+
     private void setupSteamEnvironment(int appId, File gameDir) {
         try {
             File winePrefix = container.getRootDir();
             File steamDir = new File(winePrefix, ".wine/drive_c/Program Files (x86)/Steam");
             steamDir.mkdirs();
-            boolean launchRealSteamMode = shortcut != null
-                    ? parseBoolean(getShortcutSetting("launchRealSteam", container.isLaunchRealSteam() ? "1" : "0"))
-                    : container.isLaunchRealSteam();
-
-            boolean steamCloudSyncAllowed =
-                    isCloudSyncEnabledForShortcut()
-                            && !com.winlator.cmod.feature.sync.CloudSyncHelper.isOfflineMode(shortcut);
-            if (launchRealSteamMode && steamCloudSyncAllowed) {
-                boolean needsSeed = !SteamBridge.isSteamInstalled(this);
-                boolean contaminated = !needsSeed && !SteamUtils.isSharedSteamStorePristine(this);
-                if (needsSeed || contaminated) {
-                    Log.d("XServerDisplayActivity",
-                            "Real Steam mode: " + (contaminated
-                                    ? "shared store contaminated (Goldberg stubs detected), force-extracting steam.tzst"
-                                    : "seeding shared Steam client store (one-shot)"));
-                    if (!SteamBridge.forceExtractSteam(this)) {
-                        Log.w("XServerDisplayActivity", "Real Steam mode: failed to seed/heal Steam client store");
-                    }
-                }
-
-                File steamCfg = new File(steamDir, "steam.cfg");
-                FileUtils.writeString(steamCfg, "BootStrapperInhibitAll=Enable\nBootStrapperForceSelfUpdate=False\n");
-
-                // Stale package markers can deadlock Steam when bootstrap updates are inhibited.
-                File packageDir = new File(steamDir, "package");
-                for (String marker : new String[]{"steam_client_win32.installed", "steam_client_win64.installed"}) {
-                    File mf = new File(packageDir, marker);
-                    if (mf.exists() && !mf.delete()) {
-                        Log.w("XServerDisplayActivity",
-                                "Could not remove stale Steam bootstrap marker " + marker);
-                    }
-                }
-            }
 
             File steamappsDir = new File(steamDir, "steamapps");
             File commonDir = new File(steamappsDir, "common");
@@ -7741,11 +8735,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             File defaultAcf = new File(imageFs.getRootDir(),
                     ImageFs.WINEPREFIX + "/drive_c/Program Files (x86)/Steam/steamapps/appmanifest_" + appId + ".acf");
             File containerAcf = new File(steamappsDir, "appmanifest_" + appId + ".acf");
-            if (defaultAcf.exists() && !containerAcf.exists()) {
+            if (defaultAcf.exists()) {
                 try {
                     java.nio.file.Files.copy(defaultAcf.toPath(), containerAcf.toPath(),
                             java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                    Log.d("XServerDisplayActivity", "Copied ACF manifest to container steamapps dir");
+                    Log.d("XServerDisplayActivity", "Synced ACF manifest to container steamapps dir");
                 } catch (Exception e) {
                     Log.w("XServerDisplayActivity", "Failed to copy ACF to container steamapps", e);
                 }
@@ -7769,79 +8763,196 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 FileUtils.writeString(steamworksAcf, steamworksAcfContent);
             }
 
-            try {
-                SteamUtils.autoLoginUserChanges(imageFs);
-                Log.d("XServerDisplayActivity", "autoLoginUserChanges complete");
-            } catch (Exception e) {
-                Log.w("XServerDisplayActivity", "autoLoginUserChanges failed, falling back", e);
-            }
-
-            skipFirstTimeSteamSetup(winePrefix);
-
             long steamIdLong = com.winlator.cmod.feature.stores.steam.utils.PrefManager.INSTANCE.getSteamUserSteamId64();
             String steamId64 = steamIdLong > 0 ? String.valueOf(steamIdLong) : "76561198000000000";
             int steamAccountId = com.winlator.cmod.feature.stores.steam.utils.PrefManager.INSTANCE.getSteamUserAccountId();
             String steamUserDataId = steamAccountId > 0 ? String.valueOf(steamAccountId) : steamId64;
-            reconcileSteamUserdata(steamDir, steamUserDataId, steamId64);
 
-            SteamUtils.updateOrModifyLocalConfig(imageFs, container, String.valueOf(appId), steamUserDataId);
+            // Stamp-cache the registry edits + userdata reconcile + local-config
+            // edit so warm launches of the same game in the same container skip
+            // the per-launch file-copy / VDF-parse work. Stamp key is
+            // appId|userDataId — change either and the work re-runs.
+            File steamEnvStamp = new File(winePrefix,
+                    ".wine/drive_c/.wn-steamenv-" + appId + "-" + steamUserDataId + ".stamp");
+            String expectedStamp = "v1|" + appId + "|" + steamUserDataId;
+            String existingStamp = steamEnvStamp.exists()
+                    ? FileUtils.readString(steamEnvStamp).trim() : "";
+            boolean steamEnvWarm = expectedStamp.equals(existingStamp);
 
-            setupLightweightSteamConfig(steamDir, steamUserDataId);
-
-            // Pre-launch handshake clears pending Steam Cloud ops before steam.exe starts.
-            if (launchRealSteamMode) {
-                java.util.concurrent.CountDownLatch syncLatch = new java.util.concurrent.CountDownLatch(1);
-                final int appIdForSync = appId;
-                final boolean ignorePendingOperations = true;
-                final boolean offlineLaunch = false;
-                Thread preLaunchSync = new Thread(() -> {
-                    try {
-                        com.winlator.cmod.feature.stores.steam.service.SteamService.Companion
-                                .beginLaunchAppBlocking(
-                                        XServerDisplayActivity.this,
-                                        appIdForSync,
-                                        ignorePendingOperations,
-                                        com.winlator.cmod.feature.stores.steam.enums.SaveLocation.None,
-                                        offlineLaunch,
-                                        null);
-                        Log.d("XServerDisplayActivity",
-                                "Pre-launch Steam cloud sync complete for appId=" + appIdForSync);
-                    } catch (Throwable t) {
-                        Log.w("XServerDisplayActivity",
-                                "Pre-launch Steam cloud sync failed (continuing)", t);
-                    } finally {
-                        syncLatch.countDown();
-                    }
-                }, "SteamPreLaunchCloudSync");
-                preLaunchSync.start();
+            if (!steamEnvWarm) {
                 try {
-                    if (!syncLatch.await(45, java.util.concurrent.TimeUnit.SECONDS)) {
-                        Log.w("XServerDisplayActivity",
-                                "Pre-launch Steam cloud sync timed out after 45s, proceeding");
-                    }
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
+                    SteamUtils.autoLoginUserChanges(imageFs);
+                    Log.d("XServerDisplayActivity", "autoLoginUserChanges complete");
+                } catch (Exception e) {
+                    Log.w("XServerDisplayActivity", "autoLoginUserChanges failed, falling back", e);
                 }
+
+                skipFirstTimeSteamSetup(winePrefix);
+                reconcileSteamUserdata(steamDir, steamUserDataId, steamId64);
+                SteamUtils.updateOrModifyLocalConfig(imageFs, container, String.valueOf(appId), steamUserDataId);
+                setupLightweightSteamConfig(steamDir, steamUserDataId);
+
+                try {
+                    FileUtils.writeString(steamEnvStamp, expectedStamp);
+                } catch (Exception e) {
+                    Log.w("XServerDisplayActivity",
+                            "Failed to write steam-env stamp at " + steamEnvStamp.getPath(), e);
+                }
+            } else {
+                Log.d("XServerDisplayActivity",
+                        "Steam env warm-cache hit (appId=" + appId
+                                + ", userId=" + steamUserDataId + ") — skipping reconcile + autoLogin");
             }
 
-            if (launchRealSteamMode && steamCloudSyncAllowed && steamAccountId > 0) {
-                File userAppDir = new File(steamDir,
-                        "userdata/" + steamAccountId + "/" + appId);
-                File remoteCache = new File(userAppDir, "remotecache.vdf");
-                if (remoteCache.exists() && remoteCache.delete()) {
-                    Log.d("XServerDisplayActivity",
-                            "Cleared remotecache.vdf for appId=" + appId);
+            boolean planWActiveBootstrapSkip = com.winlator.cmod.feature.stores.steam.utils
+                    .PrefManager.INSTANCE.getWnPlanW();
+            if (isBionicSteamEnabledForShortcut() && planWActiveBootstrapSkip) {
+                try {
+                    boolean kicked = com.winlator.cmod.feature.stores.steam.service.SteamService
+                            .Companion.kickPlayingSessionIfReadyBlocking(true);
+                    Log.i("XServerDisplayActivity",
+                            "Steam Launcher: pre-launch kickPlayingSessionIfReady fired="
+                                    + kicked);
+                } catch (Throwable t) {
+                    Log.w("XServerDisplayActivity",
+                            "Steam Launcher: pre-launch kickPlayingSessionIfReady failed", t);
                 }
-                File remoteSaves = new File(userAppDir, "remote");
-                if (remoteSaves.exists() && remoteSaves.isDirectory()) {
-                    if (FileUtils.delete(remoteSaves)) {
+                try {
+                    com.winlator.cmod.feature.stores.steam.service.SteamService
+                            .Companion.bionicHandoffAcquire();
+                    Log.i("XServerDisplayActivity",
+                            "Steam Launcher: suspended Android wn-session before PlanW launch");
+                } catch (Throwable t) {
+                    Log.w("XServerDisplayActivity",
+                            "Steam Launcher: failed to suspend Android wn-session", t);
+                }
+                Log.i("XServerDisplayActivity",
+                        "Steam Launcher: skipping Android-side WnSteamBootstrap + stage2 "
+                        + "diagnostics — Wine-side steam.exe is the sole Steam "
+                        + "session (avoids double-logon + the listAchievements "
+                        + "native crash)");
+            } else if (isBionicSteamEnabledForShortcut()) {
+                try {
+                    boolean staged = com.winlator.cmod.feature.stores.steam.wnsteam
+                            .WnSteamAssetsInstaller.INSTANCE.install(this, container);
+                    File libSteamClientSo =
+                            new File(imageFs.getRootDir(), "usr/lib/libsteamclient.so");
+                    Log.d("XServerDisplayActivity",
+                            "Bionic Steam bootstrap: staged=" + staged
+                                    + " libsteamclient.so exists=" + libSteamClientSo.exists()
+                                    + " (" + libSteamClientSo.getAbsolutePath() + ")");
+                    if (libSteamClientSo.exists()) {
+                        String bsAccount = com.winlator.cmod.feature.stores.steam.utils
+                                .PrefManager.INSTANCE.getUsername();
+                        String bsToken = com.winlator.cmod.feature.stores.steam.utils
+                                .PrefManager.INSTANCE.getRefreshToken();
+                        long bsSteamId = com.winlator.cmod.feature.stores.steam.utils
+                                .PrefManager.INSTANCE.getSteamUserSteamId64();
+                        File bsHome = new File(imageFs.getRootDir(), "home");
                         Log.d("XServerDisplayActivity",
-                                "Cleared remote/ save directory for appId=" + appId
-                                        + " — Steam will re-download from cloud");
+                                "Bionic Steam bootstrap: account=" + bsAccount
+                                        + " tokenLen="
+                                        + (bsToken == null ? 0 : bsToken.length())
+                                        + " steamId=" + bsSteamId);
+                        int rc = com.winlator.cmod.feature.stores.steam.wnsteam
+                                .WnSteamBootstrap.INSTANCE.start(
+                                        this,
+                                        libSteamClientSo.getAbsolutePath(),
+                                        bsHome.getAbsolutePath(),
+                                        "127.0.0.1:57343",
+                                        "127.0.0.1:57344",
+                                        new String[0],
+                                        bsAccount,
+                                        bsToken,
+                                        bsSteamId,
+                                        appId);
+                        Log.d("XServerDisplayActivity",
+                                "Bionic Steam bootstrap: start() rc=" + rc
+                                        + " appId=" + appId);
+                        com.winlator.cmod.feature.stores.steam.wnsteam
+                                .WnLibSteamClient.INSTANCE.setAppId(appId);
+                        try {
+                            com.winlator.cmod.feature.stores.steam.service.SteamService
+                                    .prepareLibSteamClientForLaunchBlocking(appId);
+                        } catch (Throwable t) {
+                            Log.w("XServerDisplayActivity",
+                                    "Bionic Steam: prepareLibSteamClientForLaunch failed for app "
+                                            + appId, t);
+                        }
+                        com.winlator.cmod.feature.stores.steam.wnsteam.WnSteamBootstrap bs =
+                                com.winlator.cmod.feature.stores.steam.wnsteam.WnSteamBootstrap.INSTANCE;
+                        long liveSid = bs.liveSteamId();
+                        int  liveApp = bs.currentAppId();
+                        Log.d("XServerDisplayActivity",
+                                "Bionic Steam bootstrap: live ISteamUser.steamId="
+                                        + liveSid + " (prefmgr=" + bsSteamId
+                                        + " match=" + (liveSid == bsSteamId)
+                                        + ") ISteamUtils.appId=" + liveApp);
+
+                        try {
+                            boolean subscribed = bs.isSubscribedApp(appId);
+                            int     license   = bs.userHasLicenseForApp(liveSid, appId);
+                            boolean installed = bs.isAppInstalled(appId);
+                            String  installDir = bs.appInstallDir(appId);
+                            int[]   depots    = bs.installedDepots(appId);
+                            String  lang      = bs.currentGameLanguage();
+                            boolean publicLogged = bs.loggedOnPublic();
+                            Log.d("XServerDisplayActivity",
+                                    "Bionic stage2 apps/user: subscribed=" + subscribed
+                                            + " license=" + license + " (0=ok 1=no 2=noauth)"
+                                            + " installed=" + installed
+                                            + " installDir=" + installDir
+                                            + " depots=" + (depots == null ? 0 : depots.length)
+                                            + " lang=" + lang
+                                            + " loggedOnPublic=" + publicLogged);
+
+                            boolean cloudAcct = bs.cloudEnabledForAccount();
+                            boolean cloudApp  = bs.cloudEnabledForApp();
+                            int     cloudCnt  = bs.cloudFileCount();
+                            long[]  cloudQ    = bs.cloudQuota();
+                            Log.d("XServerDisplayActivity",
+                                    "Bionic stage2 cloud: account=" + cloudAcct
+                                            + " app=" + cloudApp
+                                            + " files=" + cloudCnt
+                                            + " quota=" + cloudQ[1] + "/" + cloudQ[0]);
+
+                            int numAch = bs.numAchievements();
+                            java.util.List<String> achNames = bs.listAchievements();
+                            String firstAch = achNames.isEmpty() ? "(none)" : achNames.get(0);
+                            Log.d("XServerDisplayActivity",
+                                    "Bionic stage2 stats: numAch=" + numAch
+                                            + " firstName=" + firstAch);
+
+                            String  pname  = bs.personaName();
+                            int     pstate = bs.personaState();
+                            int     fcount = bs.friendCount(
+                                    com.winlator.cmod.feature.stores.steam.wnsteam
+                                            .WnSteamBootstrap.FriendFlags.Immediate);
+                            Log.d("XServerDisplayActivity",
+                                    "Bionic stage2 friends: personaName=" + pname
+                                            + " personaState=" + pstate
+                                            + " friendCount(immediate)=" + fcount);
+
+                            int  purchaseTime = bs.earliestPurchaseUnixTime(appId);
+                            int  numDlc       = bs.dlcCount(appId);
+                            long owner        = bs.appOwner();
+                            boolean famShared = bs.isSubscribedFromFamilySharing();
+                            Log.d("XServerDisplayActivity",
+                                    "Bionic stage2 perApp: earliestPurchase=" + purchaseTime
+                                            + " dlcCount=" + numDlc
+                                            + " appOwner=" + owner
+                                            + " (familySharing=" + famShared + ")");
+                        } catch (Throwable t) {
+                            Log.w("XServerDisplayActivity",
+                                    "Bionic stage2 diagnostic failed", t);
+                        }
                     } else {
                         Log.w("XServerDisplayActivity",
-                                "Failed to clear remote/ save directory for appId=" + appId);
+                                "Bionic Steam bootstrap: libsteamclient.so missing, "
+                                        + "skipping nativeInit");
                     }
+                } catch (Throwable t) {
+                    Log.e("XServerDisplayActivity", "Bionic Steam bootstrap failed", t);
                 }
             }
 
@@ -7907,39 +9018,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             }
         } catch (Exception e) {
             Log.w("XServerDisplayActivity", "Failed to setup lightweight Steam configuration", e);
-        }
-    }
-
-    // Real Steam runs silently, so kill wineserver if no game window appears.
-    private static final long REAL_STEAM_WATCHDOG_MS = 75_000L;
-
-    private void scheduleRealSteamWatchdog(GuestProgramLauncherComponent launcherComponent) {
-        cancelRealSteamWatchdog();
-        firstAppWindowAppeared.set(false);
-        realSteamWatchdogRunnable = () -> {
-            if (firstAppWindowAppeared.get()) return;
-            Log.w("XServerDisplayActivity",
-                    "Real Steam watchdog: no game window after " + (REAL_STEAM_WATCHDOG_MS / 1000)
-                            + "s — assuming steam.exe hung, killing wineserver");
-            try {
-                if (launcherComponent != null) launcherComponent.execShellCommand("wineserver -k");
-            } catch (Exception e) {
-                Log.w("XServerDisplayActivity", "Real Steam watchdog: wineserver -k failed", e);
-            }
-            runOnUiThread(() -> WinToast.show(
-                    XServerDisplayActivity.this,
-                    "Steam client failed to start. Try toggling Launch Steam Client off.",
-                    android.widget.Toast.LENGTH_LONG));
-        };
-        new Handler(Looper.getMainLooper()).postDelayed(realSteamWatchdogRunnable, REAL_STEAM_WATCHDOG_MS);
-        Log.d("XServerDisplayActivity",
-                "Real Steam watchdog: armed for " + (REAL_STEAM_WATCHDOG_MS / 1000) + "s");
-    }
-
-    private void cancelRealSteamWatchdog() {
-        if (realSteamWatchdogRunnable != null) {
-            new Handler(Looper.getMainLooper()).removeCallbacks(realSteamWatchdogRunnable);
-            realSteamWatchdogRunnable = null;
         }
     }
 
@@ -8022,7 +9100,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             content.append("\t\t\"contentid\"\t\t\"0\"\n");
             content.append("\t\t\"totalsize\"\t\t\"0\"\n");
             content.append("\t\t\"update_clean_bytes_tally\"\t\t\"0\"\n");
-            content.append("\t\t\"time_last_update_verified\"\t\t\"0\"\n");
+            content.append("\t\t\"time_last_update_verified\"\t\t\"")
+                    .append(System.currentTimeMillis() / 1000L)
+                    .append("\"\n");
             content.append("\t\t\"apps\"\n");
             content.append("\t\t{\n");
             for (String appId : installedAppIds) {

@@ -36,8 +36,14 @@ Designed for enthusiasts and power users, WinNative delivers the full Winlator e
    cd WinNative
    git submodule update --init --recursive
    ```
-2. **Build via Android Studio:** Open the `WinNative` directory, let Gradle sync, then select **Build > Build APK(s)**.
-3. **Build via CLI:** Run `.\gradlew.bat assembleDebug` (Windows).
+2. 从 https://rustup.rs/ 下载并安装 Rust（会包含 cargo）
+3. 安装 Android 交叉编译目标：
+   ```bash
+   rustup target add aarch64-linux-android
+   ```
+4. 确保 cargo 在 PATH 中（安装 rustup 后会自动配置）
+5. **Build via Android Studio:** Open the `WinNative` directory, let Gradle sync, then select **Build > Build APK(s)**.
+6. **Build via CLI:** Run `.\gradlew.bat assembleDebug` (Windows).
 
 ---
 
