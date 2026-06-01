@@ -81,15 +81,16 @@ public class FrameRating extends LinearLayout implements Runnable {
   private final int C_VALUE;
   private BatteryManager batteryManager;
   private BroadcastReceiver batteryReceiver;
-  private volatile float batteryWatts;
+  private volatile double batteryWatts;
   private volatile int batteryCapacity;
   private boolean canReadCpu;
   private boolean canReadGpu;
   private Context context;
   private int cpuFailCount;
   private volatile int cpuPercent;
-  private volatile int cpuTemp;
+  private volatile double cpuTemp;
   private volatile float currentMs;
+  private volatile double voltage = 0;
   private boolean enableBattTemp;
   private boolean enableCpu;
   private boolean enableRam;
@@ -172,8 +173,6 @@ public class FrameRating extends LinearLayout implements Runnable {
   private GradientDrawable backdropDrawable;
   private boolean dualSeriesBattery;
   private boolean frametimeNumericMode;
-  private double voltage = 0;
-  private double temperature = 0;
   private final StringBuilder timeStringBuilder;
   private final SimpleDateFormat timeFormat;
 
@@ -206,9 +205,9 @@ public class FrameRating extends LinearLayout implements Runnable {
     this.enableRenderer = true;
     this.cpuPercent = -1;
     this.gpuLoad = -1;
-    this.batteryWatts = -1.0f;
+    this.batteryWatts = -1.0;
     this.batteryCapacity = -1;
-    this.cpuTemp = -1;
+    this.cpuTemp = 0;
     this.ramText = "N/A";
     this.rendererName = "Vulkan";
     this.gpuName = null;
@@ -1330,9 +1329,8 @@ public class FrameRating extends LinearLayout implements Runnable {
         this.batteryWatts = this.voltage * current;
         this.batteryCapacity = this.batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
       } catch (Exception e) {
-        this.batteryWatts = -1.0f;
+        this.batteryWatts = -1.0;
         this.batteryCapacity = -1;
-        this.cpuTemp = -1;
       }
     } else {
       if (this.batteryReceiver != null) {
@@ -1400,20 +1398,20 @@ public class FrameRating extends LinearLayout implements Runnable {
 
     if (this.enableBattTemp) {
       if (this.tvBat != null) {
-        float displayedBatteryWatts =
-            this.batteryWatts >= 0.0f && this.dualSeriesBattery
-                ? this.batteryWatts * 2.0f
+        double displayedBatteryWatts =
+            this.batteryWatts > 0.0 && this.dualSeriesBattery
+                ? this.batteryWatts * 2.0
                 : this.batteryWatts;
         SpannableStringBuilder b = new SpannableStringBuilder();
         append(b, "BAT ", this.C_BAT);
-        append(b,String.format(Locale.US, "%.1fW(%d%%)", displayedBatteryWatts,this.batteryCapacity),this.C_VALUE);
+        append(b, String.format(Locale.US, "%.1fW(%d%%)", displayedBatteryWatts, this.batteryCapacity), this.C_VALUE);
         this.tvBat.setText(b);
         this.tvBat.setVisibility(View.VISIBLE);
       }
       if (this.tvTemp != null) {
         SpannableStringBuilder b = new SpannableStringBuilder();
         append(b, "TMP ", this.C_TEMP);
-        append(b, this.cpuTemp >= 0 ? this.cpuTemp + "°C" : "N/A", this.C_VALUE);
+        append(b, this.cpuTemp >= 0 ? String.format(Locale.US, "%.1f°C", this.cpuTemp) : "N/A", this.C_VALUE);
         this.tvTemp.setText(b);
         this.tvTemp.setVisibility(View.VISIBLE);
       }
