@@ -330,7 +330,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
     private float hudTransparency = 1.0f;
     private float hudScale = 1.0f;
-    private boolean[] hudElements = new boolean[]{true, true, true, true, true, true, true};
+    private boolean[] hudElements = new boolean[]{true, true, true, true, true, true, true, true};
     private boolean dualSeriesBattery = false;
     private boolean frametimeNumericMode = false;
     private boolean hudCardExpanded = false;
@@ -4432,6 +4432,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 hudElements[4] = obj.optBoolean("showRAM", legacyCpuRam);
                 hudElements[5] = obj.optBoolean("showBattTemp", true);
                 hudElements[6] = obj.optBoolean("showGraph", true);
+                hudElements[7] = obj.optBoolean("showTime", true);
             } catch (JSONException e) {
                 Log.e("XServerDisplayActivity", "Failed to load HUD settings", e);
             }
@@ -4451,6 +4452,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             obj.put("showRAM", hudElements[4]);
             obj.put("showBattTemp", hudElements[5]);
             obj.put("showGraph", hudElements[6]);
+            obj.put("showTime", hudElements[7]);
             container.putExtra("hudSettings", obj.toString());
             container.saveData();
         } catch (JSONException e) {

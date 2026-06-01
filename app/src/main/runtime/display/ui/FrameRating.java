@@ -1074,8 +1074,9 @@ public class FrameRating extends LinearLayout implements Runnable {
         applyFrametimeDisplayVisibility();
         break;
       case 7:
-        this.enableTime = visible
+        this.enableTime = visible;
         if (this.tvTime != null) this.tvTime.setVisibility(v);
+        break;
     }
     updateSeparators(getOrientation() == LinearLayout.HORIZONTAL);
   }
@@ -1106,7 +1107,7 @@ public class FrameRating extends LinearLayout implements Runnable {
     if (sep3 != null) sep3.setVisibility(vRam && (vBat || vTmp || vFps) ? View.VISIBLE : View.GONE);
     if (sep4 != null) sep4.setVisibility(vBat && (vTmp || vFps) ? View.VISIBLE : View.GONE);
     if (sep5 != null) sep5.setVisibility(vTmp && vFps ? View.VISIBLE : View.GONE);
-    if (sep6 != null) sep6.setVisibility(vFps && tvTime ? View.VISIBLE : View.GONE);
+    if (sep6 != null) sep6.setVisibility(vFps && vTime ? View.VISIBLE : View.GONE);
   }
 
   /** Called when the guest submits a new frame to the X presentation path. */

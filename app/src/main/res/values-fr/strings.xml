@@ -580,6 +580,7 @@ Par ex. <b>META</b> pour la <i>touche META</i>, \n
     <string name="session_drawer_hud_element_ram">RAM</string>
     <string name="session_drawer_hud_element_battery">Batt.</string>
     <string name="session_drawer_hud_element_graph">Graphe</string>
+    <string name="session_drawer_hud_element_time">Heure</string>
 
     <!-- Session > Task Manager -->
     <string name="session_task_confirm_end_process">Voulez-vous terminer ce processus ?</string>
