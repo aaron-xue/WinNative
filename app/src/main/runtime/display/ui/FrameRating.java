@@ -4,6 +4,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.BroadcastReceiver;
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -77,10 +78,10 @@ public class FrameRating extends LinearLayout implements Runnable {
   private final int C_RAM;
   private final int C_TEMP;
   private final int C_VALUE;
-  private int battFailCount;
   private BatteryManager batteryManager;
+  private BroadcastReceiver batteryReceiver;
   private volatile float batteryWatts;
-  private boolean canReadBatt;
+  private volatile int batteryCapacity;
   private boolean canReadCpu;
   private boolean canReadGpu;
   private Context context;
@@ -120,7 +121,6 @@ public class FrameRating extends LinearLayout implements Runnable {
   private FrametimeGraphView graphView;
   private boolean isNativeActive;
   private boolean isStatsRunning;
-  private volatile boolean isCharging;
   private volatile float lastFPS;
   private volatile long lastFrameNano;
   private long lastPrimaryFrameNano;
@@ -169,6 +169,8 @@ public class FrameRating extends LinearLayout implements Runnable {
   private GradientDrawable backdropDrawable;
   private boolean dualSeriesBattery;
   private boolean frametimeNumericMode;
+  private double voltage = 0;
+  private double temperature = 0;
 
   public FrameRating(Context context, HashMap graphicsDriverConfig) {
     this(context, graphicsDriverConfig, null);
@@ -199,16 +201,15 @@ public class FrameRating extends LinearLayout implements Runnable {
     this.cpuPercent = -1;
     this.gpuLoad = -1;
     this.batteryWatts = -1.0f;
+    this.batteryCapacity = -1;
     this.cpuTemp = -1;
     this.ramText = "N/A";
     this.rendererName = "Vulkan";
     this.gpuName = null;
     this.canReadGpu = true;
     this.canReadCpu = true;
-    this.canReadBatt = true;
     this.gpuFailCount = 0;
     this.cpuFailCount = 0;
-    this.battFailCount = 0;
     this.lastGoodGpuLoad = -1;
     this.lastGoodGpuTime = 0;
     this.isStatsRunning = false;
@@ -1214,27 +1215,6 @@ public class FrameRating extends LinearLayout implements Runnable {
     }
   }
 
-  private float getBatteryCurrentAmps() {
-    long currentRaw = 0;
-    if (this.batteryManager != null) {
-      currentRaw = this.batteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-    }
-    if (currentRaw == 0 || currentRaw == Long.MIN_VALUE) {
-      currentRaw = readSysFs("/sys/class/power_supply/battery/current_now");
-    }
-    if (currentRaw == 0 || currentRaw == Long.MIN_VALUE) {
-      currentRaw = readSysFs("/sys/class/power_supply/bms/current_now");
-    }
-    if (currentRaw == 0 || currentRaw == Long.MIN_VALUE) {
-      return -1.0f;
-    }
-    long currentAbs = Math.abs(currentRaw);
-    if (currentAbs < 20000) {
-      return currentAbs / 1000.0f;
-    }
-    return currentAbs / 1000000.0f;
-  }
-
   private int calculateGPULoad() throws Exception {
     File[] gpuFiles = {
       new File("/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage"),
@@ -1321,30 +1301,41 @@ public class FrameRating extends LinearLayout implements Runnable {
         this.ramText = "N/A";
       }
     }
-    if (this.enableBattTemp && this.canReadBatt) {
+    if (this.enableBattTemp) {
       try {
-        float amps = getBatteryCurrentAmps();
-        Intent intent =
-            context.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        int mv = intent != null ? intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) : 0;
-        if (mv > 0 && amps > 0.0f) this.batteryWatts = (mv / 1000.0f) * amps;
-        else this.batteryWatts = -1.0f;
-        if (intent != null) {
-          int temp = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0);
-          if (temp > 0) this.cpuTemp = temp / 10;
-          else this.cpuTemp = -1;
-
-          int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-          this.isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL;
+        if (this.batteryReceiver == null) {
+          IntentFilter batteryFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+          this.batteryReceiver = new BatteryLevelReceiver();
+          context.registerReceiver(this.batteryReceiver , batteryFilter);
         }
-        this.battFailCount = 0;
+        double current = this.batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) / 1000000.0;
+        this.batteryWatts = this.voltage * current;
+        this.batteryCapacity = this.batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
       } catch (Exception e) {
         this.batteryWatts = -1.0f;
+        this.batteryCapacity = -1;
         this.cpuTemp = -1;
-        this.battFailCount++;
       }
+    } else {
+      if (this.batteryReceiver != null) {
+            try {
+                context.unregisterReceiver(this.batteryReceiver);
+                this.batteryReceiver = null;
+            } catch (IllegalArgumentException e) {
+                // Receiver already unregistered
+            }
+        }
     }
   }
+
+  private class BatteryLevelReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            this.voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1) / 1000.0;
+            this.cpuTemp = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) / 10.0;
+        }
+    }
 
   @Override
   public void run() {
@@ -1397,16 +1388,7 @@ public class FrameRating extends LinearLayout implements Runnable {
                 : this.batteryWatts;
         SpannableStringBuilder b = new SpannableStringBuilder();
         append(b, "BAT ", this.C_BAT);
-        if (this.isCharging) {
-          append(b, "CHRG", this.C_FPS_OK);
-        } else {
-          append(
-              b,
-              displayedBatteryWatts >= 0.0f
-                  ? String.format(Locale.US, "%.1fW", displayedBatteryWatts)
-                  : "N/A",
-              this.C_VALUE);
-        }
+        append(b,String.format(Locale.US, "%.1fW(%d%%)", displayedBatteryWatts,this.batteryCapacity),this.C_VALUE);
         this.tvBat.setText(b);
         this.tvBat.setVisibility(View.VISIBLE);
       }
