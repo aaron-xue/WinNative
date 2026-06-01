@@ -43,6 +43,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.HashMap;
 import java.util.Locale;
+import java.text.SimpleDateFormat;
 
 public class FrameRating extends LinearLayout implements Runnable {
   private static final String TAG = "FrameRating";
@@ -96,6 +97,7 @@ public class FrameRating extends LinearLayout implements Runnable {
   private boolean enableGpu;
   private boolean enableGraph;
   private boolean enableRenderer;
+  private boolean enableTime;
   private volatile FrameObserver frameObserver;
   private int gpuFailCount;
   private volatile int gpuLoad;
@@ -132,7 +134,7 @@ public class FrameRating extends LinearLayout implements Runnable {
   private int frameTimesCount;
   private String rendererName;
   private String gpuName;
-  private final View sep0, sep1, sep2, sep3, sep4, sep5;
+  private final View sep0, sep1, sep2, sep3, sep4, sep5 ,sep6;
   private final TextView tvRenderer;
   private final TextView tvGpuLoad;
   private final TextView tvCpu;
@@ -141,6 +143,7 @@ public class FrameRating extends LinearLayout implements Runnable {
   private final TextView tvTemp;
   private final TextView tvFpsBig;
   private final TextView tvFrametime;
+  private final TextView tvTime;
   private final FrameLayout graphContainer;
   private Handler statsHandler;
   private Runnable statsRunnable;
@@ -171,6 +174,8 @@ public class FrameRating extends LinearLayout implements Runnable {
   private boolean frametimeNumericMode;
   private double voltage = 0;
   private double temperature = 0;
+  private final StringBuilder timeStringBuilder;
+  private final SimpleDateFormat timeFormat;
 
   public FrameRating(Context context, HashMap graphicsDriverConfig) {
     this(context, graphicsDriverConfig, null);
@@ -197,6 +202,7 @@ public class FrameRating extends LinearLayout implements Runnable {
     this.enableCpu = true;
     this.enableRam = true;
     this.enableBattTemp = true;
+    this.enableTime = true;
     this.enableRenderer = true;
     this.cpuPercent = -1;
     this.gpuLoad = -1;
@@ -226,6 +232,8 @@ public class FrameRating extends LinearLayout implements Runnable {
     // Native rendering (DRI3) is always on; the toggle was removed.
     this.isNativeActive = true;
     this.batteryManager = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
+    this.timeStringBuilder = new StringBuilder(5);
+    this.timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
     setOrientation(LinearLayout.HORIZONTAL);
     setLayoutParams(
         new ViewGroup.LayoutParams(
@@ -240,6 +248,7 @@ public class FrameRating extends LinearLayout implements Runnable {
     this.tvTemp = view.findViewById(R.id.TVTemp);
     this.tvFpsBig = view.findViewById(R.id.TVFpsBig);
     this.tvFrametime = view.findViewById(R.id.TVFrametime);
+    this.tvTime = view.findViewById(R.id.TVTime);
     this.graphContainer = view.findViewById(R.id.FLGraphContainer);
     this.sep0 = view.findViewById(R.id.Sep0);
     this.sep1 = view.findViewById(R.id.Sep1);
@@ -247,6 +256,7 @@ public class FrameRating extends LinearLayout implements Runnable {
     this.sep3 = view.findViewById(R.id.Sep3);
     this.sep4 = view.findViewById(R.id.Sep4);
     this.sep5 = view.findViewById(R.id.Sep5);
+    this.sep6 = view.findViewById(R.id.Sep6);
     this.graphView = new FrametimeGraphView(context);
     if (this.graphContainer != null) {
       this.graphContainer.addView(this.graphView);
@@ -823,7 +833,9 @@ public class FrameRating extends LinearLayout implements Runnable {
       sep5,
       tvFpsBig,
       tvFrametime,
-      graphContainer
+      graphContainer,
+      sep6,
+      tvTime
     };
     for (View v : views) {
       if (v != null) {
@@ -1061,13 +1073,16 @@ public class FrameRating extends LinearLayout implements Runnable {
         this.enableGraph = visible;
         applyFrametimeDisplayVisibility();
         break;
+      case 7:
+        this.enableTime = visible
+        if (this.tvTime != null) this.tvTime.setVisibility(v);
     }
     updateSeparators(getOrientation() == LinearLayout.HORIZONTAL);
   }
 
   private void updateSeparators(boolean horizontal) {
     if (!horizontal) {
-      View[] seps = {sep0, sep1, sep2, sep3, sep4, sep5};
+      View[] seps = {sep0, sep1, sep2, sep3, sep4, sep5, sep6};
       for (View s : seps) if (s != null) s.setVisibility(View.GONE);
       return;
     }
@@ -1079,6 +1094,7 @@ public class FrameRating extends LinearLayout implements Runnable {
     boolean vBat = tvBat != null && tvBat.getVisibility() == View.VISIBLE;
     boolean vTmp = tvTemp != null && tvTemp.getVisibility() == View.VISIBLE;
     boolean vFps = tvFpsBig != null && tvFpsBig.getVisibility() == View.VISIBLE;
+    boolean vTime = tvTime != null && tvTime.getVisibility() == View.VISIBLE;
 
     if (sep0 != null)
       sep0.setVisibility(
@@ -1090,6 +1106,7 @@ public class FrameRating extends LinearLayout implements Runnable {
     if (sep3 != null) sep3.setVisibility(vRam && (vBat || vTmp || vFps) ? View.VISIBLE : View.GONE);
     if (sep4 != null) sep4.setVisibility(vBat && (vTmp || vFps) ? View.VISIBLE : View.GONE);
     if (sep5 != null) sep5.setVisibility(vTmp && vFps ? View.VISIBLE : View.GONE);
+    if (sep6 != null) sep6.setVisibility(vFps && tvTime ? View.VISIBLE : View.GONE);
   }
 
   /** Called when the guest submits a new frame to the X presentation path. */
@@ -1417,6 +1434,13 @@ public class FrameRating extends LinearLayout implements Runnable {
     } else if (this.tvFrametime != null) {
       this.tvFrametime.setVisibility(View.GONE);
     }
+
+    if(this.enableTime && this.tvTime!=null) {
+      this.timeStringBuilder.setLength(0);
+      this.timeStringBuilder.append(this.timeFormat.format(System.currentTimeMillis()));
+      this.tvTime.setText(this.timeStringBuilder);
+      this.tvTime.setVisibility(View.VISIBLE);
+    } else if (this.tvTime != null) this.tvTime.setVisibility(View.GONE);
 
     if (getOrientation() == LinearLayout.HORIZONTAL) updateSeparators(true);
   }
