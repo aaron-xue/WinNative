@@ -124,6 +124,7 @@ fun ContainersScreen(
     onDuplicateContainer: (Container) -> Unit,
     onRemoveContainer: (Container) -> Unit,
     onShowInfo: (Container) -> Unit,
+    onFileManager: (Container) -> Unit,
     onDismissDialog: () -> Unit,
     onConfirmDuplicateDialog: (Container) -> Unit,
     onConfirmRemoveDialog: (Container) -> Unit,
@@ -170,6 +171,7 @@ fun ContainersScreen(
                     onDuplicate = { onDuplicateContainer(container) },
                     onRemove = { onRemoveContainer(container) },
                     onShowInfo = { onShowInfo(container) },
+                    onFileManager = { onFileManager(container) },
                 )
             }
         }
@@ -314,6 +316,7 @@ private fun ContainerCard(
     onDuplicate: () -> Unit,
     onRemove: () -> Unit,
     onShowInfo: () -> Unit,
+    onFileManager: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val nameFontSize =
@@ -362,6 +365,13 @@ private fun ContainerCard(
                     onDismissRequest = { menuExpanded = false },
                     containerColor = ContainersCard,
                 ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.common_ui_file_manager), color = ContainersTextPrimary) },
+                        onClick = {
+                            menuExpanded = false
+                            onFileManager()
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.container_config_storage_info), color = ContainersTextPrimary) },
                         onClick = {

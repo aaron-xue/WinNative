@@ -52,6 +52,13 @@
     <string name="common_ui_continue">계속</string>
     <string name="common_ui_warning">경고</string>
     <string name="common_ui_copy">복사</string>
+    <string name="common_ui_cut">잘라내기</string>
+    <string name="common_ui_paste">붙여넣기</string>
+    <string name="common_ui_rename">이름 바꾸기</string>
+    <string name="common_ui_info">정보</string>
+    <string name="common_ui_new_folder">새 폴더</string>
+    <string name="common_ui_file_manager">파일 관리자</string>
+    <string name="do_you_want_to_remove_this_file">이 파일을 제거하시겠습니까?</string>
     <string name="common_ui_reset">초기화</string>
     <string name="common_ui_close">닫기</string>
     <string name="common_ui_confirm">확인</string>

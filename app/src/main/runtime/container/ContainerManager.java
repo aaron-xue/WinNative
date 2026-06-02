@@ -20,6 +20,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.json.JSONException;
@@ -835,6 +836,30 @@ public class ContainerManager {
       }
     }
     return null; // Return null if no matching container is found
+  }
+
+  public ArrayList<FileInfo> loadFiles(Container container, FileInfo parent) {
+    ArrayList<FileInfo> fileInfos = new ArrayList<>();
+
+    if (parent != null) {
+      fileInfos = parent.list();
+    } else {
+      String rootPath = container.getRootDir().getPath();
+      fileInfos.add(new FileInfo(container, "C:", rootPath + "/.wine/drive_c", FileInfo.Type.DRIVE));
+      for (String[] drive : container.drivesIterator()) {
+        fileInfos.add(new FileInfo(container, drive[0] + ":", drive[1], FileInfo.Type.DRIVE));
+      }
+
+      File documentsDir = new File(rootPath, ".wine/drive_c/users/" + com.winlator.cmod.runtime.display.environment.ImageFs.USER + "/Documents");
+      File favoritesDir = new File(rootPath, ".wine/drive_c/users/" + com.winlator.cmod.runtime.display.environment.ImageFs.USER + "/Favorites");
+
+      if (documentsDir.exists()) {
+        fileInfos.add(new FileInfo(container, "Documents", documentsDir.getPath(), FileInfo.Type.DIRECTORY));
+      }
+
+      Collections.sort(fileInfos);
+    }
+    return fileInfos;
   }
 
   // Utility method to run on UI thread

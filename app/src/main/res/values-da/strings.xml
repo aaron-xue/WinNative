@@ -52,6 +52,13 @@
     <string name="common_ui_continue">Fortsæt</string>
     <string name="common_ui_warning">Advarsel</string>
     <string name="common_ui_copy">kopier</string>
+    <string name="common_ui_cut">Klip</string>
+    <string name="common_ui_paste">Indsæt</string>
+    <string name="common_ui_rename">Omdøb</string>
+    <string name="common_ui_info">Information</string>
+    <string name="common_ui_new_folder">Ny mappe</string>
+    <string name="common_ui_file_manager">Filhåndtering</string>
+    <string name="do_you_want_to_remove_this_file">Vil du fjerne denne fil?</string>
     <string name="common_ui_reset">Nulstil</string>
     <string name="common_ui_close">Luk</string>
     <string name="common_ui_confirm">Bekræft</string>

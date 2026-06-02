@@ -52,6 +52,13 @@
     <string name="common_ui_continue">Kontynuuj</string>
     <string name="common_ui_warning">Ostrzeżenie</string>
     <string name="common_ui_copy">kopiuj</string>
+    <string name="common_ui_cut">Wytnij</string>
+    <string name="common_ui_paste">Wklej</string>
+    <string name="common_ui_rename">Zmień nazwę</string>
+    <string name="common_ui_info">Informacje</string>
+    <string name="common_ui_new_folder">Nowy folder</string>
+    <string name="common_ui_file_manager">Menedżer plików</string>
+    <string name="do_you_want_to_remove_this_file">Czy chcesz usunąć ten plik?</string>
     <string name="common_ui_reset">Resetuj</string>
     <string name="common_ui_close">Zamknij</string>
     <string name="common_ui_confirm">Potwierdź</string>

@@ -52,6 +52,13 @@
     <string name="common_ui_continue">Продовжити</string>
     <string name="common_ui_warning">Попередження</string>
     <string name="common_ui_copy">копія</string>
+    <string name="common_ui_cut">Вирізати</string>
+    <string name="common_ui_paste">Вставити</string>
+    <string name="common_ui_rename">Перейменувати</string>
+    <string name="common_ui_info">Інформація</string>
+    <string name="common_ui_new_folder">Нова папка</string>
+    <string name="common_ui_file_manager">Файловий менеджер</string>
+    <string name="do_you_want_to_remove_this_file">Видалити цей файл?</string>
     <string name="common_ui_reset">Скинути</string>
     <string name="common_ui_close">Закрити</string>
     <string name="common_ui_confirm">Підтвердити</string>

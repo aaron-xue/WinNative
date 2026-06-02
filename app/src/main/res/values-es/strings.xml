@@ -52,6 +52,13 @@
     <string name="common_ui_continue">Continuar</string>
     <string name="common_ui_warning">Advertencia</string>
     <string name="common_ui_copy">copiar</string>
+    <string name="common_ui_cut">Cortar</string>
+    <string name="common_ui_paste">Pegar</string>
+    <string name="common_ui_rename">Renombrar</string>
+    <string name="common_ui_info">Información</string>
+    <string name="common_ui_new_folder">Nueva carpeta</string>
+    <string name="common_ui_file_manager">Administrador de archivos</string>
+    <string name="do_you_want_to_remove_this_file">¿Quieres eliminar este archivo?</string>
     <string name="common_ui_reset">Restablecer</string>
     <string name="common_ui_close">Cerrar</string>
     <string name="common_ui_confirm">Confirmar</string>

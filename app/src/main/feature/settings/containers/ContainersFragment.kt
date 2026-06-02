@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import com.winlator.cmod.R
 import com.winlator.cmod.feature.settings.ContainerSettingsComposeDialog
+import com.winlator.cmod.feature.settings.containers.ContainerFileManagerActivity
 import com.winlator.cmod.feature.shortcuts.ShortcutsFragment
 import com.winlator.cmod.runtime.container.Container
 import com.winlator.cmod.runtime.container.ContainerManager
@@ -62,6 +63,7 @@ class ContainersFragment : Fragment() {
                         onDuplicateContainer = ::duplicateContainer,
                         onRemoveContainer = ::removeContainer,
                         onShowInfo = ::showContainerInfo,
+                        onFileManager = ::openFileManager,
                         onDismissDialog = ::dismissDialog,
                         onConfirmDuplicateDialog = ::performDuplicateContainer,
                         onConfirmRemoveDialog = ::performRemoveContainer,
@@ -133,6 +135,15 @@ class ContainersFragment : Fragment() {
 
     private fun removeContainer(container: Container) {
         screenState = screenState.copy(dialog = ContainersDialogUiState.ConfirmRemove(container))
+    }
+
+    private fun openFileManager(container: Container) {
+        val ctx = context ?: return
+        startActivity(
+            Intent(ctx, ContainerFileManagerActivity::class.java).apply {
+                putExtra("container_id", container.id)
+            },
+        )
     }
 
     private fun showContainerInfo(container: Container) {

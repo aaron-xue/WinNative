@@ -52,6 +52,13 @@
     <string name="common_ui_continue">Continuare</string>
     <string name="common_ui_warning">Avertisment</string>
     <string name="common_ui_copy">copiere</string>
+    <string name="common_ui_cut">Tăiere</string>
+    <string name="common_ui_paste">Lipire</string>
+    <string name="common_ui_rename">Redenumire</string>
+    <string name="common_ui_info">Informații</string>
+    <string name="common_ui_new_folder">Folder nou</string>
+    <string name="common_ui_file_manager">Manager fișiere</string>
+    <string name="do_you_want_to_remove_this_file">Doriți să eliminați acest fișier?</string>
     <string name="common_ui_reset">Resetare</string>
     <string name="common_ui_close">Inchidere</string>
     <string name="common_ui_confirm">Confirmare</string>

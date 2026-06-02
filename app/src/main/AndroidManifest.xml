@@ -99,6 +99,13 @@
             android:screenOrientation="sensorLandscape"
             android:exported="false" />
 
+        <activity
+            android:name="com.winlator.cmod.feature.settings.containers.ContainerFileManagerActivity"
+            android:theme="@style/AppThemeFullscreen.Dark"
+            android:screenOrientation="sensorLandscape"
+            android:exported="false"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation" />
+
         <receiver
             android:name="com.winlator.cmod.feature.shortcuts.ShortcutBroadcastReceiver"
             android:exported="true">

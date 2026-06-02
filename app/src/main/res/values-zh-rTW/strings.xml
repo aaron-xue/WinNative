@@ -52,6 +52,13 @@
     <string name="common_ui_continue">繼續</string>
     <string name="common_ui_warning">警告</string>
     <string name="common_ui_copy">複製</string>
+    <string name="common_ui_cut">剪切</string>
+    <string name="common_ui_paste">粘貼</string>
+    <string name="common_ui_rename">重命名</string>
+    <string name="common_ui_info">信息</string>
+    <string name="common_ui_new_folder">新建文件夾</string>
+    <string name="common_ui_file_manager">文件管理</string>
+    <string name="do_you_want_to_remove_this_file">確定要刪除此文件嗎？</string>
     <string name="common_ui_reset">重設</string>
     <string name="common_ui_close">關閉</string>
     <string name="common_ui_confirm">確認</string>

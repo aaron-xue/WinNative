@@ -859,13 +859,6 @@ public class FrameRating extends LinearLayout implements Runnable {
           lp.width = LayoutParams.WRAP_CONTENT;
           lp.height = LayoutParams.WRAP_CONTENT;
           lp.setMargins(horizontal ? 4 : 0, horizontal ? 0 : 4, 0, 0);
-        } else if (v == tvFpsBig) {
-          lp.width = LayoutParams.WRAP_CONTENT;
-          lp.height = LayoutParams.WRAP_CONTENT;
-          lp.setMargins(0, 0, 0, 0);
-          // Centre the big FPS number across the HUD width when stacked
-          // vertically; inherit the container gravity when horizontal (-1).
-          lp.gravity = horizontal ? -1 : Gravity.CENTER_HORIZONTAL;
         } else {
           lp.width = LayoutParams.WRAP_CONTENT;
           lp.height = LayoutParams.WRAP_CONTENT;
@@ -1346,8 +1339,6 @@ public class FrameRating extends LinearLayout implements Runnable {
         double current = this.batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) / 1000000.0;
         this.batteryWatts = this.voltage * current;
         this.batteryCapacity = this.batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
-        int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-        this.isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL;
       } catch (Exception e) {
         this.batteryWatts = -1.0;
         this.batteryCapacity = -1;
@@ -1368,8 +1359,10 @@ public class FrameRating extends LinearLayout implements Runnable {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            this.voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1) / 1000.0;
-            this.cpuTemp = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) / 10.0;
+            voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1) / 1000.0;
+            cpuTemp = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) / 10.0;
+            int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+            isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL;
         }
     }
 
@@ -1452,8 +1445,10 @@ public class FrameRating extends LinearLayout implements Runnable {
     }
 
     if (this.enableFps && this.tvFpsBig != null) {
-      this.tvFpsBig.setText(String.format(Locale.US, "%.0f", this.lastFPS));
-      this.tvFpsBig.setTextColor(this.C_FPS_OK);
+      SpannableStringBuilder b = new SpannableStringBuilder();
+      append(b, "FPS ", this.C_FPS_OK);
+      append(b, String.format(Locale.US, "%.0f", this.lastFPS), this.C_VALUE);
+      this.tvFpsBig.setText(b);
       this.tvFpsBig.setVisibility(View.VISIBLE);
     } else if (this.tvFpsBig != null) this.tvFpsBig.setVisibility(View.GONE);
 

@@ -53,6 +53,13 @@
     <string name="common_ui_continue">Продолжить</string>
     <string name="common_ui_warning">Предупреждение</string>
     <string name="common_ui_copy">копия</string>
+    <string name="common_ui_cut">Вырезать</string>
+    <string name="common_ui_paste">Вставить</string>
+    <string name="common_ui_rename">Переименовать</string>
+    <string name="common_ui_info">Информация</string>
+    <string name="common_ui_new_folder">Новая папка</string>
+    <string name="common_ui_file_manager">Файловый менеджер</string>
+    <string name="do_you_want_to_remove_this_file">Удалить этот файл?</string>
     <string name="common_ui_reset">Сбросить</string>
     <string name="common_ui_close">Закрыть</string>
     <string name="common_ui_confirm">Подтвердить</string>

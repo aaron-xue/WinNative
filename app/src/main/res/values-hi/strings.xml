@@ -53,6 +53,13 @@
     <string name="common_ui_continue">जारी रखें</string>
     <string name="common_ui_warning">चेतावनी</string>
     <string name="common_ui_copy">कॉपी</string>
+    <string name="common_ui_cut">काटें</string>
+    <string name="common_ui_paste">चिपकाएं</string>
+    <string name="common_ui_rename">नाम बदलें</string>
+    <string name="common_ui_info">जानकारी</string>
+    <string name="common_ui_new_folder">नया फ़ोल्डर</string>
+    <string name="common_ui_file_manager">फ़ाइल प्रबंधक</string>
+    <string name="do_you_want_to_remove_this_file">क्या आप इस फ़ाइल को हटाना चाहते हैं?</string>
     <string name="common_ui_reset">रीसेट</string>
     <string name="common_ui_close">बंद करें</string>
     <string name="common_ui_confirm">पुष्टि करें</string>
