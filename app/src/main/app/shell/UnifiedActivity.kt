@@ -975,11 +975,7 @@ class UnifiedActivity :
         }
     }
 
-    /**
-     * When the "Sign in to Google on launch" toggle (Settings ▸ Google) is enabled, attempt a
-     * Google Play Games sign-in once per process launch. No toast — the result is reflected in the
-     * Google tab. When the toggle is off (default), this is a no-op and the app never auto-signs-in.
-     */
+    /** When the "Sign in to Google on launch" toggle is on, attempt a silent Play Games sign-in once per launch. */
     private fun maybeAutoSignInGoogleOnLaunch() {
         if (!com.winlator.cmod.feature.sync.google.CloudSyncManager.isAutoSignInOnLaunchEnabled(this)) return
         runCatching {
@@ -3232,6 +3228,7 @@ class UnifiedActivity :
                             Text(
                                 text = title,
                                 style = MaterialTheme.typography.titleSmall,
+                                fontSize = 13.sp,
                                 color = TextPrimary,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
@@ -5319,7 +5316,17 @@ class UnifiedActivity :
                         LibraryDetailPopupFrame(
                             title =
                                 when (popup) {
-                                    LibraryDetailPopup.CloudSaves -> stringResource(R.string.cloud_saves_title)
+                                    LibraryDetailPopup.CloudSaves ->
+                                        stringResource(
+                                            R.string.cloud_saves_title_for_provider,
+                                            when {
+                                                isGog -> stringResource(R.string.preloader_platform_gog)
+                                                isEpic -> stringResource(R.string.preloader_platform_epic)
+                                                isCustom -> stringResource(R.string.preloader_platform_custom)
+                                                else -> stringResource(R.string.preloader_platform_steam)
+                                            },
+                                            app.name,
+                                        )
                                 },
                             wide = popup == LibraryDetailPopup.CloudSaves,
                             onDismissRequest = { activePopup = null },
