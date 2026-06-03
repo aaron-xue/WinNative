@@ -57,6 +57,13 @@
     <string name="common_ui_rename">Перейменувати</string>
     <string name="common_ui_info">Інформація</string>
     <string name="common_ui_new_folder">Нова папка</string>
+    <string name="common_ui_no_match_found">Не знайдено збігів</string>
+    <string name="common_ui_search_files">Пошук файлів...</string>
+    <string name="you_cannot_paste_files_here">Ви не можете вставити файли сюди</string>
+    <string name="there_already_file_with_that_name">Файл з такою назвою вже існує</string>
+    <string name="confirm_overwrite">Підтвердити перезапис</string>
+    <string name="file_or_directory_already_exists_overwrite">Файл або каталог з такою ж назвою вже існує. Ви хочете перезаписати його?</string>
+    <string name="copying_files">Копіювання файлів...</string>
     <string name="common_ui_file_manager">Файловий менеджер</string>
     <string name="do_you_want_to_remove_this_file">Видалити цей файл?</string>
     <string name="common_ui_reset">Скинути</string>

@@ -58,6 +58,13 @@
     <string name="common_ui_rename">नाम बदलें</string>
     <string name="common_ui_info">जानकारी</string>
     <string name="common_ui_new_folder">नया फ़ोल्डर</string>
+    <string name="common_ui_no_match_found">कोई मिलान नहीं मिला</string>
+    <string name="common_ui_search_files">फ़ाइलें खोजें...</string>
+    <string name="you_cannot_paste_files_here">आप यहाँ फ़ाइलें पेस्ट नहीं कर सकते</string>
+    <string name="there_already_file_with_that_name">इस नाम की फ़ाइल पहले से मौजूद है</string>
+    <string name="confirm_overwrite">ओवरराइट की पुष्टि करें</string>
+    <string name="file_or_directory_already_exists_overwrite">समान नाम की फ़ाइल या निर्देशिका पहले से मौजूद है। क्या आप इसे ओवरराइट करना चाहते हैं?</string>
+    <string name="copying_files">फ़ाइलें कॉपी हो रही हैं...</string>
     <string name="common_ui_file_manager">फ़ाइल प्रबंधक</string>
     <string name="do_you_want_to_remove_this_file">क्या आप इस फ़ाइल को हटाना चाहते हैं?</string>
     <string name="common_ui_reset">रीसेट</string>

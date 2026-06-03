@@ -57,6 +57,13 @@
     <string name="common_ui_rename">이름 바꾸기</string>
     <string name="common_ui_info">정보</string>
     <string name="common_ui_new_folder">새 폴더</string>
+    <string name="common_ui_no_match_found">일치하는 파일이 없습니다</string>
+    <string name="common_ui_search_files">파일 검색...</string>
+    <string name="you_cannot_paste_files_here">여기에 파일을 붙여넣을 수 없습니다</string>
+    <string name="there_already_file_with_that_name">같은 이름의 파일이 이미 있습니다</string>
+    <string name="confirm_overwrite">덮어쓰기 확인</string>
+    <string name="file_or_directory_already_exists_overwrite">같은 이름의 파일 또는 디렉터리가 이미 존재합니다. 덮어쓰시겠습니까?</string>
+    <string name="copying_files">파일 복사 중...</string>
     <string name="common_ui_file_manager">파일 관리자</string>
     <string name="do_you_want_to_remove_this_file">이 파일을 제거하시겠습니까?</string>
     <string name="common_ui_reset">초기화</string>

@@ -57,6 +57,13 @@
     <string name="common_ui_rename">Rinomina</string>
     <string name="common_ui_info">Informazioni</string>
     <string name="common_ui_new_folder">Nuova cartella</string>
+    <string name="common_ui_no_match_found">Nessuna corrispondenza trovata</string>
+    <string name="common_ui_search_files">Cerca file...</string>
+    <string name="you_cannot_paste_files_here">Non puoi incollare file qui</string>
+    <string name="there_already_file_with_that_name">Esiste già un file con quel nome</string>
+    <string name="confirm_overwrite">Conferma sovrascrittura</string>
+    <string name="file_or_directory_already_exists_overwrite">Esiste già un file o una directory con lo stesso nome. Vuoi sovrascriverlo?</string>
+    <string name="copying_files">Copia dei file in corso...</string>
     <string name="common_ui_file_manager">Gestione file</string>
     <string name="do_you_want_to_remove_this_file">Vuoi rimuovere questo file?</string>
     <string name="common_ui_reset">Ripristina</string>

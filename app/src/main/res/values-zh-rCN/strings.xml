@@ -57,6 +57,13 @@
     <string name="common_ui_rename">重命名</string>
     <string name="common_ui_info">信息</string>
     <string name="common_ui_new_folder">新建文件夹</string>
+    <string name="common_ui_no_match_found">未找到匹配文件</string>
+    <string name="common_ui_search_files">搜索文件...</string>
+    <string name="you_cannot_paste_files_here">不能在此处粘贴文件</string>
+    <string name="there_already_file_with_that_name">已存在同名文件</string>
+    <string name="confirm_overwrite">确认覆盖</string>
+    <string name="file_or_directory_already_exists_overwrite">已存在同名的文件或目录，是否覆盖？</string>
+    <string name="copying_files">复制文件中...</string>
     <string name="common_ui_file_manager">文件管理</string>
     <string name="do_you_want_to_remove_this_file">确定要删除此文件吗？</string>
     <string name="common_ui_reset">重置</string>

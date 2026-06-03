@@ -61,7 +61,14 @@
     <string name="common_ui_info">Info</string>
     <string name="common_ui_new_folder">New folder</string>
     <string name="common_ui_file_manager">File Manager</string>
+    <string name="common_ui_no_match_found">No match found</string>
+    <string name="common_ui_search_files">Search files...</string>
     <string name="do_you_want_to_remove_this_file">Do you want to remove this file?</string>
+    <string name="you_cannot_paste_files_here">You cannot paste files here</string>
+    <string name="there_already_file_with_that_name">There is already a file with that name</string>
+    <string name="confirm_overwrite">Confirm Overwrite</string>
+    <string name="file_or_directory_already_exists_overwrite">A file or directory with the same name already exists. Do you want to overwrite it?</string>
+    <string name="copying_files">Copying Files...</string>
     <string name="common_ui_reset">Reset</string>
     <string name="common_ui_close">Close</string>
     <string name="common_ui_confirm">Confirm</string>

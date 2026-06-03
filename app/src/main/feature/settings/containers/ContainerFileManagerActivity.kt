@@ -58,6 +58,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -106,6 +107,7 @@ class ContainerFileManagerActivity : ComponentActivity() {
     private var files by mutableStateOf(emptyList<FileInfo>())
     private var currentPath by mutableStateOf("")
     private var clipboard: ClipboardState? by mutableStateOf(null)
+    private var showOverwriteDialog by mutableStateOf(false)
 
     data class ClipboardState(
         val files: List<FileInfo>,
@@ -143,6 +145,7 @@ class ContainerFileManagerActivity : ComponentActivity() {
                 currentPath = currentPath,
                 files = files,
                 clipboard = clipboard,
+                showOverwriteDialog = showOverwriteDialog,
                 onBack = { navigateBack() },
                 onOpen = { openFile(it) },
                 onCopy = { copyFile(it) },
@@ -155,6 +158,8 @@ class ContainerFileManagerActivity : ComponentActivity() {
                 onPaste = { pasteFiles() },
                 onClearClipboard = { clearClipboard() },
                 onDismissRenameDialog = { /* handled internally */ },
+                onDismissOverwriteDialog = { showOverwriteDialog = false },
+                onConfirmOverwrite = { performPaste() },
             )
         }
     }
@@ -264,16 +269,63 @@ class ContainerFileManagerActivity : ComponentActivity() {
         if (folderStack.isEmpty()) return
 
         val targetDir = folderStack.peek().toFile()
+
+        // Check if trying to paste in the same directory
+        for (src in clip.files) {
+            val srcFile = src.toFile()
+            val parentDir = srcFile.parentFile
+            if (parentDir != null && parentDir == targetDir) {
+                if (clip.cutMode) {
+                    android.widget.Toast.makeText(
+                        this,
+                        getString(R.string.you_cannot_paste_files_here),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    android.widget.Toast.makeText(
+                        this,
+                        getString(R.string.there_already_file_with_that_name),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+                return
+            }
+        }
+
+        // Check if any file or directory already exists
         for (src in clip.files) {
             val srcFile = src.toFile()
             val targetFile = File(targetDir, srcFile.name)
-            if (srcFile.isDirectory) {
-                FileUtils.copy(srcFile, targetFile)
-            } else {
-                FileUtils.copy(srcFile, targetFile)
+            if (targetFile.exists()) {
+                showOverwriteConfirmationDialog()
+                return
             }
-            if (clip.cutMode) {
-                FileUtils.delete(srcFile)
+        }
+
+        // No conflicts, proceed with paste
+        performPaste()
+    }
+
+    private fun showOverwriteConfirmationDialog() {
+        showOverwriteDialog = true
+    }
+
+    private fun performPaste() {
+        val clip = clipboard ?: return
+        val targetDir = folderStack.peek().toFile()
+        for (src in clip.files) {
+            val srcFile = src.toFile()
+            val targetFile = File(targetDir, srcFile.name)
+            if (srcFile.exists()) {
+                if (srcFile.isDirectory) {
+                    // Recursively copy/overwrite same-named items
+                    FileUtils.copy(srcFile, targetFile)
+                } else {
+                    FileUtils.copy(srcFile, targetFile)
+                }
+                if (clip.cutMode) {
+                    FileUtils.delete(srcFile)
+                }
             }
         }
         clearClipboard()
@@ -315,6 +367,7 @@ private fun ContainerFileManagerScreen(
     currentPath: String,
     files: List<FileInfo>,
     clipboard: ContainerFileManagerActivity.ClipboardState?,
+    showOverwriteDialog: Boolean,
     onBack: () -> Unit,
     onOpen: (FileInfo) -> Unit,
     onCopy: (FileInfo) -> Unit,
@@ -327,6 +380,8 @@ private fun ContainerFileManagerScreen(
     onPaste: () -> Unit,
     onClearClipboard: () -> Unit,
     onDismissRenameDialog: () -> Unit,
+    onDismissOverwriteDialog: () -> Unit,
+    onConfirmOverwrite: () -> Unit,
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -385,12 +440,19 @@ private fun ContainerFileManagerScreen(
                 onClick = onHome,
             )
             Spacer(Modifier.width(12.dp))
-            if (showSearch) {
-                // ── Search bar replacing path area ──
+            // ── Path / Search area ──
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(38.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                // Search bar
                 Row(
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
                         .height(38.dp)
+                        .alpha(if (showSearch) 1f else 0f)
                         .clip(RoundedCornerShape(10.dp))
                         .background(FileManagerCard)
                         .border(1.dp, FileManagerAccent.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
@@ -419,7 +481,7 @@ private fun ContainerFileManagerScreen(
                         decorationBox = { innerTextField ->
                             if (searchQuery.isEmpty()) {
                                 Text(
-                                    text = "搜索文件...",
+                                    text = stringResource(R.string.common_ui_search_files),
                                     color = FileManagerTextSecondary,
                                     fontSize = 14.sp,
                                 )
@@ -435,12 +497,10 @@ private fun ContainerFileManagerScreen(
                         )
                     }
                 }
-                Spacer(Modifier.width(8.dp))
-            } else {
+                // Path text
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp),
+                        .alpha(if (showSearch) 0f else 1f),
                     verticalArrangement = Arrangement.Center,
                 ) {
                     Text(
@@ -458,8 +518,8 @@ private fun ContainerFileManagerScreen(
                         fontWeight = FontWeight.Medium,
                     )
                 }
-                Spacer(Modifier.width(8.dp))
             }
+            Spacer(Modifier.width(8.dp))
             FileManagerIconButton(
                 image = Icons.Outlined.Search,
                 tint = if (showSearch) FileManagerAccent else FileManagerTextSecondary,
@@ -499,7 +559,7 @@ private fun ContainerFileManagerScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = if (searchQuery.isNotBlank()) "未找到匹配文件"
+                    text = if (searchQuery.isNotBlank()) stringResource(R.string.common_ui_no_match_found)
                         else stringResource(R.string.common_ui_no_items_to_display),
                     color = FileManagerTextSecondary,
                     fontSize = 16.sp,
@@ -566,7 +626,7 @@ private fun ContainerFileManagerScreen(
                             modifier = Modifier.size(18.dp),
                         )
                         Text(
-                            text = if (clipboard.cutMode) "剪切" else "粘贴",
+                            text = stringResource(R.string.common_ui_paste),
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
@@ -611,6 +671,21 @@ private fun ContainerFileManagerScreen(
                 onHome()
             },
             onCancel = { showRenameDialog = null },
+            accentColor = FileManagerAccent,
+        )
+    }
+
+    // ── Confirm Overwrite Dialog ──
+    if (showOverwriteDialog) {
+        PopupDialog(
+            title = stringResource(R.string.confirm_overwrite),
+            message = stringResource(R.string.file_or_directory_already_exists_overwrite),
+            confirmLabel = stringResource(R.string.common_ui_ok),
+            onConfirm = {
+                onConfirmOverwrite()
+                onDismissOverwriteDialog()
+            },
+            onCancel = { onDismissOverwriteDialog() },
             accentColor = FileManagerAccent,
         )
     }

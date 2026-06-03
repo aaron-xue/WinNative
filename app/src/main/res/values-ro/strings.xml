@@ -57,6 +57,13 @@
     <string name="common_ui_rename">Redenumire</string>
     <string name="common_ui_info">Informații</string>
     <string name="common_ui_new_folder">Folder nou</string>
+    <string name="common_ui_no_match_found">Nu s-a găsit nicio potrivire</string>
+    <string name="common_ui_search_files">Căutare fișiere...</string>
+    <string name="you_cannot_paste_files_here">Nu poți lipi fișiere aici</string>
+    <string name="there_already_file_with_that_name">Există deja un fișier cu acest nume</string>
+    <string name="confirm_overwrite">Confirmă suprascrierea</string>
+    <string name="file_or_directory_already_exists_overwrite">Există deja un fișier sau director cu același nume. Doriți să îl suprascrieți?</string>
+    <string name="copying_files">Se copiază fișierele...</string>
     <string name="common_ui_file_manager">Manager fișiere</string>
     <string name="do_you_want_to_remove_this_file">Doriți să eliminați acest fișier?</string>
     <string name="common_ui_reset">Resetare</string>

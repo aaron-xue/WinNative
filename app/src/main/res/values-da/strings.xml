@@ -57,6 +57,13 @@
     <string name="common_ui_rename">Omdøb</string>
     <string name="common_ui_info">Information</string>
     <string name="common_ui_new_folder">Ny mappe</string>
+    <string name="common_ui_no_match_found">Ingen match fundet</string>
+    <string name="common_ui_search_files">Søg efter filer...</string>
+    <string name="you_cannot_paste_files_here">Du kan ikke indsætte filer her</string>
+    <string name="there_already_file_with_that_name">Der findes allerede en fil med det navn</string>
+    <string name="confirm_overwrite">Bekræft overskrivning</string>
+    <string name="file_or_directory_already_exists_overwrite">En fil eller mappe med samme navn findes allerede. Vil du overskrive den?</string>
+    <string name="copying_files">Kopierer filer...</string>
     <string name="common_ui_file_manager">Filhåndtering</string>
     <string name="do_you_want_to_remove_this_file">Vil du fjerne denne fil?</string>
     <string name="common_ui_reset">Nulstil</string>
