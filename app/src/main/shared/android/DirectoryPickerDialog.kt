@@ -20,6 +20,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -51,6 +52,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -72,7 +74,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -88,6 +92,7 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.winlator.cmod.R
+import com.winlator.cmod.runtime.wine.PeIconExtractor
 import com.winlator.cmod.shared.theme.WinNativeAccent
 import com.winlator.cmod.shared.theme.WinNativeBackground
 import com.winlator.cmod.shared.theme.WinNativeFontFamily
@@ -98,6 +103,8 @@ import com.winlator.cmod.shared.theme.WinNativeTextPrimary
 import com.winlator.cmod.shared.theme.WinNativeTextSecondary
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import com.winlator.cmod.shared.ui.toast.WinToast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
 
@@ -714,6 +721,16 @@ object DirectoryPickerDialog {
         selected: Boolean,
         onClick: () -> Unit,
     ) {
+        val isExe = entry.isSelectableFile && entry.target.name.endsWith(".exe", ignoreCase = true)
+        var peIconBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+        LaunchedEffect(entry.target.absolutePath) {
+            if (isExe) {
+                peIconBitmap = withContext(Dispatchers.IO) {
+                    PeIconExtractor.extractIcon(entry.target)
+                }
+            }
+        }
+
         Column(
             modifier =
                 Modifier
@@ -743,17 +760,26 @@ object DirectoryPickerDialog {
                     ).padding(horizontal = 8.dp, vertical = 8.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector =
-                        when {
-                            entry.isParent -> Icons.Outlined.KeyboardArrowUp
-                            entry.isSelectableFile -> Icons.Outlined.Description
-                            else -> Icons.Outlined.Folder
-                        },
-                    contentDescription = null,
-                    tint = Accent,
-                    modifier = Modifier.size(16.dp),
-                )
+                if (isExe && peIconBitmap != null) {
+                    Image(
+                        bitmap = peIconBitmap!!.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                } else {
+                    Icon(
+                        imageVector =
+                            when {
+                                entry.isParent -> Icons.Outlined.KeyboardArrowUp
+                                entry.isSelectableFile -> if (isExe) Icons.Outlined.Terminal else Icons.Outlined.Description
+                                else -> Icons.Outlined.Folder
+                            },
+                        contentDescription = null,
+                        tint = Accent,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
                 Spacer(Modifier.width(6.dp))
                 Text(
                     text = entry.label,

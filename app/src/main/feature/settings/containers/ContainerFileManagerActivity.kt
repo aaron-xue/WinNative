@@ -1,11 +1,13 @@
 package com.winlator.cmod.feature.settings.containers;
 
 import android.content.Intent;
+import android.graphics.BitmapFactory
 import android.os.Bundle;
 import android.view.WindowManager;
 import androidx.activity.ComponentActivity;
 import androidx.activity.compose.setContent;
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,9 +46,11 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SnippetFolder
+import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material.icons.outlined.TextSnippet
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,7 +67,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -80,6 +86,7 @@ import com.winlator.cmod.runtime.container.Container
 import com.winlator.cmod.runtime.container.ContainerManager
 import com.winlator.cmod.runtime.container.FileInfo
 import com.winlator.cmod.runtime.display.XServerDisplayActivity
+import com.winlator.cmod.runtime.wine.PeIconExtractor
 import com.winlator.cmod.shared.io.FileUtils
 import com.winlator.cmod.shared.util.StringUtils
 import com.winlator.cmod.shared.ui.dialog.PopupDialog
@@ -1045,6 +1052,17 @@ private fun ContainerFileManagerScreen(
     }
 }
 
+private fun getFileTypeIcon(suffix: String): Pair<ImageVector, Color> {
+    return when (suffix) {
+        "exe" -> Icons.Outlined.Terminal to Color(0xFF4FC3F7)
+        "bat" -> Icons.Outlined.Terminal to Color(0xFF4FC3F7)
+        "ico" -> Icons.Outlined.Terminal to Color(0xFFFFCC80)
+        "dll" -> Icons.Outlined.TextSnippet to Color(0xFF81C784)
+        "lnk" -> Icons.Outlined.OpenInNew to Color(0xFFCE93D8)
+        else -> Icons.Outlined.TextSnippet to FileManagerTextSecondary
+    }
+}
+
 @Composable
 private fun FileItemCard(
     file: FileInfo,
@@ -1059,16 +1077,31 @@ private fun FileItemCard(
     onInfo: () -> Unit,
 ) {
     val isDirectory = file.type == FileInfo.Type.DIRECTORY || file.type == FileInfo.Type.DRIVE
-    val icon = when (file.type) {
-        FileInfo.Type.DRIVE -> Icons.Outlined.SnippetFolder
-        FileInfo.Type.DIRECTORY -> Icons.Outlined.SnippetFolder
-        else -> Icons.Outlined.PlayArrow
+    val suffix = if (!isDirectory) FileUtils.getFileSuffix(file.name).lowercase() else ""
+    val (icon, iconTint) = when {
+        file.type == FileInfo.Type.DRIVE -> Icons.Outlined.SnippetFolder to FileManagerAccent
+        file.type == FileInfo.Type.DIRECTORY -> Icons.Outlined.SnippetFolder to Color(0xFFF0C040)
+        else -> getFileTypeIcon(suffix)
     }
-    val iconTint = when {
-        file.type == FileInfo.Type.DRIVE -> FileManagerAccent
-        file.type == FileInfo.Type.DIRECTORY -> Color(0xFFF0C040)
-        else -> FileManagerTextSecondary
+
+    // For .exe files, try to extract the PE icon asynchronously.
+    // For .ico files, decode the image directly via BitmapFactory.
+    val isExe = suffix == "exe"
+    val isIco = suffix == "ico"
+    val showBitmap = isExe || isIco
+    var extractedBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    LaunchedEffect(file.path) {
+        if (showBitmap) {
+            extractedBitmap = withContext(Dispatchers.IO) {
+                if (isExe) {
+                    PeIconExtractor.extractIcon(file.toFile())
+                } else {
+                    BitmapFactory.decodeFile(file.path)
+                }
+            }
+        }
     }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1098,12 +1131,21 @@ private fun FileItemCard(
                 .background(FileManagerIconBox),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(16.dp),
-            )
+            if (showBitmap && extractedBitmap != null) {
+                Image(
+                    bitmap = extractedBitmap!!.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    contentScale = ContentScale.Fit,
+                )
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
 
         Spacer(Modifier.width(8.dp))
