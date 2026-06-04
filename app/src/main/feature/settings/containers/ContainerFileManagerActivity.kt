@@ -54,6 +54,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,6 +87,9 @@ import com.winlator.cmod.shared.ui.dialog.PopupDialog
 import java.io.File
 import java.util.Stack
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 // ─── Palette matching app theme ─────────────────────────────────────
 private val FileManagerBg = Color(0xFF18181D)
@@ -493,15 +497,16 @@ class ContainerFileManagerActivity : ComponentActivity() {
     }
 }
 
-private fun getDirectorySize(dir: File): Long {
+private suspend fun getDirectorySize(dir: File, onProgress: (String) -> Unit): Long {
     var totalSize = 0L
-    val files = dir.listFiles() ?: return 0L
+    val files = withContext(Dispatchers.IO) { dir.listFiles() } ?: return 0L
     for (file in files) {
         if (file.isDirectory) {
-            totalSize += getDirectorySize(file)
+            totalSize += getDirectorySize(file, onProgress)
         } else {
             totalSize += file.length()
         }
+        onProgress(StringUtils.formatBytes(totalSize))
     }
     return totalSize
 }
@@ -990,22 +995,32 @@ private fun ContainerFileManagerScreen(
     // ── Selected Info Dialog ──
     state.showSelectedInfoDialog?.let { file ->
         val fileObj = file.toFile()
-        val sizeText = when (file.type) {
-            FileInfo.Type.FILE -> StringUtils.formatBytes(fileObj.length())
-            FileInfo.Type.DIRECTORY -> StringUtils.formatBytes(getDirectorySize(fileObj))
-            else -> "Drive"
-        }
+        val coroutineScope = rememberCoroutineScope()
+        var sizeText by remember { mutableStateOf("Computing...") }
         val lastModified = fileObj.lastModified()
         val dateText = if (lastModified > 0) {
             java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(java.util.Date(lastModified))
         } else {
             "N/A"
         }
-        val infoMessage = "${stringResource(R.string.common_ui_path)}: ${file.path}\n${stringResource(R.string.common_ui_size)}: $sizeText\n${stringResource(R.string.common_ui_modified)}: $dateText"
+
+        LaunchedEffect(file.path) {
+            if (file.type == FileInfo.Type.DIRECTORY) {
+                sizeText = getDirectorySize(fileObj) { updatedSize ->
+                    sizeText = updatedSize
+                }.let { StringUtils.formatBytes(it) }
+            }
+        }
+
+        val initialSizeText = when (file.type) {
+            FileInfo.Type.FILE -> StringUtils.formatBytes(fileObj.length())
+            else -> sizeText
+        }
+
         DialogOverlay(onDismiss = { callbacks.onDismissSelectedInfoDialog() }) {
             PopupDialog(
                 title = file.getDisplayName(),
-                message = infoMessage,
+                message = "${stringResource(R.string.common_ui_path)}: ${file.path}\n${stringResource(R.string.common_ui_size)}: $initialSizeText\n${stringResource(R.string.common_ui_modified)}: $dateText",
                 confirmLabel = stringResource(R.string.common_ui_close),
                 onConfirm = { callbacks.onDismissSelectedInfoDialog() },
                 onCancel = null,
