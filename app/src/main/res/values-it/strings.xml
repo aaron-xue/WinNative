@@ -64,6 +64,8 @@
     <string name="confirm_overwrite">Conferma sovrascrittura</string>
     <string name="file_or_directory_already_exists_overwrite">Esiste già un file o una directory con lo stesso nome. Vuoi sovrascriverlo?</string>
     <string name="copying_files">Copia dei file in corso...</string>
+    <string name="common_ui_path">Percorso</string>
+    <string name="common_ui_modified">Modificato</string>
     <string name="common_ui_file_manager">Gestione file</string>
     <string name="do_you_want_to_remove_this_file">Vuoi rimuovere questo file?</string>
     <string name="common_ui_reset">Ripristina</string>

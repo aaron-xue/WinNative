@@ -69,6 +69,8 @@
     <string name="confirm_overwrite">Confirm Overwrite</string>
     <string name="file_or_directory_already_exists_overwrite">A file or directory with the same name already exists. Do you want to overwrite it?</string>
     <string name="copying_files">Copying Files...</string>
+    <string name="common_ui_path">Path</string>
+    <string name="common_ui_modified">Modified</string>
     <string name="common_ui_reset">Reset</string>
     <string name="common_ui_close">Close</string>
     <string name="common_ui_confirm">Confirm</string>

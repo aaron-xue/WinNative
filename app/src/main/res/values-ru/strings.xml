@@ -65,6 +65,8 @@
     <string name="confirm_overwrite">Подтвердить перезапись</string>
     <string name="file_or_directory_already_exists_overwrite">Файл или каталог с таким именем уже существует. Вы хотите перезаписать его?</string>
     <string name="copying_files">Копирование файлов...</string>
+    <string name="common_ui_path">Путь</string>
+    <string name="common_ui_modified">Изменено</string>
     <string name="common_ui_file_manager">Файловый менеджер</string>
     <string name="do_you_want_to_remove_this_file">Удалить этот файл?</string>
     <string name="common_ui_reset">Сбросить</string>

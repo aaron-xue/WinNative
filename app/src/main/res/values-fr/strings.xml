@@ -64,6 +64,8 @@
     <string name="confirm_overwrite">Confirmer l\'écrasement</string>
     <string name="file_or_directory_already_exists_overwrite">Un fichier ou répertoire du même nom existe déjà. Voulez-vous l\'écraser ?</string>
     <string name="copying_files">Copie des fichiers...</string>
+    <string name="common_ui_path">Chemin</string>
+    <string name="common_ui_modified">Modifié</string>
     <string name="common_ui_file_manager">Gestionnaire de fichiers</string>
     <string name="do_you_want_to_remove_this_file">Voulez-vous supprimer ce fichier ?</string>
     <string name="common_ui_reset">Réinitialiser</string>

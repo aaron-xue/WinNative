@@ -64,6 +64,8 @@
     <string name="confirm_overwrite">确认覆盖</string>
     <string name="file_or_directory_already_exists_overwrite">已存在同名的文件或目录，是否覆盖？</string>
     <string name="copying_files">复制文件中...</string>
+    <string name="common_ui_path">路径</string>
+    <string name="common_ui_modified">修改时间</string>
     <string name="common_ui_file_manager">文件管理</string>
     <string name="do_you_want_to_remove_this_file">确定要删除此文件吗？</string>
     <string name="common_ui_reset">重置</string>

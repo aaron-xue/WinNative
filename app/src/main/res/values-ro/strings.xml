@@ -64,6 +64,8 @@
     <string name="confirm_overwrite">Confirmă suprascrierea</string>
     <string name="file_or_directory_already_exists_overwrite">Există deja un fișier sau director cu același nume. Doriți să îl suprascrieți?</string>
     <string name="copying_files">Se copiază fișierele...</string>
+    <string name="common_ui_path">Cale</string>
+    <string name="common_ui_modified">Modificat</string>
     <string name="common_ui_file_manager">Manager fișiere</string>
     <string name="do_you_want_to_remove_this_file">Doriți să eliminați acest fișier?</string>
     <string name="common_ui_reset">Resetare</string>

@@ -64,6 +64,8 @@
     <string name="confirm_overwrite">덮어쓰기 확인</string>
     <string name="file_or_directory_already_exists_overwrite">같은 이름의 파일 또는 디렉터리가 이미 존재합니다. 덮어쓰시겠습니까?</string>
     <string name="copying_files">파일 복사 중...</string>
+    <string name="common_ui_path">경로</string>
+    <string name="common_ui_modified">수정 시간</string>
     <string name="common_ui_file_manager">파일 관리자</string>
     <string name="do_you_want_to_remove_this_file">이 파일을 제거하시겠습니까?</string>
     <string name="common_ui_reset">초기화</string>

@@ -5,9 +5,11 @@ import android.os.Bundle;
 import android.view.WindowManager;
 import androidx.activity.ComponentActivity;
 import androidx.activity.compose.setContent;
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,12 +44,9 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SnippetFolder
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -108,10 +107,55 @@ class ContainerFileManagerActivity : ComponentActivity() {
     private var currentPath by mutableStateOf("")
     private var clipboard: ClipboardState? by mutableStateOf(null)
     private var showOverwriteDialog by mutableStateOf(false)
+    private var selectedFiles by mutableStateOf(mutableSetOf<String>())
+    private var isMultiSelectMode by mutableStateOf(false)
+    private var showSelectedRenameDialog by mutableStateOf<FileInfo?>(null)
+    private var showSelectedInfoDialog by mutableStateOf<FileInfo?>(null)
 
     data class ClipboardState(
         val files: List<FileInfo>,
         val cutMode: Boolean,
+    )
+
+    // Data class to reduce @Composable function parameter count (avoid DEX VerifyError)
+    data class ScreenState(
+        val containerName: String,
+        val currentPath: String,
+        val files: List<FileInfo>,
+        val clipboard: ClipboardState?,
+        val showOverwriteDialog: Boolean,
+        val selectedFiles: Set<String>,
+        val isMultiSelectMode: Boolean,
+        val showSelectedRenameDialog: FileInfo?,
+        val showSelectedInfoDialog: FileInfo?,
+    )
+
+    class ScreenCallbacks(
+        val onBack: () -> Unit,
+        val onOpen: (FileInfo) -> Unit,
+        val onCopy: (FileInfo) -> Unit,
+        val onCut: (FileInfo) -> Unit,
+        val onRemove: (FileInfo) -> Unit,
+        val onRename: (FileInfo) -> Unit,
+        val onInfo: (FileInfo) -> Unit,
+        val onHome: () -> Unit,
+        val onNewFolder: () -> Unit,
+        val onPaste: () -> Unit,
+        val onClearClipboard: () -> Unit,
+        val onDismissRenameDialog: () -> Unit,
+        val onDismissOverwriteDialog: () -> Unit,
+        val onConfirmOverwrite: () -> Unit,
+        val onToggleSelect: (String) -> Unit,
+        val onEnterMultiSelect: (FileInfo) -> Unit,
+        val onExitMultiSelect: () -> Unit,
+        val onMultiCopy: () -> Unit,
+        val onMultiCut: () -> Unit,
+        val onMultiRemove: () -> Unit,
+        val onSelectedRename: () -> Unit,
+        val onSelectedInfo: () -> Unit,
+        val onPerformSelectedRename: (FileInfo, String) -> Unit,
+        val onDismissSelectedRenameDialog: () -> Unit,
+        val onDismissSelectedInfoDialog: () -> Unit,
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -140,12 +184,18 @@ class ContainerFileManagerActivity : ComponentActivity() {
         loadRootFiles()
 
         setContent {
-            ContainerFileManagerScreen(
+            val state = ScreenState(
                 containerName = container.name,
                 currentPath = currentPath,
                 files = files,
                 clipboard = clipboard,
                 showOverwriteDialog = showOverwriteDialog,
+                selectedFiles = selectedFiles,
+                isMultiSelectMode = isMultiSelectMode,
+                showSelectedRenameDialog = showSelectedRenameDialog,
+                showSelectedInfoDialog = showSelectedInfoDialog,
+            )
+            val callbacks = ScreenCallbacks(
                 onBack = { navigateBack() },
                 onOpen = { openFile(it) },
                 onCopy = { copyFile(it) },
@@ -160,7 +210,19 @@ class ContainerFileManagerActivity : ComponentActivity() {
                 onDismissRenameDialog = { /* handled internally */ },
                 onDismissOverwriteDialog = { showOverwriteDialog = false },
                 onConfirmOverwrite = { performPaste() },
+                onToggleSelect = { path -> toggleSelectFile(path) },
+                onEnterMultiSelect = { file -> enterMultiSelectMode(file) },
+                onExitMultiSelect = { exitMultiSelectMode() },
+                onMultiCopy = { multiCopy() },
+                onMultiCut = { multiCut() },
+                onMultiRemove = { multiRemove() },
+                onSelectedRename = { onSelectedRename() },
+                onSelectedInfo = { onSelectedInfo() },
+                onPerformSelectedRename = { file, newName -> performRename(file, newName) },
+                onDismissSelectedRenameDialog = { showSelectedRenameDialog = null },
+                onDismissSelectedInfoDialog = { showSelectedInfoDialog = null },
             )
+            ContainerFileManagerScreen(state = state, callbacks = callbacks)
         }
     }
 
@@ -222,10 +284,12 @@ class ContainerFileManagerActivity : ComponentActivity() {
 
     private fun copyFile(file: FileInfo) {
         clipboard = ClipboardState(listOf(file), false)
+        exitMultiSelectMode()
     }
 
     private fun cutFile(file: FileInfo) {
         clipboard = ClipboardState(listOf(file), true)
+        exitMultiSelectMode()
     }
 
     private fun clearClipboard() {
@@ -237,6 +301,74 @@ class ContainerFileManagerActivity : ComponentActivity() {
         val success = FileUtils.delete(fileObj)
         if (success) {
             refreshCurrentDirectory()
+        }
+    }
+
+    // ── Multi-select logic ──
+
+    private fun enterMultiSelectMode(file: FileInfo) {
+        isMultiSelectMode = true
+        selectedFiles = mutableSetOf(file.path)
+    }
+
+    private fun exitMultiSelectMode() {
+        isMultiSelectMode = false
+        selectedFiles = mutableSetOf()
+    }
+
+    private fun toggleSelectFile(path: String) {
+        val newSet = selectedFiles.toMutableSet()
+        if (newSet.contains(path)) {
+            newSet.remove(path)
+        } else {
+            newSet.add(path)
+        }
+        selectedFiles = newSet
+        if (newSet.isEmpty()) {
+            isMultiSelectMode = false
+        }
+    }
+
+    private fun getSelectedFileInfos(): List<FileInfo> {
+        return files.filter { selectedFiles.contains(it.path) }
+    }
+
+    private fun multiCopy() {
+        val selected = getSelectedFileInfos()
+        if (selected.isNotEmpty()) {
+            clipboard = ClipboardState(selected, false)
+        }
+        exitMultiSelectMode()
+    }
+
+    private fun multiCut() {
+        val selected = getSelectedFileInfos()
+        if (selected.isNotEmpty()) {
+            clipboard = ClipboardState(selected, true)
+        }
+        exitMultiSelectMode()
+    }
+
+    private fun multiRemove() {
+        val selected = getSelectedFileInfos()
+        for (file in selected) {
+            FileUtils.delete(file.toFile())
+        }
+        exitMultiSelectMode()
+        refreshCurrentDirectory()
+    }
+
+    private fun onSelectedRename() {
+        val selected = getSelectedFileInfos()
+        if (selected.size == 1) {
+            showSelectedRenameDialog = selected[0]
+        }
+    }
+
+    private fun onSelectedInfo() {
+        val selected = getSelectedFileInfos()
+        if (selected.size == 1) {
+            showSelectedInfoDialog = selected[0]
         }
     }
 
@@ -363,25 +495,8 @@ class ContainerFileManagerActivity : ComponentActivity() {
 
 @Composable
 private fun ContainerFileManagerScreen(
-    containerName: String,
-    currentPath: String,
-    files: List<FileInfo>,
-    clipboard: ContainerFileManagerActivity.ClipboardState?,
-    showOverwriteDialog: Boolean,
-    onBack: () -> Unit,
-    onOpen: (FileInfo) -> Unit,
-    onCopy: (FileInfo) -> Unit,
-    onCut: (FileInfo) -> Unit,
-    onRemove: (FileInfo) -> Unit,
-    onRename: (FileInfo) -> Unit,
-    onInfo: (FileInfo) -> Unit,
-    onHome: () -> Unit,
-    onNewFolder: () -> Unit,
-    onPaste: () -> Unit,
-    onClearClipboard: () -> Unit,
-    onDismissRenameDialog: () -> Unit,
-    onDismissOverwriteDialog: () -> Unit,
-    onConfirmOverwrite: () -> Unit,
+    state: ContainerFileManagerActivity.ScreenState,
+    callbacks: ContainerFileManagerActivity.ScreenCallbacks,
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -395,16 +510,16 @@ private fun ContainerFileManagerScreen(
     val focusRequester = remember { FocusRequester() }
 
     // Clear search when files change (new directory loaded)
-    LaunchedEffect(files) {
+    LaunchedEffect(state.files) {
         searchQuery = ""
         showSearch = false
-        if (files.isNotEmpty()) {
+        if (state.files.isNotEmpty()) {
             gridState.scrollToItem(0)
         }
     }
 
-    val filteredFiles = if (searchQuery.isBlank()) files
-        else files.filter { it.getDisplayName().contains(searchQuery, ignoreCase = true) }
+    val filteredFiles = if (searchQuery.isBlank()) state.files
+        else state.files.filter { it.getDisplayName().contains(searchQuery, ignoreCase = true) }
 
     Box(
         modifier = Modifier
@@ -422,22 +537,47 @@ private fun ContainerFileManagerScreen(
                 ),
         ) {
         // ── Header ──
+        if (state.isMultiSelectMode) {
+            // Multi-select header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FileManagerIconButton(
+                    image = Icons.Outlined.Clear,
+                    tint = FileManagerAccent,
+                    onClick = callbacks.onExitMultiSelect,
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = "Selected ${state.selectedFiles.size}",
+                    color = FileManagerTextPrimary,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        } else {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(54.dp)
                 .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             FileManagerIconButton(
                 image = Icons.AutoMirrored.Outlined.ArrowBack,
                 tint = FileManagerAccent,
-                onClick = onBack,
+                onClick = callbacks.onBack,
             )
             Spacer(Modifier.width(8.dp))
             FileManagerIconButton(
                 image = Icons.Outlined.Home,
                 tint = FileManagerTextSecondary,
-                onClick = onHome,
+                onClick = callbacks.onHome,
             )
             Spacer(Modifier.width(12.dp))
             // ── Path / Search area ──
@@ -504,7 +644,7 @@ private fun ContainerFileManagerScreen(
                     verticalArrangement = Arrangement.Center,
                 ) {
                     Text(
-                        text = currentPath,
+                        text = state.currentPath,
                         color = FileManagerTextPrimary,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
@@ -512,7 +652,7 @@ private fun ContainerFileManagerScreen(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = containerName,
+                        text = state.containerName,
                         color = FileManagerTextSecondary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
@@ -537,9 +677,10 @@ private fun ContainerFileManagerScreen(
             FileManagerIconButton(
                 image = Icons.Outlined.CreateNewFolder,
                 tint = FileManagerTextSecondary,
-                onClick = onNewFolder,
+                onClick = callbacks.onNewFolder,
             )
         }
+        } // end of else
 
         // ── Separator ──
         Box(
@@ -578,14 +719,30 @@ private fun ContainerFileManagerScreen(
                     items = filteredFiles,
                     key = { file -> file.path },
                 ) { file ->
+                    val isSelected = state.selectedFiles.contains(file.path)
                     FileItemCard(
                         file = file,
-                        onOpen = { onOpen(file) },
-                        onCopy = { onCopy(file) },
-                        onCut = { onCut(file) },
+                        isSelected = isSelected,
+                        isMultiSelectMode = state.isMultiSelectMode,
+                        onOpen = {
+                            if (state.isMultiSelectMode) {
+                                if (file.type != FileInfo.Type.DRIVE) {
+                                    callbacks.onToggleSelect(file.path)
+                                }
+                            } else {
+                                callbacks.onOpen(file)
+                            }
+                        },
+                        onLongPress = if (file.type != FileInfo.Type.DRIVE) {
+                            { callbacks.onEnterMultiSelect(file) }
+                        } else {
+                            {}
+                        },
+                        onCopy = { callbacks.onCopy(file) },
+                        onCut = { callbacks.onCut(file) },
                         onRemove = { showConfirmDelete = file },
                         onRename = { showRenameDialog = file },
-                        onInfo = { onInfo(file) },
+                        onInfo = { callbacks.onInfo(file) },
                     )
                 }
             }
@@ -593,8 +750,73 @@ private fun ContainerFileManagerScreen(
 
         } // end of Column
 
+        // ── Multi-select bottom action bar ──
+        if (state.isMultiSelectMode && state.selectedFiles.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = navBarPadding.calculateBottomPadding() + 8.dp,
+                    ),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(FileManagerCard)
+                        .border(1.dp, FileManagerOutline, RoundedCornerShape(16.dp))
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    // Copy
+                    FileManagerActionButton(
+                        modifier = Modifier.weight(1f),
+                        image = Icons.Outlined.ContentCopy,
+                        tint = FileManagerTextSecondary,
+                        onClick = callbacks.onMultiCopy,
+                    )
+                    // Cut
+                    FileManagerActionButton(
+                        modifier = Modifier.weight(1f),
+                        image = Icons.Outlined.ContentCut,
+                        tint = FileManagerTextSecondary,
+                        onClick = callbacks.onMultiCut,
+                    )
+                    // Remove
+                    FileManagerActionButton(
+                        modifier = Modifier.weight(1f),
+                        image = Icons.Outlined.Delete,
+                        tint = FileManagerDanger,
+                        onClick = callbacks.onMultiRemove,
+                    )
+                    // Rename (only when single selection)
+                    if (state.selectedFiles.size == 1) {
+                        FileManagerActionButton(
+                            modifier = Modifier.weight(1f),
+                            image = Icons.Outlined.Edit,
+                            tint = FileManagerTextSecondary,
+                            onClick = callbacks.onSelectedRename,
+                        )
+                    }
+                    // Info (only when single selection)
+                    if (state.selectedFiles.size == 1) {
+                        FileManagerActionButton(
+                            modifier = Modifier.weight(1f),
+                            image = Icons.Outlined.Info,
+                            tint = FileManagerTextSecondary,
+                            onClick = callbacks.onSelectedInfo,
+                        )
+                    }
+                }
+            }
+        }
+
         // ── Paste FAB (fixed bottom-right) ──
-        if (clipboard != null) {
+        if (state.clipboard != null && !state.isMultiSelectMode) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -610,7 +832,7 @@ private fun ContainerFileManagerScreen(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = onPaste,
+                            onClick = callbacks.onPaste,
                         )
                         .padding(horizontal = 20.dp, vertical = 14.dp),
                     contentAlignment = Alignment.Center,
@@ -639,69 +861,160 @@ private fun ContainerFileManagerScreen(
 
     // ── Confirm Delete Dialog ──
     showConfirmDelete?.let { file ->
-        PopupDialog(
-            title = stringResource(R.string.common_ui_remove),
-            message = stringResource(R.string.do_you_want_to_remove_this_file),
-            confirmLabel = stringResource(R.string.common_ui_remove),
-            onConfirm = {
-                val f = file.toFile()
-                FileUtils.delete(f)
-                showConfirmDelete = null
-                onClearClipboard()
-                onHome() // refresh
-            },
-            onCancel = { showConfirmDelete = null },
-            accentColor = FileManagerDanger,
-        )
+        DialogOverlay(onDismiss = { showConfirmDelete = null }) {
+            PopupDialog(
+                title = stringResource(R.string.common_ui_remove),
+                message = stringResource(R.string.do_you_want_to_remove_this_file),
+                confirmLabel = stringResource(R.string.common_ui_remove),
+                onConfirm = {
+                    val f = file.toFile()
+                    FileUtils.delete(f)
+                    showConfirmDelete = null
+                    callbacks.onClearClipboard()
+                    callbacks.onHome() // refresh
+                },
+                onCancel = { showConfirmDelete = null },
+                accentColor = FileManagerDanger,
+            )
+        }
     }
 
     // ── Rename Dialog ──
     showRenameDialog?.let { file ->
         var newName by remember { mutableStateOf(file.getDisplayName()) }
-        PopupDialog(
-            title = stringResource(R.string.common_ui_rename),
-            message = "",
-            confirmLabel = stringResource(R.string.common_ui_ok),
-            onConfirm = {
-                if (newName.isNotBlank()) {
-                    file.renameTo(newName)
-                }
-                showRenameDialog = null
-                onClearClipboard()
-                onHome()
-            },
-            onCancel = { showRenameDialog = null },
-            accentColor = FileManagerAccent,
-        )
+        DialogOverlay(onDismiss = { showRenameDialog = null }) {
+            PopupDialog(
+                title = stringResource(R.string.common_ui_rename),
+                message = null,
+                confirmLabel = stringResource(R.string.common_ui_ok),
+                onConfirm = {
+                    if (newName.isNotBlank()) {
+                        file.renameTo(newName)
+                    }
+                    showRenameDialog = null
+                    callbacks.onClearClipboard()
+                    callbacks.onHome()
+                },
+                onCancel = { showRenameDialog = null },
+                accentColor = FileManagerAccent,
+                content = {
+                    BasicTextField(
+                        value = newName,
+                        onValueChange = { newName = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(FileManagerSubcard)
+                            .border(1.dp, FileManagerOutline, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            color = FileManagerTextPrimary,
+                            fontSize = 14.sp,
+                        ),
+                        cursorBrush = SolidColor(FileManagerAccent),
+                        singleLine = true,
+                    )
+                },
+            )
+        }
     }
 
     // ── Confirm Overwrite Dialog ──
-    if (showOverwriteDialog) {
-        PopupDialog(
-            title = stringResource(R.string.confirm_overwrite),
-            message = stringResource(R.string.file_or_directory_already_exists_overwrite),
-            confirmLabel = stringResource(R.string.common_ui_ok),
-            onConfirm = {
-                onConfirmOverwrite()
-                onDismissOverwriteDialog()
-            },
-            onCancel = { onDismissOverwriteDialog() },
-            accentColor = FileManagerAccent,
-        )
+    if (state.showOverwriteDialog) {
+        DialogOverlay(onDismiss = { callbacks.onDismissOverwriteDialog() }) {
+            PopupDialog(
+                title = stringResource(R.string.confirm_overwrite),
+                message = stringResource(R.string.file_or_directory_already_exists_overwrite),
+                confirmLabel = stringResource(R.string.common_ui_ok),
+                onConfirm = {
+                    callbacks.onConfirmOverwrite()
+                    callbacks.onDismissOverwriteDialog()
+                },
+                onCancel = { callbacks.onDismissOverwriteDialog() },
+                accentColor = FileManagerAccent,
+            )
+        }
+    }
+
+    // ── Selected Rename Dialog ──
+    state.showSelectedRenameDialog?.let { file ->
+        var newName by remember { mutableStateOf(file.getDisplayName()) }
+        DialogOverlay(onDismiss = { callbacks.onDismissSelectedRenameDialog() }) {
+            PopupDialog(
+                title = stringResource(R.string.common_ui_rename),
+                message = null,
+                confirmLabel = stringResource(R.string.common_ui_ok),
+                onConfirm = {
+                    if (newName.isNotBlank()) {
+                        callbacks.onPerformSelectedRename(file, newName)
+                    }
+                    callbacks.onDismissSelectedRenameDialog()
+                },
+                onCancel = { callbacks.onDismissSelectedRenameDialog() },
+                accentColor = FileManagerAccent,
+                content = {
+                    BasicTextField(
+                        value = newName,
+                        onValueChange = { newName = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(FileManagerSubcard)
+                            .border(1.dp, FileManagerOutline, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            color = FileManagerTextPrimary,
+                            fontSize = 14.sp,
+                        ),
+                        cursorBrush = SolidColor(FileManagerAccent),
+                        singleLine = true,
+                    )
+                },
+            )
+        }
+    }
+
+    // ── Selected Info Dialog ──
+    state.showSelectedInfoDialog?.let { file ->
+        val fileObj = file.toFile()
+        val sizeText = when (file.type) {
+            FileInfo.Type.FILE -> StringUtils.formatBytes(fileObj.length())
+            FileInfo.Type.DIRECTORY -> "${file.getItemCount()} items"
+            else -> "Drive"
+        }
+        val lastModified = fileObj.lastModified()
+        val dateText = if (lastModified > 0) {
+            java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(java.util.Date(lastModified))
+        } else {
+            "N/A"
+        }
+        val infoMessage = "${stringResource(R.string.common_ui_path)}: ${file.path}\n${stringResource(R.string.common_ui_size)}: $sizeText\n${stringResource(R.string.common_ui_modified)}: $dateText"
+        DialogOverlay(onDismiss = { callbacks.onDismissSelectedInfoDialog() }) {
+            PopupDialog(
+                title = file.getDisplayName(),
+                message = infoMessage,
+                confirmLabel = stringResource(R.string.common_ui_close),
+                onConfirm = { callbacks.onDismissSelectedInfoDialog() },
+                onCancel = null,
+                accentColor = FileManagerAccent,
+            )
+        }
     }
 }
 
 @Composable
 private fun FileItemCard(
     file: FileInfo,
+    isSelected: Boolean = false,
+    isMultiSelectMode: Boolean = false,
     onOpen: () -> Unit,
+    onLongPress: () -> Unit = {},
     onCopy: () -> Unit,
     onCut: () -> Unit,
     onRemove: () -> Unit,
     onRename: () -> Unit,
     onInfo: () -> Unit,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
     val isDirectory = file.type == FileInfo.Type.DIRECTORY || file.type == FileInfo.Type.DRIVE
     val icon = when (file.type) {
         FileInfo.Type.DRIVE -> Icons.Outlined.SnippetFolder
@@ -713,120 +1026,54 @@ private fun FileItemCard(
         file.type == FileInfo.Type.DIRECTORY -> Color(0xFFF0C040)
         else -> FileManagerTextSecondary
     }
-    val nameFontSize = when {
-        file.getDisplayName().length > 30 -> 10.sp
-        file.getDisplayName().length > 20 -> 11.sp
-        else -> 12.sp
-    }
-
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(110.dp)
+            .height(48.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(FileManagerCard)
-            .border(1.dp, FileManagerOutline, RoundedCornerShape(12.dp))
-            .clickable(
+            .background(
+                if (isSelected) FileManagerAccent.copy(alpha = 0.15f) else FileManagerCard
+            )
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) FileManagerAccent else FileManagerOutline,
+                shape = RoundedCornerShape(12.dp),
+            )
+            .combinedClickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onOpen,
+                onLongClick = if (!isMultiSelectMode) onLongPress else null,
             )
-            .padding(12.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(FileManagerIconBox),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            Box {
-                FileManagerSmallIconButton(
-                    image = Icons.Outlined.MoreVert,
-                    tint = FileManagerTextSecondary,
-                    onClick = { menuExpanded = true },
-                )
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                    containerColor = FileManagerCard,
-                ) {
-                    if (!isDirectory || file.type != FileInfo.Type.DRIVE) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.common_ui_copy), color = FileManagerTextPrimary) },
-                            leadingIcon = { Icon(Icons.Outlined.ContentCopy, null, tint = FileManagerTextSecondary) },
-                            onClick = {
-                                menuExpanded = false
-                                onCopy()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.common_ui_cut), color = FileManagerTextPrimary) },
-                            leadingIcon = { Icon(Icons.Outlined.ContentCut, null, tint = FileManagerTextSecondary) },
-                            onClick = {
-                                menuExpanded = false
-                                onCut()
-                            },
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.common_ui_rename), color = FileManagerTextPrimary) },
-                        leadingIcon = { Icon(Icons.Outlined.Edit, null, tint = FileManagerTextSecondary) },
-                        onClick = {
-                            menuExpanded = false
-                            onRename()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.common_ui_info), color = FileManagerTextPrimary) },
-                        leadingIcon = { Icon(Icons.Outlined.Info, null, tint = FileManagerTextSecondary) },
-                        onClick = {
-                            menuExpanded = false
-                            onInfo()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.common_ui_remove), color = FileManagerDanger) },
-                        leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = FileManagerDanger) },
-                        onClick = {
-                            menuExpanded = false
-                            onRemove()
-                        },
-                    )
-                }
-            }
-        }
-
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+                .size(30.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(FileManagerIconBox),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = file.getDisplayName(),
-                color = FileManagerTextPrimary,
-                fontSize = nameFontSize,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                softWrap = true,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(16.dp),
             )
         }
+
+        Spacer(Modifier.width(8.dp))
+
+        Text(
+            text = file.getDisplayName(),
+            color = FileManagerTextPrimary,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -940,5 +1187,36 @@ private fun FileManagerSmallButton(
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
         )
+    }
+}
+
+// ── Dialog Overlay (centered modal wrapper) ──
+@Composable
+private fun DialogOverlay(
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onDismiss,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 32.dp)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {},
+                ),
+        ) {
+            content()
+        }
     }
 }
