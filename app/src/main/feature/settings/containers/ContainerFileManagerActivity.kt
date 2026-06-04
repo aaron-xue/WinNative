@@ -54,7 +54,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,7 +87,6 @@ import java.io.File
 import java.util.Stack
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 // ─── Palette matching app theme ─────────────────────────────────────
@@ -995,7 +993,6 @@ private fun ContainerFileManagerScreen(
     // ── Selected Info Dialog ──
     state.showSelectedInfoDialog?.let { file ->
         val fileObj = file.toFile()
-        val coroutineScope = rememberCoroutineScope()
         var sizeText by remember { mutableStateOf("Computing...") }
         val lastModified = fileObj.lastModified()
         val dateText = if (lastModified > 0) {
@@ -1006,25 +1003,43 @@ private fun ContainerFileManagerScreen(
 
         LaunchedEffect(file.path) {
             if (file.type == FileInfo.Type.DIRECTORY) {
-                sizeText = getDirectorySize(fileObj) { updatedSize ->
+                getDirectorySize(fileObj) { updatedSize ->
                     sizeText = updatedSize
-                }.let { StringUtils.formatBytes(it) }
+                }
+            } else {
+                sizeText = StringUtils.formatBytes(fileObj.length())
             }
-        }
-
-        val initialSizeText = when (file.type) {
-            FileInfo.Type.FILE -> StringUtils.formatBytes(fileObj.length())
-            else -> sizeText
         }
 
         DialogOverlay(onDismiss = { callbacks.onDismissSelectedInfoDialog() }) {
             PopupDialog(
                 title = file.getDisplayName(),
-                message = "${stringResource(R.string.common_ui_path)}: ${file.path}\n${stringResource(R.string.common_ui_size)}: $initialSizeText\n${stringResource(R.string.common_ui_modified)}: $dateText",
+                message = null,
                 confirmLabel = stringResource(R.string.common_ui_close),
                 onConfirm = { callbacks.onDismissSelectedInfoDialog() },
                 onCancel = null,
                 accentColor = FileManagerAccent,
+                content = {
+                    Column {
+                        Text(
+                            text = "${stringResource(R.string.common_ui_path)}: ${file.path}",
+                            color = FileManagerTextSecondary,
+                            fontSize = 13.sp,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "${stringResource(R.string.common_ui_size)}: $sizeText",
+                            color = FileManagerTextSecondary,
+                            fontSize = 13.sp,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "${stringResource(R.string.common_ui_modified)}: $dateText",
+                            color = FileManagerTextSecondary,
+                            fontSize = 13.sp,
+                        )
+                    }
+                },
             )
         }
     }
