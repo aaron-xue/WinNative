@@ -493,6 +493,19 @@ class ContainerFileManagerActivity : ComponentActivity() {
     }
 }
 
+private fun getDirectorySize(dir: File): Long {
+    var totalSize = 0L
+    val files = dir.listFiles() ?: return 0L
+    for (file in files) {
+        if (file.isDirectory) {
+            totalSize += getDirectorySize(file)
+        } else {
+            totalSize += file.length()
+        }
+    }
+    return totalSize
+}
+
 @Composable
 private fun ContainerFileManagerScreen(
     state: ContainerFileManagerActivity.ScreenState,
@@ -979,7 +992,7 @@ private fun ContainerFileManagerScreen(
         val fileObj = file.toFile()
         val sizeText = when (file.type) {
             FileInfo.Type.FILE -> StringUtils.formatBytes(fileObj.length())
-            FileInfo.Type.DIRECTORY -> "${file.getItemCount()} items"
+            FileInfo.Type.DIRECTORY -> StringUtils.formatBytes(getDirectorySize(fileObj))
             else -> "Drive"
         }
         val lastModified = fileObj.lastModified()
