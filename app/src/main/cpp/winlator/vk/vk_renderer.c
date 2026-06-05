@@ -23,6 +23,7 @@
 #include <jni.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 // SPIR-V shader byte arrays generated at build time by glslc + bin2c.cmake.
 #include "shaders/window_vert.spv.h"
@@ -2051,6 +2052,10 @@ fail:
     destroy_debug_messenger(r);
     if (r->instance) vkDestroyInstance(r->instance, NULL);
     vkd_unload();
+
+    // Give driver background threads time to finish before dlclose.
+    usleep(100000);  // 100ms
+
     if (r->vulkan_handle) { dlclose(r->vulkan_handle); r->vulkan_handle = NULL; }
     pthread_mutex_destroy(&r->scene_mutex);
     pthread_mutex_destroy(&r->queue_mutex);
@@ -2110,6 +2115,12 @@ JNIEXPORT void JNICALL JNI_FN(nativeDestroy)(JNIEnv* env, jclass clazz, jlong ha
     // Clear dispatch BEFORE dlclose so a stray call from another thread faults on NULL
     // rather than jumping into freed library memory.
     vkd_unload();
+
+    // Turnip drivers loaded via adrenotools hook may have background threads or deferred
+    // cleanups that outlive vkDeviceWaitIdle. Give them a brief window to finish before
+    // dlclose tears down the patched .so.
+    usleep(100000);  // 100ms
+
     if (r->vulkan_handle) { dlclose(r->vulkan_handle); r->vulkan_handle = NULL; }
 
     pthread_mutex_destroy(&r->scene_mutex);
