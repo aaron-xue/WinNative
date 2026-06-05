@@ -325,6 +325,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private boolean isPaused = false;
     private boolean reusingSession = false;
     private boolean isRelativeMouseMovement = false;
+    private boolean isRefactorSizeEnabled = false;
+    private static final long REFACTOR_SIZE_EXE_BYTES = 16384L;
 
     public boolean isPaused() { return isPaused; }
     public boolean isInputSuspended() {
@@ -381,6 +383,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
     private Handler  timeoutHandler = new Handler(Looper.getMainLooper());
     private Runnable hideControlsRunnable;
+
+    private boolean pendingStartupStretch;
+    private int startupStretchTries;
+    private static final int STARTUP_STRETCH_MAX_TRIES = 150;
+    private final Runnable startupStretchRunnable = () -> applyStartupStretchWhenReady();
 
     private final AtomicBoolean exitRequested = new AtomicBoolean(false);
     private final AtomicBoolean steamExitWatchRunning = new AtomicBoolean(false);
@@ -3496,6 +3503,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     @Override
     protected void onDestroy() {
         activityDestroyed.set(true);
+        pendingStartupStretch = false;
+        timeoutHandler.removeCallbacks(startupStretchRunnable);
         unregisterDisplayChangeListener();
         if (preloaderDialog != null) {
             preloaderDialog.close();
@@ -3745,8 +3754,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 preferences.getFloat("overlay_opacity", InputControlsView.DEFAULT_OVERLAY_OPACITY),
                 preferences.getBoolean("touchscreen_haptics_enabled", false),
                 preferences.getBoolean(ControllerManager.PREF_VIBRATION_GLOBAL, true),
+                preferences.getString(
+                    com.winlator.cmod.runtime.input.rumble.GcmRumbleMode.PREF_KEY,
+                    com.winlator.cmod.runtime.input.rumble.GcmRumbleMode.DISABLED.toPrefValue()),
                 xServerView != null && xServerView.getRenderer() != null && xServerView.getRenderer().isFullscreen(),
-                RefreshRateUtils.getMaxSupportedRefreshRate(this)
+                RefreshRateUtils.getMaxSupportedRefreshRate(this),
+                isRefactorSizeEnabled
         );
 
         if (drawerActionListener == null) {
@@ -4047,6 +4060,20 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     }
 
                     @Override
+                    public void onInputControlsGcmRumbleModeChanged(String mode) {
+                        com.winlator.cmod.runtime.input.rumble.GcmRumbleMode gcmMode =
+                            com.winlator.cmod.runtime.input.rumble.GcmRumbleMode.fromPrefValue(mode);
+                        preferences
+                            .edit()
+                            .putString(
+                                com.winlator.cmod.runtime.input.rumble.GcmRumbleMode.PREF_KEY,
+                                gcmMode.toPrefValue())
+                            .commit();
+                        if (winHandler != null) winHandler.setGcmRumbleMode(gcmMode);
+                        renderDrawerMenu();
+                    }
+
+                    @Override
                     public void onInputControlsEditClick() {
                         ControlsProfile activeProfile = inputControlsView != null ? inputControlsView.getProfile() : null;
                         Intent intent = new Intent(XServerDisplayActivity.this, UnifiedActivity.class);
@@ -4080,6 +4107,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     @Override
                     public void onTaskManagerEndProcess(String name) {
                         if (winHandler != null) winHandler.killProcess(name);
+                    }
+
+                    @Override
+                    public void onTaskManagerBringToFront(String name) {
+                        if (winHandler != null) winHandler.bringToFront(name);
+                        closeDrawerMenu();
                     }
 
                     @Override
@@ -4553,6 +4586,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 touchpadView.toggleFullscreen();
                 renderDrawerMenu();
                 break;
+            case R.id.main_menu_refactor_size:
+                isRefactorSizeEnabled = !isRefactorSizeEnabled;
+                applyRefactorSize(isRefactorSizeEnabled);
+                renderDrawerMenu();
+                break;
             case R.id.main_menu_pause:
                 if (isPaused) {
                     ProcessHelper.resumeAllWineProcesses();
@@ -4603,6 +4641,31 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 break;
         }
         return true;
+    }
+
+    private void applyRefactorSize(boolean enabled) {
+        if (winHandler == null || container == null) return;
+        if (enabled) stageRefactorSizeHelper();
+        winHandler.exec("\"C:\\winnative\\refactorsize.exe\" " + (enabled ? "on" : "off"));
+    }
+
+    private void stageRefactorSizeHelper() {
+        try {
+            File dir = new File(container.getRootDir(), ".wine/drive_c/winnative");
+            if (!dir.isDirectory() && !dir.mkdirs()) return;
+            File dst = new File(dir, "refactorsize.exe");
+            if (dst.exists() && dst.length() == REFACTOR_SIZE_EXE_BYTES) return;
+            try (java.io.InputStream in = getAssets().open("winnative/refactorsize.exe");
+                 java.io.FileOutputStream out = new java.io.FileOutputStream(dst)) {
+                byte[] buf = new byte[64 * 1024];
+                int n;
+                while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            }
+            Log.i("XServerDisplayActivity",
+                  "Refactor Size: staged refactorsize.exe (" + dst.length() + " B) at " + dst.getPath());
+        } catch (Exception e) {
+            Log.e("XServerDisplayActivity", "Refactor Size: helper staging failed", e);
+        }
     }
 
     private boolean isDisplayReady() {
@@ -5783,10 +5846,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         boolean shouldStretch = "1".equals(getShortcutSetting("fullscreenStretched",
                 container != null && container.isFullscreenStretched() ? "1" : "0"));
 
-        if (shouldStretch) {
-            renderer.toggleFullscreen();
-            touchpadView.toggleFullscreen();
-        }
+        pendingStartupStretch = shouldStretch;
+        startupStretchTries = 0;
+        if (shouldStretch) applyStartupStretchWhenReady();
 
         if (shortcut != null) {
             String controlsProfile = shortcut.getExtra("controlsProfile");
@@ -5802,6 +5864,27 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         startTouchscreenTimeout();
 
         AppUtils.observeSoftKeyboardVisibility(displayHostComposeView, renderer::setScreenOffsetYRelativeToCursor);
+    }
+
+    private void applyStartupStretchWhenReady() {
+        if (!pendingStartupStretch) return;
+        VulkanRenderer renderer = xServerView != null ? xServerView.getRenderer() : null;
+        boolean ready = renderer != null && renderer.getSurfaceWidth() > 0
+                && touchpadView != null && touchpadView.getWidth() > 0;
+        if (ready) {
+            pendingStartupStretch = false;
+            if (!renderer.isFullscreen()) {
+                renderer.toggleFullscreen();
+                touchpadView.toggleFullscreen();
+                renderDrawerMenu();
+            }
+            return;
+        }
+        if (++startupStretchTries > STARTUP_STRETCH_MAX_TRIES) {
+            pendingStartupStretch = false;
+            return;
+        }
+        timeoutHandler.postDelayed(startupStretchRunnable, 32);
     }
 
 
