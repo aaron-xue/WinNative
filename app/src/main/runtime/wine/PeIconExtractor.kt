@@ -69,6 +69,7 @@ object PeIconExtractor {
         raf.seek(sectionStart)
         var resFileOffset = 0L
         var resSectionRva = 0
+        var resRawSize = 0
         for (i in 0 until numSections) {
             val pos = sectionStart + i * 40L
             raf.seek(pos + 12) // virtualAddress
@@ -78,13 +79,17 @@ object PeIconExtractor {
             if (resRva >= va && resRva < va + rawSize) {
                 resSectionRva = va
                 resFileOffset = rawPtr.toLong() + (resRva - va)
+                resRawSize = rawSize
                 break
             }
         }
         if (resFileOffset == 0L) return null
 
+        // Use the smaller of resSize (Data Directory) and rawSize (Section Header)
+        // to avoid reading beyond the actual file data
+        val actualResSize = minOf(resSize, resRawSize)
         raf.seek(resFileOffset)
-        val resBuf = ByteArray(resSize)
+        val resBuf = ByteArray(actualResSize)
         raf.readFully(resBuf)
         val bb = ByteBuffer.wrap(resBuf).order(ByteOrder.LITTLE_ENDIAN)
 
