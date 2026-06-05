@@ -1679,8 +1679,9 @@ class ShortcutSettingsComposeDialog private constructor(
         identifier: String,
         target: androidx.compose.runtime.MutableIntState
     ) {
+        val normalizedId = StringUtils.parseIdentifier(identifier)
         val idx =
-            entries.indexOfFirst { StringUtils.parseIdentifier(it) == identifier }
+            entries.indexOfFirst { StringUtils.parseIdentifier(it) == normalizedId }
         target.intValue = if (idx >= 0) idx else 0
     }
 

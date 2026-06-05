@@ -1448,7 +1448,8 @@ class ContainerSettingsComposeDialog @JvmOverloads constructor(
         if (identifier == null) {
             target.intValue = 0; return
         }
-        val idx = entries.indexOfFirst { StringUtils.parseIdentifier(it) == identifier }
+        val normalizedId = StringUtils.parseIdentifier(identifier)
+        val idx = entries.indexOfFirst { StringUtils.parseIdentifier(it) == normalizedId }
         target.intValue = if (idx >= 0) idx else 0
     }
 
