@@ -80,6 +80,67 @@ public abstract class MSBitmap {
     return bitmap;
   }
 
+  /**
+   * Decode raw DIB (Device Independent Bitmap) pixel data from a ByteBuffer.
+   * The buffer position should already be at the pixel data start.
+   * Used for extracting BMP icons from PE resources.
+   *
+   * @param width      icon width in pixels
+   * @param height     icon height in pixels
+   * @param bitCount   bits per pixel (8, 24, 32)
+   * @param pixelData  ByteBuffer positioned at pixel data, little-endian
+   * @return decoded Bitmap, or null on failure
+   */
+  public static Bitmap decodeBuffer(int width, int height, int bitCount, ByteBuffer pixelData) {
+    if (width <= 0 || height <= 0 || pixelData == null) return null;
+    if (bitCount != 8 && bitCount != 24 && bitCount != 32) return null;
+
+    try {
+      int bytesPerPixel = bitCount / 8;
+      int rowBytes = (bytesPerPixel * width + 3) & ~3; // DWORD aligned
+      int needed = rowBytes * height;
+      if (pixelData.remaining() < needed) return null;
+
+      ByteBuffer pixels = ByteBuffer.allocate(width * height * 4);
+      int i = pixelData.position();
+
+      // DIB bitmaps are stored bottom-up by default (positive height in ICO means bottom-up)
+      for (int y = height - 1; y >= 0; y--) {
+        int line = y;
+        for (int x = 0; x < width; x++) {
+          int j = line * width * 4 + x * 4;
+          if (bitCount == 32) {
+            byte b = pixelData.get(i++);
+            byte g = pixelData.get(i++);
+            byte r = pixelData.get(i++);
+            i++; // skip alpha
+            pixels.put(j + 2, b);
+            pixels.put(j + 1, g);
+            pixels.put(j + 0, r);
+            pixels.put(j + 3, (byte) 255);
+          } else {
+            // 24-bit: BGR
+            byte b = pixelData.get(i++);
+            byte g = pixelData.get(i++);
+            byte r = pixelData.get(i++);
+            pixels.put(j + 2, b);
+            pixels.put(j + 1, g);
+            pixels.put(j + 0, r);
+            pixels.put(j + 3, (byte) 255);
+          }
+        }
+        // Skip padding bytes to next DWORD boundary
+        i += rowBytes - bytesPerPixel * width;
+      }
+
+      Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+      bitmap.copyPixelsFromBuffer(pixels);
+      return bitmap;
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
   public static boolean create(Bitmap bitmap, File outputFile) {
     int width = bitmap.getWidth();
     int height = bitmap.getHeight();

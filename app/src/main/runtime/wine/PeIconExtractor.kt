@@ -127,29 +127,84 @@ object PeIconExtractor {
             entries.add(GrpEntry(realW, realH, bitCount, bytesInRes, id))
         }
 
-        // Prefer largest resolution, then highest bit depth
-        val best = entries.maxByOrNull { it.w * it.h * 1000 + it.bitCount } ?: return null
+        // Sort by strategy: larger size preferred, then higher bit depth
+        // Try large icons (>= 32) first, then fall back to small icons
+        val sorted = entries.sortedWith(compareByDescending<GrpEntry> { it.w >= 32 || it.h >= 32 }
+            .thenByDescending { it.w * it.h }
+            .thenByDescending { it.bitCount })
 
-        // Find the RT_ICON with matching ID
-        val iconDataRva = resolveIconById(bb, iconEntries, best.id)
-        if (iconDataRva == null) return null
+        for (entry in sorted) {
+            val iconDataRva = resolveIconById(bb, iconEntries, entry.id) ?: continue
+            val iconFileOff = iconDataRva.first - resSectionRva
+            val iconSize = iconDataRva.second
+            if (iconFileOff < 0 || iconFileOff + iconSize > resBuf.size) continue
 
-        val iconFileOff = iconDataRva.first - resSectionRva
-        val iconSize = iconDataRva.second
-        if (iconFileOff < 0 || iconFileOff + iconSize > resBuf.size) return null
+            val iconData = ByteArray(iconSize)
+            System.arraycopy(resBuf, iconFileOff, iconData, 0, iconSize)
 
-        val iconData = ByteArray(iconSize)
-        System.arraycopy(resBuf, iconFileOff, iconData, 0, iconSize)
+            // 1. Check if PNG-embedded icon data (modern PE files)
+            if (isPNGData(iconData)) {
+                val bmp = BitmapFactory.decodeByteArray(iconData, 0, iconData.size)
+                if (bmp != null) return bmp
+            }
 
-        // Try decoding as PNG first (many modern icons embed PNG)
-        val pngBmp = BitmapFactory.decodeByteArray(iconData, 0, iconData.size)
-        if (pngBmp != null) return pngBmp
+            // 2. Try MSBitmap.decodeBuffer for BMP icons (supports 8/24/32 bit uncompressed)
+            val decoded = decodeBmpIcon(iconData, entry.w, entry.h)
+            if (decoded != null) return decoded
 
-        // Fall back: wrap in ICO format and decode
-        val ico = buildIco(iconData, best.w, best.h, best.bitCount)
-        return BitmapFactory.decodeByteArray(ico, 0, ico.size)
+            // 3. Fallback: wrap in ICO format and let BitmapFactory handle it
+            //    (handles edge cases that MSBitmap may not cover)
+            val ico = buildIco(iconData, entry.w, entry.h, entry.bitCount)
+            val bmp = BitmapFactory.decodeByteArray(ico, 0, ico.size)
+            if (bmp != null) return bmp
+        }
+
+        return null
     }
 
+    /** Check if byte array starts with PNG magic number */
+    private fun isPNGData(data: ByteArray): Boolean {
+        if (data.size < 8) return false
+        // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+        return data[0] == 0x89.toByte() && data[1] == 0x50.toByte() &&
+            data[2] == 0x4E.toByte() && data[3] == 0x47.toByte() &&
+            data[4] == 0x0D.toByte() && data[5] == 0x0A.toByte() &&
+            data[6] == 0x1A.toByte() && data[7] == 0x0A.toByte()
+    }
+
+    /**
+     * Try decoding ICO BMP icon data via MSBitmap.
+     * ICO bitmap data: BITMAPINFOHEADER (with optional color table) + pixel data.
+     * The [bitmapOffset] field in BITMAPINFOHEADER points to where pixel data begins.
+     */
+    private fun decodeBmpIcon(iconData: ByteArray, grpW: Int, grpH: Int): Bitmap? {
+        if (iconData.size < 40) return null
+
+        val dibBuf = ByteBuffer.wrap(iconData).order(ByteOrder.LITTLE_ENDIAN)
+        val headerSize = dibBuf.int           // size of BITMAPINFOHEADER
+        val bmpWidth = dibBuf.int
+        val bmpHeight = dibBuf.int
+        dibBuf.short // planes
+        val actualBitCount = dibBuf.short.toInt() and 0xFFFF
+        val compression = dibBuf.int
+
+        // Only support uncompressed 8/24/32 bit icons
+        if (actualBitCount != 8 && actualBitCount != 24 && actualBitCount != 32) return null
+        if (compression != 0) return null
+        if (bmpWidth <= 0 || bmpHeight <= 0) return null
+
+        val width = bmpWidth
+        // ICO height is doubled for BMP format (bottom half is the AND mask)
+        val height = bmpHeight / 2
+
+        if (headerSize < 40 || headerSize > iconData.size) return null
+        if (headerSize + height * ((actualBitCount / 8 * width + 3) and 3.inv()) > iconData.size) return null
+
+        dibBuf.position(headerSize)
+        return MSBitmap.decodeBuffer(width, height, actualBitCount, dibBuf)
+    }
+
+    /** Wrap raw DIB data into a minimal ICO file format */
     private fun buildIco(
         data: ByteArray,
         w: Int,
