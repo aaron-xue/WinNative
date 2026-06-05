@@ -384,10 +384,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private Handler  timeoutHandler = new Handler(Looper.getMainLooper());
     private Runnable hideControlsRunnable;
 
-    private boolean pendingStartupStretch;
-    private int startupStretchTries;
-    private static final int STARTUP_STRETCH_MAX_TRIES = 150;
-    private final Runnable startupStretchRunnable = () -> applyStartupStretchWhenReady();
+    private volatile boolean startFullscreenStretched;
 
     private final AtomicBoolean exitRequested = new AtomicBoolean(false);
     private final AtomicBoolean steamExitWatchRunning = new AtomicBoolean(false);
@@ -1388,6 +1385,17 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                         stopWnLauncherStatusTailer();
                     }
                     winStarted[0] = true;
+                    if (startFullscreenStretched) {
+                        timeoutHandler.post(() -> {
+                            if (activityDestroyed.get()) return;
+                            VulkanRenderer r = xServerView != null ? xServerView.getRenderer() : null;
+                            if (r != null && !r.isFullscreen()) {
+                                r.toggleFullscreen();
+                                touchpadView.toggleFullscreen();
+                                renderDrawerMenu();
+                            }
+                        });
+                    }
                 }
             }
            
@@ -3503,8 +3511,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     @Override
     protected void onDestroy() {
         activityDestroyed.set(true);
-        pendingStartupStretch = false;
-        timeoutHandler.removeCallbacks(startupStretchRunnable);
         unregisterDisplayChangeListener();
         if (preloaderDialog != null) {
             preloaderDialog.close();
@@ -4646,12 +4652,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private void applyRefactorSize(boolean enabled) {
         if (winHandler == null || container == null) return;
         if (enabled) stageRefactorSizeHelper();
-        winHandler.exec("\"C:\\winnative\\refactorsize.exe\" " + (enabled ? "on" : "off"));
+        winHandler.exec("\"C:\\WinNative\\refactorsize.exe\" " + (enabled ? "on" : "off"));
     }
 
     private void stageRefactorSizeHelper() {
         try {
-            File dir = new File(container.getRootDir(), ".wine/drive_c/winnative");
+            File dir = new File(container.getRootDir(), ".wine/drive_c/WinNative");
             if (!dir.isDirectory() && !dir.mkdirs()) return;
             File dst = new File(dir, "refactorsize.exe");
             if (dst.exists() && dst.length() == REFACTOR_SIZE_EXE_BYTES) return;
@@ -5843,12 +5849,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             if (perfController != null) perfController.attachToFrameRating(frameRating);
         }
 
-        boolean shouldStretch = "1".equals(getShortcutSetting("fullscreenStretched",
+        startFullscreenStretched = "1".equals(getShortcutSetting("fullscreenStretched",
                 container != null && container.isFullscreenStretched() ? "1" : "0"));
-
-        pendingStartupStretch = shouldStretch;
-        startupStretchTries = 0;
-        if (shouldStretch) applyStartupStretchWhenReady();
 
         if (shortcut != null) {
             String controlsProfile = shortcut.getExtra("controlsProfile");
@@ -5864,27 +5866,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         startTouchscreenTimeout();
 
         AppUtils.observeSoftKeyboardVisibility(displayHostComposeView, renderer::setScreenOffsetYRelativeToCursor);
-    }
-
-    private void applyStartupStretchWhenReady() {
-        if (!pendingStartupStretch) return;
-        VulkanRenderer renderer = xServerView != null ? xServerView.getRenderer() : null;
-        boolean ready = renderer != null && renderer.getSurfaceWidth() > 0
-                && touchpadView != null && touchpadView.getWidth() > 0;
-        if (ready) {
-            pendingStartupStretch = false;
-            if (!renderer.isFullscreen()) {
-                renderer.toggleFullscreen();
-                touchpadView.toggleFullscreen();
-                renderDrawerMenu();
-            }
-            return;
-        }
-        if (++startupStretchTries > STARTUP_STRETCH_MAX_TRIES) {
-            pendingStartupStretch = false;
-            return;
-        }
-        timeoutHandler.postDelayed(startupStretchRunnable, 32);
     }
 
 
