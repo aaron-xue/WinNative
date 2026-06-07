@@ -1336,5 +1336,8 @@ Percorso installato:
     <string name="workshop_loading_items">Caricamento elementi Workshop</string>
     <string name="workshop_search_items">Cerca elementi Workshop</string>
     <string name="common_ui_failed">Non riuscito</string>
+    <string name="copy_text">Copia</string>
+    <string name="select_all">Seleziona tutto</string>
+    <string name="selected_count">%d selezionati</string>
 </resources>
 

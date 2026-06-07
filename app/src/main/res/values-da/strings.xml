@@ -1336,4 +1336,7 @@ Installeret sti:
     <string name="workshop_loading_items">Indlæser Workshop-elementer</string>
     <string name="workshop_search_items">Søg i Workshop-elementer</string>
     <string name="common_ui_failed">Mislykket</string>
+    <string name="copy_text">Kopier</string>
+    <string name="select_all">Vælg alle</string>
+    <string name="selected_count">%d valgt</string>
 </resources>

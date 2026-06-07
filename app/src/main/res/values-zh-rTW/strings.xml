@@ -1336,5 +1336,8 @@
     <string name="workshop_loading_items">正在載入 Workshop 項目</string>
     <string name="workshop_search_items">搜尋 Workshop 項目</string>
     <string name="common_ui_failed">失敗</string>
+    <string name="copy_text">複製</string>
+    <string name="select_all">全選</string>
+    <string name="selected_count">已選擇 %d 項</string>
 </resources>
 

@@ -1107,6 +1107,9 @@
     <string name="session_drawer_logs_share_chooser">分享会话日志</string>
     <string name="session_drawer_logs_share_failed">无法分享日志</string>
     <string name="session_drawer_logs_share_empty">没有可分享的日志行</string>
+    <string name="copy_text">复制</string>
+    <string name="select_all">全选</string>
+    <string name="selected_count">已选择 %d 项</string>
     <string name="session_drawer_super_resolution">超分辨率</string>
     <string name="session_drawer_upscaler_mode">升尺度器</string>
     <string name="session_drawer_upscaler_fsr">SGSR 1</string>

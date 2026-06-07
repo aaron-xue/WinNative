@@ -1342,5 +1342,8 @@
     <string name="workshop_loading_items">Завантаження елементів Workshop</string>
     <string name="workshop_search_items">Пошук елементів Workshop</string>
     <string name="common_ui_failed">Помилка</string>
+    <string name="copy_text">Копіювати</string>
+    <string name="select_all">Вибрати все</string>
+    <string name="selected_count">Вибрано: %d</string>
 </resources>
 

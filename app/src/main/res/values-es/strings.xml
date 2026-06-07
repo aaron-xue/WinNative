@@ -1336,5 +1336,8 @@ Ruta instalada:
     <string name="workshop_loading_items">Cargando elementos de Workshop</string>
     <string name="workshop_search_items">Buscar elementos de Workshop</string>
     <string name="common_ui_failed">Fallido</string>
+    <string name="copy_text">Copiar</string>
+    <string name="select_all">Seleccionar todo</string>
+    <string name="selected_count">%d seleccionados</string>
 </resources>
 

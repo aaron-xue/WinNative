@@ -55,6 +55,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -123,6 +124,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -130,6 +132,7 @@ import androidx.compose.ui.res.integerArrayResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -2575,6 +2578,11 @@ private fun LogsPaneList(
     val paneScale = LocalPaneScale.current
     val shape = RoundedCornerShape((10f * paneScale).dp)
     val listState = rememberLazyListState()
+    val clipboardManager = LocalClipboardManager.current
+
+    // Selection state
+    var selecting by remember { mutableStateOf(false) }
+    var selectedIndices by remember { mutableStateOf(setOf<Int>()) }
 
     LaunchedEffect(lines.size, paused) {
         if (!paused && lines.isNotEmpty()) {
@@ -2582,45 +2590,181 @@ private fun LogsPaneList(
         }
     }
 
-    Box(
-        modifier =
-            modifier
-                .clip(shape)
-                .background(PaneInnerResting)
-                .border(1.dp, RestingCardBorder, shape),
-    ) {
-        if (lines.isEmpty()) {
-            Text(
-                text = stringResource(R.string.common_ui_no_items_to_display),
-                color = DrawerTextSecondary,
-                fontSize = (12f * paneScale).sp,
+    // Reset selection when lines change significantly
+    LaunchedEffect(lines.size) {
+        selectedIndices = selectedIndices.filter { it < lines.size }.toSet()
+    }
+
+    fun clearSelection() {
+        selecting = false
+        selectedIndices = emptySet()
+    }
+
+    fun copySelected() {
+        val text = selectedIndices.sorted().joinToString("\n") { lines[it] }
+        if (text.isNotEmpty()) {
+            clipboardManager.setText(AnnotatedString(text))
+        }
+        clearSelection()
+    }
+
+    fun selectAll() {
+        selectedIndices = lines.indices.toSet()
+        selecting = true
+    }
+
+    Column(modifier = modifier) {
+        // Selection action bar when in selecting mode
+        AnimatedVisibility(
+            visible = selecting && selectedIndices.isNotEmpty(),
+            enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+            exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
+        ) {
+            Box(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(top = (24f * paneScale).dp),
-                textAlign = TextAlign.Center,
-            )
-        } else {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding =
-                    PaddingValues(
-                        horizontal = (10f * paneScale).dp,
-                        vertical = (8f * paneScale).dp,
-                    ),
-                verticalArrangement = Arrangement.spacedBy((1f * paneScale).dp),
+                        .background(PaneInnerResting.copy(alpha = 0.95f))
+                        .padding(horizontal = (12f * paneScale).dp, vertical = (6f * paneScale).dp),
+                contentAlignment = Alignment.CenterEnd,
             ) {
-                items(lines) { line ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy((12f * paneScale).dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(
-                        text = line,
-                        color = DrawerTextPrimary,
+                        text = stringResource(R.string.selected_count, selectedIndices.size),
+                        color = DrawerTextSecondary,
                         fontSize = (11f * paneScale).sp,
-                        fontFamily = FontFamily.Monospace,
-                        lineHeight = (14f * paneScale).sp,
-                        letterSpacing = 0.sp,
-                        modifier = Modifier.fillMaxWidth(),
                     )
+                    Box(
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape((6f * paneScale).dp))
+                                .background(DrawerAccent.copy(alpha = 0.12f))
+                                .clickable { selectAll() }
+                                .padding(horizontal = (10f * paneScale).dp, vertical = (4f * paneScale).dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.select_all),
+                            color = DrawerAccent,
+                            fontSize = (11f * paneScale).sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                    Box(
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape((6f * paneScale).dp))
+                                .background(DrawerAccent)
+                                .clickable { copySelected() }
+                                .padding(horizontal = (10f * paneScale).dp, vertical = (4f * paneScale).dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.copy_text),
+                            color = Color.White,
+                            fontSize = (11f * paneScale).sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                    Box(
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape((6f * paneScale).dp))
+                                .background(Color.Transparent)
+                                .clickable { clearSelection() }
+                                .padding(horizontal = (10f * paneScale).dp, vertical = (4f * paneScale).dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.common_ui_cancel),
+                            color = DrawerTextSecondary,
+                            fontSize = (11f * paneScale).sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            }
+        }
+
+        Box(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .clip(shape)
+                    .background(PaneInnerResting)
+                    .border(1.dp, RestingCardBorder, shape),
+        ) {
+            if (lines.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.common_ui_no_items_to_display),
+                    color = DrawerTextSecondary,
+                    fontSize = (12f * paneScale).sp,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = (24f * paneScale).dp),
+                    textAlign = TextAlign.Center,
+                )
+            } else {
+                Box {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding =
+                            PaddingValues(
+                                horizontal = (10f * paneScale).dp,
+                                vertical = (8f * paneScale).dp,
+                            ),
+                        verticalArrangement = Arrangement.spacedBy((1f * paneScale).dp),
+                    ) {
+                        itemsIndexed(lines) { index, line ->
+                            val isSelected = index in selectedIndices
+                            val bgColor =
+                                if (isSelected) {
+                                    DrawerAccent.copy(alpha = 0.18f)
+                                } else {
+                                    Color.Transparent
+                                }
+
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .background(bgColor, RoundedCornerShape((3f * paneScale).dp))
+                                        .combinedClickable(
+                                            onClick = {
+                                                if (selecting) {
+                                                    selectedIndices =
+                                                        if (isSelected) {
+                                                            selectedIndices - index
+                                                        } else {
+                                                            selectedIndices + index
+                                                        }
+                                                    if (selectedIndices.isEmpty()) {
+                                                        selecting = false
+                                                    }
+                                                } else {
+                                                    clearSelection()
+                                                }
+                                            },
+                                            onLongClick = {
+                                                selecting = true
+                                                selectedIndices = setOf(index)
+                                            },
+                                        ),
+                            ) {
+                                Text(
+                                    text = line,
+                                    color = DrawerTextPrimary,
+                                    fontSize = (11f * paneScale).sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    lineHeight = (14f * paneScale).sp,
+                                    letterSpacing = 0.sp,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

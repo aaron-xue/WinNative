@@ -1242,4 +1242,7 @@
     <string name="workshop_loading_items">Загрузка элементов Workshop</string>
     <string name="workshop_search_items">Поиск элементов Workshop</string>
     <string name="common_ui_failed">Ошибка</string>
+    <string name="copy_text">Копировать</string>
+    <string name="select_all">Выбрать все</string>
+    <string name="selected_count">Выбрано: %d</string>
 </resources>

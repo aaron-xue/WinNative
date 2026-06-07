@@ -1336,5 +1336,8 @@ Cale instalata:
     <string name="workshop_loading_items">Se încarcă elementele Workshop</string>
     <string name="workshop_search_items">Caută elemente Workshop</string>
     <string name="common_ui_failed">Eșuat</string>
+    <string name="copy_text">Copiază</string>
+    <string name="select_all">Selectează tot</string>
+    <string name="selected_count">%d selectate</string>
 </resources>
 

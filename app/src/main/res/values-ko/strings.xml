@@ -1337,5 +1337,8 @@
     <string name="workshop_loading_items">Workshop 항목 로드 중</string>
     <string name="workshop_search_items">Workshop 항목 검색</string>
     <string name="common_ui_failed">실패</string>
+    <string name="copy_text">복사</string>
+    <string name="select_all">모두 선택</string>
+    <string name="selected_count">%d개 선택됨</string>
 </resources>
 

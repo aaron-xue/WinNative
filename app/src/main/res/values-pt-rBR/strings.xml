@@ -1336,5 +1336,8 @@ Caminho instalado:
     <string name="workshop_loading_items">Carregando itens do Workshop</string>
     <string name="workshop_search_items">Buscar itens do Workshop</string>
     <string name="common_ui_failed">Falhou</string>
+    <string name="copy_text">Copiar</string>
+    <string name="select_all">Selecionar tudo</string>
+    <string name="selected_count">%d selecionados</string>
 </resources>
 

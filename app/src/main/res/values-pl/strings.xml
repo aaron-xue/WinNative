@@ -1342,5 +1342,8 @@ Zainstalowana ścieżka:
     <string name="workshop_loading_items">Ładowanie elementów Workshop</string>
     <string name="workshop_search_items">Szukaj elementów Workshop</string>
     <string name="common_ui_failed">Niepowodzenie</string>
+    <string name="copy_text">Kopiuj</string>
+    <string name="select_all">Zaznacz wszystko</string>
+    <string name="selected_count">Wybrano: %d</string>
 </resources>
 

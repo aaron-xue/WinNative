@@ -746,6 +746,9 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="session_drawer_logs_share_chooser">Share session logs</string>
     <string name="session_drawer_logs_share_failed">Failed to share logs</string>
     <string name="session_drawer_logs_share_empty">No log lines to share</string>
+    <string name="copy_text">Copy</string>
+    <string name="select_all">Select all</string>
+    <string name="selected_count">%d selected</string>
     <string name="session_gyroscope_activator">Activator</string>
 
     <!-- Session > Task Manager -->
