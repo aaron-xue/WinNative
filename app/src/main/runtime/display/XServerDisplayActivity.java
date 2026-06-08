@@ -3109,7 +3109,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     }
 
     private boolean isCloudSyncEnabledForShortcut() {
-        return shortcut == null || !"1".equals(shortcut.getExtra("cloud_sync_disabled", "0"));
+        return shortcut == null || !"1".equals(shortcut.getExtra("cloud_sync_disabled", "1"));
     }
 
     private void syncSteamCloudOnExit(Runnable onComplete) {

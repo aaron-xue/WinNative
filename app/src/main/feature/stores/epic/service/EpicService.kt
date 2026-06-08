@@ -1379,8 +1379,8 @@ class EpicService : Service() {
         games.forEach { game ->
             val shortcut = shortcutsByAppId[game.id.toString()]
             if (shortcut != null &&
-                (shortcut.getExtra("cloud_sync_disabled", "0") == "1" ||
-                    shortcut.getExtra("offline_mode", "0") == "1")
+                (shortcut.getExtra("cloud_sync_disabled", "1") == "1" ||
+                    shortcut.getExtra("offline_mode", "1") == "1")
             ) {
                 Timber.tag("Epic").d("[Cloud Saves] Startup check skipped for ${game.title}: shortcut cloud sync disabled")
                 return@forEach

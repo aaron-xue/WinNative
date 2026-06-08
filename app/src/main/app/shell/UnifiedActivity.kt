@@ -9088,7 +9088,7 @@ class UnifiedActivity :
     }
 
     private fun isShortcutCloudSyncEnabled(shortcut: Shortcut?): Boolean =
-        shortcut == null || shortcut.getExtra("cloud_sync_disabled", "0") != "1"
+        shortcut == null || shortcut.getExtra("cloud_sync_disabled", "1") != "1"
 
     private fun setShortcutCloudSyncEnabled(
         shortcut: Shortcut?,
@@ -9103,7 +9103,7 @@ class UnifiedActivity :
     }
 
     private fun isShortcutOfflineMode(shortcut: Shortcut?): Boolean =
-        shortcut != null && shortcut.getExtra("offline_mode", "0") == "1"
+        shortcut != null && shortcut.getExtra("offline_mode", "1") == "1"
 
     private fun setShortcutOfflineMode(
         shortcut: Shortcut?,

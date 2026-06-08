@@ -142,7 +142,7 @@ object CloudSyncHelper {
      */
     @JvmStatic
     fun isOfflineMode(shortcut: Shortcut?): Boolean =
-        shortcut != null && shortcut.getExtra("offline_mode", "0") == "1"
+        shortcut != null && shortcut.getExtra("offline_mode", "1") == "1"
 
     /**
      * Returns true when a previous cloud-save sync has been recorded for this
