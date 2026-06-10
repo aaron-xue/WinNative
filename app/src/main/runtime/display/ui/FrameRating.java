@@ -100,7 +100,8 @@ public class FrameRating extends LinearLayout implements Runnable {
   private volatile double cpuTemp;
   private volatile float currentMs;
   private volatile double voltage = 0;
-  private boolean enableBattTemp;
+  private boolean enableBatt;
+  private boolean enableTemp;
   private boolean enableCpu;
   private boolean enableRam;
   private boolean enableFps;
@@ -181,6 +182,11 @@ public class FrameRating extends LinearLayout implements Runnable {
   private int displayMode = 0;
   private static final int MODE_COUNT = 4;
   private GradientDrawable backdropDrawable;
+  private static final int BACKDROP_BASE_COLOR = 0xA6000000;
+  public static final float BACKDROP_BASE_ALPHA = ((BACKDROP_BASE_COLOR >>> 24) & 0xFF) / 255f;
+  private boolean bgAlphaDecoupled = false;
+  private float readoutAlpha = 1.0f;
+  private float backgroundAlpha = 1.0f;
   // Outlined plug glyph shown next to the battery wattage while charging (lazily loaded + tinted).
   private Drawable plugIcon;
   private boolean dualSeriesBattery;
@@ -212,8 +218,9 @@ public class FrameRating extends LinearLayout implements Runnable {
     this.enableGpu = true;
     this.enableCpu = true;
     this.enableRam = true;
-    this.enableBattTemp = true;
     this.enableTime = true;
+    this.enableBatt = true;
+    this.enableTemp = true;
     this.enableRenderer = true;
     this.cpuPercent = -1;
     this.gpuLoad = -1;
@@ -283,7 +290,7 @@ public class FrameRating extends LinearLayout implements Runnable {
 
     // Create backdrop drawable (rounded, semi-transparent black)
     this.backdropDrawable = new GradientDrawable();
-    this.backdropDrawable.setColor(0xA6000000); // 65% black
+    this.backdropDrawable.setColor(BACKDROP_BASE_COLOR);
     this.backdropDrawable.setCornerRadius(8f);
 
     loadPersistedHudPreferences();
@@ -1012,7 +1019,37 @@ public class FrameRating extends LinearLayout implements Runnable {
   }
 
   public void setHudAlpha(float alpha) {
-    setAlpha(alpha);
+    this.readoutAlpha = alpha;
+    applyAlpha();
+  }
+
+  public void setHudBackgroundAlpha(float alpha) {
+    this.backgroundAlpha = alpha;
+    applyAlpha();
+  }
+
+  public void setBackgroundAlphaDecoupled(boolean decoupled) {
+    this.bgAlphaDecoupled = decoupled;
+    applyAlpha();
+  }
+
+  private void applyAlpha() {
+    if (bgAlphaDecoupled) {
+      setAlpha(1.0f);
+      setChildrenAlpha(readoutAlpha);
+      int a = Math.max(0, Math.min(255, Math.round(backgroundAlpha * 255f)));
+      backdropDrawable.setColor((a << 24) | (BACKDROP_BASE_COLOR & 0x00FFFFFF));
+    } else {
+      setChildrenAlpha(1.0f);
+      backdropDrawable.setColor(BACKDROP_BASE_COLOR);
+      setAlpha(readoutAlpha);
+    }
+  }
+
+  private void setChildrenAlpha(float alpha) {
+    for (int i = 0; i < getChildCount(); i++) {
+      getChildAt(i).setAlpha(alpha);
+    }
   }
 
   public void setHudScale(float scale) {
@@ -1077,15 +1114,18 @@ public class FrameRating extends LinearLayout implements Runnable {
         if (this.tvRam != null) this.tvRam.setVisibility(v);
         break;
       case 5:
-        this.enableBattTemp = visible;
+        this.enableBatt = visible;
         if (this.tvBat != null) this.tvBat.setVisibility(v);
-        if (this.tvTemp != null) this.tvTemp.setVisibility(v);
         break;
       case 6:
+        this.enableTemp = visible;
+        if (this.tvTemp != null) this.tvTemp.setVisibility(v);
+        break;
+      case 7:
         this.enableGraph = visible;
         applyFrametimeDisplayVisibility();
         break;
-      case 7:
+      case 8:
         this.enableTime = visible;
         if (this.tvTime != null) this.tvTime.setVisibility(v);
         break;
@@ -1331,7 +1371,7 @@ public class FrameRating extends LinearLayout implements Runnable {
         this.ramText = "N/A";
       }
     }
-    if (this.enableBattTemp) {
+    if (this.enableBatt || this.enableTemp) {
       try {
         if (this.batteryReceiver == null) {
           IntentFilter batteryFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
@@ -1411,39 +1451,38 @@ public class FrameRating extends LinearLayout implements Runnable {
       this.tvRam.setVisibility(View.GONE);
     }
 
-    if (this.enableBattTemp) {
-      if (this.tvBat != null) {
-        double displayedBatteryWatts =
-            this.batteryWatts > 0.0 && this.dualSeriesBattery
-                ? this.batteryWatts * 2.0
-                : this.batteryWatts;
-        SpannableStringBuilder b = new SpannableStringBuilder();
-        append(b, "BAT ", this.C_BAT);
-        if (this.isCharging) {
-          appendPlugIcon(b);
-        }
-        append(b, String.format(Locale.US, "%.1fW(%d%%)", displayedBatteryWatts, this.batteryCapacity), this.C_VALUE);
-        this.tvBat.setText(b);
-        this.tvBat.setVisibility(View.VISIBLE);
+    if (this.enableBatt && this.tvBat != null) {
+      float displayedBatteryWatts = (float) (
+          this.batteryWatts >= 0.0 && this.dualSeriesBattery
+              ? this.batteryWatts * 2.0
+              : this.batteryWatts);
+      SpannableStringBuilder b = new SpannableStringBuilder();
+      append(b, "BAT ", this.C_BAT);
+      if (this.isCharging) {
+        appendPlugIcon(b);
       }
-      if (this.tvTemp != null) {
-        SpannableStringBuilder b = new SpannableStringBuilder();
-        append(b, "TMP ", this.C_TEMP);
-        if (this.cpuTemp >= 0) {
-          // Battery temperature: amber in the warm range, red once hot.
-          int tempColor =
-              this.cpuTemp >= 45 ? this.C_HOT : this.cpuTemp >= 40 ? this.C_WARM : this.C_VALUE;
-          append(b, this.cpuTemp + "°", tempColor);
-          appendSmall(b, "C", tempColor, 0.7f);
-        } else {
-          append(b, "N/A", this.C_VALUE);
-        }
-        this.tvTemp.setText(b);
-        this.tvTemp.setVisibility(View.VISIBLE);
+      append(b, String.format(Locale.US, "%.1fW(%d%%)", displayedBatteryWatts, this.batteryCapacity), this.C_VALUE);
+      this.tvBat.setText(b);
+      this.tvBat.setVisibility(View.VISIBLE);
+    } else if (this.tvBat != null) {
+      this.tvBat.setVisibility(View.GONE);
+    }
+
+    if (this.enableTemp && this.tvTemp != null) {
+      SpannableStringBuilder b = new SpannableStringBuilder();
+      append(b, "TMP ", this.C_TEMP);
+      if (this.cpuTemp >= 0) {
+        int tempColor =
+            this.cpuTemp >= 45 ? this.C_HOT : this.cpuTemp >= 40 ? this.C_WARM : this.C_VALUE;
+        append(b, this.cpuTemp + "°", tempColor);
+        appendSmall(b, "C", tempColor, 0.7f);
+      } else {
+        append(b, "N/A", this.C_VALUE);
       }
-    } else {
-      if (this.tvBat != null) this.tvBat.setVisibility(View.GONE);
-      if (this.tvTemp != null) this.tvTemp.setVisibility(View.GONE);
+      this.tvTemp.setText(b);
+      this.tvTemp.setVisibility(View.VISIBLE);
+    } else if (this.tvTemp != null) {
+      this.tvTemp.setVisibility(View.GONE);
     }
 
     if (this.enableFps && this.tvFpsBig != null) {
