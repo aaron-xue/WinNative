@@ -220,7 +220,7 @@ class GameSettingsStateHolder {
     val listArtworkSummary = mutableStateOf("")
     val refreshRateEntries = mutableStateOf<List<String>>(emptyList())
     val selectedRefreshRate = mutableIntStateOf(0)
-    val fpsLimit = mutableIntStateOf(0)
+    val fpsLimit = mutableIntStateOf(60)
 
     // Display
     val graphicsDriverEntries = mutableStateOf<List<String>>(emptyList())
