@@ -213,6 +213,10 @@
     <string name="library_games_immersive_blur_description">Застосувати ефект розмиття до фону режиму занурення</string>
     <string name="library_games_custom_game">Користувацька гра</string>
     <string name="library_games_play">Грати</string>
+    <string name="hero_boot_to_desktop_title">Завантажити робочий стіл</string>
+    <string name="hero_graphics_tests_title">Графічні тести</string>
+    <string name="hero_graphics_test_32">32-біт</string>
+    <string name="hero_graphics_test_64">64-біт</string>
     <string name="library_games_add_custom_game">Додати користувацьку гру</string>
     <string name="library_games_game_name">Назва гри</string>
     <string name="library_games_game_folder_mapped_drive">Папка гри (зіставлений ігровий диск)</string>
@@ -298,6 +302,10 @@
     <string name="shortcuts_list_clone_failed">Не вдалося клонувати ярлик.</string>
     <string name="shortcuts_list_exported_to">Ярлик експортовано до %1$s</string>
     <string name="shortcuts_list_failed_export">Не вдалося експортувати ярлик</string>
+    <string name="shortcuts_export_all">Експортувати все</string>
+    <string name="shortcuts_export_to_frontend">Експортувати до фронтенду</string>
+    <string name="shortcuts_export_all_done">Експортовано %1$d ігор до %2$s</string>
+    <string name="shortcuts_export_all_none">Немає ігор для експорту</string>
     <string name="shortcuts_list_added">Ярлик успішно додано.</string>
     <string name="shortcuts_list_failed_add">Не вдалося додати ярлик.</string>
 
@@ -706,6 +714,9 @@
     <string name="session_gamepad_error_loading_profile">Помилка завантаження профілю</string>
 
     <!-- Session > Gyroscope -->
+    <string name="input_controls_auto_hide_section">Сенсорне керування</string>
+    <string name="input_controls_auto_hide_on_controller_title">Автоприховування з контролером</string>
+    <string name="input_controls_auto_hide_on_controller_summary">Приховувати сенсорне керування, коли під\'єднано контролер</string>
     <string name="session_gyroscope_title">Гіроскоп</string>
     <string name="session_gyroscope_calibrate">Калібрувати гіроскоп</string>
     <string name="session_gyroscope_enable_right_stick">Увімкнути гіроскопічний рух правого стіка</string>
@@ -755,7 +766,7 @@
     <string name="settings_general_share_android_clipboard">Спільний буфер обміну Android з Wine</string>
     <string name="settings_general_paths_title">Налаштування шляхів</string>
     <string name="settings_general_paths_summary">Керувати місцем зберігання робочих даних Winlator та шляхом експорту ярликів.</string>
-    <string name="settings_general_winlator_path_title">Шлях Winlator</string>
+    <string name="settings_general_winlator_path_title">Шлях сховища</string>
     <string name="settings_general_shortcut_export_path_title">Шлях експорту ярликів</string>
     <string name="settings_general_choose_path">Вибрати шлях</string>
     <string name="settings_general_xserver_cursor_summary">Налаштуйте швидкість вказівника для сенсорного, трекпада та миші у сесії XServer.</string>
@@ -763,7 +774,7 @@
     <string name="settings_general_cursor_lock_summary">Підтримує пряме захоплення миші для ігор, що потребують необробленого введення вказівника. Вимкніть кнопкою гучності вниз.</string>
     <string name="settings_general_xinput_toggle_title">Вимкнути XInput</string>
     <string name="settings_general_xinput_toggle_summary">Вимикає обробку XInput, коли потрібне ексклюзивне керування мишею та клавіатурою.</string>
-    <string name="settings_general_file_provider_summary">Надати доступ до файлів Winlator для засобів вибору документів та файлових менеджерів Android.</string>
+    <string name="settings_general_file_provider_summary">Надати доступ до файлів WinNative для засобів вибору документів та файлових менеджерів Android.</string>
     <string name="settings_general_open_browser_summary">Відкривати підтримувані веб-посилання у браузері Android замість Wine.</string>
     <string name="settings_general_clipboard_summary">Дозволити копіювання та вставку між Android та сесіями Wine.</string>
     <string name="settings_general_imagefs_summary">Відновити системні файли з пакета без видалення існуючих контейнерів.</string>
@@ -805,6 +816,8 @@
     <string name="settings_debug_share_logs">Поділитися журналами</string>
     <string name="settings_debug_delete_logs">Видалити журнали</string>
     <string name="settings_debug_share_all_logs_short">Поділитися всіма</string>
+    <string name="settings_debug_download_all_logs_short">Завантажити все</string>
+    <string name="settings_debug_logs_saved">Збережено в %1$s</string>
     <string name="settings_debug_delete_logs_short">Видалити</string>
     <string name="settings_debug_delete_all_logs_short">Видалити всі</string>
     <string name="settings_debug_open_logs_folder_short">Відкрити менеджер журналів</string>
@@ -852,6 +865,7 @@
     <string name="settings_content_desc_box64">Транслює Linux-код x86_64 для запуску на пристроях ARM64.</string>
     <string name="settings_content_desc_wowbox64">Збірка Box64, яку WoW64 використовує для запуску 32-бітних Windows-застосунків у 64-бітному Wine.</string>
     <string name="settings_content_desc_fexcore">Транслює код x86 і x86_64 для запуску на пристроях ARM64.</string>
+    <string name="settings_content_desc_d7vk">Транслює графічні виклики DirectDraw (Direct3D 7 та раніших версій) у Vulkan.</string>
     <string name="settings_content_unable_to_install">Неможливо встановити контент.</string>
     <string name="settings_content_install_failed">Помилка встановлення</string>
     <string name="settings_content_file_cannot_be_recognized">Файл не розпізнано.</string>
@@ -1137,6 +1151,7 @@
     <string name="box64_env_var_help__dynarec_noarch">Reduces dynarec block metadata to save memory, with compatibility tradeoffs.</string>
     <string name="box64_env_var_help__dynarec_sep">Adds secondary entry points to optimize CALL/RET when CALLRET is enabled.</string>
     <string name="box64_env_var_help__dynarec_volatile_metadata">Uses PE volatile metadata to guide strong memory emulation for 64-bit Windows games.</string>
+    <string name="box64_env_var_help__dynacache">Керує кешуванням згенерованих блоків dynarec між запусками для пришвидшення запуску.</string>
     <string name="box64_env_var_help__dynarec">Enables or disables the Box64 dynamic recompiler.</string>
     <string name="box64_env_var_help__pclmulqdq">Exposes PCLMULQDQ CPU capabilities to the guest.</string>
     <string name="box64_env_var_help__shaext">Exposes SHA extension CPU capabilities to the guest.</string>
@@ -1345,5 +1360,82 @@
     <string name="copy_text">Копіювати</string>
     <string name="select_all">Вибрати все</string>
     <string name="selected_count">Вибрано: %d</string>
+
+    <!-- Touch Input & Gesture Profiles -->
+    <string name="common_ui_new">Створити</string>
+    <string name="gesture_profile_export">Експортувати профіль жестів</string>
+    <string name="gesture_profile_import">Імпортувати профіль жестів</string>
+    <string name="gesture_profile_new">Новий профіль жестів</string>
+    <string name="gesture_profile_none">Немає профілів жестів</string>
+    <string name="input_controls_editor_input_profiles_section">Профілі введення</string>
+    <string name="session_drawer_right_stick_sensitivity">Чутливість правого стіка</string>
+    <string name="session_drawer_rts_gestures">RTS-жести</string>
+    <string name="session_drawer_rts_gestures_edit">Редагувати</string>
+    <string name="session_drawer_touch">Дотик</string>
+    <string name="session_drawer_touch_map_right_stick">Призначити на правий стік</string>
+    <string name="session_drawer_touch_touchscreen">Режим сенсорного екрана</string>
+    <string name="session_drawer_touch_trackpad">Тачпад</string>
+    <string name="session_gesture_profile_section">Профіль жестів</string>
+    <string name="session_rts_action">Дія</string>
+    <string name="session_rts_behavior">Поведінка</string>
+    <string name="session_rts_double_tap">Подвійний дотик (подвійний лівий клік)</string>
+    <string name="session_rts_double_tap_delay">Затримка подвійного дотику (ms)</string>
+    <string name="session_rts_down">Вниз</string>
+    <string name="session_rts_drag">Перетягування 1 пальцем</string>
+    <string name="session_rts_pan1">Панорамування 1 пальцем</string>
+    <string name="session_rts_drag2">Перетягування 2 пальцями</string>
+    <string name="session_rts_drag_threshold">Поріг перетягування (px)</string>
+    <string name="session_rts_gesture_threshold">Поріг жесту (px)</string>
+    <string name="session_rts_hold2">Утримання 2 пальцями</string>
+    <string name="session_rts_hold3">Утримання 3 пальцями</string>
+    <string name="session_rts_hold4">Утримання 4 пальцями</string>
+    <string name="session_rts_hold_delay">Затримка утримання (ms)</string>
+    <string name="session_rts_left">Вліво</string>
+    <string name="session_rts_long_press">Довге натискання</string>
+    <string name="session_rts_long_press_delay">Затримка довгого натискання (ms)</string>
+    <string name="session_rts_pan">Панорамування 2 пальцями</string>
+    <string name="session_rts_pan_threshold">Початок панорамування/щипка (px)</string>
+    <string name="session_rts_right">Вправо</string>
+    <string name="session_rts_swipe3">Свайп 3 пальцями</string>
+    <string name="session_rts_swipe4">Свайп 4 пальцями</string>
+    <string name="session_rts_swipe_threshold">Поріг свайпу (px)</string>
+    <string name="session_rts_tap1">Дотик 1 пальцем</string>
+    <string name="session_rts_tap2">Дотик 2 пальцями</string>
+    <string name="session_rts_tap3">Дотик 3 пальцями</string>
+    <string name="session_rts_tap4">Дотик 4 пальцями</string>
+    <string name="session_rts_up">Вгору</string>
+    <string name="session_rts_zoom">Масштабування щипком</string>
+    <string name="session_drawer_brightness">Яскравість</string>
+    <string name="session_drawer_contrast">Контраст</string>
+    <string name="session_drawer_gamma">Гамма</string>
+    <string name="session_drawer_saturation">Насиченість</string>
+    <string name="session_drawer_temperature">Температура</string>
+    <string name="session_drawer_tint">Відтінок</string>
+    <string name="session_drawer_intensity">Інтенсивність</string>
+    <string name="session_drawer_strength">Сила</string>
+    <string name="session_drawer_sharpen">Різкість</string>
+    <string name="session_drawer_scanlines">Рядки розгортки</string>
+    <string name="session_drawer_pixelate">Пікселізація</string>
+    <string name="session_drawer_block_size">Розмір блока</string>
+    <string name="session_drawer_scale">Масштабування</string>
+    <string name="session_drawer_scale_nearest">Найближчий</string>
+    <string name="session_drawer_scale_linear">Лінійний</string>
+    <string name="session_drawer_scale_bicubic">Бікубічний</string>
+    <string name="session_drawer_color_profile_ntsc">NTSC</string>
+    <string name="session_drawer_color_profile_ntsc2">NTSC2</string>
+    <string name="session_drawer_color_profile_toon">Мультяшний</string>
+    <string name="session_drawer_color_blind">Дальтонізм</string>
+    <string name="session_drawer_color_blind_protan">Протан</string>
+    <string name="session_drawer_color_blind_deutan">Дейтан</string>
+    <string name="session_drawer_color_blind_tritan">Тритан</string>
+    <string name="session_drawer_reset_effects">Скинути ефекти</string>
+    <string name="session_drawer_hud_background">Фон</string>
+    <string name="session_drawer_hud_background_alpha">Альфа фону</string>
+    <string name="session_drawer_hud_background_alpha_input_title">Задати альфу фону</string>
+    <string name="session_drawer_hud_element_temp">TMP</string>
+    <string name="session_drawer_refactor_size">Змінити розмір</string>
+    <string name="session_task_bring_to_front">На передній план</string>
+    <string name="session_task_custom_value">Власне значення</string>
+    <string name="session_gyroscope_orientation_mode">Нахил для прицілювання (орієнтація)</string>
 </resources>
 

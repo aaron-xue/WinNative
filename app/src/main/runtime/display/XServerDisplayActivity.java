@@ -96,10 +96,19 @@ import com.winlator.cmod.shared.android.RefreshRateUtils;
 import com.winlator.cmod.shared.util.StringUtils;
 import com.winlator.cmod.shared.io.TarCompressorUtils;
 import com.winlator.cmod.runtime.display.renderer.EffectComposer;
+import com.winlator.cmod.runtime.display.renderer.effects.ColorAdjustEffect;
+import com.winlator.cmod.runtime.display.renderer.effects.ColorBlindEffect;
+import com.winlator.cmod.runtime.display.renderer.effects.ColorGradeEffect;
 import com.winlator.cmod.runtime.display.renderer.effects.CRTEffect;
 import com.winlator.cmod.runtime.display.renderer.effects.HDREffect;
 import com.winlator.cmod.runtime.display.renderer.effects.NaturalEffect;
+import com.winlator.cmod.runtime.display.renderer.effects.NTSC2Effect;
+import com.winlator.cmod.runtime.display.renderer.effects.NTSCEffect;
+import com.winlator.cmod.runtime.display.renderer.effects.PixelateEffect;
+import com.winlator.cmod.runtime.display.renderer.effects.ScanlinesEffect;
 import com.winlator.cmod.runtime.display.renderer.effects.SGSRUpscaler;
+import com.winlator.cmod.runtime.display.renderer.effects.SharpenEffect;
+import com.winlator.cmod.runtime.display.renderer.effects.ToonEffect;
 import com.winlator.cmod.runtime.display.renderer.effects.VividEffect;
 import com.winlator.cmod.runtime.wine.WineInfo;
 import com.winlator.cmod.runtime.wine.WineRegistryEditor;
@@ -114,6 +123,8 @@ import com.winlator.cmod.runtime.input.ControllerAssignmentDialog;
 import com.winlator.cmod.runtime.input.controls.ControlsProfile;
 import com.winlator.cmod.runtime.input.controls.ControllerManager;
 import com.winlator.cmod.runtime.input.controls.ExternalController;
+import com.winlator.cmod.runtime.input.controls.GestureProfile;
+import com.winlator.cmod.runtime.input.controls.GestureProfileManager;
 import com.winlator.cmod.runtime.input.controls.InputControlsManager;
 import com.winlator.cmod.runtime.input.controls.LabelTheme;
 import com.winlator.cmod.runtime.input.controls.VisualStyle;
@@ -240,6 +251,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private InputControlsView inputControlsView;
     private boolean inputControlsRevealAllowed = false;
     private TouchpadView touchpadView;
+
+    // Auto-hide touchscreen controls while a game controller is connected.
+    private InputManager autoHideInputManager;
+    private InputManager.InputDeviceListener autoHideDeviceListener;
+    private boolean controllerAutoHidden = false;
+    private boolean userOverrodeAutoHide = false;
     private XEnvironment environment;
     private ComposeView displayHostComposeView;
     private FrameLayout xServerDisplayFrame;
@@ -247,6 +264,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     protected Container container;
     private XServer xServer;
     private InputControlsManager inputControlsManager;
+    private GestureProfileManager gestureProfileManager;
+    private int currentGestureProfileId = 0;
     private ImageFs imageFs;
     private FrameRating frameRating = null;
     private boolean effectiveShowFPS = false;
@@ -327,8 +346,16 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private boolean reusingSession = false;
     private boolean isRelativeMouseMovement = false;
     private boolean isRefactorSizeEnabled = false;
+    private int screenTouchMode = 0;
+    private boolean rtsGesturesEnabled = false;
     private static final long REFACTOR_SIZE_EXE_BYTES = 17408L;
     private static final long REFACTOR_SIZE_UNSTAGE_DELAY_MS = 3000L;
+    private static final long GRAPHICS_TEST_32_EXE_BYTES = 2333245L;
+    private static final long GRAPHICS_TEST_64_EXE_BYTES = 2361407L;
+    private String bootExePath;
+    private String bootExeArgs;
+    private boolean isDependencyInstall;
+    private volatile int dependencyExitStatus = 0;
 
     public boolean isPaused() { return isPaused; }
     public boolean isInputSuspended() {
@@ -353,6 +380,20 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private boolean vividEnabled = false;
     private int vividStrength = 100;
     private int colorProfile = 0;
+    private int brightness = 0;
+    private int contrast = 0;
+    private int gammaPercent = 100;
+    private int scaleFilter = 0;
+    private int saturation = 100;
+    private int temperature = 0;
+    private int tint = 0;
+    private boolean sharpenEnabled = false;
+    private int sharpenStrength = 50;
+    private boolean scanlinesEnabled = false;
+    private int scanlinesIntensity = 50;
+    private boolean pixelateEnabled = false;
+    private int pixelateBlock = 6;
+    private int colorBlind = 0;
     private boolean gyroscopeCardExpanded = false;
     private XServerDrawerStateHolder drawerStateHolder;
     private XServerDrawerActionListener drawerActionListener;
@@ -698,9 +739,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         String incomingShortcutPath = intent.getStringExtra("shortcut_path");
         String incomingShortcutUuid = intent.getStringExtra("shortcut_uuid");
         int incomingContainerId = intent.getIntExtra("container_id", 0);
+        String incomingBootExe = intent.getStringExtra("boot_exe");
         String currentShortcutPath = shortcut != null ? shortcut.file.getAbsolutePath() : "";
         String currentShortcutUuid = shortcut != null ? shortcut.getExtra("uuid") : "";
         int currentContainerId = container != null ? container.id : 0;
+        String currentBootExe = bootExePath != null ? bootExePath : "";
 
         setIntent(intent);
         launchedFromPinnedShortcut = isPinnedShortcutLaunchIntent(intent);
@@ -712,8 +755,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 && !incomingShortcutUuid.isEmpty()
                 && !incomingShortcutUuid.equals(currentShortcutUuid);
         boolean containerChanged = incomingContainerId != 0 && incomingContainerId != currentContainerId;
+        boolean bootExeChanged = !(incomingBootExe != null ? incomingBootExe : "").equals(currentBootExe);
 
-        if (shortcutChanged || shortcutUuidChanged || containerChanged) {
+        if (shortcutChanged || shortcutUuidChanged || containerChanged || bootExeChanged) {
             Log.d("XServerDisplayActivity", "onNewIntent: launch target changed, cleaning up before recreation");
             switchLaunchTargetAfterCleanup(intent);
         }
@@ -875,6 +919,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT));
 
         ControllerManager.getInstance().init(this);
+        registerControllerAutoHideListener();
 
         preloaderDialog = new PreloaderDialog(this);
 
@@ -1021,6 +1066,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         String shortcutPath = getIntent().getStringExtra("shortcut_path");
         String shortcutUuid = getIntent().getStringExtra("shortcut_uuid");
         int shortcutPathHash = getIntent().getIntExtra("shortcut_path_hash", 0);
+        bootExePath = getIntent().getStringExtra("boot_exe");
+        bootExeArgs = getIntent().getStringExtra("boot_exe_args");
+        isDependencyInstall = getIntent().getBooleanExtra("is_dependency_installer", false);
 
         android.net.Uri launchData = getIntent().getData();
         if (launchData != null) {
@@ -1044,6 +1092,14 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 }
             } catch (Exception e) {
                 Log.e("XServerDisplayActivity", "Failed to parse shortcut URI fallback", e);
+            }
+        }
+
+        if ((shortcutPath == null || shortcutPath.isEmpty()) && launchData != null) {
+            String dataPath = resolveDesktopPathFromUri(launchData);
+            if (dataPath != null && !dataPath.isEmpty()) {
+                shortcutPath = dataPath;
+                Log.d("XServerDisplayActivity", "Resolved shortcut path from VIEW data: " + shortcutPath);
             }
         }
 
@@ -1445,6 +1501,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
 
         inputControlsManager = new InputControlsManager(this);
+        gestureProfileManager = new GestureProfileManager(this);
         sgsrBaseScreenSize = screenSize;
         String effectiveScreenSize =
                 SGSRResolutionUtils.applyRenderScale(screenSize, sgsrEnabled, sgsrUpscaleMode);
@@ -1661,6 +1718,22 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 }
             }, 1000);
         }
+    }
+
+    private String resolveDesktopPathFromUri(android.net.Uri uri) {
+        if (uri == null) return null;
+        try {
+            String scheme = uri.getScheme();
+            if ("file".equalsIgnoreCase(scheme)) {
+                return uri.getPath();
+            }
+            if ("content".equalsIgnoreCase(scheme)) {
+                return com.winlator.cmod.shared.io.FileUtils.getFilePathFromUri(this, uri);
+            }
+        } catch (Exception e) {
+            Log.e("XServerDisplayActivity", "Failed to resolve .desktop path from URI", e);
+        }
+        return null;
     }
 
     private int parseContainerIdFromDesktopFile(File desktopFile) {
@@ -2255,6 +2328,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             if (activeProfile == null) activeProfile = resolvePreferredStartupProfile();
             if (activeProfile != null) showInputControls(activeProfile);
             else startTouchscreenTimeout();
+            evaluateControllerAutoHide();
         }
 
         startTime = System.currentTimeMillis();
@@ -3604,7 +3678,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     @Override
     protected void onDestroy() {
         activityDestroyed.set(true);
+        if (isDependencyInstall) {
+            com.winlator.cmod.runtime.content.component.DependencyInstallBridge.complete(dependencyExitStatus);
+        }
         unregisterDisplayChangeListener();
+        unregisterControllerAutoHideListener();
         if (preloaderDialog != null) {
             preloaderDialog.close();
         }
@@ -3807,6 +3885,15 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 ? inputControlsView.getLabelTheme() : LabelTheme.DEFAULT;
         int selectedLabelThemeIndex = currentLabelTheme.ordinal();
 
+        List<String> gestureProfileNames = new ArrayList<>();
+        int gestureSelectedIndex = 0;
+        try {
+            gestureProfileNames = gestureProfileManager.getProfileNames();
+            gestureSelectedIndex = Math.max(0, gestureProfileManager.indexOfProfile(selectedGestureProfileId()));
+        } catch (Throwable t) {
+            android.util.Log.e("XServerDisplayActivity", "gesture drawer names failed", t);
+        }
+
         XServerDrawerState state = XServerDrawerMenuKt.buildXServerDrawerState(
                 this,
                 isRelativeMouseMovement,
@@ -3833,7 +3920,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 preferences.getFloat("gyro_mouse_scale", 50.0f),
                 preferences.getFloat("gyro_x_sensitivity", 1.0f),
                 preferences.getFloat("gyro_y_sensitivity", 1.0f),
-                preferences.getFloat("gyro_smoothing", 0.1f),
+                preferences.getFloat("gyro_smoothing", 0.5f),
                 preferences.getFloat("gyro_deadzone", 0.05f),
                 preferences.getBoolean("invert_gyro_x", false),
                 preferences.getBoolean("invert_gyro_y", false),
@@ -3845,6 +3932,20 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 vividEnabled,
                 vividStrength,
                 colorProfile,
+                brightness,
+                contrast,
+                gammaPercent,
+                scaleFilter,
+                saturation,
+                temperature,
+                tint,
+                sharpenEnabled,
+                sharpenStrength,
+                scanlinesEnabled,
+                scanlinesIntensity,
+                pixelateEnabled,
+                pixelateBlock,
+                colorBlind,
                 inputProfileNames,
                 inputSelectedIndex,
                 styleNames,
@@ -3862,7 +3963,13 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 globalCursorSpeed,
                 xServerView != null && xServerView.getRenderer() != null && xServerView.getRenderer().isFullscreen(),
                 RefreshRateUtils.getMaxSupportedRefreshRate(this),
-                isRefactorSizeEnabled
+                isRefactorSizeEnabled,
+                screenTouchMode,
+                rtsGesturesEnabled,
+                gestureProfileNames,
+                gestureSelectedIndex,
+                preferences.getFloat("right_stick_sensitivity", 1.0f),
+                preferences.getFloat("screen_touch_rs_sensitivity", 1.25f)
         );
 
         if (drawerActionListener == null) {
@@ -4081,7 +4188,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     @Override
                     public void onVividEnabledChanged(boolean enabled) {
                         vividEnabled = enabled;
-                        preferences.edit().putBoolean("vivid_enabled", enabled).apply();
+                        saveScreenEffectsSettings();
                         applyScreenEffects();
                         renderDrawerMenu();
                     }
@@ -4089,7 +4196,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     @Override
                     public void onVividStrengthChanged(int strength) {
                         vividStrength = strength;
-                        preferences.edit().putInt("vivid_strength", strength).apply();
+                        saveScreenEffectsSettings();
                         applyScreenEffects();
                         renderDrawerMenu();
                     }
@@ -4097,7 +4204,145 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     @Override
                     public void onColorProfileSelected(int profile) {
                         colorProfile = profile;
-                        preferences.edit().putInt("color_profile", profile).apply();
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onBrightnessChanged(int value) {
+                        brightness = Math.max(-100, Math.min(100, value));
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onContrastChanged(int value) {
+                        contrast = Math.max(-100, Math.min(100, value));
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onGammaChanged(int value) {
+                        gammaPercent = Math.max(50, Math.min(250, value));
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onScaleFilterSelected(int mode) {
+                        scaleFilter = mode;
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onSaturationChanged(int value) {
+                        saturation = Math.max(0, Math.min(200, value));
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onTemperatureChanged(int value) {
+                        temperature = Math.max(-100, Math.min(100, value));
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onTintChanged(int value) {
+                        tint = Math.max(-100, Math.min(100, value));
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onSharpenEnabledChanged(boolean enabled) {
+                        sharpenEnabled = enabled;
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onSharpenStrengthChanged(int value) {
+                        sharpenStrength = Math.max(0, Math.min(100, value));
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onScanlinesEnabledChanged(boolean enabled) {
+                        scanlinesEnabled = enabled;
+                        if (enabled) pixelateEnabled = false;
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onScanlinesIntensityChanged(int value) {
+                        scanlinesIntensity = Math.max(0, Math.min(100, value));
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onPixelateEnabledChanged(boolean enabled) {
+                        pixelateEnabled = enabled;
+                        if (enabled) scanlinesEnabled = false;
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onPixelateBlockChanged(int value) {
+                        pixelateBlock = Math.max(2, Math.min(14, value));
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onColorBlindSelected(int mode) {
+                        colorBlind = mode;
+                        saveScreenEffectsSettings();
+                        applyScreenEffects();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onResetEffects() {
+                        vividEnabled = false;
+                        vividStrength = 100;
+                        colorProfile = 0;
+                        brightness = 0;
+                        contrast = 0;
+                        gammaPercent = 100;
+                        scaleFilter = 0;
+                        saturation = 100;
+                        temperature = 0;
+                        tint = 0;
+                        sharpenEnabled = false;
+                        sharpenStrength = 50;
+                        scanlinesEnabled = false;
+                        scanlinesIntensity = 50;
+                        pixelateEnabled = false;
+                        pixelateBlock = 6;
+                        colorBlind = 0;
+                        saveScreenEffectsSettings();
                         applyScreenEffects();
                         renderDrawerMenu();
                     }
@@ -4160,8 +4405,13 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
                     @Override
                     public void onInputControlsShowOverlayChanged(boolean enabled) {
-                        if (inputControlsView != null) inputControlsView.setShowTouchscreenControls(enabled);
                         preferences.edit().putBoolean("show_touchscreen_controls_enabled", enabled).commit();
+                        // Manual re-enable while a controller is connected wins over auto-hide.
+                        if (enabled && isAnyGameControllerConnected()) {
+                            userOverrodeAutoHide = true;
+                            controllerAutoHidden = false;
+                        }
+                        applyTouchscreenOverlayPreference();
                         renderDrawerMenu();
                     }
 
@@ -4231,6 +4481,84 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                         intent.putExtra("return_to_game_on_back", true);
                         final ControlsProfile editingProfile = activeProfile;
                         editInputControlsCallback = () -> {
+                            boolean wasShowingTouch = preferences.getBoolean("show_touchscreen_controls_enabled", false);
+                            hideInputControls();
+                            if (inputControlsManager != null) inputControlsManager.loadProfiles(true);
+                            ControlsProfile reactivated = editingProfile != null && inputControlsManager != null ? inputControlsManager.getProfile(editingProfile.id) : null;
+                            if (reactivated != null) {
+                                showInputControls(reactivated);
+                                if (wasShowingTouch) {
+                                    preferences.edit().putBoolean("show_touchscreen_controls_enabled", true).apply();
+                                    applyTouchscreenOverlayPreference();
+                                }
+                            }
+                            renderDrawerMenu();
+                        };
+                        controlsEditorActivityResultLauncher.launch(intent);
+                    }
+
+                    @Override
+                    public void onScreenTouchModeChanged(int mode) {
+                        screenTouchMode = mode;
+                        rtsGesturesEnabled = false;
+                        if (touchpadView != null) {
+                            touchpadView.setScreenTouchMode(mode);
+                            touchpadView.setRtsGesturesEnabled(false);
+                        }
+                        if (winHandler != null) winHandler.setScreenTouchStickActive(mode == 2);
+                        if (shortcut != null) {
+                            shortcut.putExtra("screenTouchMode", String.valueOf(mode));
+                            shortcut.putExtra("simTouchScreen", mode == 1 ? "1" : "0");
+                            shortcut.putExtra("rtsGestures", "0");
+                            shortcut.saveData();
+                        }
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onRtsGesturesToggled(boolean enabled) {
+                        rtsGesturesEnabled = enabled;
+                        screenTouchMode = 0;
+                        if (touchpadView != null) {
+                            touchpadView.setRtsGesturesEnabled(enabled);
+                            touchpadView.setScreenTouchMode(0);
+                        }
+                        if (winHandler != null) winHandler.setScreenTouchStickActive(false);
+                        if (enabled) pushSelectedGestureConfig();
+                        if (shortcut != null) {
+                            shortcut.putExtra("rtsGestures", enabled ? "1" : "0");
+                            shortcut.putExtra("screenTouchMode", "0");
+                            shortcut.putExtra("simTouchScreen", "0");
+                            shortcut.saveData();
+                        }
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onGestureProfileSelected(int index) {
+                        ArrayList<GestureProfile> profiles = gestureProfileManager.getProfiles();
+                        if (index < 0 || index >= profiles.size()) return;
+                        GestureProfile p = profiles.get(index);
+                        currentGestureProfileId = p.id;
+                        if (touchpadView != null) touchpadView.setGestureConfig(p.getConfigJson());
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onRtsGesturesEditClick() {
+                        ControlsProfile activeProfile = inputControlsView != null ? inputControlsView.getProfile() : null;
+                        Intent intent = new Intent(XServerDisplayActivity.this, UnifiedActivity.class);
+                        intent.putExtra("edit_input_controls", true);
+                        intent.putExtra("selected_profile_id", activeProfile != null ? activeProfile.id : 0);
+                        intent.putExtra("gesture_profile_id", selectedGestureProfileId());
+                        intent.putExtra("return_to_game_on_back", true);
+                        final ControlsProfile editingProfile = activeProfile;
+                        editInputControlsCallback = () -> {
+                            gestureProfileManager.loadProfiles();
+                            int gid = selectedGestureProfileId();
+                            GestureProfile gp = gid != 0 ? gestureProfileManager.getProfile(gid) : gestureProfileManager.getDefaultProfile();
+                            if (gp == null) gp = gestureProfileManager.getDefaultProfile();
+                            if (touchpadView != null) touchpadView.setGestureConfig(gp.getConfigJson());
                             hideInputControls();
                             if (inputControlsManager != null) inputControlsManager.loadProfiles(true);
                             ControlsProfile reactivated = editingProfile != null && inputControlsManager != null ? inputControlsManager.getProfile(editingProfile.id) : null;
@@ -4238,6 +4566,17 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                             renderDrawerMenu();
                         };
                         controlsEditorActivityResultLauncher.launch(intent);
+                    }
+
+                    @Override
+                    public void onRightStickSensitivityChanged(float sensitivity) {
+                        if (screenTouchMode == 2) {
+                            preferences.edit().putFloat("screen_touch_rs_sensitivity", sensitivity).apply();
+                        } else {
+                            preferences.edit().putFloat("right_stick_sensitivity", sensitivity).apply();
+                            if (winHandler != null) winHandler.setRightStickSensitivity(sensitivity);
+                        }
+                        renderDrawerMenu();
                     }
 
                     @Override
@@ -4560,33 +4899,73 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             Log.d("XServerDisplayActivity", "SGSR inactive");
         }
 
-        VividEffect vivid = composer.getEffect(VividEffect.class);
-        if (vividEnabled) {
-            if (vivid == null) {
-                vivid = new VividEffect();
-            }
-            vivid.setLevel((vividStrength / 25.0f) + 1.0f);
-            composer.addEffect(vivid);
-        } else if (vivid != null) {
-            composer.removeEffect(vivid);
-        }
-
+        // Rebuilt in a fixed order each call so toggle sequence can't reorder the chain.
+        composer.removeEffect(composer.getEffect(ColorAdjustEffect.class));
+        composer.removeEffect(composer.getEffect(ColorGradeEffect.class));
+        composer.removeEffect(composer.getEffect(PixelateEffect.class));
+        composer.removeEffect(composer.getEffect(SharpenEffect.class));
         composer.removeEffect(composer.getEffect(HDREffect.class));
         composer.removeEffect(composer.getEffect(NaturalEffect.class));
         composer.removeEffect(composer.getEffect(CRTEffect.class));
+        composer.removeEffect(composer.getEffect(ToonEffect.class));
+        composer.removeEffect(composer.getEffect(NTSCEffect.class));
+        composer.removeEffect(composer.getEffect(NTSC2Effect.class));
+        composer.removeEffect(composer.getEffect(VividEffect.class));
+        composer.removeEffect(composer.getEffect(ColorBlindEffect.class));
+        composer.removeEffect(composer.getEffect(ScanlinesEffect.class));
 
-        switch (colorProfile) {
-            case 1: // HDR
-                composer.addEffect(new HDREffect());
-                break;
-            case 2: // Natural
-                composer.addEffect(new NaturalEffect());
-                break;
-            case 3: // CRT Effect
-                composer.addEffect(new CRTEffect());
-                break;
+        if (brightness != 0 || contrast != 0 || gammaPercent != 100) {
+            ColorAdjustEffect colorAdj = new ColorAdjustEffect();
+            colorAdj.set(brightness / 100.0f, contrast / 100.0f, gammaPercent / 100.0f);
+            composer.addEffect(colorAdj);
         }
 
+        if (saturation != 100 || temperature != 0 || tint != 0) {
+            ColorGradeEffect colorGrade = new ColorGradeEffect();
+            colorGrade.set(saturation / 100.0f, temperature / 100.0f, tint / 100.0f);
+            composer.addEffect(colorGrade);
+        }
+
+        if (pixelateEnabled) {
+            PixelateEffect pixelate = new PixelateEffect();
+            pixelate.setBlockSize(pixelateBlock);
+            composer.addEffect(pixelate);
+        }
+
+        if (sharpenEnabled) {
+            SharpenEffect sharpen = new SharpenEffect();
+            sharpen.setStrength(sharpenStrength / 100.0f);
+            composer.addEffect(sharpen);
+        }
+
+        switch (colorProfile) {
+            case 1: composer.addEffect(new HDREffect()); break;
+            case 2: composer.addEffect(new NaturalEffect()); break;
+            case 3: composer.addEffect(new CRTEffect()); break;
+            case 4: composer.addEffect(new ToonEffect()); break;
+            case 5: composer.addEffect(new NTSCEffect()); break;
+            case 6: composer.addEffect(new NTSC2Effect()); break;
+        }
+
+        if (vividEnabled) {
+            VividEffect vivid = new VividEffect();
+            vivid.setLevel((vividStrength / 25.0f) + 1.0f);
+            composer.addEffect(vivid);
+        }
+
+        if (colorBlind != 0) {
+            ColorBlindEffect colorBlindEffect = new ColorBlindEffect();
+            colorBlindEffect.setMode(colorBlind);
+            composer.addEffect(colorBlindEffect);
+        }
+
+        if (scanlinesEnabled) {
+            ScanlinesEffect scanlines = new ScanlinesEffect();
+            scanlines.setIntensity(scanlinesIntensity / 100.0f);
+            composer.addEffect(scanlines);
+        }
+
+        renderer.setScaleFilter(scaleFilter);
     }
 
     private void loadScreenEffectsSettings() {
@@ -4607,11 +4986,90 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             sgsrUpscaleMode = clampSGSRUpscaleMode(preferences.getInt("sgsr_upscale_mode", 1));
             sgsrSharpness = preferences.getInt("sgsr_sharpness", legacyStrength);
         }
-        vividEnabled = preferences.contains("vivid_enabled")
-                ? preferences.getBoolean("vivid_enabled", false)
-                : legacyEnabled && legacyMode == 1;
-        vividStrength = preferences.getInt("vivid_strength", legacyStrength);
-        colorProfile = preferences.getInt("color_profile", 0);
+        loadScreenEffects();
+    }
+
+    private void loadScreenEffects() {
+        vividEnabled = false;
+        vividStrength = 100;
+        colorProfile = 0;
+        brightness = 0;
+        contrast = 0;
+        gammaPercent = 100;
+        scaleFilter = 0;
+        saturation = 100;
+        temperature = 0;
+        tint = 0;
+        sharpenEnabled = false;
+        sharpenStrength = 50;
+        scanlinesEnabled = false;
+        scanlinesIntensity = 50;
+        pixelateEnabled = false;
+        pixelateBlock = 6;
+        colorBlind = 0;
+        String json = null;
+        if (shortcut != null) {
+            String fromShortcut = shortcut.getExtra("screenEffectsSettings", "");
+            if (!fromShortcut.isEmpty()) json = fromShortcut;
+        } else if (preferences != null) {
+            json = preferences.getString("screenEffectsSettings", null);
+        }
+        if (json == null || json.isEmpty()) return;
+        try {
+            JSONObject o = new JSONObject(json);
+            vividEnabled = o.optBoolean("vividEnabled", false);
+            vividStrength = Math.max(0, Math.min(100, o.optInt("vividStrength", 100)));
+            colorProfile = o.optInt("colorProfile", 0);
+            brightness = Math.max(-100, Math.min(100, o.optInt("brightness", 0)));
+            contrast = Math.max(-100, Math.min(100, o.optInt("contrast", 0)));
+            gammaPercent = Math.max(50, Math.min(250, o.optInt("gammaPercent", 100)));
+            scaleFilter = o.optInt("scaleFilter", 0);
+            saturation = Math.max(0, Math.min(200, o.optInt("saturation", 100)));
+            temperature = Math.max(-100, Math.min(100, o.optInt("temperature", 0)));
+            tint = Math.max(-100, Math.min(100, o.optInt("tint", 0)));
+            sharpenEnabled = o.optBoolean("sharpenEnabled", false);
+            sharpenStrength = Math.max(0, Math.min(100, o.optInt("sharpenStrength", 50)));
+            scanlinesEnabled = o.optBoolean("scanlinesEnabled", false);
+            scanlinesIntensity = Math.max(0, Math.min(100, o.optInt("scanlinesIntensity", 50)));
+            pixelateEnabled = o.optBoolean("pixelateEnabled", false);
+            pixelateBlock = Math.max(2, Math.min(14, o.optInt("pixelateBlock", 6)));
+            colorBlind = Math.max(0, Math.min(3, o.optInt("colorBlind", 0)));
+        } catch (JSONException e) {
+            Log.e("XServerDisplayActivity", "Failed to load screen effects", e);
+        }
+    }
+
+    private void saveScreenEffectsSettings() {
+        if (shortcut == null && preferences == null) return;
+        try {
+            JSONObject o = new JSONObject();
+            o.put("vividEnabled", vividEnabled);
+            o.put("vividStrength", vividStrength);
+            o.put("colorProfile", colorProfile);
+            o.put("brightness", brightness);
+            o.put("contrast", contrast);
+            o.put("gammaPercent", gammaPercent);
+            o.put("scaleFilter", scaleFilter);
+            o.put("saturation", saturation);
+            o.put("temperature", temperature);
+            o.put("tint", tint);
+            o.put("sharpenEnabled", sharpenEnabled);
+            o.put("sharpenStrength", sharpenStrength);
+            o.put("scanlinesEnabled", scanlinesEnabled);
+            o.put("scanlinesIntensity", scanlinesIntensity);
+            o.put("pixelateEnabled", pixelateEnabled);
+            o.put("pixelateBlock", pixelateBlock);
+            o.put("colorBlind", colorBlind);
+            String json = o.toString();
+            if (shortcut != null) {
+                shortcut.putExtra("screenEffectsSettings", json);
+                shortcut.saveData();
+            } else if (preferences != null) {
+                preferences.edit().putString("screenEffectsSettings", json).apply();
+            }
+        } catch (JSONException e) {
+            Log.e("XServerDisplayActivity", "Failed to save screen effects", e);
+        }
     }
 
     private static float clampHudAlpha(float v) {
@@ -4831,6 +5289,27 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                   "Refactor Size: staged refactorsize.exe (" + dst.length() + " B) at " + dst.getPath());
         } catch (Exception e) {
             Log.e("XServerDisplayActivity", "Refactor Size: helper staging failed", e);
+        }
+    }
+
+    private void stageGraphicsTestExes() {
+        if (container == null) return;
+        File dir = new File(container.getRootDir(), ".wine/drive_c/ProgramData/Microsoft/Windows");
+        if (!dir.isDirectory() && !dir.mkdirs()) return;
+        stageBundledExe(dir, "Graphics-Test-32bit.exe", GRAPHICS_TEST_32_EXE_BYTES);
+        stageBundledExe(dir, "Graphics-Test-64bit.exe", GRAPHICS_TEST_64_EXE_BYTES);
+    }
+
+    private void stageBundledExe(File dir, String name, long expectedBytes) {
+        File dst = new File(dir, name);
+        if (dst.exists() && dst.length() == expectedBytes) return;
+        try (java.io.InputStream in = getAssets().open("winnative/" + name);
+             java.io.FileOutputStream out = new java.io.FileOutputStream(dst)) {
+            byte[] buf = new byte[64 * 1024];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        } catch (Exception e) {
+            Log.e("XServerDisplayActivity", "Failed to stage " + name, e);
         }
     }
 
@@ -5230,11 +5709,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
         String wineArchKey = wineVersion != null && wineVersion.contains("arm64ec") ? "arm64ec" : "x86_64";
         String dxwrapperGateKey = dxwrapper + "|arch=" + wineArchKey;
-        if (!dxwrapperGateKey.equals(container.getExtra("dxwrapper")) || firstTimeBoot) {
+        boolean forceWrapperApply = bootExePath != null && !bootExePath.isEmpty();
+        if (!dxwrapperGateKey.equals(container.getExtra("dxwrapper")) || firstTimeBoot || forceWrapperApply) {
             Log.i("XServerDisplayActivity",
                     "DXVK/VKD3D extract: gate fired (key='" + dxwrapperGateKey
                             + "' prev='" + container.getExtra("dxwrapper")
-                            + "' firstTimeBoot=" + firstTimeBoot + ")");
+                            + "' firstTimeBoot=" + firstTimeBoot + " forced=" + forceWrapperApply + ")");
             wipeDxwrapperDllsForReextract();
             extractDXWrapperFiles(dxwrapper);
             container.putExtra("dxwrapper", dxwrapperGateKey);
@@ -5277,6 +5757,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
 
         WineStartMenuCreator.create(this, container);
+        stageGraphicsTestExes();
         WineUtils.createDosdevicesSymlinks(container, getActiveGameDirectoryPath(), isSteamShortcut());
 
         int inputType = container.getInputType();
@@ -5878,6 +6359,15 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             Log.d("XServerDisplayActivity", "Guest process terminated with status: " + status);
             stopWnLauncherStatusTailer();
 
+            if (isDependencyInstall) {
+                // Signal completion only after the single-instance session window is fully torn down
+                // (in onDestroy). The teardown in exit() takes several seconds; releasing the installer
+                // here would let the next queued install launch into this still-alive activity.
+                dependencyExitStatus = status;
+                exit();
+                return;
+            }
+
 
             boolean planWActiveTerm = com.winlator.cmod.feature.stores.steam.utils
                     .PrefManager.INSTANCE.getWnPlanW();
@@ -5965,8 +6455,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                          : (container != null && container.getExtra("swapRB", "0").equals("1"));
         renderer.setSwapRB(swapRB);
 
-        if (shortcut != null) {
+        if (shortcut != null || (bootExePath != null && !bootExePath.isEmpty())) {
             renderer.setUnviewableWMClasses("explorer.exe");
+        }
+        if (shortcut != null) {
             String savedFpsLimit = shortcut.getExtra("fpsLimit", "0");
             try {
                 runtimeFpsLimit = Integer.parseInt(savedFpsLimit);
@@ -6026,8 +6518,16 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             }
 
             String simTouchScreen = shortcut.getExtra("simTouchScreen");
-            touchpadView.setSimTouchScreen(simTouchScreen.equals("1"));
+            screenTouchMode = Integer.parseInt(shortcut.getExtra("screenTouchMode", simTouchScreen.equals("1") ? "1" : "0"));
+            touchpadView.setScreenTouchMode(screenTouchMode);
+            if (winHandler != null) winHandler.setScreenTouchStickActive(screenTouchMode == 2);
+            rtsGesturesEnabled = shortcut.getExtra("rtsGestures", "0").equals("1");
+            touchpadView.setRtsGesturesEnabled(rtsGesturesEnabled);
         }
+
+        if (rtsGesturesEnabled) pushSelectedGestureConfig();
+
+        if (winHandler != null) winHandler.setRightStickSensitivity(preferences.getFloat("right_stick_sensitivity", 1.0f));
 
         startTouchscreenTimeout();
 
@@ -6213,7 +6713,73 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
         boolean showTouchscreenControls =
                 preferences.getBoolean("show_touchscreen_controls_enabled", false);
-        inputControlsView.setShowTouchscreenControls(showTouchscreenControls);
+        inputControlsView.setShowTouchscreenControls(showTouchscreenControls && !controllerAutoHidden);
+    }
+
+    private void registerControllerAutoHideListener() {
+        if (autoHideDeviceListener != null) return;
+        autoHideInputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
+        if (autoHideInputManager == null) return;
+
+        autoHideDeviceListener = new InputManager.InputDeviceListener() {
+            @Override
+            public void onInputDeviceAdded(int deviceId) {
+                evaluateControllerAutoHide();
+            }
+
+            @Override
+            public void onInputDeviceRemoved(int deviceId) {
+                evaluateControllerAutoHide();
+            }
+
+            @Override
+            public void onInputDeviceChanged(int deviceId) {}
+        };
+        autoHideInputManager.registerInputDeviceListener(autoHideDeviceListener, null);
+    }
+
+    private void unregisterControllerAutoHideListener() {
+        if (autoHideInputManager != null && autoHideDeviceListener != null) {
+            autoHideInputManager.unregisterInputDeviceListener(autoHideDeviceListener);
+        }
+        autoHideDeviceListener = null;
+    }
+
+    private boolean isAnyGameControllerConnected() {
+        InputManager im = autoHideInputManager != null
+                ? autoHideInputManager
+                : (InputManager) getSystemService(Context.INPUT_SERVICE);
+        if (im == null) return false;
+        for (int deviceId : im.getInputDeviceIds()) {
+            if (ExternalController.isGameController(im.getInputDevice(deviceId))) return true;
+        }
+        return false;
+    }
+
+    private void evaluateControllerAutoHide() {
+        if (inputControlsView == null) return;
+
+        if (!preferences.getBoolean("auto_hide_touch_on_controller", false)) {
+            if (controllerAutoHidden) {
+                controllerAutoHidden = false;
+                applyTouchscreenOverlayPreference();
+            }
+            return;
+        }
+
+        if (isAnyGameControllerConnected()) {
+            if (userOverrodeAutoHide) return;
+            if (!controllerAutoHidden) {
+                controllerAutoHidden = true;
+                applyTouchscreenOverlayPreference();
+            }
+        } else {
+            userOverrodeAutoHide = false;
+            if (controllerAutoHidden) {
+                controllerAutoHidden = false;
+                applyTouchscreenOverlayPreference();
+            }
+        }
     }
 
     private void persistSelectedProfile(ControlsProfile profile) {
@@ -6235,6 +6801,32 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             editor.putInt("selected_profile_index", -1);
         }
         editor.apply();
+    }
+
+    private void pushSelectedGestureConfig() {
+        try {
+            int gid = selectedGestureProfileId();
+            GestureProfile gp = gid != 0 ? gestureProfileManager.getProfile(gid) : gestureProfileManager.getDefaultProfile();
+            if (gp == null) gp = gestureProfileManager.getDefaultProfile();
+            if (gp != null && touchpadView != null) touchpadView.setGestureConfig(gp.getConfigJson());
+        } catch (Throwable t) {
+            android.util.Log.e("XServerDisplayActivity", "gesture resolve failed", t);
+        }
+    }
+
+    private int selectedGestureProfileId() {
+        if (currentGestureProfileId != 0) return currentGestureProfileId;
+        int id = 0;
+        if (shortcut != null) {
+            try {
+                id = Integer.parseInt(shortcut.getExtra("gestureProfileId", "0"));
+            } catch (NumberFormatException e) {
+                id = 0;
+            }
+        }
+        if (id != 0) return id;
+        GestureProfile def = gestureProfileManager != null ? gestureProfileManager.getDefaultProfile() : null;
+        return def != null ? def.id : 0;
     }
 
     // Hide legacy label-only profiles unless one is already active.
@@ -6306,6 +6898,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
         Log.d("XServerDisplayActivity", "Input controls simulated confirmation executed. startupProfile=" + (startupProfile != null ? startupProfile.getName() : "none"));
 
+        evaluateControllerAutoHide();
         controllerAutoSwitchRunnable = null;
     }
 
@@ -6399,6 +6992,17 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             }
         }
 
+        boolean wantLeegao = "wrapper-leegao".equals(graphicsDriver);
+        File leegaoMarker = new File(rootDir, "usr/lib/.wrapper_leegao");
+        if (wantLeegao) {
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper-leegao.tzst", rootDir);
+            try { leegaoMarker.createNewFile(); } catch (IOException ignored) {}
+        } else if (leegaoMarker.exists()) {
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper" + ".tzst", rootDir);
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "layers" + ".tzst", rootDir);
+            leegaoMarker.delete();
+        }
+
         if (adrenoToolsDriverId != null && !adrenoToolsDriverId.isEmpty()
                 && !adrenoToolsDriverId.equals("System")) {
             AdrenotoolsManager adrenotoolsManager = new AdrenotoolsManager(this);
@@ -6409,6 +7013,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     adrenoToolsDriverId + "' name='" + driverDisplayName +
                     "' version='" + driverVersion + "' library='" + driverLibrary + "'");
             adrenotoolsManager.setDriverById(envVars, imageFs, adrenoToolsDriverId);
+            if (wantLeegao) envVars.put("ADRENOTOOLS_HOOKS_PATH", imageFs.getLibDir().getPath());
             Log.i("GraphicsDriverExtraction", "Loaded graphics/Turnip driver env: id='" +
                     adrenoToolsDriverId + "' path=" +
                     envVars.get("ADRENOTOOLS_DRIVER_PATH") + " name=" +
@@ -6480,14 +7085,14 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
         switch (bcnEmulation) {
             case "auto" -> {
-                if ("compute".equals(bcnEmulationType)) {
+                if ("compute".equals(bcnEmulationType) && GPUInformation.getVendorID(null, null) != 20803) {
                     envVars.put("ENABLE_BCN_COMPUTE", "1");
                     envVars.put("BCN_COMPUTE_AUTO", "1");
                 }
                 envVars.put("WRAPPER_EMULATE_BCN", "3");
             }
             case "full" -> {
-                if ("compute".equals(bcnEmulationType)) {
+                if ("compute".equals(bcnEmulationType) && GPUInformation.getVendorID(null, null) != 20803) {
                     envVars.put("ENABLE_BCN_COMPUTE", "1");
                     envVars.put("BCN_COMPUTE_AUTO", "0");
                 }
@@ -6701,6 +7306,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         File syswow64 = new File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows/syswow64");
         int deleted = 0;
         for (String name : DXWRAPPER_DLLS) {
+            if (name.equals("d3d10.dll") || name.equals("d3d10_1.dll")
+                    || name.equals("d3d8.dll") || name.equals("d3dimm.dll")) continue;
             File a = new File(system32, name);
             File b = new File(syswow64, name);
             if (a.exists() && a.delete()) deleted++;
@@ -6752,7 +7359,22 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             Log.d(TAG, "Extracting nglide wrapper");
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "ddrawrapper/nglide.tzst", windowsDir, onExtractFileListener);
 
-            if (ddrawrapper.equalsIgnoreCase("none") || ddrawrapper.contains("None")) {
+            // Clear any stale D7VK passthrough DLL left from a previous selection.
+            File syswow64Dir = new File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows/syswow64");
+            File system32Dir = new File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows/system32");
+            new File(syswow64Dir, "ddraw_.dll").delete();
+            new File(system32Dir, "ddraw_.dll").delete();
+
+            ContentProfile d7vkProfile = findD7vkProfileForDdrawrapper(ddrawrapper);
+            if (d7vkProfile != null) {
+                Log.d(TAG, "Applying D7VK ddraw wrapper: " + ddrawrapper);
+                WinComponentSetup.restoreWineBuiltinDllFiles(imageFs, wineInfo, "ddraw.dll", "d3dimm.dll");
+                File origDdraw = new File(syswow64Dir, "ddraw.dll");
+                File renamedDdraw = new File(syswow64Dir, "ddraw_.dll");
+                if (origDdraw.exists()) FileUtils.copy(origDdraw, renamedDdraw);
+                contentsManager.applyContent(d7vkProfile);
+            }
+            else if (ddrawrapper.equalsIgnoreCase("none") || ddrawrapper.contains("None")) {
                 Log.d(TAG, "No DDRaw wrapper has been selected, restoring original ddraw files");
                 WinComponentSetup.restoreWineBuiltinDllFiles(imageFs, wineInfo, "ddraw.dll", "d3dimm.dll");
             }
@@ -6792,6 +7414,17 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         } else {
             Log.w(TAG, "VKD3D content profile not installed; no bundled VKD3D archive will be loaded: " + vkd3dWrapper);
         }
+    }
+
+    private ContentProfile findD7vkProfileForDdrawrapper(String ddrawrapper) {
+        if (ddrawrapper == null || contentsManager == null) return null;
+        List<ContentProfile> profiles = contentsManager.getProfiles(ContentProfile.ContentType.CONTENT_TYPE_D7VK);
+        if (profiles == null) return null;
+        for (ContentProfile profile : profiles) {
+            if (StringUtils.parseIdentifier(ContentsManager.getEntryName(profile)).equals(ddrawrapper))
+                return profile;
+        }
+        return null;
     }
 
     private static String findDelimitedWrapper(String value, String prefix) {
@@ -6874,7 +7507,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         EnvVars envVars = getOverrideEnvVars();
         String args = "";
 
-        if (shortcut != null) {
+        if (bootExePath != null && !bootExePath.isEmpty()) {
+            args = "\"" + bootExePath + "\"";
+            if (bootExeArgs != null && !bootExeArgs.isEmpty()) args += " " + bootExeArgs;
+        } else if (shortcut != null) {
             String path = shortcut.path;
             String gameSource = shortcut.getExtra("game_source", "CUSTOM");
             Log.d("XServerDisplayActivity", "getWineStartCommand: gameSource=" + gameSource + " shortcut.path=" + path);

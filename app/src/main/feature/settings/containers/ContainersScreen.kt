@@ -34,7 +34,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Info
@@ -92,6 +91,10 @@ sealed interface ContainersDialogUiState {
         val container: Container,
     ) : ContainersDialogUiState
 
+    data class ComponentInstaller(
+        val container: Container,
+    ) : ContainersDialogUiState
+
     data class ConfirmRemove(
         val container: Container,
     ) : ContainersDialogUiState
@@ -122,6 +125,7 @@ fun ContainersScreen(
     onRunContainer: (Container) -> Unit,
     onEditContainer: (Container) -> Unit,
     onDuplicateContainer: (Container) -> Unit,
+    onInstallComponents: (Container) -> Unit,
     onRemoveContainer: (Container) -> Unit,
     onShowInfo: (Container) -> Unit,
     onFileManager: (Container) -> Unit,
@@ -151,7 +155,7 @@ fun ContainersScreen(
         Spacer(Modifier.height(6.dp))
 
         LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
+            columns = GridCells.Adaptive(160.dp),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 4.dp + navBarBottomPadding),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -169,6 +173,7 @@ fun ContainersScreen(
                     onRun = { onRunContainer(container) },
                     onEdit = { onEditContainer(container) },
                     onDuplicate = { onDuplicateContainer(container) },
+                    onInstallComponents = { onInstallComponents(container) },
                     onRemove = { onRemoveContainer(container) },
                     onShowInfo = { onShowInfo(container) },
                     onFileManager = { onFileManager(container) },
@@ -239,6 +244,13 @@ fun ContainersScreen(
                 state = dialog.data,
                 onDismiss = onDismissDialog,
                 onClearCache = { onClearCacheDialog(dialog.data.container) },
+            )
+        }
+
+        is ContainersDialogUiState.ComponentInstaller -> {
+            ComponentInstallerSheet(
+                container = dialog.container,
+                onDismiss = onDismissDialog,
             )
         }
 
@@ -314,6 +326,7 @@ private fun ContainerCard(
     onRun: () -> Unit,
     onEdit: () -> Unit,
     onDuplicate: () -> Unit,
+    onInstallComponents: () -> Unit,
     onRemove: () -> Unit,
     onShowInfo: () -> Unit,
     onFileManager: () -> Unit,
@@ -347,10 +360,10 @@ private fun ContainerCard(
             )
             Spacer(Modifier.weight(1f))
             SmallVectorIconButton(
-                image = Icons.Outlined.ContentCopy,
-                contentDescription = stringResource(R.string.common_ui_duplicate),
-                tint = ContainersTextSecondary,
-                onClick = onDuplicate,
+                image = ComponentContainerIcon,
+                contentDescription = "Install components",
+                tint = ContainersAccent,
+                onClick = onInstallComponents,
             )
             Spacer(Modifier.width(8.dp))
             Box {
@@ -370,6 +383,13 @@ private fun ContainerCard(
                         onClick = {
                             menuExpanded = false
                             onFileManager()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.common_ui_duplicate), color = ContainersTextPrimary) },
+                        onClick = {
+                            menuExpanded = false
+                            onDuplicate()
                         },
                     )
                     DropdownMenuItem(
@@ -425,7 +445,7 @@ private fun ContainerCard(
                 modifier = Modifier.weight(1f),
                 image = Icons.Outlined.Edit,
                 contentDescription = stringResource(R.string.common_ui_edit),
-                tint = ContainersTextSecondary,
+                tint = ContainersAccent,
                 onClick = onEdit,
             )
         }

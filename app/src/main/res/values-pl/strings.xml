@@ -213,6 +213,10 @@
     <string name="library_games_immersive_blur_description">Zastosuj efekt rozmycia do tła immersyjnego</string>
     <string name="library_games_custom_game">Własna gra</string>
     <string name="library_games_play">Graj</string>
+    <string name="hero_boot_to_desktop_title">Uruchom pulpit</string>
+    <string name="hero_graphics_tests_title">Testy graficzne</string>
+    <string name="hero_graphics_test_32">32-bit</string>
+    <string name="hero_graphics_test_64">64-bit</string>
     <string name="library_games_add_custom_game">Dodaj własną grę</string>
     <string name="library_games_game_name">Nazwa gry</string>
     <string name="library_games_game_folder_mapped_drive">Folder gry (zmapowany dysk gry)</string>
@@ -298,6 +302,10 @@
     <string name="shortcuts_list_clone_failed">Nie udało się sklonować skrótu.</string>
     <string name="shortcuts_list_exported_to">Skrót wyeksportowany do %1$s</string>
     <string name="shortcuts_list_failed_export">Nie udało się wyeksportować skrótu</string>
+    <string name="shortcuts_export_all">Eksportuj wszystko</string>
+    <string name="shortcuts_export_to_frontend">Eksportuj do frontendu</string>
+    <string name="shortcuts_export_all_done">Wyeksportowano %1$d gier do %2$s</string>
+    <string name="shortcuts_export_all_none">Brak gier do wyeksportowania</string>
     <string name="shortcuts_list_added">Skrót dodany pomyślnie.</string>
     <string name="shortcuts_list_failed_add">Nie udało się dodać skrótu.</string>
 
@@ -706,6 +714,9 @@ Np. <b>META</b> dla <i>klawisza META</i>, \n
     <string name="session_gamepad_error_loading_profile">Błąd wczytywania profilu</string>
 
     <!-- Session > Gyroscope -->
+    <string name="input_controls_auto_hide_section">Sterowanie dotykowe</string>
+    <string name="input_controls_auto_hide_on_controller_title">Ukryj automatycznie przy kontrolerze</string>
+    <string name="input_controls_auto_hide_on_controller_summary">Ukryj sterowanie dotykowe, gdy podłączony jest kontroler</string>
     <string name="session_gyroscope_title">Żyroskop</string>
     <string name="session_gyroscope_calibrate">Kalibruj żyroskop</string>
     <string name="session_gyroscope_enable_right_stick">Włącz ruch żyroskopowy prawej gałki</string>
@@ -755,7 +766,7 @@ Np. <b>META</b> dla <i>klawisza META</i>, \n
     <string name="settings_general_share_android_clipboard">Udostępnij schowek Androida w Wine</string>
     <string name="settings_general_paths_title">Ustawienia ścieżek</string>
     <string name="settings_general_paths_summary">Zarządzaj miejscami przechowywania danych roboczych Winlator i eksportowanych skrótów.</string>
-    <string name="settings_general_winlator_path_title">Ścieżka Winlator</string>
+    <string name="settings_general_winlator_path_title">Ścieżka pamięci masowej</string>
     <string name="settings_general_shortcut_export_path_title">Ścieżka eksportu skrótów</string>
     <string name="settings_general_choose_path">Wybierz ścieżkę</string>
     <string name="settings_general_xserver_cursor_summary">Dostosuj prędkość wskaźnika dla dotyku, gładzika i myszy w sesji XServer.</string>
@@ -763,7 +774,7 @@ Np. <b>META</b> dla <i>klawisza META</i>, \n
     <string name="settings_general_cursor_lock_summary">Utrzymuje bezpośrednie przechwytywanie myszy dla gier wymagających surowego wejścia wskaźnika. Wyłącz przyciskiem Ciszej.</string>
     <string name="settings_general_xinput_toggle_title">Wyłącz XInput</string>
     <string name="settings_general_xinput_toggle_summary">Wyłącza obsługę XInput, gdy chcesz wyłącznej kontroli myszy i klawiatury.</string>
-    <string name="settings_general_file_provider_summary">Udostępnij pliki Winlator selektorom dokumentów i menedżerom plików Androida.</string>
+    <string name="settings_general_file_provider_summary">Udostępnij pliki WinNative selektorom dokumentów i menedżerom plików Androida.</string>
     <string name="settings_general_open_browser_summary">Otwieraj obsługiwane linki w przeglądarce Androida zamiast w Wine.</string>
     <string name="settings_general_clipboard_summary">Umożliw kopiowanie i wklejanie między Androidem a sesjami Wine.</string>
     <string name="settings_general_imagefs_summary">Przywróć dołączone pliki systemowe bez usuwania istniejących kontenerów.</string>
@@ -805,6 +816,8 @@ Np. <b>META</b> dla <i>klawisza META</i>, \n
     <string name="settings_debug_share_logs">Udostępnij logi</string>
     <string name="settings_debug_delete_logs">Usuń logi</string>
     <string name="settings_debug_share_all_logs_short">Udostępnij wszystko</string>
+    <string name="settings_debug_download_all_logs_short">Pobierz wszystko</string>
+    <string name="settings_debug_logs_saved">Zapisano w %1$s</string>
     <string name="settings_debug_delete_logs_short">Usuń</string>
     <string name="settings_debug_delete_all_logs_short">Usuń wszystko</string>
     <string name="settings_debug_open_logs_folder_short">Otwórz menedżer logów</string>
@@ -852,6 +865,7 @@ Np. <b>META</b> dla <i>klawisza META</i>, \n
     <string name="settings_content_desc_box64">Tłumaczy kod Linuksa x86_64, aby działał na urządzeniach ARM64.</string>
     <string name="settings_content_desc_wowbox64">Build Box64 używany przez WoW64 do uruchamiania 32-bitowych aplikacji Windows w 64-bitowym Wine.</string>
     <string name="settings_content_desc_fexcore">Tłumaczy kod x86 i x86_64, aby działał na urządzeniach ARM64.</string>
+    <string name="settings_content_desc_d7vk">Tłumaczy wywołania graficzne DirectDraw (Direct3D 7 i starsze) na Vulkan.</string>
     <string name="settings_content_unable_to_install">Nie można zainstalować zawartości.</string>
     <string name="settings_content_install_failed">Instalacja nie powiodła się</string>
     <string name="settings_content_file_cannot_be_recognized">Nie można rozpoznać pliku.</string>
@@ -1137,6 +1151,7 @@ Zainstalowana ścieżka:
     <string name="box64_env_var_help__dynarec_noarch">Reduces dynarec block metadata to save memory, with compatibility tradeoffs.</string>
     <string name="box64_env_var_help__dynarec_sep">Adds secondary entry points to optimize CALL/RET when CALLRET is enabled.</string>
     <string name="box64_env_var_help__dynarec_volatile_metadata">Uses PE volatile metadata to guide strong memory emulation for 64-bit Windows games.</string>
+    <string name="box64_env_var_help__dynacache">Steruje buforowaniem wygenerowanych bloków dynarec między uruchomieniami, aby przyspieszyć uruchamianie.</string>
     <string name="box64_env_var_help__dynarec">Enables or disables the Box64 dynamic recompiler.</string>
     <string name="box64_env_var_help__pclmulqdq">Exposes PCLMULQDQ CPU capabilities to the guest.</string>
     <string name="box64_env_var_help__shaext">Exposes SHA extension CPU capabilities to the guest.</string>
@@ -1345,5 +1360,82 @@ Zainstalowana ścieżka:
     <string name="copy_text">Kopiuj</string>
     <string name="select_all">Zaznacz wszystko</string>
     <string name="selected_count">Wybrano: %d</string>
+
+    <!-- Session > Touch &amp; Gesture Profiles -->
+    <string name="common_ui_new">Nowy</string>
+    <string name="gesture_profile_export">Eksportuj profil gestów</string>
+    <string name="gesture_profile_import">Importuj profil gestów</string>
+    <string name="gesture_profile_new">Nowy profil gestów</string>
+    <string name="gesture_profile_none">Brak profili gestów</string>
+    <string name="input_controls_editor_input_profiles_section">Profile wejścia</string>
+    <string name="session_drawer_right_stick_sensitivity">Czułość prawej gałki</string>
+    <string name="session_drawer_rts_gestures">Gesty RTS</string>
+    <string name="session_drawer_rts_gestures_edit">Edytuj</string>
+    <string name="session_drawer_touch">Dotyk</string>
+    <string name="session_drawer_touch_map_right_stick">Mapuj na prawą gałkę</string>
+    <string name="session_drawer_touch_touchscreen">Tryb ekranu dotykowego</string>
+    <string name="session_drawer_touch_trackpad">Gładzik</string>
+    <string name="session_gesture_profile_section">Profil gestów</string>
+    <string name="session_rts_action">Akcja</string>
+    <string name="session_rts_behavior">Zachowanie</string>
+    <string name="session_rts_double_tap">Dwukrotne dotknięcie (dwukrotne kliknięcie lewym)</string>
+    <string name="session_rts_double_tap_delay">Opóźnienie dwukrotnego dotknięcia (ms)</string>
+    <string name="session_rts_down">W dół</string>
+    <string name="session_rts_drag">Przeciąganie 1 palcem</string>
+    <string name="session_rts_pan1">Przesuwanie 1 palcem</string>
+    <string name="session_rts_drag2">Przeciąganie 2 palcami</string>
+    <string name="session_rts_drag_threshold">Próg przeciągania (px)</string>
+    <string name="session_rts_gesture_threshold">Próg gestu (px)</string>
+    <string name="session_rts_hold2">Przytrzymanie 2 palcami</string>
+    <string name="session_rts_hold3">Przytrzymanie 3 palcami</string>
+    <string name="session_rts_hold4">Przytrzymanie 4 palcami</string>
+    <string name="session_rts_hold_delay">Opóźnienie przytrzymania (ms)</string>
+    <string name="session_rts_left">W lewo</string>
+    <string name="session_rts_long_press">Długie przytrzymanie</string>
+    <string name="session_rts_long_press_delay">Opóźnienie długiego przytrzymania (ms)</string>
+    <string name="session_rts_pan">Przesuwanie 2 palcami</string>
+    <string name="session_rts_pan_threshold">Początek przesuwania/szczypania (px)</string>
+    <string name="session_rts_right">W prawo</string>
+    <string name="session_rts_swipe3">Przesunięcie 3 palcami</string>
+    <string name="session_rts_swipe4">Przesunięcie 4 palcami</string>
+    <string name="session_rts_swipe_threshold">Próg przesunięcia (px)</string>
+    <string name="session_rts_tap1">Dotknięcie 1 palcem</string>
+    <string name="session_rts_tap2">Dotknięcie 2 palcami</string>
+    <string name="session_rts_tap3">Dotknięcie 3 palcami</string>
+    <string name="session_rts_tap4">Dotknięcie 4 palcami</string>
+    <string name="session_rts_up">W górę</string>
+    <string name="session_rts_zoom">Powiększenie szczypaniem</string>
+    <string name="session_drawer_brightness">Jasność</string>
+    <string name="session_drawer_contrast">Kontrast</string>
+    <string name="session_drawer_gamma">Gamma</string>
+    <string name="session_drawer_saturation">Nasycenie</string>
+    <string name="session_drawer_temperature">Temperatura</string>
+    <string name="session_drawer_tint">Odcień</string>
+    <string name="session_drawer_intensity">Intensywność</string>
+    <string name="session_drawer_strength">Siła</string>
+    <string name="session_drawer_sharpen">Wyostrzanie</string>
+    <string name="session_drawer_scanlines">Linie skanowania</string>
+    <string name="session_drawer_pixelate">Pikselizacja</string>
+    <string name="session_drawer_block_size">Rozmiar bloku</string>
+    <string name="session_drawer_scale">Skalowanie</string>
+    <string name="session_drawer_scale_nearest">Najbliższe</string>
+    <string name="session_drawer_scale_linear">Liniowe</string>
+    <string name="session_drawer_scale_bicubic">Dwusześcienne</string>
+    <string name="session_drawer_color_profile_ntsc">NTSC</string>
+    <string name="session_drawer_color_profile_ntsc2">NTSC2</string>
+    <string name="session_drawer_color_profile_toon">Kreskówka</string>
+    <string name="session_drawer_color_blind">Daltonizm</string>
+    <string name="session_drawer_color_blind_protan">Protan</string>
+    <string name="session_drawer_color_blind_deutan">Deutan</string>
+    <string name="session_drawer_color_blind_tritan">Tritan</string>
+    <string name="session_drawer_reset_effects">Resetuj efekty</string>
+    <string name="session_drawer_hud_background">Tło</string>
+    <string name="session_drawer_hud_background_alpha">Alfa tła</string>
+    <string name="session_drawer_hud_background_alpha_input_title">Ustaw alfę tła</string>
+    <string name="session_drawer_hud_element_temp">TMP</string>
+    <string name="session_drawer_refactor_size">Dopasuj rozmiar</string>
+    <string name="session_task_bring_to_front">Przenieś na wierzch</string>
+    <string name="session_task_custom_value">Wartość niestandardowa</string>
+    <string name="session_gyroscope_orientation_mode">Przechyl, aby celować (orientacja)</string>
 </resources>
 

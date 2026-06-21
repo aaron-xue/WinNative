@@ -209,6 +209,10 @@
     <string name="library_games_immersive_blur_description">몰입 배경에 흐림 효과 적용</string>
     <string name="library_games_custom_game">사용자 지정 게임</string>
     <string name="library_games_play">플레이</string>
+    <string name="hero_boot_to_desktop_title">데스크톱으로 부팅</string>
+    <string name="hero_graphics_tests_title">그래픽 테스트</string>
+    <string name="hero_graphics_test_32">32비트</string>
+    <string name="hero_graphics_test_64">64비트</string>
     <string name="library_games_add_custom_game">사용자 지정 게임 추가</string>
     <string name="library_games_game_name">게임 이름</string>
     <string name="library_games_game_folder_mapped_drive">게임 폴더(매핑된 게임 드라이브)</string>
@@ -294,6 +298,10 @@
     <string name="shortcuts_list_clone_failed">바로가기 복제에 실패했습니다.</string>
     <string name="shortcuts_list_exported_to">바로가기가 %1$s(으)로 내보내졌습니다</string>
     <string name="shortcuts_list_failed_export">바로가기 내보내기에 실패했습니다</string>
+    <string name="shortcuts_export_all">모두 내보내기</string>
+    <string name="shortcuts_export_to_frontend">프런트엔드로 내보내기</string>
+    <string name="shortcuts_export_all_done">게임 %1$d개를 %2$s(으)로 내보냈습니다</string>
+    <string name="shortcuts_export_all_none">내보낼 게임이 없습니다</string>
     <string name="shortcuts_list_added">바로가기가 성공적으로 추가되었습니다.</string>
     <string name="shortcuts_list_failed_add">바로가기 추가에 실패했습니다.</string>
 
@@ -700,6 +708,9 @@
     <string name="session_gamepad_error_loading_profile">프로필 불러오기 오류</string>
 
     <!-- Session > Gyroscope -->
+    <string name="input_controls_auto_hide_section">터치스크린 컨트롤</string>
+    <string name="input_controls_auto_hide_on_controller_title">컨트롤러 연결 시 자동 숨김</string>
+    <string name="input_controls_auto_hide_on_controller_summary">컨트롤러가 연결되면 터치스크린 컨트롤 숨기기</string>
     <string name="session_gyroscope_title">자이로스코프</string>
     <string name="session_gyroscope_calibrate">자이로스코프 보정</string>
     <string name="session_gyroscope_enable_right_stick">오른쪽 스틱 자이로스코프 모션 활성화</string>
@@ -749,7 +760,7 @@
     <string name="settings_general_share_android_clipboard">Wine과 Android 클립보드 공유</string>
     <string name="settings_general_paths_title">경로 설정</string>
     <string name="settings_general_paths_summary">Winlator가 작업 데이터를 저장하는 위치와 내보낸 바로가기가 기록되는 위치를 관리합니다.</string>
-    <string name="settings_general_winlator_path_title">Winlator 경로</string>
+    <string name="settings_general_winlator_path_title">저장소 경로</string>
     <string name="settings_general_shortcut_export_path_title">바로가기 내보내기 경로</string>
     <string name="settings_general_choose_path">경로 선택</string>
     <string name="settings_general_xserver_cursor_summary">XServer 세션 내 터치, 트랙패드 및 마우스 입력의 포인터 속도를 조정합니다.</string>
@@ -757,7 +768,7 @@
     <string name="settings_general_cursor_lock_summary">원시 포인터 입력이 필요한 게임에서 직접 마우스 캡처를 유지합니다. 볼륨 다운으로 비활성화할 수 있습니다.</string>
     <string name="settings_general_xinput_toggle_title">XInput 비활성화</string>
     <string name="settings_general_xinput_toggle_summary">마우스와 키보드만 사용하려는 경우 XInput 처리를 끕니다.</string>
-    <string name="settings_general_file_provider_summary">Android 문서 선택기 및 파일 관리자에 Winlator 파일을 노출합니다.</string>
+    <string name="settings_general_file_provider_summary">Android 문서 선택기 및 파일 관리자에 WinNative 파일을 노출합니다.</string>
     <string name="settings_general_open_browser_summary">지원되는 웹 링크를 Wine 내부 대신 Android 브라우저에서 엽니다.</string>
     <string name="settings_general_clipboard_summary">Android와 Wine 세션 간에 복사 및 붙여넣기를 허용합니다.</string>
     <string name="settings_general_imagefs_summary">기존 컨테이너를 제거하지 않고 번들된 시스템 파일을 복원합니다.</string>
@@ -799,6 +810,8 @@
     <string name="settings_debug_share_logs">로그 공유</string>
     <string name="settings_debug_delete_logs">로그 삭제</string>
     <string name="settings_debug_share_all_logs_short">모두 공유</string>
+    <string name="settings_debug_download_all_logs_short">모두 다운로드</string>
+    <string name="settings_debug_logs_saved">%1$s에 저장됨</string>
     <string name="settings_debug_delete_logs_short">삭제</string>
     <string name="settings_debug_delete_all_logs_short">모두 삭제</string>
     <string name="settings_debug_open_logs_folder_short">로그 관리자 열기</string>
@@ -846,6 +859,7 @@
     <string name="settings_content_desc_box64">x86_64 Linux 코드를 ARM64 기기에서 실행되도록 변환합니다.</string>
     <string name="settings_content_desc_wowbox64">64비트 Wine에서 32비트 Windows 앱을 실행하기 위해 WoW64가 사용하는 Box64 빌드입니다.</string>
     <string name="settings_content_desc_fexcore">x86 및 x86_64 코드를 ARM64 기기에서 실행되도록 변환합니다.</string>
+    <string name="settings_content_desc_d7vk">DirectDraw(Direct3D 7 이하) 그래픽 호출을 Vulkan으로 변환합니다.</string>
     <string name="settings_content_unable_to_install">콘텐츠를 설치할 수 없습니다.</string>
     <string name="settings_content_install_failed">설치 실패</string>
     <string name="settings_content_file_cannot_be_recognized">파일을 인식할 수 없습니다.</string>
@@ -1131,6 +1145,7 @@
     <string name="box64_env_var_help__dynarec_noarch">Reduces dynarec block metadata to save memory, with compatibility tradeoffs.</string>
     <string name="box64_env_var_help__dynarec_sep">Adds secondary entry points to optimize CALL/RET when CALLRET is enabled.</string>
     <string name="box64_env_var_help__dynarec_volatile_metadata">Uses PE volatile metadata to guide strong memory emulation for 64-bit Windows games.</string>
+    <string name="box64_env_var_help__dynacache">실행 사이에 생성된 dynarec 블록의 캐싱을 제어하여 시작 속도를 높입니다.</string>
     <string name="box64_env_var_help__dynarec">Enables or disables the Box64 dynamic recompiler.</string>
     <string name="box64_env_var_help__pclmulqdq">Exposes PCLMULQDQ CPU capabilities to the guest.</string>
     <string name="box64_env_var_help__shaext">Exposes SHA extension CPU capabilities to the guest.</string>
@@ -1340,5 +1355,82 @@
     <string name="copy_text">복사</string>
     <string name="select_all">모두 선택</string>
     <string name="selected_count">%d개 선택됨</string>
+
+    <!-- Session > Touch & Gesture Profiles -->
+    <string name="common_ui_new">새로 만들기</string>
+    <string name="gesture_profile_export">제스처 프로필 내보내기</string>
+    <string name="gesture_profile_import">제스처 프로필 가져오기</string>
+    <string name="gesture_profile_new">새 제스처 프로필</string>
+    <string name="gesture_profile_none">제스처 프로필 없음</string>
+    <string name="input_controls_editor_input_profiles_section">입력 프로필</string>
+    <string name="session_drawer_right_stick_sensitivity">오른쪽 스틱 감도</string>
+    <string name="session_drawer_rts_gestures">RTS 제스처</string>
+    <string name="session_drawer_rts_gestures_edit">편집</string>
+    <string name="session_drawer_touch">터치</string>
+    <string name="session_drawer_touch_map_right_stick">오른쪽 스틱에 매핑</string>
+    <string name="session_drawer_touch_touchscreen">터치스크린 모드</string>
+    <string name="session_drawer_touch_trackpad">트랙패드</string>
+    <string name="session_gesture_profile_section">제스처 프로필</string>
+    <string name="session_rts_action">동작</string>
+    <string name="session_rts_behavior">방식</string>
+    <string name="session_rts_double_tap">더블 탭 (더블 좌클릭)</string>
+    <string name="session_rts_double_tap_delay">더블 탭 지연 (ms)</string>
+    <string name="session_rts_down">아래</string>
+    <string name="session_rts_drag">1손가락 드래그</string>
+    <string name="session_rts_pan1">1손가락 이동</string>
+    <string name="session_rts_drag2">2손가락 드래그</string>
+    <string name="session_rts_drag_threshold">드래그 임계값 (px)</string>
+    <string name="session_rts_gesture_threshold">제스처 임계값 (px)</string>
+    <string name="session_rts_hold2">2손가락 길게 누르기</string>
+    <string name="session_rts_hold3">3손가락 길게 누르기</string>
+    <string name="session_rts_hold4">4손가락 길게 누르기</string>
+    <string name="session_rts_hold_delay">길게 누르기 지연 (ms)</string>
+    <string name="session_rts_left">왼쪽</string>
+    <string name="session_rts_long_press">길게 누르기</string>
+    <string name="session_rts_long_press_delay">길게 누르기 지연 (ms)</string>
+    <string name="session_rts_pan">2손가락 이동</string>
+    <string name="session_rts_pan_threshold">이동/핀치 시작 (px)</string>
+    <string name="session_rts_right">오른쪽</string>
+    <string name="session_rts_swipe3">3손가락 스와이프</string>
+    <string name="session_rts_swipe4">4손가락 스와이프</string>
+    <string name="session_rts_swipe_threshold">스와이프 임계값 (px)</string>
+    <string name="session_rts_tap1">1손가락 탭</string>
+    <string name="session_rts_tap2">2손가락 탭</string>
+    <string name="session_rts_tap3">3손가락 탭</string>
+    <string name="session_rts_tap4">4손가락 탭</string>
+    <string name="session_rts_up">위</string>
+    <string name="session_rts_zoom">핀치 줌</string>
+    <string name="session_drawer_brightness">밝기</string>
+    <string name="session_drawer_contrast">대비</string>
+    <string name="session_drawer_gamma">감마</string>
+    <string name="session_drawer_saturation">채도</string>
+    <string name="session_drawer_temperature">색온도</string>
+    <string name="session_drawer_tint">색조</string>
+    <string name="session_drawer_intensity">강도</string>
+    <string name="session_drawer_strength">세기</string>
+    <string name="session_drawer_sharpen">선명화</string>
+    <string name="session_drawer_scanlines">스캔라인</string>
+    <string name="session_drawer_pixelate">픽셀화</string>
+    <string name="session_drawer_block_size">블록 크기</string>
+    <string name="session_drawer_scale">스케일링</string>
+    <string name="session_drawer_scale_nearest">최근접</string>
+    <string name="session_drawer_scale_linear">선형</string>
+    <string name="session_drawer_scale_bicubic">바이큐빅</string>
+    <string name="session_drawer_color_profile_ntsc">NTSC</string>
+    <string name="session_drawer_color_profile_ntsc2">NTSC2</string>
+    <string name="session_drawer_color_profile_toon">카툰</string>
+    <string name="session_drawer_color_blind">색맹</string>
+    <string name="session_drawer_color_blind_protan">적색맹</string>
+    <string name="session_drawer_color_blind_deutan">녹색맹</string>
+    <string name="session_drawer_color_blind_tritan">청색맹</string>
+    <string name="session_drawer_reset_effects">효과 초기화</string>
+    <string name="session_drawer_hud_background">배경</string>
+    <string name="session_drawer_hud_background_alpha">배경 알파</string>
+    <string name="session_drawer_hud_background_alpha_input_title">배경 알파 설정</string>
+    <string name="session_drawer_hud_element_temp">TMP</string>
+    <string name="session_drawer_refactor_size">크기 조정</string>
+    <string name="session_task_bring_to_front">앞으로 가져오기</string>
+    <string name="session_task_custom_value">사용자 지정 값</string>
+    <string name="session_gyroscope_orientation_mode">기울여 조준 (방향)</string>
 </resources>
 

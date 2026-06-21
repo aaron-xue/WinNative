@@ -146,6 +146,14 @@
     public static ** valueOf(java.lang.String);
 }
 
+# Suppress warnings for missing java.beans classes (snakeyaml references them
+# but they are not available on Android; snakeyaml falls back gracefully)
+-dontwarn java.beans.BeanInfo
+-dontwarn java.beans.FeatureDescriptor
+-dontwarn java.beans.IntrospectionException
+-dontwarn java.beans.Introspector
+-dontwarn java.beans.PropertyDescriptor
+
 # Suppress warnings for missing optional Window Extensions classes
 -dontwarn androidx.window.extensions.WindowExtensions
 -dontwarn androidx.window.extensions.WindowExtensionsProvider

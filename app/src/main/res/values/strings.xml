@@ -211,6 +211,10 @@
     <string name="library_games_immersive_blur_description">Apply a blur effect to the immersive background</string>
     <string name="library_games_custom_game">Custom Game</string>
     <string name="library_games_play">Play</string>
+    <string name="hero_boot_to_desktop_title">Boot to Desktop</string>
+    <string name="hero_graphics_tests_title">Graphics Tests</string>
+    <string name="hero_graphics_test_32">32-bit</string>
+    <string name="hero_graphics_test_64">64-bit</string>
     <string name="library_games_add_custom_game">Add Custom Game</string>
     <string name="library_games_game_name">Game Name</string>
     <string name="library_games_game_folder_mapped_drive">Game Folder (Mapped Game Drive)</string>
@@ -324,6 +328,10 @@
     <string name="shortcuts_list_clone_failed">Failed to clone shortcut.</string>
     <string name="shortcuts_list_exported_to">Shortcut Exported to %1$s</string>
     <string name="shortcuts_list_failed_export">Failed to export shortcut</string>
+    <string name="shortcuts_export_all">Export All</string>
+    <string name="shortcuts_export_to_frontend">Export to Frontend</string>
+    <string name="shortcuts_export_all_done">Exported %1$d games to %2$s</string>
+    <string name="shortcuts_export_all_none">No games to export</string>
     <string name="shortcuts_list_added">Shortcut added successfully.</string>
     <string name="shortcuts_list_readded_existing">Re-added existing shortcut</string>
     <string name="shortcuts_list_failed_add">Failed to add shortcut.</string>
@@ -550,6 +558,7 @@
     </string>
     <string name="box64_env_var_help__dynarec_noarch">Reduces dynarec block metadata to save memory, with compatibility tradeoffs.</string>
     <string name="box64_env_var_help__dynarec_volatile_metadata">Uses PE volatile metadata to guide strong memory emulation for 64-bit Windows games.</string>
+    <string name="box64_env_var_help__dynacache">Controls caching of generated dynarec blocks between runs to speed up startup.</string>
     <string name="box64_env_var_help__avx">
         Exposes AVX capabilities to the guest.&lt;br /&gt;&lt;br /&gt;
         &lt;b&gt;0&lt;/b&gt; : Disable AVX extension&lt;br /&gt;
@@ -664,6 +673,49 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="session_drawer_pause_resume">Pause/Resume</string>
     <string name="session_drawer_relative_mouse_movement">Relative Mouse Movement</string>
     <string name="session_drawer_mouse_input">Mouse Input</string>
+    <string name="session_drawer_touch">Touch</string>
+    <string name="session_drawer_touch_trackpad">Trackpad</string>
+    <string name="session_drawer_touch_touchscreen">Touchscreen Mode</string>
+    <string name="session_drawer_touch_map_right_stick">Map to Right Stick</string>
+    <string name="session_drawer_rts_gestures">RTS Gestures</string>
+    <string name="session_drawer_rts_gestures_edit">Edit</string>
+    <string name="session_drawer_right_stick_sensitivity">Right stick sensitivity</string>
+    <string name="session_rts_action">Action</string>
+    <string name="session_rts_behavior">Behavior</string>
+    <string name="session_rts_tap1">1-finger tap</string>
+    <string name="session_rts_tap2">2-finger tap</string>
+    <string name="session_rts_tap3">3-finger tap</string>
+    <string name="session_rts_tap4">4-finger tap</string>
+    <string name="session_rts_double_tap">Double tap (double left-click)</string>
+    <string name="session_rts_long_press">Long press</string>
+    <string name="session_rts_hold2">2-finger hold</string>
+    <string name="session_rts_hold3">3-finger hold</string>
+    <string name="session_rts_hold4">4-finger hold</string>
+    <string name="session_rts_swipe3">3-finger swipe</string>
+    <string name="session_rts_swipe4">4-finger swipe</string>
+    <string name="session_rts_up">Up</string>
+    <string name="session_rts_down">Down</string>
+    <string name="session_rts_left">Left</string>
+    <string name="session_rts_right">Right</string>
+    <string name="session_rts_pan">2-finger pan</string>
+    <string name="session_rts_pan1">1-finger pan</string>
+    <string name="session_rts_zoom">Pinch zoom</string>
+    <string name="session_rts_drag">1-finger drag</string>
+    <string name="session_rts_drag2">2-finger drag</string>
+    <string name="session_rts_long_press_delay">Long press delay (ms)</string>
+    <string name="session_rts_hold_delay">Hold delay (ms)</string>
+    <string name="session_rts_swipe_threshold">Swipe threshold (px)</string>
+    <string name="session_rts_gesture_threshold">Gesture threshold (px)</string>
+    <string name="session_rts_double_tap_delay">Double tap delay (ms)</string>
+    <string name="session_rts_drag_threshold">Drag threshold (px)</string>
+    <string name="session_rts_pan_threshold">Pan/pinch start (px)</string>
+    <string name="common_ui_new">New</string>
+    <string name="input_controls_editor_input_profiles_section">Input Profiles</string>
+    <string name="session_gesture_profile_section">Gesture Profile</string>
+    <string name="gesture_profile_new">New Gesture Profile</string>
+    <string name="gesture_profile_import">Import Gesture Profile</string>
+    <string name="gesture_profile_export">Export Gesture Profile</string>
+    <string name="gesture_profile_none">No gesture profiles</string>
     <string name="session_drawer_screen_effects">Screen Effects</string>
     <string name="session_drawer_screen_effects_subtitle">Upscaling and color effects</string>
     <string name="session_drawer_super_resolution">Super Resolution</string>
@@ -726,6 +778,30 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="session_drawer_color_profile_hdr">HDR</string>
     <string name="session_drawer_color_profile_natural">Natural</string>
     <string name="session_drawer_color_profile_crt">CRT Effect</string>
+    <string name="session_drawer_color_profile_toon">Toon</string>
+    <string name="session_drawer_color_profile_ntsc">Ntsc</string>
+    <string name="session_drawer_color_profile_ntsc2">Ntsc2</string>
+    <string name="session_drawer_brightness">Brightness</string>
+    <string name="session_drawer_contrast">Contrast</string>
+    <string name="session_drawer_gamma">Gamma</string>
+    <string name="session_drawer_scale">Scale</string>
+    <string name="session_drawer_scale_nearest">Nearest</string>
+    <string name="session_drawer_scale_linear">Linear</string>
+    <string name="session_drawer_scale_bicubic">Bicubic</string>
+    <string name="session_drawer_saturation">Saturation</string>
+    <string name="session_drawer_temperature">Temperature</string>
+    <string name="session_drawer_tint">Tint</string>
+    <string name="session_drawer_sharpen">Sharpen</string>
+    <string name="session_drawer_scanlines">Scanlines</string>
+    <string name="session_drawer_pixelate">Pixelate</string>
+    <string name="session_drawer_block_size">Block size</string>
+    <string name="session_drawer_strength">Strength</string>
+    <string name="session_drawer_intensity">Intensity</string>
+    <string name="session_drawer_color_blind">Color Blind</string>
+    <string name="session_drawer_color_blind_protan">Protan</string>
+    <string name="session_drawer_color_blind_deutan">Deutan</string>
+    <string name="session_drawer_color_blind_tritan">Tritan</string>
+    <string name="session_drawer_reset_effects">Reset effects</string>
     <string name="session_drawer_calibrate_advanced">Advanced calibration</string>
     <string name="session_drawer_rail_label_hud">HUD</string>
     <string name="session_drawer_rail_label_gyro">Gyro</string>
@@ -858,6 +934,11 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="session_gamepad_no_profiles">-- No Profiles --</string>
     <string name="session_gamepad_error_loading_profile">Error loading profile</string>
 
+    <!-- Input controls > Auto-hide on controller -->
+    <string name="input_controls_auto_hide_section">Touchscreen Controls</string>
+    <string name="input_controls_auto_hide_on_controller_title">Auto-hide on Controller</string>
+    <string name="input_controls_auto_hide_on_controller_summary">Hide touchscreen controls when a controller is connected</string>
+
     <!-- Session > Gyroscope -->
     <string name="session_gyroscope_title">Gyroscope</string>
     <string name="session_gyroscope_calibrate">Calibrate Gyroscope</string>
@@ -912,7 +993,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="settings_general_share_android_clipboard">Share Android Clipboard with Wine</string>
     <string name="settings_general_paths_title">Path Settings</string>
     <string name="settings_general_paths_summary">Manage where Winlator stores its working data and where exported shortcuts are written.</string>
-    <string name="settings_general_winlator_path_title">Winlator Path</string>
+    <string name="settings_general_winlator_path_title">Storage Path</string>
     <string name="settings_general_shortcut_export_path_title">Shortcut Export Path</string>
     <string name="settings_general_choose_path">Choose Path</string>
     <string name="settings_general_xserver_cursor_summary">Adjust pointer speed for touch, trackpad, and mouse input inside the XServer session.</string>
@@ -920,7 +1001,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="settings_general_cursor_lock_summary">Keeps direct mouse capture enabled for games that need raw pointer input. Disable it with Volume Down.</string>
     <string name="settings_general_xinput_toggle_title">Disable XInput</string>
     <string name="settings_general_xinput_toggle_summary">Turns off XInput handling when you want exclusive mouse and keyboard control.</string>
-    <string name="settings_general_file_provider_summary">Expose Winlator files to Android document pickers and file managers.</string>
+    <string name="settings_general_file_provider_summary">Expose WinNative files to Android document pickers and file managers.</string>
     <string name="settings_general_open_browser_summary">Open supported web links in the Android browser instead of inside Wine.</string>
     <string name="settings_general_clipboard_summary">Allow copy and paste between Android and Wine sessions.</string>
     <string name="settings_general_imagefs_summary">Restore bundled system files without removing your existing containers.</string>
@@ -964,6 +1045,8 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="settings_debug_share_logs">Share Logs</string>
     <string name="settings_debug_delete_logs">Delete Logs</string>
     <string name="settings_debug_share_all_logs_short">Share all</string>
+    <string name="settings_debug_download_all_logs_short">Download all</string>
+    <string name="settings_debug_logs_saved">Saved to %1$s</string>
     <string name="settings_debug_delete_logs_short">Delete</string>
     <string name="settings_debug_delete_all_logs_short">Delete all</string>
     <string name="settings_debug_open_logs_folder_short">Open Logs Manager</string>
@@ -1013,6 +1096,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="settings_content_desc_box64">Translates x86_64 Linux code so it can run on ARM64 devices.</string>
     <string name="settings_content_desc_wowbox64">Box64 build used by WoW64 to run 32-bit Windows apps inside 64-bit Wine.</string>
     <string name="settings_content_desc_fexcore">Translates x86 and x86_64 code so it can run on ARM64 devices.</string>
+    <string name="settings_content_desc_d7vk">Translates DirectDraw (Direct3D 7 and earlier) graphics calls to Vulkan.</string>
     <string name="settings_content_unable_to_install">Unable to install content.</string>
     <string name="settings_content_install_failed">Install Failed</string>
     <string name="settings_content_file_cannot_be_recognized">File cannot be recognized.</string>

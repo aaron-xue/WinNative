@@ -62,6 +62,7 @@ class ContainersFragment : Fragment() {
                         onRunContainer = ::runContainer,
                         onEditContainer = ::editContainer,
                         onDuplicateContainer = ::duplicateContainer,
+                        onInstallComponents = ::openComponentInstaller,
                         onRemoveContainer = ::removeContainer,
                         onShowInfo = ::showContainerInfo,
                         onFileManager = ::openFileManager,
@@ -132,6 +133,10 @@ class ContainersFragment : Fragment() {
 
     private fun duplicateContainer(container: Container) {
         screenState = screenState.copy(dialog = ContainersDialogUiState.ConfirmDuplicate(container))
+    }
+
+    private fun openComponentInstaller(container: Container) {
+        screenState = screenState.copy(dialog = ContainersDialogUiState.ComponentInstaller(container))
     }
 
     private fun removeContainer(container: Container) {
