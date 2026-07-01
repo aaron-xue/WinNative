@@ -1042,8 +1042,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         });
 
         enableLogsMenu = preferences.getBoolean("enable_wine_debug", false)
-                || preferences.getBoolean("enable_box64_logs", false)
-                || preferences.getBoolean("enable_fexcore_logs", false);
+                || preferences.getBoolean("enable_emulator_logs", false);
         // Native rendering (DRI3) is always on; the toggle was removed. Hardcoded so stale "use_dri3=false" prefs can't disable it.
         isNativeRenderingEnabled = true;
         displayHostComposeView.setPointerIcon(PointerIcon.getSystemIcon(this, PointerIcon.TYPE_ARROW));
@@ -2729,14 +2728,15 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     }
 
     private void attachLogStreamSink() {
-        boolean box64LogsEnabled = preferences.getBoolean("enable_box64_logs", false);
-        boolean fexLogsEnabled = preferences.getBoolean("enable_fexcore_logs", false);
         boolean wineDebugEnabled = preferences.getBoolean("enable_wine_debug", false);
+        boolean emulatorLogsEnabled = preferences.getBoolean("enable_emulator_logs", false);
         boolean arm64ec = wineInfo != null && wineInfo.isArm64EC();
         String emulator = container != null ? container.getEmulator() : null;
         boolean usesWowbox64 = emulator != null && emulator.equalsIgnoreCase("wowbox64");
         boolean fexActive = arm64ec && !usesWowbox64;
         boolean box64Active = !fexActive;
+        boolean box64LogsEnabled = emulatorLogsEnabled && box64Active;
+        boolean fexLogsEnabled = emulatorLogsEnabled && fexActive;
 
         sessionLogWriter = com.winlator.cmod.runtime.system.SessionLogWriter.create(
                 this,
@@ -2748,10 +2748,17 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 fexActive);
 
         Callback<String> sink = new Callback<String>() {
+            private long cachedSecond = -1;
+            private String cachedPrefix = "";
+
             @Override
             public synchronized void call(String line) {
-                String stamped = "[" + DateFormat.format("HH:mm:ss", System.currentTimeMillis())
-                        + "]  " + line.replace("\n", "");
+                long second = System.currentTimeMillis() / 1000L;
+                if (second != cachedSecond) {
+                    cachedSecond = second;
+                    cachedPrefix = "[" + DateFormat.format("HH:mm:ss", second * 1000L) + "]  ";
+                }
+                String stamped = cachedPrefix + line.replace("\n", "");
                 XServerDrawerStateHolder holder = drawerStateHolder;
                 if (holder != null) holder.appendLogLine(stamped);
                 com.winlator.cmod.runtime.system.SessionLogWriter writer = sessionLogWriter;
@@ -3522,6 +3529,32 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
     }
 
+    // Builds a WINEDEBUG value enabling only the chosen message classes on the
+    // chosen channels. "-all" first zeroes every class so unchosen ones (notably
+    // trace) stay off, then each "class+channel" turns one class on.
+    private static String buildWineDebug(String classesCsv, String channelsCsv) {
+        java.util.List<String> classes = splitCsv(classesCsv);
+        java.util.List<String> channels = splitCsv(channelsCsv);
+        if (classes.isEmpty() || channels.isEmpty()) return "-all";
+        StringBuilder sb = new StringBuilder("-all");
+        for (String channel : channels) {
+            for (String cls : classes) {
+                sb.append(',').append(cls).append('+').append(channel);
+            }
+        }
+        return sb.toString();
+    }
+
+    private static java.util.List<String> splitCsv(String value) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (value == null) return out;
+        for (String part : value.split(",")) {
+            String token = part.trim();
+            if (!token.isEmpty()) out.add(token);
+        }
+        return out;
+    }
+
     private void scrubPlanWBridgeFilesForNextSession() {
         if (container == null) return;
         try {
@@ -3571,10 +3604,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                         "Steam cleanup: launcher clean-shutdown handshake failed during "
                                 + trigger, t);
             }
-        }
-
-        if (container != null) {
-            resetWnLauncherLog(new File(container.getRootDir(), ".wine/drive_c/wn-launcher.log"));
         }
 
         if (!bionicSteam) return;
@@ -6406,16 +6435,13 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
 
         boolean enableWineDebug = preferences.getBoolean("enable_wine_debug", false);
         String wineDebugChannels = preferences.getString("wine_debug_channels", SettingsConfig.DEFAULT_WINE_DEBUG_CHANNELS);
-        String wineDebugValue;
-        if (enableWineDebug && !wineDebugChannels.isEmpty()) {
-            wineDebugValue = "+" + wineDebugChannels.replace(",", ",+");
-        } else {
-            wineDebugValue = "-all";
-        }
+        String wineDebugClasses = preferences.getString("wine_debug_classes", SettingsConfig.DEFAULT_WINE_DEBUG_CLASSES);
+        String wineDebugValue = enableWineDebug ? buildWineDebug(wineDebugClasses, wineDebugChannels) : "-all";
         envVars.put("WINEDEBUG", wineDebugValue);
         Log.i("XServerDisplayActivity",
                 "WINEDEBUG resolved: enable=" + enableWineDebug
-                        + " channels='" + wineDebugChannels + "' value='" + wineDebugValue + "'");
+                        + " classes='" + wineDebugClasses + "' channels='" + wineDebugChannels
+                        + "' value='" + wineDebugValue + "'");
 
         String rootPath = imageFs.getRootDir().getPath();
         FileUtils.clear(imageFs.getTmpDir());
@@ -6615,7 +6641,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 envVars.put("ValvePlatformMutex", "c:\\Program Files (x86)\\Steam/");
                 String currentWineDebug = envVars.get("WINEDEBUG");
                 if (currentWineDebug == null || currentWineDebug.equals("-all")) {
-                    envVars.put("WINEDEBUG", "+module,+loaddll");
+                    String steamClasses = preferences.getString(
+                            "wine_debug_classes", SettingsConfig.DEFAULT_WINE_DEBUG_CLASSES);
+                    envVars.put("WINEDEBUG", buildWineDebug(steamClasses, "module,loaddll"));
                 }
                 Log.i("XServerDisplayActivity",
                         "Bionic Steam: published bridge env (Steam3Master=127.0.0.1:57343, appId="

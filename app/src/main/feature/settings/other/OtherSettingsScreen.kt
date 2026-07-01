@@ -108,7 +108,6 @@ data class OtherSettingsState(
     val enableFileProvider: Boolean = true,
     val openInBrowser: Boolean = false,
     val shareClipboard: Boolean = false,
-    val recordPerformanceToFile: Boolean = false,
     val enableBackgroundSession: Boolean = false,
     val externalDisplayOutput: Boolean = false,
     val imagefsInstallProgress: Int? = null,
@@ -152,7 +151,6 @@ fun OtherSettingsScreen(
     onEnableFileProviderChanged: (Boolean) -> Unit,
     onOpenInBrowserChanged: (Boolean) -> Unit,
     onShareClipboardChanged: (Boolean) -> Unit,
-    onRecordPerformanceToFileChanged: (Boolean) -> Unit,
     onEnableBackgroundSessionChanged: (Boolean) -> Unit,
     onExternalDisplayOutputChanged: (Boolean) -> Unit,
     onRunSetupWizard: () -> Unit,
@@ -301,19 +299,6 @@ fun OtherSettingsScreen(
                 icon = Icons.Outlined.ContentCopy,
                 checked = state.shareClipboard,
                 onCheckedChange = onShareClipboardChanged,
-            )
-
-            SectionLabel(
-                stringResource(R.string.settings_leaderboard_category),
-                modifier = Modifier.padding(top = 8.dp),
-            )
-
-            SettingsToggleCard(
-                title = stringResource(R.string.settings_hud_record_to_file_title),
-                subtitle = stringResource(R.string.settings_hud_record_to_file_summary),
-                icon = Icons.Outlined.Speed,
-                checked = state.recordPerformanceToFile,
-                onCheckedChange = onRecordPerformanceToFileChanged,
             )
 
             SectionLabel(stringResource(R.string.settings_general_imagefs), modifier = Modifier.padding(top = 8.dp))

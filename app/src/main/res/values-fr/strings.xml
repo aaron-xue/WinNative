@@ -798,10 +798,14 @@ Par ex. <b>META</b> pour la <i>touche META</i>, \n
     <string name="settings_debug_box_logs_subtitle">Écrire la sortie de débogage Box86 &amp; Box64 dans un fichier</string>
     <string name="settings_debug_fex_logs_title">Activer les journaux FEXCore</string>
     <string name="settings_debug_fex_logs_subtitle">Écrire la sortie de débogage FEXCore dans un fichier</string>
+    <string name="settings_debug_emulator_logs_title">Journaux d\'émulation Box64/FEX</string>
+    <string name="settings_debug_emulator_logs_subtitle">Journalise dans un fichier l\'émulateur utilisé par votre conteneur.</string>
     <string name="settings_debug_steam_logs_title">Activer les journaux Steam</string>
     <string name="settings_debug_steam_logs_subtitle">Journaliser les événements d\'authentification et de session Steam pour le débogage.</string>
     <string name="settings_debug_wine_channels_title">Canaux de débogage Wine</string>
     <string name="settings_debug_wine_channels_summary">Choisir les canaux Wine inclus lorsque la journalisation de débogage Wine est activée.</string>
+    <string name="settings_debug_wine_classes_title">Niveaux de journalisation Wine</string>
+    <string name="settings_debug_wine_classes_summary">Choisissez les types de messages journalisés. Trace est extrêmement verbeux.</string>
     <string name="settings_debug_input_logs">Journaux de saisie</string>
     <string name="settings_debug_input_logs_description">Journaliser les événements de saisie manette, tactile et clavier</string>
     <string name="settings_debug_download_logs">Journaux de téléchargement</string>
@@ -1324,7 +1328,7 @@ Chemin installé :
     <string name="cloud_saves_history_steam_unreachable">Steam Cloud est inaccessible pour le moment. Reconnexion en arrière-plan touchez Actualiser une fois de nouveau en ligne.</string>
     <string name="steam_session_refused_event">Steam a refusé la session en cache (EResult=%1$d). Veuillez vous reconnecter.</string>
     <string name="settings_hud_record_to_file_title">Enregistrer les performances dans un fichier</string>
-    <string name="settings_hud_record_to_file_summary">Écrit chaque seconde les métriques FPS, CPU, GPU, température et batterie dans /WinNative/logs/ pendant le jeu.</string>
+    <string name="settings_hud_record_to_file_summary">Exporte chaque seconde les métriques FPS, CPU, GPU, température et batterie dans /WinNative/logs/ pendant le jeu.</string>
     <string name="settings_leaderboard_category">Performances</string>
     <!-- Preloader > Launch Screen -->
     <string name="preloader_preparing_steam_environment">Préparation de l’environnement Steam</string>

@@ -69,6 +69,7 @@ import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Gamepad
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material.icons.outlined.Tune
@@ -84,6 +85,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -148,11 +150,12 @@ data class DebugState(
     val appDebug: Boolean = false,
     val wineDebug: Boolean = false,
     val wineChannels: List<String> = emptyList(),
-    val box64Logs: Boolean = false,
-    val fexcoreLogs: Boolean = false,
+    val wineClasses: List<String> = emptyList(),
+    val emulatorLogs: Boolean = false,
     val steamLogs: Boolean = false,
     val inputLogs: Boolean = false,
     val downloadLogs: Boolean = false,
+    val recordPerformanceToFile: Boolean = false,
     val vulkanValidationLayers: Boolean = false,
     val wnHybridMode: Boolean = false,
     val logsSize: String = "0 B",
@@ -171,16 +174,18 @@ data class LogFileEntry(
 fun DebugScreen(
     state: DebugState,
     wineChannelOptions: List<String>,
+    wineClassOptions: List<String>,
     onAppDebugChanged: (Boolean) -> Unit,
     onWineDebugChanged: (Boolean) -> Unit,
     onWineChannelsChanged: (List<String>) -> Unit,
+    onWineClassesChanged: (List<String>) -> Unit,
     onResetWineChannels: () -> Unit,
     onRemoveWineChannel: (String) -> Unit,
-    onBox64LogsChanged: (Boolean) -> Unit,
-    onFexcoreLogsChanged: (Boolean) -> Unit,
+    onEmulatorLogsChanged: (Boolean) -> Unit,
     onSteamLogsChanged: (Boolean) -> Unit,
     onInputLogsChanged: (Boolean) -> Unit,
     onDownloadLogsChanged: (Boolean) -> Unit,
+    onRecordPerformanceToFileChanged: (Boolean) -> Unit,
     onVulkanValidationLayersChanged: (Boolean) -> Unit,
     onWnHybridModeChanged: (Boolean) -> Unit,
     onShareLogs: () -> Unit,
@@ -275,20 +280,27 @@ fun DebugScreen(
                 onRemoveChannel = onRemoveWineChannel,
             )
 
-            SettingsToggleCard(
-                title = stringResource(R.string.settings_debug_box_logs_title),
-                subtitle = stringResource(R.string.settings_debug_box_logs_subtitle),
-                icon = Icons.Outlined.Memory,
-                checked = state.box64Logs,
-                onCheckedChange = onBox64LogsChanged,
+            WineClassesCard(
+                options = wineClassOptions,
+                selected = state.wineClasses,
+                enabled = state.wineDebug,
+                onToggle = { cls ->
+                    val updated =
+                        if (cls in state.wineClasses) {
+                            state.wineClasses - cls
+                        } else {
+                            state.wineClasses + cls
+                        }
+                    onWineClassesChanged(wineClassOptions.filter { it in updated })
+                },
             )
 
             SettingsToggleCard(
-                title = stringResource(R.string.settings_debug_fex_logs_title),
-                subtitle = stringResource(R.string.settings_debug_fex_logs_subtitle),
+                title = stringResource(R.string.settings_debug_emulator_logs_title),
+                subtitle = stringResource(R.string.settings_debug_emulator_logs_subtitle),
                 icon = Icons.Outlined.Memory,
-                checked = state.fexcoreLogs,
-                onCheckedChange = onFexcoreLogsChanged,
+                checked = state.emulatorLogs,
+                onCheckedChange = onEmulatorLogsChanged,
             )
 
             SectionLabel(stringResource(R.string.settings_debug_section_subsystems), modifier = Modifier.padding(top = 8.dp))
@@ -326,6 +338,14 @@ fun DebugScreen(
                 icon = Icons.Outlined.CloudDownload,
                 checked = state.downloadLogs,
                 onCheckedChange = onDownloadLogsChanged,
+            )
+
+            SettingsToggleCard(
+                title = stringResource(R.string.settings_hud_record_to_file_title),
+                subtitle = stringResource(R.string.settings_hud_record_to_file_summary),
+                icon = Icons.Outlined.Speed,
+                checked = state.recordPerformanceToFile,
+                onCheckedChange = onRecordPerformanceToFileChanged,
             )
 
             Row(
@@ -540,6 +560,115 @@ private fun WineChannelsCard(
                 }
             }
         }
+    }
+}
+
+// Wine debug message-class card (err / warn / fixme / trace)
+@Composable
+private fun WineClassesCard(
+    options: List<String>,
+    selected: List<String>,
+    enabled: Boolean,
+    onToggle: (String) -> Unit,
+) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .alpha(if (enabled) 1f else 0.48f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(CardDark)
+                .border(1.dp, CardBorder, RoundedCornerShape(12.dp)),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(IconBoxBg),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Tune,
+                        contentDescription = null,
+                        tint = Accent,
+                        modifier = Modifier.size(17.dp),
+                    )
+                }
+                Spacer(Modifier.width(13.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_debug_wine_classes_title),
+                        color = TextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_debug_wine_classes_summary),
+                        color = TextSecondary,
+                        fontSize = 11.sp,
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                options.forEach { cls ->
+                    ClassChip(
+                        label = cls,
+                        isSelected = cls in selected,
+                        enabled = enabled,
+                        onToggle = { onToggle(cls) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.ClassChip(
+    label: String,
+    isSelected: Boolean,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+) {
+    // pointerInput keys never change, so capture the latest callback to avoid acting
+    // on a stale selection snapshot.
+    val action = rememberUpdatedState { if (enabled) onToggle() }
+    val bg = if (isSelected) Accent.copy(alpha = 0.18f) else IconBoxBg
+    val borderColor = if (isSelected) Accent.copy(alpha = 0.55f) else CardBorder
+    val textColor = if (isSelected) Accent else TextPrimary
+    Box(
+        modifier =
+            Modifier
+                .weight(1f)
+                .height(34.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(bg)
+                .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+                .paneNavItem(cornerRadius = 8.dp, onActivate = { if (enabled) onToggle() })
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { action.value() })
+                },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            color = textColor,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+        )
     }
 }
 

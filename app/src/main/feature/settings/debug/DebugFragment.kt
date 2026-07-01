@@ -69,6 +69,7 @@ class DebugFragment : Fragment() {
                         DebugScreen(
                             state = debugState,
                             wineChannelOptions = wineChannelOptions,
+                            wineClassOptions = SettingsConfig.WINE_DEBUG_CLASSES,
                             onAppDebugChanged = { checked ->
                                 preferences.edit { putBoolean("enable_app_debug", checked) }
                                 com.winlator.cmod.runtime.system.ApplicationLogGate
@@ -94,6 +95,10 @@ class DebugFragment : Fragment() {
                                 preferences.edit { putString("wine_debug_channels", channels.joinToString(",")) }
                                 refresh()
                             },
+                            onWineClassesChanged = { classes ->
+                                preferences.edit { putString("wine_debug_classes", classes.joinToString(",")) }
+                                refresh()
+                            },
                             onResetWineChannels = {
                                 val defaults =
                                     SettingsConfig.DEFAULT_WINE_DEBUG_CHANNELS
@@ -107,14 +112,8 @@ class DebugFragment : Fragment() {
                                 preferences.edit { putString("wine_debug_channels", remaining.joinToString(",")) }
                                 refresh()
                             },
-                            onBox64LogsChanged = { checked ->
-                                preferences.edit { putBoolean("enable_box64_logs", checked) }
-                                com.winlator.cmod.runtime.system.LogManager
-                                    .updateLoggingState(ctx)
-                                refresh()
-                            },
-                            onFexcoreLogsChanged = { checked ->
-                                preferences.edit { putBoolean("enable_fexcore_logs", checked) }
+                            onEmulatorLogsChanged = { checked ->
+                                preferences.edit { putBoolean("enable_emulator_logs", checked) }
                                 com.winlator.cmod.runtime.system.LogManager
                                     .updateLoggingState(ctx)
                                 refresh()
@@ -142,6 +141,10 @@ class DebugFragment : Fragment() {
                                 preferences.edit { putBoolean("enable_download_logs", checked) }
                                 com.winlator.cmod.runtime.system.LogManager
                                     .updateLoggingState(ctx)
+                                refresh()
+                            },
+                            onRecordPerformanceToFileChanged = { checked ->
+                                preferences.edit { putBoolean("hud_record_to_file", checked) }
                                 refresh()
                             },
                             onVulkanValidationLayersChanged = { checked ->
@@ -193,16 +196,24 @@ class DebugFragment : Fragment() {
                     SettingsConfig.DEFAULT_WINE_DEBUG_CHANNELS,
                 )?.split(",")
                 ?.filter { it.isNotBlank() } ?: emptyList()
+        val classes =
+            preferences
+                .getString(
+                    "wine_debug_classes",
+                    SettingsConfig.DEFAULT_WINE_DEBUG_CLASSES,
+                )?.split(",")
+                ?.filter { it.isNotBlank() } ?: emptyList()
         debugState =
             DebugState(
                 appDebug = preferences.getBoolean("enable_app_debug", false),
                 wineDebug = preferences.getBoolean("enable_wine_debug", false),
                 wineChannels = channels,
-                box64Logs = preferences.getBoolean("enable_box64_logs", false),
-                fexcoreLogs = preferences.getBoolean("enable_fexcore_logs", false),
+                wineClasses = classes,
+                emulatorLogs = preferences.getBoolean("enable_emulator_logs", false),
                 steamLogs = com.winlator.cmod.feature.stores.steam.utils.PrefManager.enableSteamLogs,
                 inputLogs = preferences.getBoolean("enable_input_logs", false),
                 downloadLogs = preferences.getBoolean("enable_download_logs", false),
+                recordPerformanceToFile = preferences.getBoolean("hud_record_to_file", false),
                 vulkanValidationLayers = preferences.getBoolean("enable_vulkan_validation_layers", false),
                 wnHybridMode = com.winlator.cmod.feature.stores.steam.utils.PrefManager.wnHybridMode,
                 logsSize =

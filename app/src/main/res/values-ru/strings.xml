@@ -866,10 +866,14 @@
     <string name="settings_debug_box_logs_subtitle">Записывать отладочный вывод Box86 и Box64 в файл.</string>
     <string name="settings_debug_fex_logs_title">Включить журналы FEXCore</string>
     <string name="settings_debug_fex_logs_subtitle">Записывать отладочный вывод FEXCore в файл</string>
+    <string name="settings_debug_emulator_logs_title">Журналы эмуляции Box64/FEX</string>
+    <string name="settings_debug_emulator_logs_subtitle">Записывает в файл эмулятор, который использует ваш контейнер.</string>
     <string name="settings_debug_steam_logs_title">Включить журналы Steam</string>
     <string name="settings_debug_steam_logs_subtitle">Записывать события аутентификации Steam и сеанса для отладки.</string>
     <string name="settings_debug_wine_channels_title">Каналы отладки Wine</string>
     <string name="settings_debug_wine_channels_summary">Выберите, какие каналы Wine будут включены, если включено ведение журнала отладки Wine.</string>
+    <string name="settings_debug_wine_classes_title">Уровни журнала Wine</string>
+    <string name="settings_debug_wine_classes_summary">Выберите, какие типы сообщений записывать. Trace очень подробный.</string>
     <string name="settings_debug_input_logs">Входные журналы</string>
     <string name="settings_debug_input_logs_description">Записывать события ввода с геймпада, сенсорного экрана и клавиатуры.</string>
     <string name="settings_debug_download_logs">Журналы загрузок</string>
@@ -1209,7 +1213,7 @@
     <string name="preloader_platform_custom">Пользовательская игра</string>
     <!-- Performance recording settings -->
     <string name="settings_hud_record_to_file_title">Записывать производительность в файл</string>
-    <string name="settings_hud_record_to_file_summary">Записывать ежесекундные показатели FPS, CPU, GPU, температуры и батареи в /WinNative/logs/ во время игры.</string>
+    <string name="settings_hud_record_to_file_summary">Экспортировать ежесекундные показатели FPS, CPU, GPU, температуры и батареи в /WinNative/logs/ во время игры.</string>
     <string name="settings_leaderboard_category">Производительность</string>
     <string name="saves_import_warning_title">Это перезапишет существующие сохранения в этом контейнере</string>
     <string name="saves_import_warning_body">При восстановлении старой резервной копии с несколькими играми сначала скопируйте более новые сохранения в zip-файл с помощью файлового менеджера. Будут затронуты только сохранения, имеющиеся в .zip-файле. Управляйте сохранениями разумно.</string>

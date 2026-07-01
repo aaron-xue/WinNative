@@ -164,10 +164,6 @@ class OtherSettingsFragment : Fragment() {
                             preferences.edit { putBoolean("share_android_clipboard", checked) }
                             refresh()
                         },
-                        onRecordPerformanceToFileChanged = { checked ->
-                            preferences.edit { putBoolean("hud_record_to_file", checked) }
-                            refresh()
-                        },
                         onEnableBackgroundSessionChanged = { checked ->
                             preferences.edit { putBoolean("enable_background_session", checked) }
                             refresh()
@@ -239,7 +235,6 @@ class OtherSettingsFragment : Fragment() {
                 enableFileProvider = preferences.getBoolean("enable_file_provider", true),
                 openInBrowser = preferences.getBoolean("open_with_android_browser", false),
                 shareClipboard = preferences.getBoolean("share_android_clipboard", false),
-                recordPerformanceToFile = preferences.getBoolean("hud_record_to_file", false),
                 enableBackgroundSession = preferences.getBoolean("enable_background_session", false),
                 externalDisplayOutput = preferences.getBoolean("external_display_output", false),
                 imagefsInstallProgress = uiState.imagefsInstallProgress,
