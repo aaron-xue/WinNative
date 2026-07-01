@@ -89,6 +89,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -109,6 +110,8 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -149,7 +152,9 @@ import com.winlator.cmod.app.service.DownloadService
 import com.winlator.cmod.app.service.download.DownloadCoordinator
 import com.winlator.cmod.app.update.UpdateChecker
 import com.winlator.cmod.feature.settings.InputControlsFragment
+import com.winlator.cmod.feature.settings.SettingsFocusZone
 import com.winlator.cmod.feature.settings.SettingsHost
+import com.winlator.cmod.feature.settings.SettingsNavBridge
 import com.winlator.cmod.feature.settings.SettingsNavItem
 import com.winlator.cmod.feature.setup.SetupWizardActivity
 import com.winlator.cmod.feature.shortcuts.LibraryShortcutUtils
@@ -209,6 +214,20 @@ import com.winlator.cmod.shared.io.FileUtils
 import com.winlator.cmod.shared.ui.CarouselView
 import com.winlator.cmod.shared.ui.dialog.PopupDialog
 import com.winlator.cmod.shared.ui.dialog.PopupTextAction
+import androidx.compose.foundation.focusGroup
+import com.winlator.cmod.shared.ui.focus.controllerFocusGlow
+import com.winlator.cmod.shared.ui.focus.controllerMenuInput
+import com.winlator.cmod.shared.ui.focus.controllerTextFieldEscape
+import com.winlator.cmod.shared.ui.nav.DialogPaneNav
+import com.winlator.cmod.shared.ui.nav.LocalPaneNav
+import com.winlator.cmod.shared.ui.nav.PANE_DIR_ACTIVATE
+import com.winlator.cmod.shared.ui.nav.PANE_DIR_DOWN
+import com.winlator.cmod.shared.ui.nav.PANE_DIR_LEFT
+import com.winlator.cmod.shared.ui.nav.PANE_DIR_RIGHT
+import com.winlator.cmod.shared.ui.nav.PANE_DIR_SECONDARY
+import com.winlator.cmod.shared.ui.nav.PANE_DIR_UP
+import com.winlator.cmod.shared.ui.nav.PaneNavRegistry
+import com.winlator.cmod.shared.ui.nav.paneNavItem
 import com.winlator.cmod.shared.ui.FourByTwoGridView
 import com.winlator.cmod.shared.ui.JoystickGridScroll
 import com.winlator.cmod.shared.ui.JoystickListScroll
@@ -281,6 +300,31 @@ enum class LibraryLayoutMode {
     GRID_4,
     CAROUSEL,
     LIST,
+}
+
+internal class DownloadsNavBridge {
+    var controllerActive by mutableStateOf(false)
+    var navSignal by mutableStateOf(0)
+        private set
+    var navDir by mutableStateOf(0)
+        private set
+
+    private fun nav(dir: Int) {
+        navDir = dir
+        navSignal++
+    }
+
+    fun left() = nav(PANE_DIR_LEFT)
+
+    fun right() = nav(PANE_DIR_RIGHT)
+
+    fun up() = nav(PANE_DIR_UP)
+
+    fun down() = nav(PANE_DIR_DOWN)
+
+    fun activate() = nav(PANE_DIR_ACTIVATE)
+
+    fun secondary() = nav(PANE_DIR_SECONDARY)
 }
 
 @AndroidEntryPoint
@@ -536,6 +580,34 @@ class UnifiedActivity :
     val leftStickScrollState = kotlinx.coroutines.flow.MutableStateFlow(0f)
     val keyEventFlow = kotlinx.coroutines.flow.MutableSharedFlow<android.view.KeyEvent>(extraBufferCapacity = 10)
 
+    val openHeroForFocusedSignal = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    val openSearchSignal = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    val openFriendsSignal = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    val openGlassesSignal = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    private var l2KeyDown = false
+    private var r2KeyDown = false
+    private var l2AxisDown = false
+    private var r2AxisDown = false
+    private var glassesComboArmed = true
+
+    private fun updateGlassesCombo() {
+        val l2 = l2KeyDown || l2AxisDown
+        val r2 = r2KeyDown || r2AxisDown
+        if (l2 && r2) {
+            if (glassesComboArmed) {
+                glassesComboArmed = false
+                if (com.winlator.cmod.runtime.display.GlassesManager.isConnected()) {
+                    openGlassesSignal.tryEmit(Unit)
+                }
+            }
+        } else {
+            glassesComboArmed = true
+        }
+    }
+
     val libraryFocusIndex = kotlinx.coroutines.flow.MutableStateFlow(0)
     var libraryItemCount: Int = 0
     private var currentLibraryLayoutMode: LibraryLayoutMode = LibraryLayoutMode.GRID_4
@@ -563,6 +635,12 @@ class UnifiedActivity :
 
     private var dpadHeld = false
     private var joystickActive = false
+
+    internal val settingsNavBridge = SettingsNavBridge()
+    internal val downloadsNavBridge = DownloadsNavBridge()
+    internal val drawerNavBridge = DownloadsNavBridge()
+    internal val friendsDrawerNavBridge = DownloadsNavBridge()
+    private var settingsStickEngaged = 0
 
     companion object {
         private const val MOVE_INTERVAL_MS = 250L
@@ -663,6 +741,21 @@ class UnifiedActivity :
         storeFocusIndex.value = newIdx
     }
 
+    private fun routeDownloadsNav(
+        left: Boolean,
+        right: Boolean,
+        up: Boolean,
+        down: Boolean,
+    ) {
+        downloadsNavBridge.controllerActive = true
+        when {
+            left -> downloadsNavBridge.left()
+            right -> downloadsNavBridge.right()
+            up -> downloadsNavBridge.up()
+            down -> downloadsNavBridge.down()
+        }
+    }
+
     private fun gogPseudoId(gameId: String): Int {
         val normalized = gameId.hashCode() and 0x1FFFFFFF
         return 1_500_000_000 + normalized
@@ -695,6 +788,38 @@ class UnifiedActivity :
         val keyCode = event.keyCode
         val action = event.action
 
+        if (keyCode == android.view.KeyEvent.KEYCODE_BUTTON_B &&
+            action == android.view.KeyEvent.ACTION_DOWN &&
+            hideImeIfVisible()
+        ) {
+            return true
+        }
+
+        if (keyCode == android.view.KeyEvent.KEYCODE_BUTTON_MODE) {
+            handleGuideButton(action, event.repeatCount)
+            return true
+        }
+
+        if (keyCode == android.view.KeyEvent.KEYCODE_BUTTON_L2 ||
+            keyCode == android.view.KeyEvent.KEYCODE_BUTTON_R2
+        ) {
+            val down = action == android.view.KeyEvent.ACTION_DOWN
+            if (keyCode == android.view.KeyEvent.KEYCODE_BUTTON_L2) l2KeyDown = down else r2KeyDown = down
+            updateGlassesCombo()
+        }
+
+        if (menuNavActive) {
+            return dispatchMenuNavKey(event, keyCode, action)
+        }
+
+        if (drawerOpen) {
+            return dispatchDrawerNavKey(event, keyCode, action)
+        }
+
+        if (rightDrawerOpen) {
+            return dispatchDrawerNavKey(event, keyCode, action, friendsDrawerNavBridge)
+        }
+
         // Prevent global controller buttons from falling through to launch actions.
         val isHandledGlobally =
             when (keyCode) {
@@ -705,6 +830,9 @@ class UnifiedActivity :
                 android.view.KeyEvent.KEYCODE_BUTTON_Y,
                 android.view.KeyEvent.KEYCODE_BUTTON_L1,
                 android.view.KeyEvent.KEYCODE_BUTTON_R1,
+                android.view.KeyEvent.KEYCODE_BUTTON_SELECT,
+                android.view.KeyEvent.KEYCODE_BUTTON_THUMBL,
+                android.view.KeyEvent.KEYCODE_BUTTON_THUMBR,
                 android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                 -> true
 
@@ -730,6 +858,7 @@ class UnifiedActivity :
                     val down = keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN
                     when (currentTabKey) {
                         "library" -> moveLibraryFocus(left, right, up, down)
+                        "downloads" -> routeDownloadsNav(left, right, up, down)
                         else -> moveStoreFocus(left, right, up, down)
                     }
                     lastMoveTime = now
@@ -737,6 +866,24 @@ class UnifiedActivity :
                 }
             }
             return true
+        }
+
+        if (currentTabKey == "downloads" && action == android.view.KeyEvent.ACTION_DOWN) {
+            when (keyCode) {
+                android.view.KeyEvent.KEYCODE_BUTTON_A,
+                android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                -> {
+                    downloadsNavBridge.controllerActive = true
+                    downloadsNavBridge.activate()
+                    return true
+                }
+
+                android.view.KeyEvent.KEYCODE_BUTTON_Y -> {
+                    downloadsNavBridge.controllerActive = true
+                    downloadsNavBridge.secondary()
+                    return true
+                }
+            }
         }
 
         if (action == android.view.KeyEvent.ACTION_DOWN) {
@@ -760,6 +907,8 @@ class UnifiedActivity :
 
     override fun onResume() {
         super.onResume()
+        settingsStickEngaged = 0
+        joystickActive = false
         chasingBordersPaused.value = false
         if (hasCompletedInitialResume) {
             libraryPlaytimeRefreshSignal++
@@ -768,6 +917,12 @@ class UnifiedActivity :
         }
 
         UpdateChecker.startBackgroundLoop(this)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        settingsStickEngaged = 0
+        joystickActive = false
     }
 
     override fun onDestroy() {
@@ -789,6 +944,46 @@ class UnifiedActivity :
         if ((event.source and android.view.InputDevice.SOURCE_JOYSTICK) == android.view.InputDevice.SOURCE_JOYSTICK &&
             event.action == android.view.MotionEvent.ACTION_MOVE
         ) {
+            val lt = kotlin.math.max(
+                event.getAxisValue(android.view.MotionEvent.AXIS_LTRIGGER),
+                event.getAxisValue(android.view.MotionEvent.AXIS_BRAKE),
+            )
+            val rt = kotlin.math.max(
+                event.getAxisValue(android.view.MotionEvent.AXIS_RTRIGGER),
+                event.getAxisValue(android.view.MotionEvent.AXIS_GAS),
+            )
+            l2AxisDown = lt > 0.5f
+            r2AxisDown = rt > 0.5f
+            updateGlassesCombo()
+
+            if (menuNavActive) {
+                val sx = event.getAxisValue(android.view.MotionEvent.AXIS_X)
+                val sy = event.getAxisValue(android.view.MotionEvent.AXIS_Y)
+                val shx = event.getAxisValue(android.view.MotionEvent.AXIS_HAT_X)
+                val shy = event.getAxisValue(android.view.MotionEvent.AXIS_HAT_Y)
+                val code =
+                    when {
+                        sx < -0.5f || shx < -0.5f -> android.view.KeyEvent.KEYCODE_DPAD_LEFT
+                        sx > 0.5f || shx > 0.5f -> android.view.KeyEvent.KEYCODE_DPAD_RIGHT
+                        sy < -0.5f || shy < -0.5f -> android.view.KeyEvent.KEYCODE_DPAD_UP
+                        sy > 0.5f || shy > 0.5f -> android.view.KeyEvent.KEYCODE_DPAD_DOWN
+                        else -> 0
+                    }
+                if (code != 0) {
+                    if (settingsStickEngaged == 0) {
+                        settingsStickEngaged = code
+                        handleSettingsStick(code)
+                    }
+                    return true
+                }
+                if (kotlin.math.abs(sx) < 0.35f && kotlin.math.abs(sy) < 0.35f &&
+                    kotlin.math.abs(shx) < 0.35f && kotlin.math.abs(shy) < 0.35f
+                ) {
+                    settingsStickEngaged = 0
+                }
+                return true
+            }
+
             val rz = event.getAxisValue(android.view.MotionEvent.AXIS_RZ)
             rightStickScrollState.value = rz
 
@@ -822,9 +1017,22 @@ class UnifiedActivity :
                     val right = isHatRight || isJoystickRight
                     val up = isHatUp || isJoystickUp
                     val down = isHatDown || isJoystickDown
-                    when (currentTabKey) {
-                        "library" -> moveLibraryFocus(left, right, up, down)
-                        else -> moveStoreFocus(left, right, up, down)
+                    if (menuNavActive || drawerOpen || rightDrawerOpen) {
+                        val dpadCode =
+                            when {
+                                left -> android.view.KeyEvent.KEYCODE_DPAD_LEFT
+                                right -> android.view.KeyEvent.KEYCODE_DPAD_RIGHT
+                                up -> android.view.KeyEvent.KEYCODE_DPAD_UP
+                                down -> android.view.KeyEvent.KEYCODE_DPAD_DOWN
+                                else -> 0
+                            }
+                        if (dpadCode != 0) injectKeyEvent(dpadCode)
+                    } else {
+                        when (currentTabKey) {
+                            "library" -> moveLibraryFocus(left, right, up, down)
+                            "downloads" -> routeDownloadsNav(left, right, up, down)
+                            else -> moveStoreFocus(left, right, up, down)
+                        }
                     }
                     lastMoveTime = now
                     joystickActive = true
@@ -840,11 +1048,220 @@ class UnifiedActivity :
 
     private var currentTabKey: String = "library"
 
+    @Volatile
+    private var inSettingsRoute: Boolean = false
+
+    @Volatile
+    private var drawerOpen: Boolean = false
+    private var rightDrawerOpen: Boolean = false
+    private val guideHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var guideHoldRunnable: Runnable? = null
+
+    private val menuNavActive: Boolean
+        get() = inSettingsRoute
+
     var storeItemClickCallback: ((Int) -> Unit)? = null
 
     private fun injectKeyEvent(keyCode: Int) {
         window.decorView.rootView.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode))
         window.decorView.rootView.dispatchKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode))
+    }
+
+    private fun hideImeIfVisible(): Boolean {
+        val decor = window.decorView
+        val insets = androidx.core.view.ViewCompat.getRootWindowInsets(decor) ?: return false
+        if (!insets.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime())) return false
+        val target = currentFocus ?: decor
+        androidx.core.view.WindowInsetsControllerCompat(window, target)
+            .hide(androidx.core.view.WindowInsetsCompat.Type.ime())
+        return true
+    }
+
+    private fun dispatchMenuNavKey(
+        event: android.view.KeyEvent,
+        keyCode: Int,
+        action: Int,
+    ): Boolean {
+        when (keyCode) {
+            android.view.KeyEvent.KEYCODE_DPAD_UP,
+            android.view.KeyEvent.KEYCODE_DPAD_DOWN,
+            android.view.KeyEvent.KEYCODE_DPAD_LEFT,
+            android.view.KeyEvent.KEYCODE_DPAD_RIGHT,
+            -> {
+                if (settingsNavBridge.zone == SettingsFocusZone.SIDEBAR) {
+                    if (action == android.view.KeyEvent.ACTION_DOWN) applySettingsSidebarNav(keyCode)
+                    return true
+                }
+                if (action == android.view.KeyEvent.ACTION_DOWN) navigateSettingsContent(keyCode)
+                return true
+            }
+
+            android.view.KeyEvent.KEYCODE_BUTTON_A,
+            android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+            -> {
+                if (settingsNavBridge.zone == SettingsFocusZone.SIDEBAR) {
+                    if (action == android.view.KeyEvent.ACTION_DOWN) enterSettingsContent()
+                    return true
+                }
+                if (action == android.view.KeyEvent.ACTION_DOWN) settingsNavBridge.contentActivate()
+                return true
+            }
+
+            android.view.KeyEvent.KEYCODE_BUTTON_B -> {
+                if (action == android.view.KeyEvent.ACTION_DOWN) {
+                    onBackPressedDispatcher.onBackPressed()
+                }
+                return true
+            }
+
+            android.view.KeyEvent.KEYCODE_BUTTON_Y -> {
+                if (action == android.view.KeyEvent.ACTION_DOWN &&
+                    settingsNavBridge.zone == SettingsFocusZone.CONTENT
+                ) {
+                    settingsNavBridge.contentSecondary()
+                }
+                return true
+            }
+
+            android.view.KeyEvent.KEYCODE_BUTTON_X,
+            android.view.KeyEvent.KEYCODE_BUTTON_START,
+            android.view.KeyEvent.KEYCODE_BUTTON_L1,
+            android.view.KeyEvent.KEYCODE_BUTTON_R1,
+            -> return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    private fun applySettingsSidebarNav(keyCode: Int) {
+        when (keyCode) {
+            android.view.KeyEvent.KEYCODE_DPAD_UP -> moveSettingsItem(-1)
+            android.view.KeyEvent.KEYCODE_DPAD_DOWN -> moveSettingsItem(1)
+            android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> enterSettingsContent()
+        }
+    }
+
+    private fun moveSettingsItem(delta: Int) {
+        val items = SettingsNavItem.entries
+        val index = items.indexOf(settingsNavBridge.selectedItem)
+        val next = index + delta
+        if (next in items.indices) settingsNavBridge.onSelectItem?.invoke(items[next])
+    }
+
+    private fun enterSettingsContent() {
+        settingsNavBridge.zone = SettingsFocusZone.CONTENT
+        settingsNavBridge.contentControllerActive = true
+    }
+
+    private fun navigateSettingsContent(code: Int) {
+        settingsNavBridge.contentControllerActive = true
+        when (code) {
+            android.view.KeyEvent.KEYCODE_DPAD_LEFT -> settingsNavBridge.contentNavLeft()
+            android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> settingsNavBridge.contentNavRight()
+            android.view.KeyEvent.KEYCODE_DPAD_UP -> settingsNavBridge.contentNavUp()
+            android.view.KeyEvent.KEYCODE_DPAD_DOWN -> settingsNavBridge.contentNavDown()
+        }
+    }
+
+    private fun findVisibleFragmentContainer(view: android.view.View): android.view.View? {
+        if (view is androidx.fragment.app.FragmentContainerView && view.isShown && view.childCount > 0) {
+            return view
+        }
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) {
+                findVisibleFragmentContainer(view.getChildAt(i))?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun handleSettingsStick(code: Int) {
+        if (settingsNavBridge.zone == SettingsFocusZone.SIDEBAR) {
+            applySettingsSidebarNav(code)
+            return
+        }
+        navigateSettingsContent(code)
+    }
+
+    private fun handleGuideButton(action: Int, repeatCount: Int) {
+        when (action) {
+            android.view.KeyEvent.ACTION_DOWN -> {
+                if (repeatCount != 0) return
+                guideHoldRunnable?.let { guideHandler.removeCallbacks(it) }
+                guideHoldRunnable = null
+                if (rightDrawerOpen) {
+                    val r = Runnable { openFriendsSignal.tryEmit(Unit) }
+                    guideHoldRunnable = r
+                    guideHandler.postDelayed(r, 400L)
+                } else if (!menuNavActive && !drawerOpen) {
+                    openFriendsSignal.tryEmit(Unit)
+                }
+            }
+
+            android.view.KeyEvent.ACTION_UP -> {
+                guideHoldRunnable?.let { guideHandler.removeCallbacks(it) }
+                guideHoldRunnable = null
+            }
+        }
+    }
+
+    private fun dispatchDrawerNavKey(
+        event: android.view.KeyEvent,
+        keyCode: Int,
+        action: Int,
+        bridge: DownloadsNavBridge = drawerNavBridge,
+    ): Boolean {
+        when (keyCode) {
+            android.view.KeyEvent.KEYCODE_DPAD_LEFT,
+            android.view.KeyEvent.KEYCODE_DPAD_RIGHT,
+            android.view.KeyEvent.KEYCODE_DPAD_UP,
+            android.view.KeyEvent.KEYCODE_DPAD_DOWN,
+            -> {
+                if (action == android.view.KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                    bridge.controllerActive = true
+                    when (keyCode) {
+                        android.view.KeyEvent.KEYCODE_DPAD_LEFT -> bridge.left()
+                        android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> bridge.right()
+                        android.view.KeyEvent.KEYCODE_DPAD_UP -> bridge.up()
+                        android.view.KeyEvent.KEYCODE_DPAD_DOWN -> bridge.down()
+                    }
+                }
+                return true
+            }
+
+            android.view.KeyEvent.KEYCODE_BUTTON_A,
+            android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+            -> {
+                if (action == android.view.KeyEvent.ACTION_DOWN) {
+                    bridge.controllerActive = true
+                    bridge.activate()
+                }
+                return true
+            }
+
+            android.view.KeyEvent.KEYCODE_BUTTON_Y -> {
+                if (action == android.view.KeyEvent.ACTION_DOWN) {
+                    bridge.controllerActive = true
+                    bridge.secondary()
+                }
+                return true
+            }
+
+            android.view.KeyEvent.KEYCODE_BUTTON_B,
+            android.view.KeyEvent.KEYCODE_BUTTON_SELECT,
+            -> {
+                if (action == android.view.KeyEvent.ACTION_DOWN) keyEventFlow.tryEmit(event)
+                return true
+            }
+
+            android.view.KeyEvent.KEYCODE_BUTTON_X,
+            android.view.KeyEvent.KEYCODE_BUTTON_START,
+            android.view.KeyEvent.KEYCODE_BUTTON_L1,
+            android.view.KeyEvent.KEYCODE_BUTTON_R1,
+            android.view.KeyEvent.KEYCODE_BUTTON_THUMBL,
+            android.view.KeyEvent.KEYCODE_BUTTON_THUMBR,
+            -> return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     private fun reapplyPreferredRefreshRate() {
@@ -1151,6 +1568,15 @@ class UnifiedActivity :
             val navController = rememberNavController()
             rootNavController = navController
 
+            DisposableEffect(navController) {
+                val listener =
+                    androidx.navigation.NavController.OnDestinationChangedListener { _, destination, _ ->
+                        inSettingsRoute = destination.route?.startsWith("settings") == true
+                    }
+                navController.addOnDestinationChangedListener(listener)
+                onDispose { navController.removeOnDestinationChangedListener(listener) }
+            }
+
             LaunchedEffect(Unit) {
                 val pending = pendingNavigation
                 if (pending != null) {
@@ -1298,6 +1724,7 @@ class UnifiedActivity :
                         }
 
                         SettingsHost(
+                            bridge = settingsNavBridge,
                             startItem = startItem,
                             selectedProfileId = profileId,
                             bordersPaused = chasingBordersPaused.value,
@@ -1483,7 +1910,8 @@ class UnifiedActivity :
         val contentFilters = remember { mutableStateMapOf(*initialContentFilters.entries.map { it.key to it.value }.toTypedArray()) }
         var libraryLayoutMode by remember {
             mutableStateOf(
-                initialLibraryLayoutMode,
+                runCatching { LibraryLayoutMode.valueOf(PrefManager.libraryLayoutMode) }
+                    .getOrElse { initialLibraryLayoutMode },
             )
         }
         var immersiveMode by remember { mutableStateOf(PrefManager.libraryImmersiveMode) }
@@ -1492,6 +1920,10 @@ class UnifiedActivity :
         var selectedIdx by rememberSaveable { mutableIntStateOf(0) }
         var selectedDownloadId by remember { mutableStateOf<String?>(null) }
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+        LaunchedEffect(drawerState.isOpen) {
+            drawerOpen = drawerState.isOpen
+            if (!drawerState.isOpen) drawerNavBridge.controllerActive = false
+        }
         val isLoggedIn by SteamService.isLoggedInFlow.collectAsState()
         val isEpicLoggedIn by EpicAuthManager.isLoggedInFlow.collectAsState()
         val isGogLoggedIn by GOGAuthManager.isLoggedInFlow.collectAsState()
@@ -1505,6 +1937,15 @@ class UnifiedActivity :
             ?: remember { mutableStateOf(emptyList<com.winlator.cmod.feature.stores.steam.data.SteamFriendEntry>()) }
         var chatFriend by remember { mutableStateOf<com.winlator.cmod.feature.stores.steam.data.SteamFriendEntry?>(null) }
         val friendsDrawerOpen = rightDrawerState.isOpen
+        LaunchedEffect(rightDrawerState.isOpen) {
+            rightDrawerOpen = rightDrawerState.isOpen
+            if (!rightDrawerState.isOpen) friendsDrawerNavBridge.controllerActive = false
+        }
+        LaunchedEffect(Unit) {
+            (context as? UnifiedActivity)?.openFriendsSignal?.collect {
+                if (rightDrawerState.isOpen) rightDrawerState.close() else rightDrawerState.open()
+            }
+        }
         var installedFriendGameIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
         LaunchedEffect(friends) {
             val ids = friends.map { it.gameAppId }.filter { it > 0 }.distinct()
@@ -1678,14 +2119,36 @@ class UnifiedActivity :
                         navigateToSettings(SettingsNavItem.STORES)
                     }
 
-                    android.view.KeyEvent.KEYCODE_BUTTON_X -> {
+                    android.view.KeyEvent.KEYCODE_BUTTON_SELECT -> {
                         if (key != "downloads") {
                             if (drawerState.isOpen) drawerState.close() else drawerState.open()
                         }
                     }
 
+                    android.view.KeyEvent.KEYCODE_BUTTON_X -> {
+                        if (key == "library" && (selectedSteamAppId != 0 || selectedGogGameId.isNotEmpty())) {
+                            activity?.openHeroForFocusedSignal?.tryEmit(Unit)
+                        }
+                    }
+
+                    android.view.KeyEvent.KEYCODE_BUTTON_THUMBL -> {
+                        if (key == "library") {
+                            activity?.openSearchSignal?.tryEmit(Unit)
+                        }
+                    }
+
+                    android.view.KeyEvent.KEYCODE_BUTTON_THUMBR -> {
+                        if (key == "library") {
+                            showAddCustomGame = true
+                        }
+                    }
+
                     android.view.KeyEvent.KEYCODE_BUTTON_B -> {
-                        if (drawerState.isOpen) {
+                        if (chatFriend != null) {
+                            chatFriend = null
+                        } else if (rightDrawerState.isOpen) {
+                            rightDrawerState.close()
+                        } else if (drawerState.isOpen) {
                             drawerState.close()
                         } else if (globalSettingsApp != null) {
                             globalSettingsApp = null
@@ -1769,6 +2232,7 @@ class UnifiedActivity :
                     androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr,
                 ) {
                     com.winlator.cmod.feature.stores.steam.friends.FriendsDrawerContent(
+                        isOpen = rightDrawerState.isOpen,
                         self = persona ?: com.winlator.cmod.feature.stores.steam.data.SteamFriend(),
                         friends = friends,
                         installedGameIds = installedFriendGameIds,
@@ -1818,6 +2282,7 @@ class UnifiedActivity :
             drawerContent = {
                 DrawerContent(
                     persona = persona,
+                    isOpen = drawerState.isOpen,
                     context = context,
                     scope = scope,
                     storeVisible = storeVisible,
@@ -1971,7 +2436,7 @@ class UnifiedActivity :
                         }, persona, context, scope, isControllerConnected, isPS, isLibraryTab, searchQueryTfv, {
                             searchQueryTfv =
                                 it
-                        }, onFilterClicked = { scope.launch { drawerState.open() } }, onFriendsClicked = { scope.launch { rightDrawerState.open() } }, onOpenFileManager = openFileManager) {
+                        }, onFilterClicked = { scope.launch { drawerState.open() } }, onFriendsClicked = { scope.launch { rightDrawerState.open() } }) {
                             if (selectedLibrarySource == "GOG") {
                                 globalSettingsGogGame = gogApps.find { it.id == selectedGogGameId }
                             } else {
@@ -2003,7 +2468,7 @@ class UnifiedActivity :
                     LaunchedEffect(selectedIdx, tabs) {
                         currentTabKey = tabs.getOrNull(selectedIdx)?.key ?: "library"
                         storeFocusIndex.value = 0
-                        storeItemClickCallback = null
+                        downloadsNavBridge.controllerActive = false
                     }
 
                     val key = tabs.getOrNull(selectedIdx)?.key ?: "library"
@@ -2081,6 +2546,13 @@ class UnifiedActivity :
                         val addGameFabSize = (libraryFabBase * 0.125f).dp.coerceIn(56.dp, 64.dp)
                         val addGameFabMargin = (libraryFabBase * 0.035f).dp.coerceIn(12.dp, 20.dp)
                         val addGameFabIconSize = (libraryFabBase * 0.055f).dp.coerceIn(24.dp, 28.dp)
+                        val fabNavInsets = WindowInsets.navigationBars.asPaddingValues()
+                        val fabEndInset =
+                            (20.dp - fabNavInsets.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr))
+                                .coerceAtLeast(4.dp)
+                        val fabStartInset =
+                            (20.dp - fabNavInsets.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr))
+                                .coerceAtLeast(4.dp)
 
                         if (drawerState.isClosed) {
                             DrawerSwipeHotZone(
@@ -2098,15 +2570,24 @@ class UnifiedActivity :
 
                         // Composed after the hot zones so the FAB stays on top for hit-testing.
                         if (key == "library") {
-                            Box(
+                            Column(
                                 modifier =
                                     Modifier
                                         .align(Alignment.BottomEnd)
                                         .windowInsetsPadding(
                                             WindowInsets.navigationBars.only(WindowInsetsSides.Bottom),
                                         )
-                                        .padding(end = addGameFabMargin, bottom = addGameFabMargin)
-                                        .size(addGameFabSize)
+                                        .padding(end = fabEndInset, bottom = addGameFabMargin),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                if (isControllerConnected) {
+                                    ControllerBadge("R3")
+                                    Spacer(Modifier.height(8.dp))
+                                }
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(addGameFabSize)
                                         .drawBehind {
                                             drawCircle(
                                                 brush =
@@ -2131,6 +2612,47 @@ class UnifiedActivity :
                                 Icon(
                                     Icons.Outlined.Add,
                                     contentDescription = "Add Custom Game",
+                                    tint = Accent,
+                                    modifier = Modifier.size(addGameFabIconSize),
+                                )
+                                }
+                            }
+                        }
+
+                        if (key == "library" || key == "downloads") {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .align(Alignment.BottomStart)
+                                        .windowInsetsPadding(
+                                            WindowInsets.navigationBars.only(WindowInsetsSides.Bottom),
+                                        )
+                                        .padding(start = fabStartInset, bottom = addGameFabMargin)
+                                        .size(addGameFabSize)
+                                        .drawBehind {
+                                            drawCircle(
+                                                brush =
+                                                    Brush.radialGradient(
+                                                        colors = listOf(Accent.copy(alpha = 0.22f), Color.Transparent),
+                                                        center = center,
+                                                        radius = size.minDimension * 0.64f,
+                                                    ),
+                                                radius = size.minDimension * 0.64f,
+                                            )
+                                        }
+                                        .clip(CircleShape)
+                                        .background(Color.Transparent, CircleShape)
+                                        .border(1.5.dp, Accent.copy(alpha = 0.55f), CircleShape)
+                                        .focusProperties { canFocus = false }
+                                        .clickable(
+                                            interactionSource = null,
+                                            indication = androidx.compose.material3.ripple(color = Accent),
+                                        ) { openFileManager() },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Outlined.FolderOpen,
+                                    contentDescription = "Files",
                                     tint = Accent,
                                     modifier = Modifier.size(addGameFabIconSize),
                                 )
@@ -2289,10 +2811,13 @@ class UnifiedActivity :
         val volumeMax = gm.volumeMax()
         val brightness = if (settings.brightness < 0) brightnessMax else settings.brightness
         val volume = if (settings.volume < 0) volumeMax else settings.volume
+        val registry = remember { PaneNavRegistry() }
         Dialog(
             onDismissRequest = onDismiss,
             properties = DialogProperties(usePlatformDefaultWidth = false),
         ) {
+            CompositionLocalProvider(LocalPaneNav provides registry) {
+            DialogPaneNav(registry, onDismiss = onDismiss)
             androidx.compose.material3.Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = SurfaceDark,
@@ -2321,6 +2846,7 @@ class UnifiedActivity :
                                                 .weight(1f)
                                                 .clip(RoundedCornerShape(11.dp))
                                                 .background(if (selected) Accent else TextSecondary.copy(alpha = 0.12f))
+                                                .paneNavItem(cornerRadius = 11.dp, onActivate = { gm.setRefreshHz(hz) }, isEntry = hz == 60)
                                                 .clickable { gm.setRefreshHz(hz) }
                                                 .padding(vertical = 10.dp),
                                             contentAlignment = Alignment.Center,
@@ -2347,6 +2873,7 @@ class UnifiedActivity :
                     }
                 }
             }
+            }
         }
     }
 
@@ -2368,6 +2895,10 @@ class UnifiedActivity :
                 onValueChange = { onChange(it.roundToInt()) },
                 valueRange = 0f..max.toFloat(),
                 steps = (max - 1).coerceAtLeast(0),
+                modifier = Modifier.paneNavItem(
+                    cornerRadius = 8.dp,
+                    onAdjust = { dir -> onChange((level + dir).coerceIn(0, max)) },
+                ),
                 colors = androidx.compose.material3.SliderDefaults.colors(
                     thumbColor = Accent,
                     activeTrackColor = Accent,
@@ -2383,6 +2914,7 @@ class UnifiedActivity :
             modifier = modifier
                 .clip(RoundedCornerShape(13.dp))
                 .background(if (checked) Accent.copy(alpha = 0.16f) else TextSecondary.copy(alpha = 0.08f))
+                .paneNavItem(cornerRadius = 13.dp, onActivate = { onChange(!checked) })
                 .clickable { onChange(!checked) }
                 .padding(vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -2415,7 +2947,6 @@ class UnifiedActivity :
         onSearchQueryChange: (TextFieldValue) -> Unit,
         onFilterClicked: () -> Unit,
         onFriendsClicked: () -> Unit = {},
-        onOpenFileManager: () -> Unit,
         onGameSettingsClicked: () -> Unit,
     ) {
         var isSearchExpanded by remember { mutableStateOf(false) }
@@ -2442,6 +2973,18 @@ class UnifiedActivity :
             }
         }
 
+        val controllerSearchActivity = LocalContext.current as? UnifiedActivity
+        LaunchedEffect(Unit) {
+            controllerSearchActivity?.openSearchSignal?.collect {
+                if (!isDownloadsTab) isSearchExpanded = true
+            }
+        }
+        LaunchedEffect(Unit) {
+            controllerSearchActivity?.openGlassesSignal?.collect {
+                if (glassesConnected) showGlassesPanel = true
+            }
+        }
+
         Column(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier =
@@ -2456,13 +2999,9 @@ class UnifiedActivity :
             ) {
                 // Center Block: Tabs (absolutely centered, unaffected by left/right content)
                 Row(
-                    modifier = Modifier.align(Alignment.Center),
+                    modifier = Modifier.align(Alignment.Center).zIndex(1f),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (isControllerConnected) {
-                        ControllerBadge("L1")
-                        Spacer(Modifier.width(8.dp))
-                    }
                     @Suppress("DEPRECATION")
                     CompositionLocalProvider(
                         androidx.compose.material3.LocalRippleConfiguration provides null,
@@ -2541,11 +3080,19 @@ class UnifiedActivity :
                                     }
                                 }
                             }
+                            if (isControllerConnected) {
+                                ControllerBadge(
+                                    "L1",
+                                    Modifier.align(Alignment.CenterStart).padding(start = 4.dp),
+                                    compact = true,
+                                )
+                                ControllerBadge(
+                                    "R1",
+                                    Modifier.align(Alignment.CenterEnd).padding(end = 4.dp),
+                                    compact = true,
+                                )
+                            }
                         }
-                    }
-                    if (isControllerConnected) {
-                        Spacer(Modifier.width(8.dp))
-                        ControllerBadge("R1")
                     }
                 }
 
@@ -2576,11 +3123,11 @@ class UnifiedActivity :
                         }
                     }
                     if (isControllerConnected) {
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(4.dp))
                         ControllerBadge(if (isPS) "\u2261" else "Start")
                     }
 
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(6.dp))
 
                     val searchIconRotation by animateFloatAsState(
                         targetValue = if (isSearchExpanded) 90f else 0f,
@@ -2646,38 +3193,25 @@ class UnifiedActivity :
                             }
                         }
                     }
-
-                    Spacer(Modifier.width(12.dp))
-
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(Color.Transparent)
-                                .border(1.dp, Accent.copy(alpha = 0.5f), CircleShape)
-                                .focusProperties { canFocus = !isLibraryTab }
-                                .clickable(
-                                    interactionSource = null,
-                                    indication = androidx.compose.material3.ripple(color = Accent),
-                                ) { onFilterClicked() },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Outlined.FilterList, contentDescription = "Filter", tint = Accent, modifier = Modifier.size(24.dp))
+                    if (isControllerConnected) {
+                        Spacer(Modifier.width(4.dp))
+                        ControllerBadge("L3")
                     }
                 }
 
+                val topBarView = androidx.compose.ui.platform.LocalView.current
+                val topBarDensity = androidx.compose.ui.platform.LocalDensity.current
+                val topBarOrientation = androidx.compose.ui.platform.LocalConfiguration.current.orientation
+                val navRightInset = remember(topBarOrientation, topBarView) {
+                    val px = androidx.core.view.ViewCompat.getRootWindowInsets(topBarView)
+                        ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.right ?: 0
+                    with(topBarDensity) { px.toDp() }
+                }
                 Row(
-                    modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                    modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().zIndex(2f),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    val isStore = tabs.getOrNull(selectedIdx)?.label?.contains("Store", ignoreCase = true) == true
-                    if (isControllerConnected && !isStore) {
-                        ControllerBadge(if (isPS) "\u25B3" else "Y")
-                        Spacer(Modifier.width(8.dp))
-                    }
-
                     Spacer(Modifier.width(8.dp))
 
                     if (glassesConnected) {
@@ -2707,13 +3241,17 @@ class UnifiedActivity :
                                 .clickable(
                                     interactionSource = null,
                                     indication = androidx.compose.material3.ripple(color = Accent),
-                                ) { onOpenFileManager() },
+                                ) { onFilterClicked() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(Icons.Outlined.FolderOpen, contentDescription = "Files", tint = Accent, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Outlined.FilterList, contentDescription = "Filter", tint = Accent, modifier = Modifier.size(24.dp))
+                    }
+                    if (isControllerConnected) {
+                        Spacer(Modifier.width(4.dp))
+                        ControllerBadge("Select")
                     }
 
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(6.dp))
 
                     Box(
                         modifier =
@@ -2727,9 +3265,44 @@ class UnifiedActivity :
                     ) {
                         Icon(Icons.Outlined.People, contentDescription = "Friends", tint = Accent, modifier = Modifier.size(24.dp))
                     }
-                    if (isControllerConnected) {
+                    if (isControllerConnected && navRightInset <= 0.dp) {
                         Spacer(Modifier.width(8.dp))
-                        ControllerBadge(if (isPS) "\u25A1" else "X")
+                        Box(
+                            modifier =
+                                Modifier
+                                    .background(Color(0xFF394048), RoundedCornerShape(15.dp))
+                                    .border(1.dp, Color(0xFF8B949E).copy(alpha = 0.5f), RoundedCornerShape(15.dp))
+                                    .padding(horizontal = 7.dp, vertical = 3.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Outlined.SportsEsports,
+                                contentDescription = "Guide",
+                                tint = Color(0xFFE6EDF3),
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
+
+                if (isControllerConnected && navRightInset > 0.dp) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .align(Alignment.CenterEnd)
+                                .offset(x = 38.dp)
+                                .zIndex(2f)
+                                .background(Color(0xFF394048), RoundedCornerShape(15.dp))
+                                .border(1.dp, Color(0xFF8B949E).copy(alpha = 0.5f), RoundedCornerShape(15.dp))
+                                .padding(horizontal = 7.dp, vertical = 3.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.SportsEsports,
+                            contentDescription = "Guide",
+                            tint = Color(0xFFE6EDF3),
+                            modifier = Modifier.size(16.dp),
+                        )
                     }
                 }
             }
@@ -3365,6 +3938,20 @@ class UnifiedActivity :
             selectedGogGameId = gogGame?.id.orEmpty()
         }
 
+        val heroApps = rememberUpdatedState(displayedApps)
+        val heroFocus = rememberUpdatedState(focusIndex)
+        val heroGogMap = rememberUpdatedState(visibleGogByPseudoId)
+        LaunchedEffect(Unit) {
+            activity?.openHeroForFocusedSignal?.collect {
+                val list = heroApps.value
+                val app = list.getOrNull(heroFocus.value) ?: list.firstOrNull()
+                if (app != null) {
+                    detailGogGame = heroGogMap.value[app.id]
+                    detailApp = app
+                }
+            }
+        }
+
         // Publish the focused game's hero artwork to drive the immersive background.
         // Prefers a custom Game Card upload (LibraryArtworkSlot.GAME_CARD), then the
         // store-supplied hero, then the regular grid capsule as a last resort.
@@ -3632,7 +4219,10 @@ class UnifiedActivity :
     ) {
         val dismissInteractionSource = remember { MutableInteractionSource() }
         val panelInteractionSource = remember { MutableInteractionSource() }
+        val registry = remember { PaneNavRegistry() }
 
+        CompositionLocalProvider(LocalPaneNav provides registry) {
+        DialogPaneNav(registry, onDismiss = onDismissRequest)
         Box(
             modifier =
                 Modifier
@@ -3693,7 +4283,10 @@ class UnifiedActivity :
                             )
                             IconButton(
                                 onClick = onDismissRequest,
-                                modifier = Modifier.size(34.dp),
+                                modifier =
+                                    Modifier
+                                        .size(34.dp)
+                                        .paneNavItem(cornerRadius = 8.dp, onActivate = onDismissRequest),
                             ) {
                                 Icon(
                                     Icons.Outlined.Close,
@@ -3716,6 +4309,7 @@ class UnifiedActivity :
                 }
             }
         }
+        }
     }
 
     @Composable
@@ -3723,8 +4317,11 @@ class UnifiedActivity :
         title: String,
         onDismissRequest: () -> Unit,
         wide: Boolean = false,
+        contentKey: Any? = null,
         content: @Composable ColumnScope.() -> Unit,
     ) {
+        val registry = remember { PaneNavRegistry() }
+        LaunchedEffect(contentKey) { registry.reset() }
         Dialog(
             onDismissRequest = onDismissRequest,
             properties =
@@ -3733,6 +4330,8 @@ class UnifiedActivity :
                     decorFitsSystemWindows = false,
                 ),
         ) {
+          CompositionLocalProvider(LocalPaneNav provides registry) {
+            DialogPaneNav(registry, onDismiss = onDismissRequest)
             BoxWithConstraints(
                 modifier =
                     Modifier
@@ -3755,7 +4354,9 @@ class UnifiedActivity :
                     tonalElevation = 8.dp,
                 ) {
                     Column(
-                        modifier = Modifier.padding(vertical = 6.dp),
+                        modifier =
+                            Modifier
+                                .padding(vertical = 6.dp),
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -3776,7 +4377,8 @@ class UnifiedActivity :
                                 onClick = onDismissRequest,
                                 modifier = Modifier
                                     .padding(end = 4.dp)
-                                    .size(34.dp),
+                                    .size(34.dp)
+                                    .paneNavItem(cornerRadius = 17.dp, onActivate = onDismissRequest, pinTop = true),
                             ) {
                                 Icon(
                                     Icons.Outlined.Close,
@@ -3798,6 +4400,7 @@ class UnifiedActivity :
                     }
                 }
             }
+          }
         }
     }
 
@@ -3815,7 +4418,7 @@ class UnifiedActivity :
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
-                GameSettingsActionCard(action = action)
+                GameSettingsActionCard(action = action, isEntry = index == 0)
             }
         }
     }
@@ -3824,6 +4427,7 @@ class UnifiedActivity :
     private fun GameSettingsActionCard(
         action: GameSettingsActionItem,
         modifier: Modifier = Modifier,
+        isEntry: Boolean = false,
     ) {
         val isDanger = action.accentColor == DangerRed
         val iconColor = if (isDanger) DangerRed else TextSecondary
@@ -3843,7 +4447,8 @@ class UnifiedActivity :
                     .graphicsLayer {
                         scaleX = scale
                         scaleY = scale
-                    }.clickable(
+                    }.paneNavItem(cornerRadius = 0.dp, onActivate = action.onClick, isEntry = isEntry)
+                    .clickable(
                         interactionSource = interactionSource,
                         indication = null,
                         onClick = action.onClick,
@@ -3932,6 +4537,11 @@ class UnifiedActivity :
                         isUninstalling = true
                         onConfirm()
                     },
+                    modifier = Modifier.paneNavItem(
+                        cornerRadius = 8.dp,
+                        onActivate = { isUninstalling = true; onConfirm() },
+                        isEntry = true,
+                    ),
                     border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.5f)),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
@@ -3943,7 +4553,10 @@ class UnifiedActivity :
                     )
                 }
                 Spacer(Modifier.width(8.dp))
-                TextButton(onClick = onCancel) {
+                TextButton(
+                    onClick = onCancel,
+                    modifier = Modifier.paneNavItem(cornerRadius = 8.dp, onActivate = onCancel),
+                ) {
                     Text(stringResource(R.string.common_ui_cancel), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -3981,6 +4594,11 @@ class UnifiedActivity :
                         isRemoving = true
                         onConfirm()
                     },
+                    modifier = Modifier.paneNavItem(
+                        cornerRadius = 8.dp,
+                        onActivate = { isRemoving = true; onConfirm() },
+                        isEntry = true,
+                    ),
                     border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.5f)),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
@@ -3992,7 +4610,10 @@ class UnifiedActivity :
                     )
                 }
                 Spacer(Modifier.width(8.dp))
-                TextButton(onClick = onCancel) {
+                TextButton(
+                    onClick = onCancel,
+                    modifier = Modifier.paneNavItem(cornerRadius = 8.dp, onActivate = onCancel),
+                ) {
                     Text(stringResource(R.string.common_ui_cancel), color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -4009,15 +4630,45 @@ class UnifiedActivity :
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PopupTextAction(
+            PaneFooterAction(
                 label = stringResource(R.string.common_ui_cancel),
                 textColor = DangerRed,
                 onClick = onCancel,
             )
-            PopupTextAction(
+            PaneFooterAction(
                 label = stringResource(R.string.common_ui_continue),
                 textColor = StatusOnline,
                 onClick = onContinue,
+                isEntry = true,
+            )
+        }
+    }
+
+    @Composable
+    private fun PaneFooterAction(
+        label: String,
+        textColor: Color,
+        onClick: () -> Unit,
+        isEntry: Boolean = false,
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .paneNavItem(
+                        cornerRadius = 8.dp,
+                        onActivate = onClick,
+                        tapToSelect = true,
+                        isEntry = isEntry,
+                    ).padding(horizontal = 10.dp, vertical = 7.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = label,
+                color = textColor,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
             )
         }
     }
@@ -4037,7 +4688,10 @@ class UnifiedActivity :
                 HeroBootChoice.Cube32 -> test32
                 HeroBootChoice.Cube64 -> test64
             }
+        val registry = remember { PaneNavRegistry() }
         Dialog(onDismissRequest = onDismissRequest) {
+          CompositionLocalProvider(LocalPaneNav provides registry) {
+            DialogPaneNav(registry, onDismiss = onDismissRequest, onStart = { onConfirm(choice) })
             PopupDialog(
                 title = title,
                 icon = Icons.Outlined.DesktopWindows,
@@ -4069,6 +4723,7 @@ class UnifiedActivity :
                     HeroLaunchConfirmFooter(onCancel = onDismissRequest, onContinue = { onConfirm(choice) })
                 },
             )
+          }
         }
     }
 
@@ -4085,7 +4740,7 @@ class UnifiedActivity :
                 .clip(RoundedCornerShape(8.dp))
                 .background(glassBlue.copy(alpha = if (selected) 0.26f else 0.05f))
                 .border(1.dp, glassBlue.copy(alpha = if (selected) 0.65f else 0.12f), RoundedCornerShape(8.dp))
-                .clickable(onClick = onClick)
+                .paneNavItem(cornerRadius = 8.dp, onActivate = onClick, tapToSelect = true)
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -4104,19 +4759,59 @@ class UnifiedActivity :
         onConfirm: () -> Unit,
         onDismissRequest: () -> Unit,
     ) {
+        val registry = remember { PaneNavRegistry() }
+        var isRemoving by remember { mutableStateOf(false) }
         Dialog(onDismissRequest = onDismissRequest) {
+          CompositionLocalProvider(LocalPaneNav provides registry) {
+            DialogPaneNav(registry, onDismiss = onDismissRequest)
             PopupDialog(
                 title = stringResource(R.string.common_ui_shortcut),
                 message = stringResource(R.string.shortcuts_list_remove_game_shortcut_message, gameName),
                 icon = Icons.Outlined.Home,
                 accentColor = DangerRed,
                 confirmButtonColor = DangerRed,
-                confirmLabel = stringResource(R.string.common_ui_remove),
                 progressLabel = stringResource(R.string.common_ui_working),
-                onConfirm = onConfirm,
-                onCancel = onDismissRequest,
                 modifier = Modifier.widthIn(min = 280.dp, max = 360.dp),
+                footer = {
+                    if (isRemoving) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CircularProgressIndicator(color = DangerRed, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+                            Text(
+                                stringResource(R.string.common_ui_working),
+                                color = TextPrimary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            PaneFooterAction(
+                                label = stringResource(R.string.common_ui_cancel),
+                                textColor = TextSecondary,
+                                onClick = onDismissRequest,
+                            )
+                            PaneFooterAction(
+                                label = stringResource(R.string.common_ui_remove),
+                                textColor = DangerRed,
+                                onClick = {
+                                    isRemoving = true
+                                    onConfirm()
+                                },
+                                isEntry = true,
+                            )
+                        }
+                    }
+                },
             )
+          }
         }
     }
 
@@ -4340,6 +5035,7 @@ class UnifiedActivity :
             title = app.name,
             onDismissRequest = onDismissRequest,
             wide = currentTab == GameSettingsScreen.CloudSaves,
+            contentKey = currentTab,
         ) {
             when (currentTab) {
                 GameSettingsScreen.Menu -> {
@@ -4693,6 +5389,7 @@ class UnifiedActivity :
             title = app.title,
             onDismissRequest = onDismissRequest,
             wide = currentTab == GameSettingsScreen.CloudSaves,
+            contentKey = currentTab,
         ) {
             when (currentTab) {
                 GameSettingsScreen.Menu -> {
@@ -5835,7 +6532,8 @@ class UnifiedActivity :
                                     modifier =
                                         Modifier
                                             .fillMaxSize()
-                                            .verticalScroll(rememberScrollState()),
+                                            .verticalScroll(rememberScrollState())
+                                            .navigationBarsPadding(),
                                 ) {
                                 var isWorking by remember { mutableStateOf(false) }
 
@@ -5994,6 +6692,7 @@ class UnifiedActivity :
                             properties = DialogProperties(
                                 usePlatformDefaultWidth = false,
                                 dismissOnClickOutside = false,
+                                decorFitsSystemWindows = false,
                             ),
                         ) {
                             com.winlator.cmod.feature.stores.steam.achievements.SteamAchievementsScreen(
@@ -6547,13 +7246,16 @@ class UnifiedActivity :
             }
         }
         DisposableEffect(displayedApps) {
-            activity?.storeItemClickCallback = { idx ->
+            val clickCallback: (Int) -> Unit = { idx ->
                 displayedApps.getOrNull(idx)?.let { selectedAppId.value = it.id }
             }
+            activity?.storeItemClickCallback = clickCallback
             activity?.storeGridState = gridState
             onDispose {
-                activity?.storeItemClickCallback = null
-                activity?.storeGridState = null
+                if (activity?.storeItemClickCallback === clickCallback) {
+                    activity?.storeItemClickCallback = null
+                    activity?.storeGridState = null
+                }
             }
         }
 
@@ -6863,6 +7565,7 @@ class UnifiedActivity :
                         activity = this@UnifiedActivity,
                         initialPath = customPath ?: EpicConstants.getGameInstallPath(context, app.appName),
                         title = getString(R.string.settings_content_install_directory),
+                        extraRoots = driveRoots(includeInternal = true),
                     ) { path -> customPath = path }
                 },
             )
@@ -7171,6 +7874,7 @@ class UnifiedActivity :
                                 activity = this@UnifiedActivity,
                                 initialPath = customPath ?: EpicConstants.getGameInstallPath(context, app.appName),
                                 title = getString(R.string.settings_content_install_directory),
+                                extraRoots = driveRoots(includeInternal = true),
                             ) { path -> customPath = path }
                         }
                     },
@@ -7230,13 +7934,16 @@ class UnifiedActivity :
             }
         }
         DisposableEffect(displayedApps) {
-            activity?.storeItemClickCallback = { idx ->
+            val clickCallback: (Int) -> Unit = { idx ->
                 displayedApps.getOrNull(idx)?.let { selectedGameId.value = it.id }
             }
+            activity?.storeItemClickCallback = clickCallback
             activity?.storeGridState = gridState
             onDispose {
-                activity?.storeItemClickCallback = null
-                activity?.storeGridState = null
+                if (activity?.storeItemClickCallback === clickCallback) {
+                    activity?.storeItemClickCallback = null
+                    activity?.storeGridState = null
+                }
             }
         }
 
@@ -7434,6 +8141,7 @@ class UnifiedActivity :
                         activity = this@UnifiedActivity,
                         initialPath = customPath ?: GOGConstants.defaultGOGGamesPath,
                         title = getString(R.string.settings_content_install_directory),
+                        extraRoots = driveRoots(includeInternal = true),
                     ) { path -> customPath = path }
                 },
             )
@@ -7772,6 +8480,7 @@ class UnifiedActivity :
                                 activity = this@UnifiedActivity,
                                 initialPath = customPath ?: GOGConstants.defaultGOGGamesPath,
                                 title = getString(R.string.settings_content_install_directory),
+                                extraRoots = driveRoots(includeInternal = true),
                             ) { path -> customPath = path }
                         }
                     },
@@ -7838,13 +8547,16 @@ class UnifiedActivity :
         }
         // Register A-button click callback and grid state for visible-area snapping
         DisposableEffect(displayedApps) {
-            activity?.storeItemClickCallback = { idx ->
+            val clickCallback: (Int) -> Unit = { idx ->
                 displayedApps.getOrNull(idx)?.let { selectedAppForDialog = it }
             }
+            activity?.storeItemClickCallback = clickCallback
             activity?.storeGridState = gridState
             onDispose {
-                activity?.storeItemClickCallback = null
-                activity?.storeGridState = null
+                if (activity?.storeItemClickCallback === clickCallback) {
+                    activity?.storeItemClickCallback = null
+                    activity?.storeGridState = null
+                }
             }
         }
 
@@ -8117,6 +8829,14 @@ class UnifiedActivity :
         val scope = rememberCoroutineScope()
         var cancelWarningRequest by remember { mutableStateOf<DownloadCancelRequest?>(null) }
 
+        val downloadsActivity = LocalContext.current as? UnifiedActivity
+        val bridge = downloadsActivity?.downloadsNavBridge
+        val navRegistry = remember(bridge) { PaneNavRegistry(initialSignal = bridge?.navSignal ?: -1) }
+        navRegistry.controllerActive = bridge?.controllerActive ?: false
+        LaunchedEffect(navRegistry, bridge?.navSignal) {
+            navRegistry.processNav(bridge?.navSignal ?: 0, bridge?.navDir ?: 0)
+        }
+
         val syncDownloads =
             remember(selectedId, onSelectDownload) {
                 {
@@ -8177,11 +8897,22 @@ class UnifiedActivity :
             }
         }
 
+        CompositionLocalProvider(LocalPaneNav provides navRegistry) {
         Column(
             Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                .tabScreenPadding(top = DownloadsHeaderTopPadding),
+                .tabScreenPadding(top = DownloadsHeaderTopPadding)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val ev = awaitPointerEvent(PointerEventPass.Initial)
+                            if (ev.type == PointerEventType.Press) {
+                                bridge?.controllerActive = false
+                            }
+                        }
+                    }
+                },
         ) {
             @Suppress("UNUSED_EXPRESSION")
             tick
@@ -8411,6 +9142,7 @@ class UnifiedActivity :
                 }
             }
         }
+        }
     }
 
     @Composable
@@ -8426,7 +9158,11 @@ class UnifiedActivity :
         Button(
             onClick = onClick,
             enabled = enabled,
-            modifier = modifier.height(40.dp).widthIn(min = 96.dp),
+            modifier =
+                modifier
+                    .height(40.dp)
+                    .widthIn(min = 96.dp)
+                    .paneNavItem(cornerRadius = 8.dp, onActivate = { if (enabled) onClick() }),
             colors =
                 ButtonDefaults.buttonColors(
                     containerColor = DownloadButtonBlack,
@@ -8866,7 +9602,6 @@ class UnifiedActivity :
         var epicGame by remember(appId) { mutableStateOf<EpicGame?>(null) }
         var gogGame by remember(gogId) { mutableStateOf<GOGGame?>(null) }
         val context = LocalContext.current
-        var isFocused by remember { mutableStateOf(false) }
         val clickInteractionSource = remember { MutableInteractionSource() }
         val animatedProgress by animateFloatAsState(
             targetValue = if (status == DownloadPhase.COMPLETE) 1f else progress.coerceIn(0f, 1f),
@@ -8928,14 +9663,21 @@ class UnifiedActivity :
                 Modifier
                     .fillMaxWidth()
                     .chasingBorder(
-                        isFocused = isFocused || isSelected,
+                        isFocused = isSelected,
                         paused = chasingBordersPaused.value || !animationsActive,
                         cornerRadius = 12.dp,
                         borderWidth = 2.dp,
                         animationDurationMs = 8000,
                     )
-                    .onFocusChanged { isFocused = it.isFocused }
-                    .focusable()
+                    .paneNavItem(
+                        cornerRadius = 12.dp,
+                        onActivate = onClick,
+                        onSecondary = {
+                            if (status != DownloadPhase.COMPLETE && status != DownloadPhase.CANCELLED) {
+                                showDeleteDialog = true
+                            }
+                        },
+                    )
                     .clickable(
                         interactionSource = clickInteractionSource,
                         indication = null,
@@ -9196,6 +9938,7 @@ class UnifiedActivity :
                         activity = this@UnifiedActivity,
                         initialPath = customPath ?: SteamService.defaultAppInstallPath,
                         title = getString(R.string.settings_content_install_directory),
+                        extraRoots = driveRoots(includeInternal = true),
                     ) { path -> customPath = path }
                 },
             )
@@ -9464,6 +10207,7 @@ class UnifiedActivity :
                                 activity = this@UnifiedActivity,
                                 initialPath = customPath ?: SteamService.defaultAppInstallPath,
                                 title = getString(R.string.settings_content_install_directory),
+                                extraRoots = driveRoots(includeInternal = true),
                             ) { path -> customPath = path }
                         }
                     },
@@ -10926,6 +11670,7 @@ class UnifiedActivity :
     @Composable
     private fun DrawerContent(
         persona: com.winlator.cmod.feature.stores.steam.data.SteamFriend?,
+        isOpen: Boolean,
         context: android.content.Context,
         scope: kotlinx.coroutines.CoroutineScope,
         storeVisible: SnapshotStateMap<String, Boolean>,
@@ -10941,14 +11686,22 @@ class UnifiedActivity :
         onExportAll: () -> Unit,
         onExitApp: () -> Unit,
     ) {
+        val drawerBridge = (context as? UnifiedActivity)?.drawerNavBridge
+        val navRegistry = remember(drawerBridge) { PaneNavRegistry(initialSignal = drawerBridge?.navSignal ?: -1) }
+        navRegistry.controllerActive = drawerBridge?.controllerActive ?: false
+        LaunchedEffect(navRegistry, drawerBridge?.navSignal) {
+            navRegistry.processNav(drawerBridge?.navSignal ?: 0, drawerBridge?.navDir ?: 0)
+        }
+        LaunchedEffect(isOpen) { if (isOpen) navRegistry.reset() }
 
         ModalDrawerSheet(
             drawerShape = RectangleShape,
-            drawerContainerColor = BgDark,
+            drawerContainerColor = Color(0xFF12121B),
             drawerContentColor = TextPrimary,
             windowInsets = WindowInsets(0, 0, 0, 0),
             modifier = Modifier.width(324.dp),
         ) {
+            CompositionLocalProvider(LocalPaneNav provides navRegistry) {
             Column(
                 Modifier
                     .fillMaxHeight()
@@ -10978,6 +11731,7 @@ class UnifiedActivity :
                         label = stringResource(R.string.library_games_layout_carousel),
                         checked = libraryLayoutMode == LibraryLayoutMode.CAROUSEL,
                         modifier = Modifier.weight(1f),
+                        fontSize = 11.sp,
                     ) { if (it) onLibraryLayoutSelected(LibraryLayoutMode.CAROUSEL) }
                     DrawerFilterButton(
                         label = stringResource(R.string.library_games_layout_list),
@@ -11077,6 +11831,7 @@ class UnifiedActivity :
 
                 DrawerExitAppCard(onClick = onExitApp)
             }
+            }
         }
     }
 
@@ -11101,6 +11856,7 @@ class UnifiedActivity :
                     .clip(RoundedCornerShape(12.dp))
                     .background(DangerRed.copy(alpha = 0.16f))
                     .border(1.dp, DangerRed.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                    .paneNavItem(cornerRadius = 12.dp, onActivate = onClick)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null,
@@ -11161,6 +11917,7 @@ class UnifiedActivity :
                     .clip(RoundedCornerShape(12.dp))
                     .background(Accent.copy(alpha = 0.14f))
                     .border(1.dp, Accent.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                    .paneNavItem(cornerRadius = 12.dp, onActivate = onClick)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null,
@@ -11201,6 +11958,7 @@ class UnifiedActivity :
         label: String,
         checked: Boolean,
         modifier: Modifier = Modifier,
+        fontSize: TextUnit = TextUnit.Unspecified,
         onToggle: (Boolean) -> Unit,
     ) {
         val interactionSource = remember { MutableInteractionSource() }
@@ -11236,6 +11994,7 @@ class UnifiedActivity :
                     }.clip(RoundedCornerShape(8.dp))
                     .background(bgColor)
                     .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+                    .paneNavItem(cornerRadius = 8.dp, onActivate = { onToggle(!checked) })
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null,
@@ -11246,6 +12005,7 @@ class UnifiedActivity :
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
+                fontSize = fontSize,
                 color = textColor,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -11295,6 +12055,7 @@ class UnifiedActivity :
                     }.clip(RoundedCornerShape(10.dp))
                     .background(bgColor)
                     .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+                    .paneNavItem(cornerRadius = 10.dp, onActivate = { onCheckedChange(!checked) })
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null,
@@ -11324,6 +12085,7 @@ class UnifiedActivity :
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
+                modifier = Modifier.focusProperties { canFocus = false },
                 colors =
                     SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
@@ -11345,6 +12107,23 @@ class UnifiedActivity :
         var gameName by remember { mutableStateOf("") }
         var gameFolder by remember { mutableStateOf<String?>(null) }
         var isAdding by remember { mutableStateOf(false) }
+        val registry = remember { PaneNavRegistry() }
+        val addEnabled = selectedExePath != null && gameName.isNotBlank() && gameFolder != null && !isAdding
+        val doAdd: () -> Unit = {
+            isAdding = true
+            scope.launch(Dispatchers.IO) {
+                addCustomGame(context, gameName.trim(), selectedExePath!!, gameFolder!!)
+                withContext(Dispatchers.Main) {
+                    isAdding = false
+                    com.winlator.cmod.shared.ui.toast.WinToast.show(
+                        context,
+                        "$gameName added!",
+                        android.widget.Toast.LENGTH_SHORT,
+                    )
+                    onDismiss()
+                }
+            }
+        }
 
         fun selectExecutable(path: String) {
             if (!path.endsWith(".exe", ignoreCase = true) || !java.io.File(path).isFile) {
@@ -11376,7 +12155,10 @@ class UnifiedActivity :
         ) {
             CompositionLocalProvider(
                 LocalDensity provides Density(defaultDensity.density, fontScale = 1f),
+                androidx.compose.material3.LocalMinimumInteractiveComponentSize provides androidx.compose.ui.unit.Dp.Unspecified,
+                LocalPaneNav provides registry,
             ) {
+                DialogPaneNav(registry, onDismiss = onDismiss, onStart = { if (addEnabled) doAdd() })
                 Surface(
                     modifier =
                         Modifier
@@ -11410,23 +12192,28 @@ class UnifiedActivity :
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(Color.White.copy(alpha = 0.05f))
-                                        .clickable {
-                                            DirectoryPickerDialog.showFile(
-                                                activity = this@UnifiedActivity,
-                                                initialPath =
-                                                    selectedExePath ?: gameFolder
-                                                        ?: android.os.Environment
-                                                            .getExternalStoragePublicDirectory(
-                                                                android.os.Environment.DIRECTORY_DOWNLOADS,
-                                                            ).absolutePath,
-                                                title = getString(R.string.common_ui_select_exe),
-                                                allowedExtensions = setOf("exe"),
-                                                dimAmount = 0.5f,
-                                                preserveBackdropBlur = true,
-                                                extraRoots = driveRoots(includeInternal = true),
-                                                onSelected = ::selectExecutable,
-                                            )
-                                        }.padding(horizontal = 12.dp, vertical = 10.dp),
+                                        .paneNavItem(
+                                            cornerRadius = 12.dp,
+                                            tapToSelect = true,
+                                            isEntry = true,
+                                            onActivate = {
+                                                DirectoryPickerDialog.showFile(
+                                                    activity = this@UnifiedActivity,
+                                                    initialPath =
+                                                        selectedExePath ?: gameFolder
+                                                            ?: android.os.Environment
+                                                                .getExternalStoragePublicDirectory(
+                                                                    android.os.Environment.DIRECTORY_DOWNLOADS,
+                                                                ).absolutePath,
+                                                    title = getString(R.string.common_ui_select_exe),
+                                                    allowedExtensions = setOf("exe"),
+                                                    dimAmount = 0.5f,
+                                                    preserveBackdropBlur = true,
+                                                    extraRoots = driveRoots(includeInternal = true),
+                                                    onSelected = ::selectExecutable,
+                                                )
+                                            },
+                                        ).padding(horizontal = 12.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Icon(Icons.Outlined.FolderOpen, contentDescription = null, tint = Accent, modifier = Modifier.size(16.dp))
@@ -11451,7 +12238,7 @@ class UnifiedActivity :
                                     onValueChange = { gameName = it },
                                     label = { Text(stringResource(R.string.library_games_game_name), fontSize = 11.sp) },
                                     singleLine = true,
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().paneNavItem(cornerRadius = 10.dp).controllerTextFieldEscape(),
                                     textStyle = MaterialTheme.typography.bodySmall.copy(color = TextPrimary),
                                     colors =
                                         OutlinedTextFieldDefaults.colors(
@@ -11499,17 +12286,26 @@ class UnifiedActivity :
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                     }
-                                    IconButton(onClick = {
-                                        if (!ensureAllFilesAccessForImports(context)) return@IconButton
-                                        DirectoryPickerDialog.show(
-                                            activity = this@UnifiedActivity,
-                                            initialPath = gameFolder,
-                                            title = getString(R.string.common_ui_select_folder),
-                                            dimAmount = 0.5f,
-                                            preserveBackdropBlur = true,
-                                            extraRoots = driveRoots(includeInternal = true),
-                                        ) { path -> gameFolder = path }
-                                    }, modifier = Modifier.size(28.dp)) {
+                                    val openFolderPicker = {
+                                        if (ensureAllFilesAccessForImports(context)) {
+                                            DirectoryPickerDialog.show(
+                                                activity = this@UnifiedActivity,
+                                                initialPath = gameFolder,
+                                                title = getString(R.string.common_ui_select_folder),
+                                                dimAmount = 0.5f,
+                                                preserveBackdropBlur = true,
+                                                extraRoots = driveRoots(includeInternal = true),
+                                            ) { path -> gameFolder = path }
+                                        }
+                                    }
+                                    IconButton(
+                                        onClick = openFolderPicker,
+                                        modifier =
+                                            Modifier.size(28.dp).paneNavItem(
+                                                cornerRadius = 8.dp,
+                                                onActivate = openFolderPicker,
+                                            ),
+                                    ) {
                                         Icon(
                                             Icons.Outlined.Edit,
                                             contentDescription = stringResource(R.string.common_ui_change),
@@ -11534,36 +12330,15 @@ class UnifiedActivity :
                                 border = androidx.compose.foundation.BorderStroke(1.dp, TextSecondary.copy(alpha = 0.3f)),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                                modifier = Modifier.height(34.dp).widthIn(min = 72.dp),
+                                modifier =
+                                    Modifier.height(34.dp).widthIn(min = 72.dp)
+                                        .paneNavItem(cornerRadius = 10.dp, onActivate = onDismiss),
                             ) {
                                 Text(stringResource(R.string.common_ui_cancel), fontSize = 12.sp)
                             }
                             Spacer(Modifier.width(8.dp))
-                            val addEnabled = selectedExePath != null && gameName.isNotBlank() && gameFolder != null && !isAdding
                             OutlinedButton(
-                                onClick = {
-                                    if (selectedExePath == null || gameName.isBlank() || gameFolder == null) {
-                                        com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                            context,
-                                            context.getString(R.string.library_games_select_exe_provide_name),
-                                            android.widget.Toast.LENGTH_SHORT,
-                                        )
-                                        return@OutlinedButton
-                                    }
-                                    isAdding = true
-                                    scope.launch(Dispatchers.IO) {
-                                        addCustomGame(context, gameName.trim(), selectedExePath!!, gameFolder!!)
-                                        withContext(Dispatchers.Main) {
-                                            isAdding = false
-                                            com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                                context,
-                                                "$gameName added!",
-                                                android.widget.Toast.LENGTH_SHORT,
-                                            )
-                                            onDismiss()
-                                        }
-                                    }
-                                },
+                                onClick = doAdd,
                                 enabled = addEnabled,
                                 shape = RoundedCornerShape(10.dp),
                                 border =
@@ -11573,7 +12348,9 @@ class UnifiedActivity :
                                     ),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Accent),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                                modifier = Modifier.height(34.dp).widthIn(min = 72.dp),
+                                modifier =
+                                    Modifier.height(34.dp).widthIn(min = 72.dp)
+                                        .paneNavItem(cornerRadius = 10.dp, onActivate = { if (addEnabled) doAdd() }),
                             ) {
                                 if (isAdding) {
                                     CircularProgressIndicator(color = Accent, modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
@@ -11769,22 +12546,24 @@ class UnifiedActivity :
 fun ControllerBadge(
     text: String,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
+    val corner = if (compact) 11.dp else 15.dp
     Box(
         modifier =
             modifier
-                .defaultMinSize(minHeight = 22.dp)
-                .background(Color(0xFF394048), RoundedCornerShape(15.dp))
-                .border(1.dp, Color(0xFF8B949E).copy(alpha = 0.5f), RoundedCornerShape(15.dp))
-                .padding(horizontal = 10.dp, vertical = 3.dp),
+                .defaultMinSize(minHeight = if (compact) 16.dp else 22.dp)
+                .background(Color(0xFF394048), RoundedCornerShape(corner))
+                .border(1.dp, Color(0xFF8B949E).copy(alpha = 0.5f), RoundedCornerShape(corner))
+                .padding(horizontal = if (compact) 5.dp else 10.dp, vertical = if (compact) 1.dp else 3.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             color = Color(0xFFE6EDF3),
-            fontSize = 12.sp,
+            fontSize = if (compact) 9.sp else 12.sp,
             fontWeight = FontWeight.Bold,
-            lineHeight = 15.sp,
+            lineHeight = if (compact) 11.sp else 15.sp,
             style = MaterialTheme.typography.labelSmall,
         )
     }
