@@ -1425,8 +1425,8 @@ public class FrameRating extends LinearLayout implements Runnable {
     // Feed the phone gauge HUD (single source of truth) even while the on-screen overlay is hidden.
     com.winlator.cmod.runtime.display.PerformanceHudState.updateValues(
         this.lastFPS, this.currentMs, this.gpuLoad, this.cpuPercent, ramPercentValue(),
-        (this.dualSeriesBattery && this.batteryWatts >= 0.0f) ? this.batteryWatts * 2.0f : this.batteryWatts,
-        this.cpuTemp, this.rendererName != null ? this.rendererName : "");
+        (float)((this.dualSeriesBattery && this.batteryWatts >= 0.0) ? this.batteryWatts * 2.0 : this.batteryWatts),
+        (int)this.cpuTemp, this.rendererName != null ? this.rendererName : "");
     if (getVisibility() != View.VISIBLE) return;
 
     if (this.enableGpu && this.tvGpuLoad != null) {

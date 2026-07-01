@@ -138,8 +138,6 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.util.Locale
 
 object DirectoryPickerDialog {
     private const val ContentEnterMillis = 220
