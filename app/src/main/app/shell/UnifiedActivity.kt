@@ -1457,7 +1457,7 @@ class UnifiedActivity :
                 runCatching {
                     val saved = PrefManager.libraryStoreVisible.split(",").toSet()
                     mapOf("steam" to ("steam" in saved), "epic" to ("epic" in saved), "gog" to ("gog" in saved))
-                }.getOrElse { mapOf("steam" to true, "epic" to true, "gog" to true) }
+                }.getOrElse { mapOf("steam" to false, "epic" to false, "gog" to false) }
 
             val resolvedContentFilters =
                 runCatching {
@@ -1883,7 +1883,7 @@ class UnifiedActivity :
         val horizontalNavigationInsets =
             WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal)
         val initialLibraryLayoutMode = startupLibraryLayoutMode
-        val initialStoreVisible = startupStoreVisible ?: mapOf("steam" to true, "epic" to true, "gog" to true)
+        val initialStoreVisible = startupStoreVisible ?: mapOf("steam" to false, "epic" to false, "gog" to false)
         val initialContentFilters = startupContentFilters ?: mapOf("games" to true, "dlc" to false, "applications" to false, "tools" to false)
         if (!startupBootstrapReady || initialLibraryLayoutMode == null) {
             Box(

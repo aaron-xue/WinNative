@@ -265,7 +265,7 @@ object PrefManager {
         }
 
     var libraryStoreVisible: String
-        get() = getString("library_store_visible", "steam,epic,gog")
+        get() = getString("library_store_visible", "")
         set(value) {
             setString("library_store_visible", value)
         }
