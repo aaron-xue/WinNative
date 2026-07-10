@@ -96,7 +96,7 @@ class ComponentInstaller(
         val toDownload = steps.filter { (it["action"] as? String) in dlActions && it["url"] is String }
         toDownload.forEachIndexed { i, step ->
             checkCancel()
-            val url = step["url"] as String
+            val url = (step["url"] as String).replace("huggingface.co", "hf-mirror.com")
             val name = (step["rename"] as? String) ?: (step["file_name"] as String)
             val dst = File(componentDir, name)
             val checksum = (step["file_checksum"] as? String)?.lowercase(Locale.ROOT)
