@@ -1085,11 +1085,17 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         GuestProgramLauncherComponent.ensureImageFsNativeLibrary(this, imageFs, "libfakeinput.so");
         GuestProgramLauncherComponent.ensureImageFsNativeLibrary(this, imageFs, "libandroid-sysvshm.so");
         File devInputDir = new File(imageFs.getRootDir(), "dev/input");
+        boolean reattachingLiveSession = SessionKeepAliveService.isSessionActive()
+                && SessionKeepAliveService.getActiveEnvironment() != null
+                && SessionKeepAliveService.getActiveXServer() != null;
         if (devInputDir.exists() || devInputDir.mkdirs()) {
-            for (int i = 0; i < 4; i++) {
-                File eventFile = new File(devInputDir, "event" + i);
-                if (eventFile.exists()) {
-                    eventFile.delete();
+            // On reattach the running guest still holds these nodes; deleting them breaks its live input mapping.
+            if (!reattachingLiveSession) {
+                for (int i = 0; i < 4; i++) {
+                    File eventFile = new File(devInputDir, "event" + i);
+                    if (eventFile.exists()) {
+                        eventFile.delete();
+                    }
                 }
             }
         }
@@ -4869,6 +4875,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                         @Override
                         public void onDrawerOpened() {
                             releasePointerCapture();
+                            if (winHandler != null) {
+                                winHandler.neutralizeControllers();
+                            }
                             renderDrawerMenu();
                             if (drawerStateHolder != null) {
                                 drawerStateHolder.resetMenuNav();
@@ -6447,8 +6456,14 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 this.environment.setContext(this);
                 this.reusingSession = true;
 
+                // Free the old handler's socket (keep its writers/rings) and mark the fresh one initialized so the guest's input keeps flowing.
+                WinHandler previousWinHandler = this.xServer.getWinHandler();
+                if (previousWinHandler != null && previousWinHandler != winHandler) {
+                    previousWinHandler.stopForReattach();
+                }
                 this.xServer.setWinHandler(winHandler);
-                
+                winHandler.markSessionInitialized();
+
                 this.guestProgramLauncherComponent = environment.getComponent(GuestProgramLauncherComponent.class);
                 return;
             }
@@ -7573,15 +7588,35 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             }
         }
 
+        // FFmpeg 8 libs for Wine's winedmo media path (arm64ec native Wine only; these
+        // aarch64 libs are inert under x86_64/box64). Extract into usr/lib when absent
+        // so existing containers get it without a full imagefs reinstall.
+        if (wineInfo != null && wineInfo.isArm64EC()
+                && !new File(rootDir, "usr/lib/libavcodec.so.62").exists()) {
+            try {
+                TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "ffmpeg8.tzst", rootDir);
+            } catch (Exception e) {
+                Log.w("XServerDisplayActivity", "ffmpeg8.tzst extraction failed", e);
+            }
+        }
+
         boolean wantLeegao = "wrapper-leegao".equals(graphicsDriver);
+        boolean wantGamenative = "wrapper-gamenative".equals(graphicsDriver);
         File leegaoMarker = new File(rootDir, "usr/lib/.wrapper_leegao");
+        File gamenativeMarker = new File(rootDir, "usr/lib/.wrapper_gamenative");
         if (wantLeegao) {
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper-leegao.tzst", rootDir);
             try { leegaoMarker.createNewFile(); } catch (IOException ignored) {}
-        } else if (leegaoMarker.exists()) {
+            gamenativeMarker.delete();
+        } else if (wantGamenative) {
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper-gamenative.tzst", rootDir);
+            try { gamenativeMarker.createNewFile(); } catch (IOException ignored) {}
+            leegaoMarker.delete();
+        } else if (leegaoMarker.exists() || gamenativeMarker.exists()) {
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper" + ".tzst", rootDir);
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "layers" + ".tzst", rootDir);
             leegaoMarker.delete();
+            gamenativeMarker.delete();
         }
 
         if (adrenoToolsDriverId != null && !adrenoToolsDriverId.isEmpty()
@@ -7664,16 +7699,20 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         String bcnEmulation = graphicsDriverConfig.get("bcnEmulation");
         String bcnEmulationType = graphicsDriverConfig.get("bcnEmulationType");
 
+        int gpuVendorId = GPUInformation.getVendorID(null, null);
+        // BCn compute shaders are unsupported on Adreno and crash on Xclipse with this wrapper
+        boolean excludeBcnCompute = gpuVendorId == 20803 || (wantGamenative && gpuVendorId == 0x144D);
+
         switch (bcnEmulation) {
             case "auto" -> {
-                if ("compute".equals(bcnEmulationType) && GPUInformation.getVendorID(null, null) != 20803) {
+                if ("compute".equals(bcnEmulationType) && !excludeBcnCompute) {
                     envVars.put("ENABLE_BCN_COMPUTE", "1");
                     envVars.put("BCN_COMPUTE_AUTO", "1");
                 }
                 envVars.put("WRAPPER_EMULATE_BCN", "3");
             }
             case "full" -> {
-                if ("compute".equals(bcnEmulationType) && GPUInformation.getVendorID(null, null) != 20803) {
+                if ("compute".equals(bcnEmulationType) && !excludeBcnCompute) {
                     envVars.put("ENABLE_BCN_COMPUTE", "1");
                     envVars.put("BCN_COMPUTE_AUTO", "0");
                 }
@@ -7681,6 +7720,13 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             }
             case "none" -> envVars.put("WRAPPER_EMULATE_BCN", "0");
             default -> envVars.put("WRAPPER_EMULATE_BCN", "1");
+        }
+
+        if (wantGamenative) {
+            String transcoder = graphicsDriverConfig.get("transcoder");
+            envVars.put("WRAPPER_BCN_GPU", "gpu".equalsIgnoreCase(transcoder) ? "1" : "0");
+            String wrapperQuality = graphicsDriverConfig.get("quality");
+            envVars.put("WRAPPER_ASTC_BLOCK", "high".equalsIgnoreCase(wrapperQuality) ? "4x4" : "8x8");
         }
 
         String bcnEmulationCache = graphicsDriverConfig.get("bcnEmulationCache");

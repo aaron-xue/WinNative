@@ -279,7 +279,7 @@ private val DownloadChaseGradientStops =
     )
 private val TabScreenHorizontalPadding = 16.dp
 private val TabScreenBottomPadding = 8.dp
-private val UnifiedTopBarHorizontalPadding = 8.dp
+private val UnifiedTopBarHorizontalPadding = 12.dp
 private val UnifiedTopBarTopPadding = 4.dp
 private val UnifiedTopBarHeight = 56.dp
 private val TabListContentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)
@@ -912,6 +912,7 @@ class UnifiedActivity :
         chasingBordersPaused.value = false
         if (hasCompletedInitialResume) {
             libraryPlaytimeRefreshSignal++
+            SteamService.ensureHealthySession()
         } else {
             hasCompletedInitialResume = true
         }
