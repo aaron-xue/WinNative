@@ -1258,7 +1258,11 @@ class SteamService : Service() {
                 )
             }
 
-        fun getAppInfoOf(appId: Int): SteamApp? = runBlocking(Dispatchers.IO) { instance?.appDao?.findApp(appId) }
+        fun getAppInfoOf(appId: Int): SteamApp? =
+            runBlocking(Dispatchers.IO) {
+                val dao = instance?.appDao ?: runCatching { PluviaDatabase.getInstance().steamAppDao() }.getOrNull()
+                dao?.findApp(appId)
+            }
 
         fun getDownloadingAppInfoOf(appId: Int): DownloadingAppInfo? =
             runBlocking(Dispatchers.IO) {
@@ -1316,7 +1320,11 @@ class SteamService : Service() {
 
         fun getHiddenDlcAppsOf(appId: Int): List<SteamApp>? = runBlocking(Dispatchers.IO) { instance?.appDao?.findHiddenDLCApps(appId) }
 
-        fun getInstalledApp(appId: Int): AppInfo? = runBlocking(Dispatchers.IO) { instance?.appInfoDao?.getInstalledApp(appId) }
+        fun getInstalledApp(appId: Int): AppInfo? =
+            runBlocking(Dispatchers.IO) {
+                val dao = instance?.appInfoDao ?: runCatching { PluviaDatabase.getInstance().appInfoDao() }.getOrNull()
+                dao?.getInstalledApp(appId)
+            }
 
         fun getInstalledDepotsOf(appId: Int): List<Int>? = getTrustedInstalledAppInfo(appId)?.downloadedDepots
 
@@ -1355,6 +1363,7 @@ class SteamService : Service() {
 
         private fun tryRecoverInstalledAppInfo(appId: Int): AppInfo? {
             val dirPath = getAppDirPath(appId)
+            if (dirPath.isBlank()) return null
             val hasCompleteMarker = MarkerUtils.hasMarker(dirPath, Marker.DOWNLOAD_COMPLETE_MARKER)
             val hasInProgressMarker = MarkerUtils.hasMarker(dirPath, Marker.DOWNLOAD_IN_PROGRESS_MARKER)
             if (!hasCompleteMarker || hasInProgressMarker) return null
@@ -2143,6 +2152,12 @@ class SteamService : Service() {
                     if (appName.isNotEmpty()) add(appName)
                     if (oldName.isNotEmpty() && oldName != appName) add(oldName)
                 }
+
+            // No resolvable folder name (metadata unavailable) — never fall back to a shared root.
+            if (candidateNames.isEmpty()) {
+                Timber.w("getAppDirPath: no metadata to resolve install dir for appId=%d", gameId)
+                return ""
+            }
 
             // Respect user-selected default download folder
             val context = PluviaApp.instance.applicationContext
