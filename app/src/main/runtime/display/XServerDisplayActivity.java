@@ -440,7 +440,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private final ArrayList<TaskManagerProcess> taskManagerAccum = new ArrayList<>();
     private boolean taskManagerCpuExpanded = false;
     private boolean taskManagerPaneVisible = false;
-    private short[] cachedMaxClockSpeeds;
+    private CPUStatus.AppCpuSample prevTaskCpuSample;
     private boolean drawerEdgeGesturePossible = false;
     private float drawerEdgeGestureStartX = 0f;
     private float drawerEdgeGestureStartY = 0f;
@@ -4965,6 +4965,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         if (winHandler != null) winHandler.setOnGetProcessInfoListener(null);
         taskManagerAccum.clear();
         taskManagerCpuExpanded = false;
+        prevTaskCpuSample = null;
         if (drawerStateHolder != null) {
             drawerStateHolder.setTaskManagerState(new TaskManagerPaneState(
                     new ArrayList<>(), 0, 0, new ArrayList<>(), 0, ""));
@@ -5011,35 +5012,24 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private void pushTaskManagerSystemStats() {
         if (drawerStateHolder == null) return;
 
-        short[] clockSpeeds = CPUStatus.getCurrentClockSpeeds();
-        if (cachedMaxClockSpeeds == null || cachedMaxClockSpeeds.length != clockSpeeds.length) {
-            short[] maxes = new short[clockSpeeds.length];
-            for (int i = 0; i < clockSpeeds.length; i++) maxes[i] = CPUStatus.getMaxClockSpeed(i);
-            cachedMaxClockSpeeds = maxes;
-        }
-
-        int totalClock = 0;
-        short maxClock = 0;
-        for (int i = 0; i < clockSpeeds.length; i++) {
-            totalClock += clockSpeeds[i];
-            if (cachedMaxClockSpeeds[i] > maxClock) maxClock = cachedMaxClockSpeeds[i];
-        }
-        int cpuPercent = 0;
-        if (clockSpeeds.length > 0 && maxClock > 0) {
-            int avg = totalClock / clockSpeeds.length;
-            cpuPercent = (int) (((float) avg / maxClock) * 100.0f);
-        }
-
-        ArrayList<Integer> corePercents;
-        if (taskManagerCpuExpanded) {
-            corePercents = new ArrayList<>(clockSpeeds.length);
-            for (int i = 0; i < clockSpeeds.length; i++) {
-                short maxFor = cachedMaxClockSpeeds[i];
-                int corePercent = maxFor > 0 ? (int) (((float) clockSpeeds[i] / maxFor) * 100.0f) : 0;
-                corePercents.add(corePercent);
-            }
+        CPUStatus.AppCpuSample cpuSample = CPUStatus.readAppCpuSample();
+        int cpuPercent = -1;
+        if (cpuSample != null) {
+            if (prevTaskCpuSample != null) cpuPercent = cpuSample.percentSince(prevTaskCpuSample);
+            prevTaskCpuSample = cpuSample;
         } else {
-            corePercents = new ArrayList<>();
+            prevTaskCpuSample = null;
+        }
+        if (cpuPercent < 0) cpuPercent = CPUStatus.getClockFreqLoadPercent();
+        if (cpuPercent < 0) cpuPercent = 0;
+
+        short[] clocks = CPUStatus.getCurrentClockSpeeds();
+        int coreCount = clocks != null ? clocks.length : 0;
+        ArrayList<Integer> corePercents = new ArrayList<>();
+        if (taskManagerCpuExpanded) {
+            for (int i = 0; i < coreCount; i++) {
+                corePercents.add(CPUStatus.getClockFreqCorePercent(i));
+            }
         }
 
         ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
@@ -5053,7 +5043,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         drawerStateHolder.setTaskManagerState(new TaskManagerPaneState(
                 current.getProcesses(),
                 cpuPercent,
-                clockSpeeds.length,
+                coreCount,
                 corePercents,
                 memPercent,
                 memDetail));
@@ -5931,8 +5921,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             int appId = Integer.parseInt(shortcut.getExtra("app_id"));
             String gameInstallPath = resolveSteamGameInstallPath(appId);
             File gameDir = new File(gameInstallPath);
-            String language = container.getExtra("containerLanguage", "english");
-            if (language == null || language.isEmpty()) language = "english";
+            String language = PrefManager.INSTANCE.getContainerLanguage();
+            String containerLang = container.getExtra("containerLanguage", null);
+            if (containerLang != null && !containerLang.isEmpty()) {
+                language = containerLang;
+            }
             boolean isOfflineMode = parseBoolean(
                     getShortcutSetting("steamOfflineMode",
                             container.isSteamOfflineMode() ? "1" : "0"));
@@ -6771,6 +6764,179 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                         envVars.put("WN_STEAM_STEAMID", planWSid);
                         envVars.put("WN_STEAM_TOKEN", planWTok);
                         envVars.put("WN_STEAM_APPID", String.valueOf(bsAppId));
+                        // Pass language for native launcher ACF UserConfig/MountedConfig
+                        String acfLang = PrefManager.INSTANCE.getContainerLanguage();
+                        String acfContainerLang = container.getExtra("containerLanguage", null);
+                        if (acfContainerLang != null && !acfContainerLang.isEmpty()) {
+                            acfLang = acfContainerLang;
+                        }
+                        if (acfLang != null && !acfLang.isEmpty()) {
+                            envVars.put("WN_STEAM_LANGUAGE", acfLang);
+                        }
+                        // Pass DLC depot data for native launcher ACF
+                        try {
+                            com.winlator.cmod.feature.stores.steam.data.SteamApp depotAppInfo =
+                                com.winlator.cmod.feature.stores.steam.service.SteamService.Companion
+                                    .getAppInfoOf(bsAppId);
+                            if (depotAppInfo != null) {
+                                envVars.put("WN_STEAM_APP_NAME", depotAppInfo.getName());
+                                String installScript = depotAppInfo.getInstallScript();
+                                if (installScript != null && !installScript.isEmpty()) {
+                                    StringBuilder installScriptsSb = new StringBuilder();
+                                    java.util.Map<Integer, com.winlator.cmod.feature.stores.steam.data.DepotInfo> allDepots =
+                                        depotAppInfo.getDepots();
+                                    for (java.util.Map.Entry<Integer, com.winlator.cmod.feature.stores.steam.data.DepotInfo> entry : allDepots.entrySet()) {
+                                        com.winlator.cmod.feature.stores.steam.data.DepotInfo di = entry.getValue();
+                                        if (di.getDlcAppId() == com.winlator.cmod.feature.stores.steam.service.SteamService.INVALID_APP_ID
+                                            && di.getDepotFromApp() == com.winlator.cmod.feature.stores.steam.service.SteamService.INVALID_APP_ID) {
+                                            if (installScriptsSb.length() > 0) installScriptsSb.append(",");
+                                            installScriptsSb.append(entry.getKey()).append(":").append(installScript);
+                                        }
+                                    }
+                                    if (installScriptsSb.length() > 0) {
+                                        envVars.put("WN_STEAM_INSTALL_SCRIPTS", installScriptsSb.toString());
+                                    }
+                                }
+                                java.util.Map<Integer, com.winlator.cmod.feature.stores.steam.data.DepotInfo> depots =
+                                    depotAppInfo.getDepots();
+                                String branch = com.winlator.cmod.feature.stores.steam.service.SteamService.Companion
+                                    .resolveSelectedBetaName(bsAppId);
+                                if (branch == null || branch.isEmpty()) branch = "public";
+
+                                // Resolve buildId from branch info
+                                java.util.Map<String, com.winlator.cmod.feature.stores.steam.data.BranchInfo> branches =
+                                    depotAppInfo.getBranches();
+                                long buildId = 0L;
+                                if (branches != null) {
+                                    com.winlator.cmod.feature.stores.steam.data.BranchInfo branchInfo = branches.get(branch);
+                                    if (branchInfo != null) {
+                                        buildId = branchInfo.getBuildId();
+                                    } else if (branches.containsKey("public")) {
+                                        buildId = branches.get("public").getBuildId();
+                                    }
+                                }
+                                envVars.put("WN_STEAM_BUILD_ID", String.valueOf(buildId));
+
+                                // Compute sizeOnDisk recursively from game directory (match Kotlin
+                                // calculateDirectorySize); null-guard listFiles() so a transient I/O
+                                // error never NPEs and silently drops all depot data.
+                                String gameInstallPath = resolveSteamGameInstallPath(bsAppId);
+                                long sizeOnDisk = 0L;
+                                if (gameInstallPath != null) {
+                                    java.util.ArrayDeque<java.io.File> stack = new java.util.ArrayDeque<>();
+                                    stack.push(new java.io.File(gameInstallPath));
+                                    while (!stack.isEmpty()) {
+                                        java.io.File cur = stack.pop();
+                                        if (cur.isDirectory()) {
+                                            java.io.File[] children = cur.listFiles();
+                                            if (children != null) {
+                                                for (java.io.File c : children) stack.push(c);
+                                            }
+                                        } else if (cur.isFile()) {
+                                            sizeOnDisk += cur.length();
+                                        }
+                                    }
+                                }
+                                envVars.put("WN_STEAM_SIZE_ON_DISK", String.valueOf(sizeOnDisk));
+
+                                // Collect installed depot IDs and DLC app IDs (same as Kotlin collectInstalledDepotManifests)
+                                java.util.Set<Integer> installedDepotIds = new java.util.HashSet<>();
+                                java.util.List<Integer> installedDepotsList = com.winlator.cmod.feature.stores.steam.service.SteamService.Companion
+                                    .getInstalledDepotsOf(bsAppId);
+                                if (installedDepotsList != null) installedDepotIds.addAll(installedDepotsList);
+
+                                java.util.Set<Integer> installedDlcAppIds = new java.util.HashSet<>();
+                                java.util.List<Integer> installedDlcList = com.winlator.cmod.feature.stores.steam.service.SteamService.Companion
+                                    .getInstalledDlcDepotsOf(bsAppId);
+                                if (installedDlcList != null) installedDlcAppIds.addAll(installedDlcList);
+
+                                // Collect all known depots (app depots + downloadable depots)
+                                java.util.LinkedHashMap<Integer, com.winlator.cmod.feature.stores.steam.data.DepotInfo> allKnownDepots = new java.util.LinkedHashMap<>();
+                                allKnownDepots.putAll(depots);
+                                java.util.Map<Integer, com.winlator.cmod.feature.stores.steam.data.DepotInfo> downloadableDepots = com.winlator.cmod.feature.stores.steam.service.SteamService.Companion
+                                    .getDownloadableDepots(bsAppId, acfLang != null ? acfLang : "");
+                                if (downloadableDepots != null) allKnownDepots.putAll(downloadableDepots);
+
+                                // Also add DLC depots from getOwnedAppDlc (matches Kotlin collectInstalledDepotManifests)
+                                if (installedDlcList != null) {
+                                    for (Integer dlcAppId : installedDlcList) {
+                                        try {
+                                            @SuppressWarnings("unchecked")
+                                            java.util.Map<Integer, com.winlator.cmod.feature.stores.steam.data.DepotInfo> ownedDlc =
+                                                (java.util.Map<Integer, com.winlator.cmod.feature.stores.steam.data.DepotInfo>)
+                                                    kotlinx.coroutines.BuildersKt.runBlocking(
+                                                        kotlinx.coroutines.Dispatchers.getIO(),
+                                                        (scope, continuation) -> com.winlator.cmod.feature.stores.steam.service.SteamService.Companion
+                                                            .getOwnedAppDlc(dlcAppId, continuation)
+                                                    );
+                                            if (ownedDlc != null) allKnownDepots.putAll(ownedDlc);
+                                        } catch (InterruptedException ie) {
+                                            Thread.currentThread().interrupt();
+                                        } catch (Exception ignored) {}
+                                    }
+                                }
+
+                                StringBuilder depotSb = new StringBuilder();
+                                StringBuilder sharedSb = new StringBuilder();
+                                long totalBytesToDownload = 0L;
+                                long totalBytesToStage = 0L;
+                                for (java.util.Map.Entry<Integer, com.winlator.cmod.feature.stores.steam.data.DepotInfo> entry : allKnownDepots.entrySet()) {
+                                    int depotId = entry.getKey();
+                                    com.winlator.cmod.feature.stores.steam.data.DepotInfo di = entry.getValue();
+
+                                    // Shared depots are excluded from InstalledDepots entirely (match Kotlin
+                                    // collectInstalledDepotManifests); emit to SharedDepots only when the source app is known.
+                                    if (di.getSharedInstall()) {
+                                        if (di.getDepotFromApp() != com.winlator.cmod.feature.stores.steam.service.SteamService.INVALID_APP_ID) {
+                                            if (sharedSb.length() > 0) sharedSb.append(",");
+                                            sharedSb.append(depotId).append(":").append(di.getDepotFromApp());
+                                        }
+                                        continue;
+                                    }
+
+                                    // Match Kotlin collectInstalledDepotManifests: include if depot is installed,
+                                    // or its DLC is installed
+                                    boolean shouldInclude = installedDepotIds.contains(depotId)
+                                        || (di.getDlcAppId() != com.winlator.cmod.feature.stores.steam.service.SteamService.INVALID_APP_ID
+                                            && installedDlcAppIds.contains(di.getDlcAppId()));
+                                    if (!shouldInclude) continue;
+
+                                    com.winlator.cmod.feature.stores.steam.data.ManifestInfo manifest = null;
+                                    java.util.Map<String, com.winlator.cmod.feature.stores.steam.data.ManifestInfo> manifests = di.getManifests();
+                                    if (manifests.containsKey(branch)) manifest = manifests.get(branch);
+                                    else if (!branch.equals("public") && manifests.containsKey("public")) manifest = manifests.get("public");
+                                    if (manifest != null && manifest.getGid() != 0L) {
+                                        if (depotSb.length() > 0) depotSb.append(",");
+                                        depotSb.append(depotId).append(":").append(manifest.getGid()).append(":").append(manifest.getSize());
+                                        int dlcAppId = di.getDlcAppId();
+                                        if (dlcAppId != com.winlator.cmod.feature.stores.steam.service.SteamService.INVALID_APP_ID) {
+                                            depotSb.append(":").append(dlcAppId);
+                                        } else if (installedDlcAppIds.contains(depotId)) {
+                                            // Mirror Kotlin createAppManifest: fall back to depotId as the dlcappid
+                                            // when the depot carries no dlcAppId but is itself a tracked DLC.
+                                            depotSb.append(":").append(depotId);
+                                        }
+                                        totalBytesToDownload += manifest.getDownload();
+                                        totalBytesToStage += manifest.getSize();
+                                    }
+                                }
+                                if (depotSb.length() > 0) {
+                                    envVars.put("WN_STEAM_DEPOTS", depotSb.toString());
+                                }
+                                if (sharedSb.length() > 0) {
+                                    envVars.put("WN_STEAM_SHARED_DEPOTS", sharedSb.toString());
+                                }
+                                envVars.put("WN_STEAM_BYTES_TO_DOWNLOAD", String.valueOf(totalBytesToDownload));
+                                envVars.put("WN_STEAM_BYTES_TO_STAGE", String.valueOf(totalBytesToStage));
+                                Log.i("XServerDisplayActivity",
+                                    "Steam Launcher: depots=" + depotSb + " shared=" + sharedSb
+                                    + " buildId=" + buildId + " sizeOnDisk=" + sizeOnDisk
+                                    + " dlBytes=" + totalBytesToDownload + " stageBytes=" + totalBytesToStage);
+                            }
+                        } catch (Exception depotIgnored) {
+                            Log.w("XServerDisplayActivity",
+                                    "Steam Launcher: Could not query depot data", depotIgnored);
+                        }
                         if (wnSteamDirectExeOverride) {
                             envVars.put("WN_STEAM_DIRECT_EXE", "1");
                             Log.i("XServerDisplayActivity",
@@ -10398,11 +10564,20 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             commonDir.mkdirs();
             WineUtils.ensureSteamappsCommonSymlink(container, gameDir.getAbsolutePath());
 
-            SteamUtils.createAppManifest(this, appId);
+            String acfLanguage = PrefManager.INSTANCE.getContainerLanguage();
+            String containerLang = container.getExtra("containerLanguage", null);
+            if (containerLang != null && !containerLang.isEmpty()) {
+                acfLanguage = containerLang;
+            }
+            SteamUtils.createAppManifest(this, appId, acfLanguage);
 
             File defaultAcf = new File(imageFs.getRootDir(),
                     ImageFs.WINEPREFIX + "/drive_c/Program Files (x86)/Steam/steamapps/appmanifest_" + appId + ".acf");
             File containerAcf = new File(steamappsDir, "appmanifest_" + appId + ".acf");
+            // Refresh the container manifest from the freshly generated one on every launch so
+            // newly installed DLC / language changes propagate. The generated manifest is the
+            // source of truth (the native launcher rewrites this same file too), so a stale
+            // container copy must not be left in place.
             if (defaultAcf.exists()) {
                 try {
                     java.nio.file.Files.copy(defaultAcf.toPath(), containerAcf.toPath(),
@@ -10420,7 +10595,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 String steamworksAcfContent = "\"AppState\"\n" +
                         "{\n" +
                         "\t\"appid\"\t\t\"228980\"\n" +
-                        "\t\"Universe\"\t\t\"1\"\n" +
+                        "\t\"universe\"\t\t\"1\"\n" +
                         "\t\"name\"\t\t\"Steamworks Common Redistributables\"\n" +
                         "\t\"StateFlags\"\t\t\"4\"\n" +
                         "\t\"installdir\"\t\t\"Steamworks Shared\"\n" +

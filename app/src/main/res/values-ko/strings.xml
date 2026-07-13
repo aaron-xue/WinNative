@@ -843,6 +843,8 @@
 
     <string name="settings_other_language_title">언어</string>
     <string name="settings_other_language_summary">표시 언어 선택</string>
+    <string name="settings_other_game_language_title">게임 언어</string>
+    <string name="settings_other_game_language_summary">Steam/Epic/GOG 다운로드에 사용할 기본 언어</string>
     <string name="settings_other_language_system_default">시스템 기본값</string>
 
     <string name="settings_other_section_integration">통합</string>
@@ -1582,5 +1584,6 @@
     <string name="session_record_started">녹화 시작됨</string>
     <string name="steam_chat_setting_stay_running">백그라운드에서 실행</string>
     <string name="steam_chat_setting_stay_running_desc">WinNative를 종료한 후에도 채팅 유지</string>
+    <string name="settings_content_refresh">새로고침</string>
 </resources>
 

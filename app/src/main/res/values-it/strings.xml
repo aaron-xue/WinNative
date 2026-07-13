@@ -843,6 +843,8 @@ Ad es. <b>META</b> per il <i>tasto META</i>, \n
 
     <string name="settings_other_language_title">Lingua</string>
     <string name="settings_other_language_summary">Scegli la lingua di visualizzazione</string>
+    <string name="settings_other_game_language_title">Lingua del gioco</string>
+    <string name="settings_other_game_language_summary">Lingua preferita per i download di Steam/Epic/GOG</string>
     <string name="settings_other_language_system_default">Predefinita di sistema</string>
 
     <string name="settings_other_section_integration">Integrazione</string>
@@ -1581,5 +1583,6 @@ Percorso installato:
     <string name="session_record_started">Registrazione avviata</string>
     <string name="steam_chat_setting_stay_running">Esegui in background</string>
     <string name="steam_chat_setting_stay_running_desc">Mantieni la chat attiva dopo aver chiuso WinNative</string>
+    <string name="settings_content_refresh">Aggiorna</string>
 </resources>
 

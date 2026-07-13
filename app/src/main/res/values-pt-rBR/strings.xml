@@ -843,6 +843,8 @@ Ex. <b>META</b> para <i>tecla META</i>, \n
 
     <string name="settings_other_language_title">Idioma</string>
     <string name="settings_other_language_summary">Escolher o idioma de exibição</string>
+    <string name="settings_other_game_language_title">Idioma do jogo</string>
+    <string name="settings_other_game_language_summary">Idioma preferido para downloads da Steam/Epic/GOG</string>
     <string name="settings_other_language_system_default">Padrão do sistema</string>
 
     <string name="settings_other_section_integration">Integração</string>
@@ -1581,5 +1583,6 @@ Caminho instalado:
     <string name="session_record_started">Gravação iniciada</string>
     <string name="steam_chat_setting_stay_running">Executar em segundo plano</string>
     <string name="steam_chat_setting_stay_running_desc">Manter o chat ativo após sair do WinNative</string>
+    <string name="settings_content_refresh">Atualizar</string>
 </resources>
 

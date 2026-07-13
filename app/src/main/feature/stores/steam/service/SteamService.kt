@@ -4188,6 +4188,7 @@ class SteamService : Service() {
                         .distinct(),
                 )
             }
+            mainAppDlcIds.addAll(calculatedDlcAppIds.filter { it !in mainAppDlcIds })
 
             runBlocking(Dispatchers.IO) {
                 if (mainAppDepots.isNotEmpty()) {

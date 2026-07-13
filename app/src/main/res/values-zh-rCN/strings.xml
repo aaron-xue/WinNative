@@ -843,6 +843,8 @@
 
     <string name="settings_other_language_title">语言</string>
     <string name="settings_other_language_summary">选择显示语言</string>
+    <string name="settings_other_game_language_title">游戏语言</string>
+    <string name="settings_other_game_language_summary">Steam/Epic/GOG 下载的首选语言</string>
     <string name="settings_other_language_system_default">系统默认</string>
 
     <string name="settings_other_section_integration">集成</string>
@@ -1581,5 +1583,6 @@
     <string name="session_record_started">已开始录制</string>
     <string name="steam_chat_setting_stay_running">在后台运行</string>
     <string name="steam_chat_setting_stay_running_desc">退出 WinNative 后保持聊天运行</string>
+    <string name="settings_content_refresh">刷新</string>
 </resources>
 
