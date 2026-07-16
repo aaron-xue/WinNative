@@ -378,12 +378,16 @@
     <string name="input_controls_editor_number_of_bindings">Number of Bindings</string>
     <string name="input_controls_editor_select_profile">Select Profile</string>
     <string name="input_controls_select_style">Select Style</string>
-    <string name="input_controls_select_label_theme">Button Labels</string>
     <string name="input_controls_style_original">Original</string>
     <string name="input_controls_style_gamehub">Glass</string>
-    <string name="input_controls_label_theme_default">Original</string>
-    <string name="input_controls_label_theme_xbox">Xbox</string>
-    <string name="input_controls_label_theme_playstation">PlayStation</string>
+    <string name="input_controls_style_slate">Slate</string>
+    <string name="input_controls_style_halo">Halo</string>
+    <string name="input_controls_style_glint">Glint</string>
+    <string name="input_controls_style_shadow">Shadow</string>
+    <string name="input_controls_style_reticle">Reticle</string>
+    <string name="input_controls_style_neon">Neon</string>
+    <string name="input_controls_style_lumina">Lumina</string>
+    <string name="input_controls_accent_theme">Color Theme</string>
     <string name="input_controls_edit_duplicating_builtin">Built-in profile — created a copy you can edit.</string>
     <string name="input_controls_editor_profile_name">Profile Name</string>
     <string name="input_controls_editor_no_profile_selected">No profile selected</string>
@@ -1520,6 +1524,7 @@ Installed path:
     <string name="steam_friends_section_online">Online (%1$d)</string>
     <string name="steam_friends_section_offline">Offline (%1$d)</string>
     <string name="steam_friends_none_loaded">No friends loaded yet.</string>
+    <string name="steam_friends_chat_off">Chat is off. Turn Chat Service back on to see your friends.</string>
     <string name="steam_friends_self_you">You</string>
     <string name="steam_friends_in_game">In game</string>
     <string name="steam_friends_join">Join</string>
@@ -1545,6 +1550,8 @@ Installed path:
     <string name="steam_join_the_game">the game</string>
     <string name="steam_friends_settings">Settings</string>
     <string name="steam_chat_settings_title">Chat Settings</string>
+    <string name="steam_chat_setting_service">Chat Service</string>
+    <string name="steam_chat_setting_service_desc">Sign in to friends and chat; turn off to go offline</string>
     <string name="steam_chat_setting_notifications">Chat Notifications</string>
     <string name="steam_chat_setting_notifications_desc">Show a notification when you receive a message</string>
     <string name="steam_chat_setting_heads">Chat Heads</string>

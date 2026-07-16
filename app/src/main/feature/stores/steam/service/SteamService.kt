@@ -869,6 +869,24 @@ class SteamService : Service() {
         private val _isLoggedInFlow = MutableStateFlow(false)
         val isLoggedInFlow = _isLoggedInFlow.asStateFlow()
 
+        // Master chat switch (default on). When off, the Steam session stays logged on for
+        // downloads/library, but the chat layer is killed: offline presence, no message
+        // poller, no friends refresh, no chat overlay/notifications.
+        private val _chatServiceEnabledFlow = MutableStateFlow(true)
+        val chatServiceEnabledFlow = _chatServiceEnabledFlow.asStateFlow()
+
+        /** Flip the master chat switch: persists, updates the reactive flag, and applies at once (presence, poller, overlay). */
+        fun setChatServiceEnabled(context: Context, enabled: Boolean) {
+            PrefManager.chatServiceEnabled = enabled
+            _chatServiceEnabledFlow.value = enabled
+            instance?.applyChatServiceState(enabled)
+            if (!enabled) {
+                com.winlator.cmod.feature.stores.steam.chat.ChatOverlayService.stop(context)
+            } else if (PrefManager.chatHeadsEnabled) {
+                com.winlator.cmod.feature.stores.steam.chat.ChatOverlayService.start(context)
+            }
+        }
+
         /** Pure getter over [isLoggedInFlow] — never write the flow from a read (caused UI flicker on transient CM disconnect); only authoritative sources mutate it (initLoginStatus, onLoggedOn/Off, logOut, clearValues). */
         val isLoggedIn: Boolean
             get() = !isLoggingOut && _isLoggedInFlow.value
@@ -1358,6 +1376,16 @@ class SteamService : Service() {
             if (!dir.isDirectory) return null
             if (!MarkerUtils.hasMarker(dirPath, Marker.DOWNLOAD_COMPLETE_MARKER)) return null
 
+            // Backfill the durable install path once (metadata present now) so recognition survives eviction.
+            if (appInfo.installPath.isNullOrEmpty()) {
+                runCatching {
+                    runBlocking(Dispatchers.IO) {
+                        (instance?.appInfoDao ?: PluviaDatabase.getInstance().appInfoDao())
+                            .update(appInfo.copy(installPath = dirPath))
+                    }
+                }
+                return appInfo.copy(installPath = dirPath)
+            }
             return appInfo
         }
 
@@ -1379,6 +1407,7 @@ class SteamService : Service() {
                     isDownloaded = true,
                     downloadedDepots = downloadedDepotIds,
                     dlcDepots = installedDlcAppIds.sorted(),
+                    installPath = dirPath,
                 )
 
             runBlocking(Dispatchers.IO) {
@@ -1409,9 +1438,20 @@ class SteamService : Service() {
             }
         }
 
+        /** The chosen download folder is not a steamapps root, so it never appears in [allInstallPaths] and marker scans miss games installed there. */
+        private fun configuredDownloadRoot(): String? =
+            runCatching {
+                val context = PluviaApp.instance.applicationContext ?: return@runCatching null
+                val storeDefaultUri =
+                    if (PrefManager.useSingleDownloadFolder) PrefManager.defaultDownloadFolder else PrefManager.steamDownloadFolder
+                if (storeDefaultUri.isEmpty()) return@runCatching null
+                com.winlator.cmod.shared.io.FileUtils
+                    .getFilePathFromUri(context, android.net.Uri.parse(storeDefaultUri))
+            }.getOrNull()
+
         private fun countCompletedInstallMarkers(maxCount: Int = Int.MAX_VALUE): Int {
             var count = 0
-            for (basePath in allInstallPaths) {
+            for (basePath in (allInstallPaths + listOfNotNull(configuredDownloadRoot())).distinct()) {
                 val baseDir = File(basePath)
                 val appDirs = baseDir.listFiles() ?: continue
                 for (appDir in appDirs) {
@@ -1995,7 +2035,7 @@ class SteamService : Service() {
 
             return depots.filter { (depotId, depot) ->
                 val isInstalledBaseDepot =
-                    depot.dlcAppId == INVALID_APP_ID ||
+                    depot.dlcAppId == INVALID_APP_ID &&
                         depotId in installedApp.downloadedDepots
                 val isInstalledDlcDepot =
                     depot.dlcAppId != INVALID_APP_ID &&
@@ -2153,8 +2193,15 @@ class SteamService : Service() {
                     if (oldName.isNotEmpty() && oldName != appName) add(oldName)
                 }
 
-            // No resolvable folder name (metadata unavailable) — never fall back to a shared root.
+            // No metadata: fall back to the durably-recorded install path (disk-validated, appId-specific; never a shared root).
             if (candidateNames.isEmpty()) {
+                val recordedPath = getInstalledApp(gameId)?.installPath.orEmpty()
+                if (recordedPath.isNotEmpty()) {
+                    val normalizedRecorded = normalizeInstallPath(recordedPath)
+                    if (File(normalizedRecorded).isDirectory && !isSuspiciousSteamInstallPath(normalizedRecorded)) {
+                        return normalizedRecorded
+                    }
+                }
                 Timber.w("getAppDirPath: no metadata to resolve install dir for appId=%d", gameId)
                 return ""
             }
@@ -3390,7 +3437,18 @@ class SteamService : Service() {
 
             val service =
                 instance ?: run {
+                    // Session gave up reconnecting and stopped the service; revive it and say so instead of failing silently.
                     Timber.e("SteamService instance is null, cannot start download job.")
+                    MarkerUtils.removeMarker(appDirPath, Marker.DOWNLOAD_IN_PROGRESS_MARKER)
+                    runCatching {
+                        val context = PluviaApp.instance.applicationContext ?: return@runCatching
+                        if (PrefManager.refreshToken.isNotBlank()) start(context)
+                        WinToast.show(
+                            context,
+                            "Steam is not connected — reconnecting, try the download again in a moment",
+                            Toast.LENGTH_LONG,
+                        )
+                    }
                     return null
                 }
 
@@ -4472,6 +4530,7 @@ class SteamService : Service() {
                                     mainAppInfo.copy(
                                         isDownloaded = true,
                                         dlcDepots = updatedMainDlcDepots,
+                                        installPath = appDirPath,
                                     ),
                                 )
                                 Timber.i(
@@ -4483,6 +4542,7 @@ class SteamService : Service() {
                                         mainAppId,
                                         isDownloaded = true,
                                         dlcDepots = selectedDlcAppIds.distinct().sorted(),
+                                        installPath = appDirPath,
                                     ),
                                 )
                                 Timber.i(
@@ -6968,7 +7028,15 @@ class SteamService : Service() {
 
         /** App-lifecycle hooks from PluviaApp (last activity stops → onAppBackgrounded, first starts → onAppForegrounded) — let the Steam session sleep while the app is minimized and idle. See [handleAppBackgrounded]. */
         fun onAppForegrounded() {
-            instance?.handleAppForegrounded()
+            val service = instance
+            if (service == null) {
+                // Only activity creation starts the service, so without this a stopped session stays dead for the whole process.
+                if (PrefManager.refreshToken.isNotBlank()) {
+                    runCatching { PluviaApp.instance.applicationContext?.let { start(it) } }
+                }
+                return
+            }
+            service.handleAppForegrounded()
         }
 
         fun onAppBackgrounded() {
@@ -7521,6 +7589,16 @@ class SteamService : Service() {
                             "Could not start download — retry after Steam finishes loading",
                         )
                     }
+                } else if (started.getStatusFlow().value == DownloadPhase.COMPLETE) {
+                    // No downloader runs, so release the slot here; keyed on COMPLETE because a queued job is also inactive.
+                    Timber.i("startQueued: appId=$appId resolved as already complete — releasing coordinator slot")
+                    runBlocking {
+                        DownloadCoordinator.notifyFinished(
+                            DownloadRecord.STORE_STEAM,
+                            record.storeGameId,
+                            DownloadRecord.STATUS_COMPLETE,
+                        )
+                    }
                 }
             }
 
@@ -7605,6 +7683,8 @@ class SteamService : Service() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+
+        _chatServiceEnabledFlow.value = PrefManager.chatServiceEnabled
 
         notificationHelper = NotificationHelper(applicationContext)
         val notification = notificationHelper.createForegroundNotification("Steam Service is running")
@@ -7769,6 +7849,32 @@ class SteamService : Service() {
                     delay(backoffMs)
                 }
             }
+    }
+
+    /** Applies the master chat switch to a live session: enable → restart the message poller, go online (stored persona), refresh friends; disable → stop the poller and go offline. No-op until logged on (onWnLoggedOn handles cold start). */
+    private fun applyChatServiceState(enabled: Boolean) {
+        if (!isLoggedIn) return
+        if (enabled) {
+            messagePollerJob?.cancel()
+            messagePollerJob = continuousIncomingMessagePoller()
+            scope.launch {
+                val effectiveState =
+                    (EPersonaState.from(PrefManager.personaState) ?: EPersonaState.Online).code()
+                withWnSession { s -> s.setPersonaState(effectiveState) }
+                com.winlator.cmod.feature.stores.steam.wnsteam.WnLibSteamClient
+                    .setPersonaState(effectiveState)
+            }
+            scope.launch { runCatching { refreshFriends() } }
+        } else {
+            messagePollerJob?.cancel()
+            messagePollerJob = null
+            scope.launch {
+                val offline = EPersonaState.Offline.code()
+                withWnSession { s -> s.setPersonaState(offline) }
+                com.winlator.cmod.feature.stores.steam.wnsteam.WnLibSteamClient
+                    .setPersonaState(offline)
+            }
+        }
     }
 
     private fun ensureHealthySessionImpl() {
@@ -8224,15 +8330,19 @@ class SteamService : Service() {
         picsGetProductInfoJob?.cancel()
         picsGetProductInfoJob = continuousPICSGetProductInfo()
         messagePollerJob?.cancel()
-        messagePollerJob = continuousIncomingMessagePoller()
+        messagePollerJob = if (PrefManager.chatServiceEnabled) continuousIncomingMessagePoller() else null
 
         // Repair legacy depots whose stored download>size was frozen by the change-number skip.
         healCorruptManifestDownloadSizes()
 
-        // Tell steam we're online, this allows friends to update.
+        // Tell steam our presence — online (stored persona) when chat is on, offline when the master switch is off — this lets friends update.
         scope.launch {
             val effectiveState =
-                (EPersonaState.from(PrefManager.personaState) ?: EPersonaState.Online).code()
+                if (!PrefManager.chatServiceEnabled) {
+                    EPersonaState.Offline.code()
+                } else {
+                    (EPersonaState.from(PrefManager.personaState) ?: EPersonaState.Online).code()
+                }
             withWnSession { s -> s.setPersonaState(effectiveState) }
             com.winlator.cmod.feature.stores.steam.wnsteam.WnLibSteamClient
                 .setPersonaState(effectiveState)
