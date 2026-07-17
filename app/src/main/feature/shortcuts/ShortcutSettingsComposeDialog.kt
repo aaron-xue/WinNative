@@ -445,9 +445,7 @@ class ShortcutSettingsComposeDialog private constructor(
             state.refreshRateEntries.value = refreshEntries
             val savedRate = shortcut.getExtra("refreshRate", "0")
             if (savedRate.isNullOrEmpty() || savedRate == "0") {
-                // 默认选中 60Hz（如果存在的话）
-                val defaultIdx = refreshEntries.indexOfFirst { it == "60 Hz" }
-                state.selectedRefreshRate.intValue = if (defaultIdx >= 0) defaultIdx else 0
+                state.selectedRefreshRate.intValue = 0
             } else {
                 val target = "$savedRate Hz"
                 val idx = refreshEntries.indexOfFirst { it == target }
@@ -458,8 +456,8 @@ class ShortcutSettingsComposeDialog private constructor(
         }
 
         // FPS Limit
-        val savedFpsLimit = shortcut.getExtra("fpsLimit", "60")
-        state.fpsLimit.intValue = savedFpsLimit.toIntOrNull() ?: 60
+        val savedFpsLimit = shortcut.getExtra("fpsLimit", "0")
+        state.fpsLimit.intValue = savedFpsLimit.toIntOrNull() ?: 0
 
         // SGSR 1 per-game shortcut settings
         state.sgsrEnabled.value = shortcut.getExtra("sgsrEnabled", "0") == "1"
