@@ -5243,7 +5243,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                 hudElements[4] = obj.optBoolean("showRAM", true);
                 hudElements[5] = obj.optBoolean("showBattery", true);
                 hudElements[6] = obj.optBoolean("showTemp", true);
-                hudElements[7] = obj.optBoolean("showGraph", true);
+                hudElements[7] = obj.optBoolean("showGraph", false);
                 hudElements[8] = obj.optBoolean("showCpuTemp", false);
                 hudElements[9] = obj.optBoolean("showTime", true);
             } catch (JSONException e) {
