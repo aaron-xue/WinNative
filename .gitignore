@@ -52,7 +52,7 @@ app/schemas/
 app/pubg/
 
 # Signing keys
-*.jks
+# *.jks
 *.keystore
 signing.properties
 
