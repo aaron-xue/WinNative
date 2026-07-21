@@ -123,6 +123,10 @@
 # IO helper classes used pervasively in shortcut/container persistence
 -keep class com.winlator.cmod.shared.io.StreamUtils { *; }
 
+# FileInfo — used via Compose mutableStateOf delegates in ContainerFileManagerActivity
+-keep class com.winlator.cmod.runtime.container.FileInfo { *; }
+-keep class com.winlator.cmod.runtime.container.FileInfo$Type { *; }
+
 # Container dependencies — transitively used by Container/ContainerManager constructors
 -keep class com.winlator.cmod.runtime.wine.WineInfo { *; }
 -keep class com.winlator.cmod.runtime.wine.MSLink { *; }
