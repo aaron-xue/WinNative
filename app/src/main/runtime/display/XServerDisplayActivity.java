@@ -8570,11 +8570,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
 
         if (!args.isEmpty() && !args.startsWith("winhandler.exe") && !args.startsWith("explorer")) {
-            String affinityArg =
-                taskAffinityMask != 0
-                    ? "/affinity " + Integer.toHexString(taskAffinityMask & 0xFFFF) + " "
-                    : "";
-            return "winhandler.exe " + affinityArg + args;
+            return "winhandler.exe " + args;
         } else {
             return args;
         }
