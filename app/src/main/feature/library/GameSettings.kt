@@ -542,6 +542,7 @@ interface GameSettingsCallbacks {
     fun onDismiss()
     fun onAddToHomeScreen()
 
+    fun onScrapeGameArtwork(gameName: String) {}
     fun onPickGameCardArtwork() {}
     fun onRemoveGameCardArtwork() {}
     fun onPickIconArtwork() {}
@@ -1218,6 +1219,24 @@ private fun GeneralSection(
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 0.8.sp
                 )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(AccentBlue.copy(alpha = 0.08f))
+                        .border(1.dp, AccentBlue.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                        .paneNavItem(cornerRadius = 10.dp, onActivate = { callbacks.onScrapeGameArtwork(state.name.value) }, highlightColor = NavHighlight)
+                        .clickable { callbacks.onScrapeGameArtwork(state.name.value) }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(R.string.library_games_scrape_artwork),
+                            color = AccentBlue,
+                            fontSize = SettingValueSize,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
 
                 Box(
                     modifier = Modifier
@@ -1283,15 +1302,13 @@ private fun GeneralSection(
                     onSelected = { state.selectedScreenSize.intValue = it }
                 )
             }
-            if (!isContainer) {
-                Box(Modifier.weight(1f)) {
-                    SettingDropdown(
-                        label = stringResource(R.string.settings_general_refresh_rate),
-                        entries = state.refreshRateEntries.value,
-                        selectedIndex = state.selectedRefreshRate.intValue,
-                        onSelected = { state.selectedRefreshRate.intValue = it }
-                    )
-                }
+            Box(Modifier.weight(1f)) {
+                SettingDropdown(
+                    label = stringResource(R.string.settings_general_refresh_rate),
+                    entries = state.refreshRateEntries.value,
+                    selectedIndex = state.selectedRefreshRate.intValue,
+                    onSelected = { state.selectedRefreshRate.intValue = it }
+                )
             }
         }
 

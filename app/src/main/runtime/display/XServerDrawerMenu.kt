@@ -644,6 +644,7 @@ data class XServerDrawerState(
     val inputControlsTouchscreenHaptics: Boolean = false,
     val inputControlsGamepadVibration: Boolean = true,
     val inputControlsGcmRumbleMode: String = "disabled",
+    val inputControlsReverseBindingOrder: Boolean = false,
     val cursorSpeed: Float = 1.0f,
     // External display / cast "Output" pane.
     val outputSwapActive: Boolean = false,
@@ -683,6 +684,12 @@ data class XServerDrawerState(
     val gestureSelectedProfileIndex: Int = 0,
     val rightStickSensitivity: Float = 1.0f,
     val screenTouchRsSensitivity: Float = 1.25f,
+    val mangoHudEnabled: Boolean = false,
+    val mangoHudElements: BooleanArray = BooleanArray(20) { it < 12 },
+    val mangoHudAlpha: Float = 1.0f,
+    val mangoHudBgAlpha: Float = 0.5f,
+    val mangoHudScale: Float = 0.735f,
+    val mangoHudLocked: Boolean = false,
 )
 
 class XServerDrawerStateHolder(
@@ -959,6 +966,21 @@ interface XServerDrawerActionListener {
 
     fun onFrametimeNumericChanged(enabled: Boolean)
 
+    fun onMangoHudChanged(enabled: Boolean)
+
+    fun onMangoHudElementToggled(
+        index: Int,
+        enabled: Boolean,
+    )
+
+    fun onMangoHudAlphaChanged(alpha: Float)
+
+    fun onMangoHudBackgroundAlphaChanged(alpha: Float)
+
+    fun onMangoHudScaleChanged(scale: Float)
+
+    fun onMangoHudLockChanged(locked: Boolean)
+
     fun onHUDCardExpandedChanged(expanded: Boolean)
 
     fun onGyroscopeEnabledChanged(enabled: Boolean)
@@ -1075,6 +1097,8 @@ interface XServerDrawerActionListener {
 
     fun onInputControlsGcmRumbleModeChanged(mode: String)
 
+    fun onInputControlsReverseBindingOrderChanged(enabled: Boolean)
+
     fun onInputControlsEditClick()
 
     fun onScreenTouchModeChanged(mode: Int)
@@ -1175,6 +1199,7 @@ fun buildXServerDrawerState(
     inputControlsTouchscreenHaptics: Boolean = false,
     inputControlsGamepadVibration: Boolean = true,
     inputControlsGcmRumbleMode: String = "disabled",
+    inputControlsReverseBindingOrder: Boolean = false,
     cursorSpeed: Float = 1.0f,
     fullscreenEnabled: Boolean = false,
     maxRefreshRate: Int = 60,
@@ -1187,6 +1212,12 @@ fun buildXServerDrawerState(
     gestureSelectedProfileIndex: Int = 0,
     rightStickSensitivity: Float = 1.0f,
     screenTouchRsSensitivity: Float = 1.25f,
+    mangoHudEnabled: Boolean = false,
+    mangoHudElements: BooleanArray = BooleanArray(20) { it < 12 },
+    mangoHudAlpha: Float = 1.0f,
+    mangoHudBgAlpha: Float = 0.5f,
+    mangoHudScale: Float = 0.735f,
+    mangoHudLocked: Boolean = false,
 ): XServerDrawerState {
     val items =
         mutableListOf(
@@ -1373,6 +1404,7 @@ fun buildXServerDrawerState(
         inputControlsTouchscreenHaptics = inputControlsTouchscreenHaptics,
         inputControlsGamepadVibration = inputControlsGamepadVibration,
         inputControlsGcmRumbleMode = inputControlsGcmRumbleMode,
+        inputControlsReverseBindingOrder = inputControlsReverseBindingOrder,
         cursorSpeed = cursorSpeed,
         mouseEnabled = !mouseDisabled,
         relativeMouseEnabled = relativeMouseEnabled,
@@ -1382,6 +1414,12 @@ fun buildXServerDrawerState(
         gestureSelectedProfileIndex = gestureSelectedProfileIndex,
         rightStickSensitivity = rightStickSensitivity,
         screenTouchRsSensitivity = screenTouchRsSensitivity,
+        mangoHudEnabled = mangoHudEnabled,
+        mangoHudElements = mangoHudElements,
+        mangoHudAlpha = mangoHudAlpha,
+        mangoHudBgAlpha = mangoHudBgAlpha,
+        mangoHudScale = mangoHudScale,
+        mangoHudLocked = mangoHudLocked,
     )
 }
 

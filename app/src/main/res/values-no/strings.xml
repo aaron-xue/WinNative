@@ -158,6 +158,8 @@
     </plurals>
 
     <!-- Library > Games -->
+    <string name="library_games_scrape_artwork">Hent grafikk</string>
+    <string name="library_games_scraping_artwork">Henter</string>
     <string name="library_games_shortcut_created">Snarvei opprettet</string>
     <string name="library_games_failed_to_create_shortcut">Kunne ikke opprette snarvei: %s</string>
     <string name="library_games_install_path">Installasjonssti</string>
@@ -345,7 +347,10 @@
     <string name="input_controls_editor_shape">Form</string>
     <string name="input_controls_editor_type">Type</string>
     <string name="input_controls_editor_binding">Tilordning</string>
+    <string name="binding_primary">Primær tilordning</string>
     <string name="binding_secondary">Sekundær tilordning</string>
+    <string name="binding_third">Tertiær tilordning</string>
+    <string name="binding_fourth">Kvartær tilordning</string>
     <string name="input_controls_editor_binding_up">Tilordning opp</string>
     <string name="input_controls_editor_binding_right">Tilordning høyre</string>
     <string name="input_controls_editor_binding_down">Tilordning ned</string>
@@ -742,6 +747,32 @@ F.eks. <b>META</b> for <i>META-tast</i>, \n
     <string name="session_drawer_hud_element_temp">B.TMP</string>
     <string name="session_drawer_hud_element_graph">Graf</string>
     <string name="session_drawer_hud_element_cpu_temp">C.TMP</string>
+    <string name="session_drawer_hud_mango_style">Mango-stil HUD</string>
+    <string name="session_drawer_hud_mango_settings">Mango HUD-innstillinger</string>
+    <string name="mango_hud_element_gpu_load">GPU-belastning</string>
+    <string name="mango_hud_element_gpu_temp">GPU-temp.</string>
+    <string name="mango_hud_element_cpu_load">CPU-belastning</string>
+    <string name="mango_hud_element_cpu_temp">CPU-temp.</string>
+    <string name="mango_hud_element_ram">RAM</string>
+    <string name="mango_hud_element_battery">Batteri</string>
+    <string name="mango_hud_element_lows" formatted="false">1 %-bunner</string>
+    <string name="mango_hud_element_graph">Frametime-graf</string>
+    <string name="mango_hud_element_engine">Motor</string>
+    <string name="mango_hud_element_vram">VRAM</string>
+    <string name="mango_hud_element_cpu_mhz">CPU-klokke</string>
+    <string name="mango_hud_element_gpu_clock">GPU-klokke</string>
+    <string name="mango_hud_element_cores">Per kjerne</string>
+    <string name="mango_hud_element_network">Nettverk</string>
+    <string name="mango_hud_element_swap">Swap</string>
+    <string name="mango_hud_element_resolution">Oppløsning</string>
+    <string name="mango_hud_element_wine">Wine-versjon</string>
+    <string name="mango_hud_element_duration">Økttid</string>
+    <string name="mango_hud_element_clock">Klokke</string>
+    <string name="mango_hud_element_throttle">Termisk status</string>
+    <string name="mango_hud_group_memory">Minne</string>
+    <string name="mango_hud_group_system">System</string>
+    <string name="mango_hud_lock">Lås HUD</string>
+    <string name="mango_hud_lock_subtitle">La berøringer gå til kontrollene bak HUD-en. Hold på HUD-en for å låse den. (3.5 sec)</string>
     <string name="hud_position_menu_title">Flytt HUD til</string>
     <string name="hud_position_top_left">Øverst til venstre</string>
     <string name="hud_position_top_center">Øverst i midten</string>
@@ -1017,6 +1048,7 @@ F.eks. <b>META</b> for <i>META-tast</i>, \n
     <string name="settings_general_select_wallpaper">Velg bakgrunnsbilde</string>
     <string name="settings_general_title">Generelt</string>
     <string name="settings_general_enable_file_provider">Aktiver File Provider</string>
+    <string name="settings_general_enable_auto_scraping">Aktiver automatisk henting</string>
     <string name="settings_general_take_effect_next_startup">Dette valget trer i kraft ved neste oppstart.</string>
     <string name="settings_general_imagefs">Imagefs</string>
     <string name="settings_general_reinstall_imagefs">Installer Imagefs på nytt</string>
@@ -1040,6 +1072,7 @@ F.eks. <b>META</b> for <i>META-tast</i>, \n
     <string name="settings_general_xinput_toggle_summary">Slår av XInput-håndtering når du vil ha eksklusiv mus- og tastaturkontroll.</string>
     <string name="settings_external_display_output_summary">Flytt spillet til en tilkoblet ekstern skjerm i stedet for å speile denne skjermen. Briller bruker alltid sin egen skjerm.</string>
     <string name="settings_general_file_provider_summary">Gjør WinNative-filer tilgjengelige for Androids dokumentvelgere og filbehandlere.</string>
+    <string name="settings_general_auto_scraping_summary">Denne innstillingen lar WinNative automatisk hente grafikk til egendefinerte spill.</string>
     <string name="settings_general_open_browser_summary">Åpne støttede nettlenker i Android-nettleseren i stedet for inne i Wine.</string>
     <string name="settings_general_clipboard_summary">Tillat kopiering og innliming mellom Android- og Wine-økter.</string>
     <string name="settings_general_imagefs_summary">Gjenopprett medfølgende systemfiler uten å fjerne dine eksisterende containere.</string>
@@ -1112,6 +1145,8 @@ F.eks. <b>META</b> for <i>META-tast</i>, \n
     <string name="settings_other_language_title">Språk</string>
     <string name="settings_other_language_summary">Velg visningsspråk</string>
     <string name="settings_other_language_system_default">Systemstandard</string>
+    <string name="settings_other_game_language_title">Spillspråk</string>
+    <string name="settings_other_game_language_summary">Foretrukket språk for Steam/Epic/GOG-nedlastinger</string>
 
     <string name="settings_other_section_integration">Integrasjon</string>
     <string name="settings_other_setup_wizard_title">Oppsettsveiviser</string>
@@ -1241,6 +1276,7 @@ Installert bane:
     <string name="setup_wizard_creating_container">Oppretter…</string>
 
     <string name="input_controls_tap_to_click">Trykk for å klikke</string>
+    <string name="input_controls_reverse_binding_order">Omvendt rekkefølge for bindinger</string>
     <!-- Steam > Login -->
     <string name="steam_login_auth_webview_title">Autorisasjon</string>
     <string name="steam_login_sign_in_to_your_account">Logg inn på kontoen din</string>
@@ -1498,6 +1534,7 @@ Installert bane:
     <string name="steam_friends_section_online">På nett (%1$d)</string>
     <string name="steam_friends_section_offline">Frakoblet (%1$d)</string>
     <string name="steam_friends_none_loaded">Ingen venner lastet ennå.</string>
+    <string name="steam_friends_chat_off">Chatten er av. Slå på chattetjenesten igjen for å se vennene dine.</string>
     <string name="steam_friends_self_you">Du</string>
     <string name="steam_friends_in_game">I spill</string>
     <string name="steam_friends_join">Bli med</string>
@@ -1523,6 +1560,8 @@ Installert bane:
     <string name="steam_join_the_game">spillet</string>
     <string name="steam_friends_settings">Innstillinger</string>
     <string name="steam_chat_settings_title">Chatteinnstillinger</string>
+    <string name="steam_chat_setting_service">Chattetjeneste</string>
+    <string name="steam_chat_setting_service_desc">Logg inn for å se venner og chatte; slå av for å vises frakoblet</string>
     <string name="steam_chat_setting_notifications">Chattevarsler</string>
     <string name="steam_chat_setting_notifications_desc">Vis et varsel når du mottar en melding</string>
     <string name="steam_chat_setting_heads">Chattehoder</string>

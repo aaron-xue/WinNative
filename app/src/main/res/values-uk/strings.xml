@@ -177,6 +177,8 @@
     </plurals>
 
     <!-- Library > Games -->
+    <string name="library_games_scrape_artwork">Завантажити зображення</string>
+    <string name="library_games_scraping_artwork">Завантаження</string>
     <string name="library_games_shortcut_created">Ярлик створено</string>
     <string name="library_games_failed_to_create_shortcut">Не вдалося створити ярлик: %s</string>
     <string name="library_games_install_path">Шлях встановлення</string>
@@ -613,6 +615,32 @@
     <string name="session_drawer_hud_element_graph">Графік</string>
     <string name="session_drawer_hud_element_time">Час</string>
     <string name="session_drawer_hud_element_cpu_temp">C.TMP</string>
+    <string name="session_drawer_hud_mango_style">HUD у стилі Mango</string>
+    <string name="session_drawer_hud_mango_settings">Налаштування Mango HUD</string>
+    <string name="mango_hud_element_gpu_load">Навантаження GPU</string>
+    <string name="mango_hud_element_gpu_temp">Темп. GPU</string>
+    <string name="mango_hud_element_cpu_load">Навантаження CPU</string>
+    <string name="mango_hud_element_cpu_temp">Темп. CPU</string>
+    <string name="mango_hud_element_ram">ОЗП</string>
+    <string name="mango_hud_element_battery">Батарея</string>
+    <string name="mango_hud_element_lows" formatted="false">1% мінімуми</string>
+    <string name="mango_hud_element_graph">Графік фреймтайму</string>
+    <string name="mango_hud_element_engine">Рушій</string>
+    <string name="mango_hud_element_vram">VRAM</string>
+    <string name="mango_hud_element_cpu_mhz">Частота CPU</string>
+    <string name="mango_hud_element_gpu_clock">Частота GPU</string>
+    <string name="mango_hud_element_cores">По ядрах</string>
+    <string name="mango_hud_element_network">Мережа</string>
+    <string name="mango_hud_element_swap">Підкачка</string>
+    <string name="mango_hud_element_resolution">Роздільність</string>
+    <string name="mango_hud_element_wine">Версія Wine</string>
+    <string name="mango_hud_element_duration">Час сесії</string>
+    <string name="mango_hud_element_clock">Годинник</string>
+    <string name="mango_hud_element_throttle">Тротлінг</string>
+    <string name="mango_hud_group_memory">Пам\'ять</string>
+    <string name="mango_hud_group_system">Система</string>
+    <string name="mango_hud_lock">Заблокувати HUD</string>
+    <string name="mango_hud_lock_subtitle">Дотики проходять до елементів керування за HUD. Утримуйте HUD, щоб заблокувати. (3.5 sec)</string>
 
     <!-- Session > Task Manager -->
     <string name="session_task_confirm_end_process">Ви хочете завершити цей процес?</string>
@@ -757,6 +785,7 @@
     <string name="settings_general_select_wallpaper">Вибрати шпалери</string>
     <string name="settings_general_title">Загальні</string>
     <string name="settings_general_enable_file_provider">Увімкнути файловий провайдер</string>
+    <string name="settings_general_enable_auto_scraping">Увімкнути автоматичне завантаження зображень</string>
     <string name="settings_general_take_effect_next_startup">Ця опція набуде чинності при наступному запуску.</string>
     <string name="settings_general_imagefs">Imagefs</string>
     <string name="settings_general_reinstall_imagefs">Перевстановити Imagefs</string>
@@ -780,6 +809,7 @@
     <string name="settings_general_xinput_toggle_summary">Вимикає обробку XInput, коли потрібне ексклюзивне керування мишею та клавіатурою.</string>
     <string name="settings_external_display_output_summary">Переносить гру на під\'єднаний зовнішній дисплей замість дублювання цього екрана. Окуляри завжди використовують власний дисплей.</string>
     <string name="settings_general_file_provider_summary">Надати доступ до файлів WinNative для засобів вибору документів та файлових менеджерів Android.</string>
+    <string name="settings_general_auto_scraping_summary">Цей параметр дозволяє WinNative автоматично завантажувати зображення користувацьких ігор.</string>
     <string name="settings_general_open_browser_summary">Відкривати підтримувані веб-посилання у браузері Android замість Wine.</string>
     <string name="settings_general_clipboard_summary">Дозволити копіювання та вставку між Android та сесіями Wine.</string>
     <string name="settings_general_imagefs_summary">Відновити системні файли з пакета без видалення існуючих контейнерів.</string>
@@ -1093,7 +1123,10 @@
     <!-- Missing translations -->
     <string name="common_ui_graphics">Графіка</string>
     <string name="steam_section_title">Steam</string>
+    <string name="binding_primary">Первинне призначення</string>
     <string name="binding_secondary">Вторинне призначення</string>
+    <string name="binding_third">Третинне призначення</string>
+    <string name="binding_fourth">Четвертинне призначення</string>
     <string name="input_controls_editor_tap_to_switch">Торкніться, щоб перемкнути</string>
     <string name="input_controls_editor_download_profile">Завантажити профіль</string>
     <string name="container_config_emulator_section">Емулятор</string>
@@ -1257,6 +1290,7 @@
     <string name="input_controls_editor_radial_menu">Радіальне меню</string>
     <string name="input_controls_editor_radial_menu_options">Параметри радіального меню</string>
     <string name="input_controls_tap_to_click">Торкання для кліку</string>
+    <string name="input_controls_reverse_binding_order">Зворотний порядок призначень</string>
     <string name="num_controllers">Кількість контролерів</string>
     <string name="session_drawer_controls_section">Керування</string>
     <string name="session_drawer_header_subtitle">Швидкий доступ до керування, накладень та інструментів сесії</string>
@@ -1393,6 +1427,7 @@
     <string name="steam_friends_section_online">У мережі (%1$d)</string>
     <string name="steam_friends_section_offline">Не в мережі (%1$d)</string>
     <string name="steam_friends_none_loaded">Друзів ще не завантажено.</string>
+    <string name="steam_friends_chat_off">Чат вимкнено. Знову ввімкніть Службу чату, щоб бачити друзів.</string>
     <string name="steam_friends_self_you">Ви</string>
     <string name="steam_friends_in_game">У грі</string>
     <string name="steam_friends_join">Приєднатися</string>
@@ -1418,6 +1453,8 @@
     <string name="steam_join_the_game">гру</string>
     <string name="steam_friends_settings">Settings</string>
     <string name="steam_chat_settings_title">Chat Settings</string>
+    <string name="steam_chat_setting_service">Служба чату</string>
+    <string name="steam_chat_setting_service_desc">Увійдіть, щоб бачити друзів і спілкуватися в чаті; вимкніть, щоб перейти в офлайн</string>
     <string name="steam_chat_setting_notifications">Chat Notifications</string>
     <string name="steam_chat_setting_notifications_desc">Show a notification when you receive a message</string>
     <string name="steam_chat_setting_heads">Chat Heads</string>

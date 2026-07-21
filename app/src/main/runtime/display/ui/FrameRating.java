@@ -116,6 +116,7 @@ public class FrameRating extends LinearLayout implements Runnable {
   private boolean enableTime;
   private volatile FrameObserver frameObserver;
   private int gpuFailCount;
+  private int statsParity;
   private volatile int gpuLoad;
 
   /** Raw per-present frame events on the render thread, fired regardless of HUD visibility so perf recording/leaderboard stats keep working when hidden. Must be cheap (atomic op + array write). */
@@ -137,7 +138,6 @@ public class FrameRating extends LinearLayout implements Runnable {
   private volatile long lastFrameNano;
   private long lastPrimaryFrameNano;
   private long lastGraphRedraw;
-  private long lastHudRedraw;
   private volatile String ramText;
   private final long[] frameTimesNano = new long[MAX_FRAME_SAMPLES];
   private int frameTimesStart;
@@ -165,11 +165,9 @@ public class FrameRating extends LinearLayout implements Runnable {
 
   // ── GPU load caching (prevents N/A flickering from transient sysfs failures)
   private int lastGoodGpuLoad = -1;
-  private long lastGoodGpuTime = 0;
-  private static final long GPU_CACHE_DURATION_MS = 5000;
   private static final long FALLBACK_SUPPRESSION_NS = 2000000000L;
   private static final long FPS_CALC_INTERVAL_NS = 1000000000L;
-  private static final long HUD_REFRESH_MS = 1000L;
+  private static final long HUD_REFRESH_MS = 500L;
   private static final long CPU_WARMUP_POLL_MS = 500L;
   private static final int MAX_FRAME_SAMPLES = 1024;
 
@@ -204,7 +202,6 @@ public class FrameRating extends LinearLayout implements Runnable {
     this.lastGraphRedraw = 0L;
     this.lastFrameNano = 0L;
     this.lastPrimaryFrameNano = 0L;
-    this.lastHudRedraw = 0L;
     this.frameTimesStart = 0;
     this.frameTimesCount = 0;
     this.lastFPS = 0.0f;
@@ -235,7 +232,6 @@ public class FrameRating extends LinearLayout implements Runnable {
     this.gpuFailCount = 0;
     this.cpuFailCount = 0;
     this.lastGoodGpuLoad = -1;
-    this.lastGoodGpuTime = 0;
     this.isStatsRunning = false;
     this.C_VALUE = Color.parseColor("#FFFFFF");
     this.C_CPU = Color.parseColor("#FF8200");
@@ -314,7 +310,7 @@ public class FrameRating extends LinearLayout implements Runnable {
             if (isStatsRunning) {
               calculateStats();
               if (statsHandler != null) {
-                long next = (prevCpuSample != null && !cpuWarmedUp) ? CPU_WARMUP_POLL_MS : 1000L;
+                long next = (prevCpuSample != null && !cpuWarmedUp) ? CPU_WARMUP_POLL_MS : 500L;
                 statsHandler.postDelayed(this, next);
               }
             }
@@ -369,7 +365,10 @@ public class FrameRating extends LinearLayout implements Runnable {
   @Override
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
-    bringToFront();
+    // Deferred: bringToFront() reorders the parent's child array; called inside the parent's
+    // attach walk it makes the walker skip the sibling that shifts into this view's old slot,
+    // leaving that sibling permanently unattached. Z-order is held by the elevation either way.
+    post(this::bringToFront);
     setElevation(1000.0f);
     restorePersistedPosition();
     installParentLayoutListener();
@@ -1010,7 +1009,6 @@ public class FrameRating extends LinearLayout implements Runnable {
   public synchronized void reset() {
     this.lastFrameNano = 0L;
     this.lastPrimaryFrameNano = 0L;
-    this.lastHudRedraw = 0L;
     this.frameTimesStart = 0;
     this.frameTimesCount = 0;
     this.lastFPS = 0.0f;
@@ -1217,36 +1215,21 @@ public class FrameRating extends LinearLayout implements Runnable {
       float ms = (nowNano - this.lastFrameNano) / 1000000.0f;
       this.lastFrameNano = nowNano;
 
-      long time = SystemClock.elapsedRealtime();
+      // Ring write only; window trimming, FPS math, and text refresh run on the 1s UI tick.
       appendFrameTimeLocked(nowNano);
-      trimFrameTimesLocked(nowNano - FPS_CALC_INTERVAL_NS);
-      updateRollingFpsLocked();
-      boolean shouldRedrawHud = false;
-      if (time - this.lastHudRedraw >= HUD_REFRESH_MS) shouldRedrawHud = true;
-
       if (ms > 0.0f && ms < 500.0f) {
         this.currentMs = ms;
       }
-      long frametimeRedrawInterval = this.frametimeNumericMode ? 500L : 50L;
-      if (this.enableGraph && ms > 0.0f && ms < 500.0f
-          && time - this.lastGraphRedraw >= frametimeRedrawInterval) {
-        if (!this.frametimeNumericMode && this.graphView != null) {
+      if (this.enableGraph && !this.frametimeNumericMode && this.graphView != null
+          && ms > 0.0f && ms < 500.0f) {
+        long time = SystemClock.elapsedRealtime();
+        if (time - this.lastGraphRedraw >= 50L) {
           this.graphView.addFrame(ms);
           this.graphView.postInvalidate();
-        } else if (this.frametimeNumericMode && this.tvFrametime != null) {
-          final float msSnapshot = ms;
-          this.tvFrametime.post(
-              () -> this.tvFrametime.setText(String.format(Locale.US, "%.1f ms", msSnapshot)));
+          this.lastGraphRedraw = time;
         }
-        this.lastGraphRedraw = time;
       }
-
-      if (!shouldRedrawHud && time - this.lastHudRedraw < HUD_REFRESH_MS) {
-        return;
-      }
-      this.lastHudRedraw = time;
     }
-    post(this);
   }
 
   public void recordGameFrame() {
@@ -1304,6 +1287,22 @@ public class FrameRating extends LinearLayout implements Runnable {
   }
 
   private int calculateGPULoad() throws Exception {
+    File gpubusy = new File("/sys/class/kgsl/kgsl-3d0/gpubusy");
+    if (gpubusy.exists() && gpubusy.canRead()) {
+      try (BufferedReader reader = new BufferedReader(new FileReader(gpubusy))) {
+        String line = reader.readLine();
+        if (line != null) {
+          String[] parts = line.trim().split("\\s+");
+          if (parts.length >= 2) {
+            long busy = Long.parseLong(parts[0]);
+            long total = Long.parseLong(parts[1]);
+            if (total > 0) return (int) ((100 * busy) / total);
+          }
+        }
+      } catch (Exception ignored) {
+      }
+    }
+
     File[] gpuFiles = {
       new File("/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage"),
       new File("/sys/class/kgsl/kgsl-3d0/devfreq/gpu_load"),
@@ -1341,40 +1340,21 @@ public class FrameRating extends LinearLayout implements Runnable {
       }
     }
 
-    File gpubusy = new File("/sys/class/kgsl/kgsl-3d0/gpubusy");
-    if (gpubusy.exists() && gpubusy.canRead()) {
-      try (BufferedReader reader = new BufferedReader(new FileReader(gpubusy))) {
-        String line = reader.readLine();
-        if (line != null) {
-          String[] parts = line.trim().split("\\s+");
-          if (parts.length >= 2) {
-            long busy = Long.parseLong(parts[0]);
-            long total = Long.parseLong(parts[1]);
-            return total != 0 ? (int) ((100 * busy) / total) : 0;
-          }
-        }
-      } catch (Exception ignored) {
-      }
-    }
     throw new Exception("Failed to read GPU usage.");
   }
 
   private void calculateStats() {
+    // Loads sample every 500ms (matching the Mango HUD window); heavier reads alternate at 1s.
+    boolean slow = (this.statsParity++ & 1) == 0;
     if (this.enableGpu && this.canReadGpu) {
       try {
         int load = calculateGPULoad();
         this.gpuLoad = load;
         this.lastGoodGpuLoad = load;
-        this.lastGoodGpuTime = SystemClock.elapsedRealtime();
         this.gpuFailCount = 0;
       } catch (Exception e) {
-        // Use cached value if recent enough, otherwise show -1
-        long elapsed = SystemClock.elapsedRealtime() - this.lastGoodGpuTime;
-        if (this.lastGoodGpuLoad >= 0 && elapsed < GPU_CACHE_DURATION_MS) {
-          this.gpuLoad = this.lastGoodGpuLoad;
-        } else {
-          this.gpuLoad = -1;
-        }
+        // Hold the last good reading through transient sysfs failures, like the Mango HUD.
+        if (this.lastGoodGpuLoad >= 0) this.gpuLoad = this.lastGoodGpuLoad;
         this.gpuFailCount++;
       }
     }
@@ -1403,14 +1383,14 @@ public class FrameRating extends LinearLayout implements Runnable {
         this.cpuFailCount++;
       }
     }
-    if (this.enableCpuTemp) {
+    if (slow && this.enableCpuTemp) {
       try {
         this.cpuSensorTemp = CPUStatus.getCpuTempC();
       } catch (Exception e) {
         this.cpuSensorTemp = -1;
       }
     }
-    if (this.enableRam) {
+    if (slow && this.enableRam) {
       try {
         ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
         ((ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(mi);
@@ -1420,7 +1400,7 @@ public class FrameRating extends LinearLayout implements Runnable {
         this.ramText = "N/A";
       }
     }
-    if (this.enableBatt || this.enableTemp) {
+    if (slow && (this.enableBatt || this.enableTemp)) {
       try {
         if (this.batteryReceiver == null) {
           IntentFilter batteryFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
@@ -1468,6 +1448,11 @@ public class FrameRating extends LinearLayout implements Runnable {
   public void run() {
     // Watchdog first so a stalled game drops to 0 on the mirrored HUD too: reset FPS if no frame arrived for > 1.5s, then publish.
     long nowNano = System.nanoTime();
+    synchronized (this) {
+      // Moved off the present path: maintain the 1s rolling window at display cadence.
+      trimFrameTimesLocked(nowNano - FPS_CALC_INTERVAL_NS);
+      updateRollingFpsLocked();
+    }
     if (this.lastFrameNano > 0 && nowNano - this.lastFrameNano > 1500000000L) {
       synchronized (this) {
         this.lastFPS = 0.0f;

@@ -1,6 +1,8 @@
 package com.winlator.cmod.app.shell
 import com.winlator.cmod.app.shell.UnifiedActivity.ControllerConnectionState
 
+import android.content.SharedPreferences
+import androidx.preference.PreferenceManager
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
@@ -135,6 +137,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -160,6 +163,8 @@ import com.winlator.cmod.feature.settings.SettingsNavItem
 import com.winlator.cmod.feature.setup.SetupWizardActivity
 import com.winlator.cmod.feature.shortcuts.LibraryShortcutUtils
 import com.winlator.cmod.feature.shortcuts.LibraryShortcutArtwork
+import com.winlator.cmod.feature.artwork.SteamArtworkScraper
+import com.winlator.cmod.runtime.container.Container
 import com.winlator.cmod.feature.shortcuts.ShortcutBroadcastReceiver
 import com.winlator.cmod.feature.shortcuts.ShortcutSettingsComposeDialog
 import com.winlator.cmod.feature.shortcuts.ShortcutsFragment
@@ -229,6 +234,7 @@ import com.winlator.cmod.shared.ui.nav.PANE_DIR_SECONDARY
 import com.winlator.cmod.shared.ui.nav.PANE_DIR_UP
 import com.winlator.cmod.shared.ui.nav.PaneNavRegistry
 import com.winlator.cmod.shared.ui.nav.paneNavItem
+import kotlinx.coroutines.CoroutineScope
 import com.winlator.cmod.shared.ui.FourByTwoGridView
 import com.winlator.cmod.shared.ui.JoystickGridScroll
 import com.winlator.cmod.shared.ui.JoystickListScroll
@@ -1074,6 +1080,52 @@ internal fun UnifiedActivity.driveRoots(includeInternal: Boolean): List<Director
     return roots
 }
 
+internal suspend fun scrapeCustomGameArtwork(
+    context: android.content.Context,
+    gameName: String,
+    shortcutUuid: String,
+    container: Container,
+    shortcutFile: java.io.File
+) {
+    withContext(Dispatchers.Main) {
+        com.winlator.cmod.shared.ui.toast.WinToast.show(context, R.string.library_games_scraping_artwork, android.widget.Toast.LENGTH_LONG)
+    }
+    val shortcut = Shortcut(container, shortcutFile)
+    val artworkInfo = SteamArtworkScraper(context).getGameArtwork(gameName)
+    val dir = java.io.File(context.filesDir, "library_view_artwork")
+    if (!dir.exists()) dir.mkdirs()
+    var saved = false
+    artworkInfo.forEach { (slotSuffix, file) ->
+        val librarySlot =
+            LibraryShortcutArtwork.LibraryArtworkSlot.entries.find { it.fileSuffix == slotSuffix }
+        val bitmap =
+            if (librarySlot != null && file.isFile) {
+                com.winlator.cmod.shared.android.ImageUtils.getBitmapFromUri(context, file.toUri(), 1024)
+            } else {
+                null
+            }
+        if (librarySlot != null && bitmap != null) {
+            val outputFile = java.io.File(dir, "${shortcutUuid}_${librarySlot.fileSuffix}.png")
+            if (com.winlator.cmod.shared.io.FileUtils.saveBitmapToFile(bitmap, outputFile)) {
+                shortcut.putExtra(librarySlot.extraKey, outputFile.absolutePath)
+                saved = true
+            }
+        }
+        file.delete()
+    }
+    if (saved) shortcut.saveData()
+    withContext(Dispatchers.Main) {
+        com.winlator.cmod.shared.ui.toast.WinToast.show(
+            context,
+            if (saved) R.string.common_ui_done else R.string.common_ui_failed,
+            android.widget.Toast.LENGTH_LONG,
+        )
+        if (saved) {
+            com.winlator.cmod.app.PluviaApp.events.emit(com.winlator.cmod.feature.stores.steam.events.AndroidEvent.LibraryArtworkChanged)
+        }
+    }
+}
+
 internal fun UnifiedActivity.addCustomGame(
     context: android.content.Context,
     name: String,
@@ -1097,6 +1149,7 @@ internal fun UnifiedActivity.addCustomGame(
     val shortcutFile = java.io.File(desktopDir, "$safeName.desktop")
     val shortcutUuid = java.util.UUID.randomUUID().toString()
     val iconOutFile = LibraryShortcutArtwork.buildManagedCustomGameArtworkFile(context, shortcutUuid)
+    val preferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
     val extractedArtworkPath =
         try {
             if (PeIconExtractor.extractAndSave(java.io.File(exePath), iconOutFile)) {
@@ -1125,6 +1178,11 @@ internal fun UnifiedActivity.addCustomGame(
     com.winlator.cmod.shared.io.FileUtils
         .writeString(shortcutFile, content.toString())
     container.saveData()
+    if (preferences.getBoolean("enable_auto_scraping", false)) {
+        CoroutineScope(Dispatchers.IO).launch {
+            scrapeCustomGameArtwork(context, name, shortcutUuid, container, shortcutFile)
+        }
+    }
 }
 
 @Composable

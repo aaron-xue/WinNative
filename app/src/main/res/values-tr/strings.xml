@@ -158,6 +158,8 @@
     </plurals>
 
     <!-- Library > Games -->
+    <string name="library_games_scrape_artwork">Görselleri Getir</string>
+    <string name="library_games_scraping_artwork">Getiriliyor</string>
     <string name="library_games_shortcut_created">Kısayol oluşturuldu</string>
     <string name="library_games_failed_to_create_shortcut">Kısayol oluşturulamadı: %s</string>
     <string name="library_games_install_path">Yükleme Yolu</string>
@@ -345,7 +347,10 @@
     <string name="input_controls_editor_shape">Şekil</string>
     <string name="input_controls_editor_type">Tür</string>
     <string name="input_controls_editor_binding">Bağlama</string>
+    <string name="binding_primary">Birincil bağlama</string>
     <string name="binding_secondary">İkincil bağlama</string>
+    <string name="binding_third">Üçüncül bağlama</string>
+    <string name="binding_fourth">Dördüncül bağlama</string>
     <string name="input_controls_editor_binding_up">Bağlama Yukarı</string>
     <string name="input_controls_editor_binding_right">Bağlama Sağ</string>
     <string name="input_controls_editor_binding_down">Bağlama Aşağı</string>
@@ -742,6 +747,32 @@ E.g. <b>META</b> için <i>META tuşu</i>, \n
     <string name="session_drawer_hud_element_temp">B.SIC</string>
     <string name="session_drawer_hud_element_graph">Grafik</string>
     <string name="session_drawer_hud_element_cpu_temp">C.SIC</string>
+    <string name="session_drawer_hud_mango_style">Mango Tarzı HUD</string>
+    <string name="session_drawer_hud_mango_settings">Mango HUD Ayarları</string>
+    <string name="mango_hud_element_gpu_load">GPU Yükü</string>
+    <string name="mango_hud_element_gpu_temp">GPU Sıcaklığı</string>
+    <string name="mango_hud_element_cpu_load">CPU Yükü</string>
+    <string name="mango_hud_element_cpu_temp">CPU Sıcaklığı</string>
+    <string name="mango_hud_element_ram">RAM</string>
+    <string name="mango_hud_element_battery">Pil</string>
+    <string name="mango_hud_element_lows" formatted="false">%1 Düşükler</string>
+    <string name="mango_hud_element_graph">Frametime Grafiği</string>
+    <string name="mango_hud_element_engine">Motor</string>
+    <string name="mango_hud_element_vram">VRAM</string>
+    <string name="mango_hud_element_cpu_mhz">CPU Hızı</string>
+    <string name="mango_hud_element_gpu_clock">GPU Hızı</string>
+    <string name="mango_hud_element_cores">Çekirdek Başına</string>
+    <string name="mango_hud_element_network">Ağ</string>
+    <string name="mango_hud_element_swap">Takas</string>
+    <string name="mango_hud_element_resolution">Çözünürlük</string>
+    <string name="mango_hud_element_wine">Wine Sürümü</string>
+    <string name="mango_hud_element_duration">Oturum Süresi</string>
+    <string name="mango_hud_element_clock">Saat</string>
+    <string name="mango_hud_element_throttle">Kısıtlama Durumu</string>
+    <string name="mango_hud_group_memory">Bellek</string>
+    <string name="mango_hud_group_system">Sistem</string>
+    <string name="mango_hud_lock">HUD\'u Kilitle</string>
+    <string name="mango_hud_lock_subtitle">Dokunuşların HUD arkasındaki kontrollere geçmesini sağlar. Kilitlemek için HUD\'a basılı tutun. (3.5 sec)</string>
     <string name="hud_position_menu_title">HUD\'u şuraya taşı</string>
     <string name="hud_position_top_left">Sol Üst</string>
     <string name="hud_position_top_center">Üst Orta</string>
@@ -1017,6 +1048,7 @@ E.g. <b>META</b> için <i>META tuşu</i>, \n
     <string name="settings_general_select_wallpaper">Duvar kağıdı seç</string>
     <string name="settings_general_title">Genel</string>
     <string name="settings_general_enable_file_provider">Dosya Sağlayıcısını Etkinleştir</string>
+    <string name="settings_general_enable_auto_scraping">Otomatik Görsel Getirmeyi Etkinleştir</string>
     <string name="settings_general_take_effect_next_startup">Bu seçenek bir sonraki başlatmada etkin olacaktır.</string>
     <string name="settings_general_imagefs">Imagefs</string>
     <string name="settings_general_reinstall_imagefs">Imagefs\'i Yeniden Kur</string>
@@ -1040,6 +1072,7 @@ E.g. <b>META</b> için <i>META tuşu</i>, \n
     <string name="settings_general_xinput_toggle_summary">Özel fare ve klavye denetimi istediğinizde XInput işlemeyi kapatır.</string>
     <string name="settings_external_display_output_summary">Bu ekranı yansıtmak yerine oyunu bağlı bir harici ekrana taşıyın. Gözlükler her zaman kendi ekranlarını kullanır.</string>
     <string name="settings_general_file_provider_summary">WinNative dosyalarını Android belge seçicilerine ve dosya yöneticilerine açar.</string>
+    <string name="settings_general_auto_scraping_summary">Bu ayar, WinNative\'in özel oyun görsellerini otomatik olarak getirmesine olanak tanır.</string>
     <string name="settings_general_open_browser_summary">Desteklenen web bağlantılarını Wine yerine Android tarayıcısında açar.</string>
     <string name="settings_general_clipboard_summary">Android ile Wine oturumları arasında kopyalama ve yapıştırmaya izin verir.</string>
     <string name="settings_general_imagefs_summary">Mevcut kapsayıcılarınızı kaldırmadan paket sistem dosyalarını geri yükler.</string>
@@ -1112,6 +1145,8 @@ E.g. <b>META</b> için <i>META tuşu</i>, \n
     <string name="settings_other_language_title">Dil</string>
     <string name="settings_other_language_summary">Görüntüleme dilini seçin</string>
     <string name="settings_other_language_system_default">Sistem varsayılanı</string>
+    <string name="settings_other_game_language_title">Oyun Dili</string>
+    <string name="settings_other_game_language_summary">Steam/Epic/GOG indirmeleri için tercih edilen dil</string>
 
     <string name="settings_other_section_integration">Entegrasyon</string>
     <string name="settings_other_setup_wizard_title">Kurulum Sihirbazı</string>
@@ -1241,6 +1276,7 @@ Yüklü konum:
     <string name="setup_wizard_creating_container">Oluşturuluyor…</string>
 
     <string name="input_controls_tap_to_click">Tıklamak İçin Dokun</string>
+    <string name="input_controls_reverse_binding_order">Bağlama sırasını tersine çevir</string>
     <!-- Steam > Login -->
     <string name="steam_login_auth_webview_title">Yetkilendirme</string>
     <string name="steam_login_sign_in_to_your_account">Hesabınızda oturum açın</string>
@@ -1498,6 +1534,7 @@ Yüklü konum:
     <string name="steam_friends_section_online">Çevrimiçi (%1$d)</string>
     <string name="steam_friends_section_offline">Çevrimdışı (%1$d)</string>
     <string name="steam_friends_none_loaded">Henüz arkadaş yüklenmedi.</string>
+    <string name="steam_friends_chat_off">Sohbet kapalı. Arkadaşlarınızı görmek için Sohbet Servisini yeniden açın.</string>
     <string name="steam_friends_self_you">Sen</string>
     <string name="steam_friends_in_game">Oyunda</string>
     <string name="steam_friends_join">Katıl</string>
@@ -1523,6 +1560,8 @@ Yüklü konum:
     <string name="steam_join_the_game">oyun</string>
     <string name="steam_friends_settings">Ayarlar</string>
     <string name="steam_chat_settings_title">Sohbet Ayarları</string>
+    <string name="steam_chat_setting_service">Sohbet Servisi</string>
+    <string name="steam_chat_setting_service_desc">Arkadaşlarınızı görmek ve sohbet etmek için giriş yapın; çevrimdışı olmak için kapatın</string>
     <string name="steam_chat_setting_notifications">Sohbet Bildirimleri</string>
     <string name="steam_chat_setting_notifications_desc">Bir mesaj aldığınızda bildirim göster</string>
     <string name="steam_chat_setting_heads">Sohbet Balonları</string>

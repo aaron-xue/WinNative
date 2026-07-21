@@ -173,6 +173,8 @@
     </plurals>
 
     <!-- Library > Games -->
+    <string name="library_games_scrape_artwork">抓取封面</string>
+    <string name="library_games_scraping_artwork">抓取中</string>
     <string name="library_games_shortcut_created">快捷方式已创建</string>
     <string name="library_games_failed_to_create_shortcut">创建快捷方式失败：%s</string>
     <string name="library_games_install_path">安装路径</string>
@@ -609,6 +611,32 @@
     <string name="session_drawer_hud_element_graph">图表</string>
     <string name="session_drawer_hud_element_time">时间</string>
     <string name="session_drawer_hud_element_cpu_temp">C.TMP</string>
+    <string name="session_drawer_hud_mango_style">Mango 风格 HUD</string>
+    <string name="session_drawer_hud_mango_settings">Mango HUD 设置</string>
+    <string name="mango_hud_element_gpu_load">GPU 负载</string>
+    <string name="mango_hud_element_gpu_temp">GPU 温度</string>
+    <string name="mango_hud_element_cpu_load">CPU 负载</string>
+    <string name="mango_hud_element_cpu_temp">CPU 温度</string>
+    <string name="mango_hud_element_ram">内存</string>
+    <string name="mango_hud_element_battery">电池</string>
+    <string name="mango_hud_element_lows" formatted="false">1% 最低帧</string>
+    <string name="mango_hud_element_graph">帧生成时间图表</string>
+    <string name="mango_hud_element_engine">引擎</string>
+    <string name="mango_hud_element_vram">VRAM</string>
+    <string name="mango_hud_element_cpu_mhz">CPU 频率</string>
+    <string name="mango_hud_element_gpu_clock">GPU 频率</string>
+    <string name="mango_hud_element_cores">每核心</string>
+    <string name="mango_hud_element_network">网络</string>
+    <string name="mango_hud_element_swap">交换内存</string>
+    <string name="mango_hud_element_resolution">分辨率</string>
+    <string name="mango_hud_element_wine">Wine 版本</string>
+    <string name="mango_hud_element_duration">会话时长</string>
+    <string name="mango_hud_element_clock">时钟</string>
+    <string name="mango_hud_element_throttle">温控状态</string>
+    <string name="mango_hud_group_memory">内存</string>
+    <string name="mango_hud_group_system">系统</string>
+    <string name="mango_hud_lock">锁定 HUD</string>
+    <string name="mango_hud_lock_subtitle">让触摸穿透到 HUD 后面的控件。长按 HUD 即可锁定。 (3.5 sec)</string>
 
     <!-- Session > Task Manager -->
     <string name="session_task_confirm_end_process">您要结束此进程吗？</string>
@@ -751,6 +779,7 @@
     <string name="settings_general_select_wallpaper">选择壁纸</string>
     <string name="settings_general_title">通用</string>
     <string name="settings_general_enable_file_provider">启用文件提供程序</string>
+    <string name="settings_general_enable_auto_scraping">启用自动抓取</string>
     <string name="settings_general_take_effect_next_startup">此选项将在下次启动时生效。</string>
     <string name="settings_general_imagefs">Imagefs</string>
     <string name="settings_general_reinstall_imagefs">重新安装 Imagefs</string>
@@ -774,6 +803,7 @@
     <string name="settings_general_xinput_toggle_summary">在需要独占鼠标和键盘控制时关闭 XInput 处理。</string>
     <string name="settings_external_display_output_summary">将游戏移到已连接的外部显示器，而不是镜像此屏幕。眼镜始终使用自己的显示屏。</string>
     <string name="settings_general_file_provider_summary">向 Android 文档选择器和文件管理器公开 WinNative 文件。</string>
+    <string name="settings_general_auto_scraping_summary">让 WinNative 自动抓取自定义游戏封面。</string>
     <string name="settings_general_open_browser_summary">在 Android 浏览器中打开支持的网页链接，而非在 Wine 内部打开。</string>
     <string name="settings_general_clipboard_summary">允许在 Android 和 Wine 会话之间复制和粘贴。</string>
     <string name="settings_general_imagefs_summary">恢复捆绑的系统文件而不删除现有容器。</string>
@@ -1087,7 +1117,10 @@
     <!-- Missing translations -->
     <string name="common_ui_graphics">图形</string>
     <string name="steam_section_title">Steam</string>
+    <string name="binding_primary">主要绑定</string>
     <string name="binding_secondary">次要绑定</string>
+    <string name="binding_third">第三绑定</string>
+    <string name="binding_fourth">第四绑定</string>
     <string name="input_controls_editor_tap_to_switch">点按切换</string>
     <string name="input_controls_editor_download_profile">下载配置文件</string>
     <string name="container_config_emulator_section">模拟器</string>
@@ -1254,6 +1287,7 @@
     <string name="input_controls_editor_radial_menu">径向菜单</string>
     <string name="input_controls_editor_radial_menu_options">径向菜单选项</string>
     <string name="input_controls_tap_to_click">轻触点击</string>
+    <string name="input_controls_reverse_binding_order">反向绑定顺序</string>
     <string name="num_controllers">手柄数量</string>
     <string name="session_drawer_controls_section">控制</string>
     <string name="session_drawer_header_subtitle">快速访问控制、悬浮层和会话工具</string>
@@ -1387,6 +1421,7 @@
     <string name="steam_friends_section_online">在线 (%1$d)</string>
     <string name="steam_friends_section_offline">离线 (%1$d)</string>
     <string name="steam_friends_none_loaded">尚未加载好友。</string>
+    <string name="steam_friends_chat_off">聊天已关闭。重新开启聊天服务以查看好友。</string>
     <string name="steam_friends_self_you">你</string>
     <string name="steam_friends_in_game">游戏中</string>
     <string name="steam_friends_join">加入</string>
@@ -1412,6 +1447,8 @@
     <string name="steam_join_the_game">游戏</string>
     <string name="steam_friends_settings">Settings</string>
     <string name="steam_chat_settings_title">Chat Settings</string>
+    <string name="steam_chat_setting_service">聊天服务</string>
+    <string name="steam_chat_setting_service_desc">登录以使用好友和聊天；关闭则显示为离线。</string>
     <string name="steam_chat_setting_notifications">Chat Notifications</string>
     <string name="steam_chat_setting_notifications_desc">Show a notification when you receive a message</string>
     <string name="steam_chat_setting_heads">Chat Heads</string>

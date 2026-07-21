@@ -24,6 +24,10 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CoroutineScope
 import com.winlator.cmod.BuildConfig
 import com.winlator.cmod.R
 import com.winlator.cmod.app.PluviaApp
@@ -78,6 +82,7 @@ import com.winlator.cmod.runtime.input.controls.GestureProfileManager
 import com.winlator.cmod.runtime.input.controls.InputControlsManager
 import com.winlator.cmod.runtime.audio.midi.MidiManager
 import com.winlator.cmod.runtime.display.winhandler.WinHandler
+import com.winlator.cmod.feature.artwork.SteamArtworkScraper
 import java.io.File
 import java.lang.reflect.Field
 import java.util.Arrays
@@ -221,15 +226,47 @@ class ShortcutSettingsComposeDialog private constructor(
                     addShortcutToScreen(shortcut)
                 }
                 if (result == ShortcutsFragment.PinShortcutResult.REUSED_EXISTING) {
-                    WinToast.show(context, R.string.shortcuts_list_readded_existing, shortcut.icon)
+                    WinToast.show(context, R.string.shortcuts_list_readded_existing, shortcut.icon, dialog.window?.decorView)
                 } else if (result == ShortcutsFragment.PinShortcutResult.FAILED) {
                     WinToast.show(
                         context,
                         context.getString(
                             R.string.library_games_failed_to_create_shortcut,
                             shortcut.name
-                        )
+                        ),
+                        dialog.window?.decorView,
                     )
+                }
+            }
+
+            override fun onScrapeGameArtwork(gameName: String) {
+                WinToast.show(context, context.getString(R.string.library_games_scraping_artwork), Toast.LENGTH_LONG, dialog.window?.decorView)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val artworkInfo = SteamArtworkScraper(context).getGameArtwork(gameName)
+                    withContext(Dispatchers.Main) {
+                        var saved = false
+                        artworkInfo.forEach { (slotSuffix, file) ->
+                            val slot =
+                                LibraryShortcutArtwork.LibraryArtworkSlot.entries
+                                    .find { it.fileSuffix == slotSuffix }
+                            if (slot != null && saveScrapedLibraryArtwork(file.toUri(), slot)) {
+                                saved = true
+                            }
+                            file.delete()
+                        }
+                        if (saved) {
+                            shortcut.saveData()
+                            shouldRefreshLibraryOnSave = true
+                            syncLibraryArtworkState()
+                            emitLibraryRefreshIfNeeded()
+                        }
+                        WinToast.show(
+                            context,
+                            context.getString(if (saved) R.string.common_ui_done else R.string.common_ui_failed),
+                            Toast.LENGTH_LONG,
+                            dialog.window?.decorView,
+                        )
+                    }
                 }
             }
 
@@ -320,7 +357,6 @@ class ShortcutSettingsComposeDialog private constructor(
             }
         }
     }
-
 
     private fun loadInitialData() {
         val container = shortcut.container
@@ -1401,7 +1437,7 @@ class ShortcutSettingsComposeDialog private constructor(
     private fun applySelectedExePath(path: String) {
         val exeFile = File(path)
         if (!exeFile.isFile || !exeFile.name.endsWith(".exe", ignoreCase = true)) {
-            WinToast.show(context, R.string.common_ui_select_valid_exe_file, Toast.LENGTH_SHORT)
+            WinToast.show(context, context.getString(R.string.common_ui_select_valid_exe_file), Toast.LENGTH_SHORT, dialog.window?.decorView)
             return
         }
 
@@ -1594,23 +1630,40 @@ class ShortcutSettingsComposeDialog private constructor(
         }
     }
 
+    // Each view gets its own shape, so slots are written individually and only
+    // replaced when the new image lands.
+    private fun saveScrapedLibraryArtwork(
+        uri: Uri,
+        slot: LibraryShortcutArtwork.LibraryArtworkSlot,
+    ): Boolean {
+        val bitmap = ImageUtils.getBitmapFromUri(context, uri, 1024) ?: return false
+        val previousPath = shortcut.getExtra(slot.extraKey)
+        val outputFile = LibraryShortcutArtwork.buildManagedViewArtworkFile(context, shortcut, slot)
+        if (!FileUtils.saveBitmapToFile(bitmap, outputFile)) return false
+        if (previousPath.isNotBlank() && previousPath != outputFile.absolutePath) {
+            LibraryShortcutArtwork.deleteManagedArtwork(context, previousPath)
+        }
+        shortcut.putExtra(slot.extraKey, outputFile.absolutePath)
+        return true
+    }
+
     private fun saveSelectedLibraryArtwork(
         uri: Uri,
         target: LibraryArtworkTarget,
-    ) {
+    ): Boolean {
         val bitmap = ImageUtils.getBitmapFromUri(context, uri, 1024)
         if (bitmap == null) {
-            WinToast.show(context, R.string.shortcuts_library_artwork_failed, Toast.LENGTH_SHORT)
-            return
+            WinToast.show(context, context.getString(R.string.shortcuts_library_artwork_failed), Toast.LENGTH_SHORT, dialog.window?.decorView)
+            return false
         }
 
-        val extraKey = getLibraryArtworkExtraKey(target) ?: return
+        val extraKey = getLibraryArtworkExtraKey(target) ?: return false
         val previousPath = shortcut.getExtra(extraKey)
-        val slot = getLibraryArtworkSlot(target) ?: return
+        val slot = getLibraryArtworkSlot(target) ?: return false
         val outputFile = LibraryShortcutArtwork.buildManagedViewArtworkFile(context, shortcut, slot)
         if (!FileUtils.saveBitmapToFile(bitmap, outputFile)) {
-            WinToast.show(context, R.string.shortcuts_library_artwork_failed, Toast.LENGTH_SHORT)
-            return
+            WinToast.show(context, context.getString(R.string.shortcuts_library_artwork_failed), Toast.LENGTH_SHORT, dialog.window?.decorView)
+            return false
         }
 
         if (previousPath.isNotBlank() && previousPath != outputFile.absolutePath) {
@@ -1624,6 +1677,7 @@ class ShortcutSettingsComposeDialog private constructor(
         syncLibraryArtworkState()
         // Artwork lands on disk at pick time, so refresh now instead of at confirm.
         emitLibraryRefreshIfNeeded()
+        return true
     }
 
     private fun clearLibraryArtwork(target: LibraryArtworkTarget) {

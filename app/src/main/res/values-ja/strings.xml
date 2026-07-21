@@ -158,6 +158,8 @@
     </plurals>
 
     <!-- Library > Games -->
+    <string name="library_games_scrape_artwork">アートワークを取得</string>
+    <string name="library_games_scraping_artwork">取得中</string>
     <string name="library_games_shortcut_created">ショートカットを作成しました</string>
     <string name="library_games_failed_to_create_shortcut">ショートカットの作成に失敗しました: %s</string>
     <string name="library_games_install_path">インストールパス</string>
@@ -345,7 +347,10 @@
     <string name="input_controls_editor_shape">形状</string>
     <string name="input_controls_editor_type">種類</string>
     <string name="input_controls_editor_binding">バインド</string>
+    <string name="binding_primary">プライマリバインド</string>
     <string name="binding_secondary">セカンダリバインド</string>
+    <string name="binding_third">サードバインド</string>
+    <string name="binding_fourth">フォースバインド</string>
     <string name="input_controls_editor_binding_up">上バインド</string>
     <string name="input_controls_editor_binding_right">右バインド</string>
     <string name="input_controls_editor_binding_down">下バインド</string>
@@ -742,6 +747,32 @@
     <string name="session_drawer_hud_element_temp">B.TMP</string>
     <string name="session_drawer_hud_element_graph">グラフ</string>
     <string name="session_drawer_hud_element_cpu_temp">C.TMP</string>
+    <string name="session_drawer_hud_mango_style">Mango風HUD</string>
+    <string name="session_drawer_hud_mango_settings">Mango HUD設定</string>
+    <string name="mango_hud_element_gpu_load">GPU使用率</string>
+    <string name="mango_hud_element_gpu_temp">GPU温度</string>
+    <string name="mango_hud_element_cpu_load">CPU使用率</string>
+    <string name="mango_hud_element_cpu_temp">CPU温度</string>
+    <string name="mango_hud_element_ram">RAM</string>
+    <string name="mango_hud_element_battery">バッテリー</string>
+    <string name="mango_hud_element_lows" formatted="false">1% Low</string>
+    <string name="mango_hud_element_graph">フレームタイムグラフ</string>
+    <string name="mango_hud_element_engine">エンジン</string>
+    <string name="mango_hud_element_vram">VRAM</string>
+    <string name="mango_hud_element_cpu_mhz">CPUクロック</string>
+    <string name="mango_hud_element_gpu_clock">GPUクロック</string>
+    <string name="mango_hud_element_cores">コア別</string>
+    <string name="mango_hud_element_network">ネットワーク</string>
+    <string name="mango_hud_element_swap">スワップ</string>
+    <string name="mango_hud_element_resolution">解像度</string>
+    <string name="mango_hud_element_wine">Wineバージョン</string>
+    <string name="mango_hud_element_duration">セッション時間</string>
+    <string name="mango_hud_element_clock">時計</string>
+    <string name="mango_hud_element_throttle">サーマル状態</string>
+    <string name="mango_hud_group_memory">メモリ</string>
+    <string name="mango_hud_group_system">システム</string>
+    <string name="mango_hud_lock">HUDをロック</string>
+    <string name="mango_hud_lock_subtitle">タッチをHUD背後のコントロールに通します。HUDを長押しするとロックします。 (3.5 sec)</string>
     <string name="hud_position_menu_title">HUD の移動先</string>
     <string name="hud_position_top_left">左上</string>
     <string name="hud_position_top_center">上中央</string>
@@ -1017,6 +1048,7 @@
     <string name="settings_general_select_wallpaper">壁紙を選択</string>
     <string name="settings_general_title">一般</string>
     <string name="settings_general_enable_file_provider">ファイルプロバイダーを有効にする</string>
+    <string name="settings_general_enable_auto_scraping">アートワークの自動取得を有効にする</string>
     <string name="settings_general_take_effect_next_startup">このオプションは次回起動時に有効になります。</string>
     <string name="settings_general_imagefs">Imagefs</string>
     <string name="settings_general_reinstall_imagefs">Imagefs を再インストール</string>
@@ -1040,6 +1072,7 @@
     <string name="settings_general_xinput_toggle_summary">マウスとキーボードを排他的に制御したいときに XInput 処理をオフにします。</string>
     <string name="settings_external_display_output_summary">この画面をミラーリングする代わりに、接続された外部ディスプレイにゲームを移動します。グラスは常に独自のディスプレイを使用します。</string>
     <string name="settings_general_file_provider_summary">WinNative のファイルを Android のドキュメントピッカーやファイルマネージャーに公開します。</string>
+    <string name="settings_general_auto_scraping_summary">WinNative がカスタムゲームのアートワークを自動的に取得できるようにします。</string>
     <string name="settings_general_open_browser_summary">対応する Web リンクを Wine 内ではなく Android のブラウザで開きます。</string>
     <string name="settings_general_clipboard_summary">Android と Wine セッション間でのコピー＆ペーストを許可します。</string>
     <string name="settings_general_imagefs_summary">既存のコンテナを削除せずに、同梱のシステムファイルを復元します。</string>
@@ -1112,6 +1145,8 @@
     <string name="settings_other_language_title">言語</string>
     <string name="settings_other_language_summary">表示言語を選択します</string>
     <string name="settings_other_language_system_default">システムの既定</string>
+    <string name="settings_other_game_language_title">ゲームの言語</string>
+    <string name="settings_other_game_language_summary">Steam/Epic/GOG のダウンロードで優先する言語</string>
 
     <string name="settings_other_section_integration">連携</string>
     <string name="settings_other_setup_wizard_title">セットアップウィザード</string>
@@ -1241,6 +1276,7 @@
     <string name="setup_wizard_creating_container">作成中…</string>
 
     <string name="input_controls_tap_to_click">タップでクリック</string>
+    <string name="input_controls_reverse_binding_order">バインドの順序を逆にする</string>
     <!-- Steam > Login -->
     <string name="steam_login_auth_webview_title">認証</string>
     <string name="steam_login_sign_in_to_your_account">アカウントにサインイン</string>
@@ -1498,6 +1534,7 @@
     <string name="steam_friends_section_online">オンライン (%1$d)</string>
     <string name="steam_friends_section_offline">オフライン (%1$d)</string>
     <string name="steam_friends_none_loaded">フレンドはまだ読み込まれていません。</string>
+    <string name="steam_friends_chat_off">チャットはオフです。フレンドを表示するにはチャットサービスをオンに戻してください。</string>
     <string name="steam_friends_self_you">自分</string>
     <string name="steam_friends_in_game">ゲーム中</string>
     <string name="steam_friends_join">参加</string>
@@ -1523,6 +1560,8 @@
     <string name="steam_join_the_game">ゲーム</string>
     <string name="steam_friends_settings">設定</string>
     <string name="steam_chat_settings_title">チャット設定</string>
+    <string name="steam_chat_setting_service">チャットサービス</string>
+    <string name="steam_chat_setting_service_desc">サインインしてフレンドとチャットします。オフにするとオフラインになります。</string>
     <string name="steam_chat_setting_notifications">チャット通知</string>
     <string name="steam_chat_setting_notifications_desc">メッセージを受信したときに通知を表示します</string>
     <string name="steam_chat_setting_heads">チャットヘッド</string>

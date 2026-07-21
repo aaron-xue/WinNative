@@ -173,6 +173,8 @@
     </plurals>
 
     <!-- Library > Games -->
+    <string name="library_games_scrape_artwork">Artwork abrufen</string>
+    <string name="library_games_scraping_artwork">Wird abgerufen</string>
     <string name="library_games_shortcut_created">Verknüpfung erstellt</string>
     <string name="library_games_failed_to_create_shortcut">Verknüpfung konnte nicht erstellt werden: %s</string>
     <string name="library_games_install_path">Installationspfad</string>
@@ -609,6 +611,32 @@ Z. B. <b>META</b> für <i>Meta-Taste</i>, \n
     <string name="session_drawer_hud_element_graph">Graph</string>
     <string name="session_drawer_hud_element_time">Zeit</string>
     <string name="session_drawer_hud_element_cpu_temp">C.TMP</string>
+    <string name="session_drawer_hud_mango_style">HUD im Mango-Stil</string>
+    <string name="session_drawer_hud_mango_settings">Mango-HUD-Einstellungen</string>
+    <string name="mango_hud_element_gpu_load">GPU-Last</string>
+    <string name="mango_hud_element_gpu_temp">GPU-Temp.</string>
+    <string name="mango_hud_element_cpu_load">CPU-Last</string>
+    <string name="mango_hud_element_cpu_temp">CPU-Temp.</string>
+    <string name="mango_hud_element_ram">RAM</string>
+    <string name="mango_hud_element_battery">Akku</string>
+    <string name="mango_hud_element_lows" formatted="false">1%-Lows</string>
+    <string name="mango_hud_element_graph">Frametime-Graph</string>
+    <string name="mango_hud_element_engine">Engine</string>
+    <string name="mango_hud_element_vram">VRAM</string>
+    <string name="mango_hud_element_cpu_mhz">CPU-Takt</string>
+    <string name="mango_hud_element_gpu_clock">GPU-Takt</string>
+    <string name="mango_hud_element_cores">Pro Kern</string>
+    <string name="mango_hud_element_network">Netzwerk</string>
+    <string name="mango_hud_element_swap">Swap</string>
+    <string name="mango_hud_element_resolution">Auflösung</string>
+    <string name="mango_hud_element_wine">Wine-Version</string>
+    <string name="mango_hud_element_duration">Sitzungszeit</string>
+    <string name="mango_hud_element_clock">Uhr</string>
+    <string name="mango_hud_element_throttle">Drosselstatus</string>
+    <string name="mango_hud_group_memory">Speicher</string>
+    <string name="mango_hud_group_system">System</string>
+    <string name="mango_hud_lock">HUD sperren</string>
+    <string name="mango_hud_lock_subtitle">Berührungen gelangen zu den Steuerelementen hinter dem HUD. Halte das HUD gedrückt, um es zu sperren. (3.5 sec)</string>
 
     <!-- Session > Task Manager -->
     <string name="session_task_confirm_end_process">Möchtest du diesen Prozess beenden?</string>
@@ -751,6 +779,7 @@ Z. B. <b>META</b> für <i>Meta-Taste</i>, \n
     <string name="settings_general_select_wallpaper">Hintergrundbild auswählen</string>
     <string name="settings_general_title">Allgemein</string>
     <string name="settings_general_enable_file_provider">Dateianbieter aktivieren</string>
+    <string name="settings_general_enable_auto_scraping">Automatisches Abrufen aktivieren</string>
     <string name="settings_general_take_effect_next_startup">Diese Option wird beim nächsten Start wirksam.</string>
     <string name="settings_general_imagefs">Imagefs</string>
     <string name="settings_general_reinstall_imagefs">Imagefs neu installieren</string>
@@ -773,6 +802,7 @@ Z. B. <b>META</b> für <i>Meta-Taste</i>, \n
     <string name="settings_general_xinput_toggle_title">XInput deaktivieren</string>
     <string name="settings_general_xinput_toggle_summary">Schaltet die XInput-Behandlung aus, wenn du exklusive Maus- und Tastatursteuerung möchtest.</string>
     <string name="settings_general_file_provider_summary">WinNative-Dateien für Android-Dokumentenauswahl und Dateimanager bereitstellen.</string>
+    <string name="settings_general_auto_scraping_summary">Ermöglicht WinNative, automatisch Artwork für benutzerdefinierte Spiele abzurufen.</string>
     <string name="settings_general_open_browser_summary">Unterstützte Weblinks im Android-Browser statt in Wine öffnen.</string>
     <string name="settings_general_clipboard_summary">Kopieren und Einfügen zwischen Android und Wine-Sitzungen erlauben.</string>
     <string name="settings_general_imagefs_summary">Mitgelieferte Systemdateien wiederherstellen, ohne vorhandene Container zu entfernen.</string>
@@ -1086,7 +1116,10 @@ Installierter Pfad:
     <!-- Missing translations -->
     <string name="common_ui_graphics">Grafik</string>
     <string name="steam_section_title">Steam</string>
+    <string name="binding_primary">Primäre Belegung</string>
     <string name="binding_secondary">Sekundäre Belegung</string>
+    <string name="binding_third">Tertiäre Belegung</string>
+    <string name="binding_fourth">Quartäre Belegung</string>
     <string name="input_controls_editor_tap_to_switch">Tippen zum Wechseln</string>
     <string name="input_controls_editor_download_profile">Profil herunterladen</string>
     <string name="container_config_emulator_section">Emulator</string>
@@ -1250,6 +1283,7 @@ Installierter Pfad:
     <string name="input_controls_editor_radial_menu">Radialmenü</string>
     <string name="input_controls_editor_radial_menu_options">Radialmenü-Optionen</string>
     <string name="input_controls_tap_to_click">Tippen zum Klicken</string>
+    <string name="input_controls_reverse_binding_order">Bindungen in umgekehrter Reihenfolge</string>
     <string name="num_controllers">Anzahl der Controller</string>
     <string name="session_drawer_controls_section">Steuerung</string>
     <string name="session_drawer_header_subtitle">Schnellzugriff auf Steuerung, Overlays und Sitzungswerkzeuge</string>
@@ -1377,6 +1411,57 @@ Installierter Pfad:
     <string name="copy_text">Kopieren</string>
     <string name="select_all">Alle auswählen</string>
     <string name="selected_count">%d ausgewählt</string>
+    <string name="steam_presence_snooze">Schlummern</string>
+    <string name="steam_presence_busy">Beschäftigt</string>
+    <string name="steam_presence_looking_to_trade">Sucht Tauschpartner</string>
+    <string name="steam_presence_looking_to_play">Sucht Mitspieler</string>
+    <string name="steam_friends_count">Freunde — %1$d online</string>
+    <string name="steam_friends_section_in_game">Im Spiel (%1$d)</string>
+    <string name="steam_friends_section_online">Online (%1$d)</string>
+    <string name="steam_friends_section_offline">Offline (%1$d)</string>
+    <string name="steam_friends_none_loaded">Noch keine Freunde geladen.</string>
+    <string name="steam_friends_chat_off">Chat ist deaktiviert. Aktiviere den Chat-Dienst erneut, um deine Freunde zu sehen.</string>
+    <string name="steam_friends_self_you">Du</string>
+    <string name="steam_friends_in_game">Im Spiel</string>
+    <string name="steam_friends_join">Beitreten</string>
+    <string name="steam_friends_play">Spielen</string>
+    <string name="steam_chat_image_failed">(Bild konnte nicht gesendet werden)</string>
+    <string name="steam_chat_empty">Noch keine Nachrichten. Sag Hallo!</string>
+    <string name="steam_chat_uploading_image">Bild wird hochgeladen…</string>
+    <string name="steam_chat_send_image">Bild senden</string>
+    <string name="steam_chat_message_hint">Nachricht…</string>
+    <string name="steam_chat_send">Senden</string>
+    <string name="steam_chat_image">Bild</string>
+    <string name="steam_common_back">Zurück</string>
+    <string name="steam_achievements_title">Errungenschaften</string>
+    <string name="steam_achievements_empty">Keine Errungenschaften für dieses Spiel gefunden,\noder melde dich bei Steam an, um sie zu laden.</string>
+    <string name="steam_achievements_hidden">Versteckte Errungenschaft</string>
+    <string name="steam_achievements_hidden_desc">Spiele weiter, um diese Errungenschaft freizuschalten.</string>
+    <string name="steam_achievements_unlocked_on">Freigeschaltet %1$s</string>
+    <string name="steam_achievements_unlocked">Freigeschaltet</string>
+    <string name="steam_join_joining">%1$s in %2$s beitreten…</string>
+    <string name="steam_join_install">Installiere %1$s, um %2$s beizutreten</string>
+    <string name="steam_join_not_owned">Du besitzt %1$s nicht</string>
+    <string name="steam_chat_not_sent">(nicht gesendet)</string>
+    <string name="steam_join_the_game">das Spiel</string>
+    <string name="steam_friends_settings">Settings</string>
+    <string name="steam_chat_settings_title">Chat Settings</string>
+    <string name="steam_chat_setting_service">Chat-Dienst</string>
+    <string name="steam_chat_setting_service_desc">Für Freunde und Chat anmelden; deaktivieren, um offline zu gehen</string>
+    <string name="steam_chat_setting_notifications">Chat Notifications</string>
+    <string name="steam_chat_setting_notifications_desc">Show a notification when you receive a message</string>
+    <string name="steam_chat_setting_heads">Chat Heads</string>
+    <string name="steam_chat_setting_heads_desc">Floating bubbles to read and reply to messages</string>
+    <string name="steam_chat_setting_ingame">Enable Chat in Game</string>
+    <string name="steam_chat_setting_ingame_desc">Receive and send messages while playing</string>
+    <string name="steam_chat_settings_overlay_needed">Allow display over other apps to use chat heads</string>
+    <string name="steam_chat_heads_title">Messages</string>
+    <string name="steam_chat_heads_recent_title">Recent</string>
+    <string name="steam_chat_heads_online_title">Online</string>
+    <string name="steam_chat_heads_new_chat">New message</string>
+    <string name="steam_chat_setting_autohide">Auto-Hide</string>
+    <string name="steam_chat_setting_autohide_desc">Fade the chat head after 10s of inactivity</string>
+    <string name="steam_chat_heads_friends_title">Friends</string>
     <!-- Display output / external display -->
     <string name="session_drawer_rail_label_output">Ausgabe</string>
     <string name="display_output_prompt_title">Externes Display erkannt</string>
