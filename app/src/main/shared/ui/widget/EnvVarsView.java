@@ -99,6 +99,7 @@ public class EnvVarsView extends FrameLayout {
     },
     {"DXVK_DISABLE_TIMELINE_SEMAPHORES", "CHECKBOX", "0", "1"},
     {"MESA_EXTENSION_MAX_YEAR", "TEXT"},
+    {"WINE_DESKTOP_CAPTURE", "CHECKBOX", "0", "1"},
     {"WRAPPER_MAX_IMAGE_COUNT", "TEXT"},
     {"MESA_GL_VERSION_OVERRIDE", "TEXT"},
     {"PULSE_LATENCY_MSEC", "NUMBER"},
