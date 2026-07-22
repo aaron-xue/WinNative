@@ -7742,20 +7742,16 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
 
         envVars.put("GALLIUM_DRIVER", "zink");
-        envVars.put("LIBGL_KOPPER_DISABLE", "true");
+        // Kopper off only on the Steam path; normal GL needs it on to present.
+        if (isSteamShortcut()) {
+            envVars.put("LIBGL_KOPPER_DISABLE", "true");
+        }
 
         if (firstTimeBoot) {
             Log.d("XServerDisplayActivity", "First time container boot, re-extracting libs");
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper" + ".tzst", rootDir);
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "layers" + ".tzst", rootDir);
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/extra_libs" + ".tzst", rootDir);
-            if (wineInfo != null && wineInfo.isArm64EC() && !GPUInformation.getRenderer(null, null).contains("Mali")) {
-                try {
-                    TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/zink_dlls.tzst", new File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows"));
-                } catch (Exception e) {
-                    Log.w("XServerDisplayActivity", "zink_dlls.tzst not found or extraction failed", e);
-                }
-            }
         }
 
         // FFmpeg 8 libs for Wine's winedmo media path (arm64ec native Wine only; these
