@@ -508,6 +508,29 @@ class ShortcutSettingsComposeDialog private constructor(
                 ?.coerceIn(0, 100)
                 ?: 100
 
+        // shortcut override else container value; legacy single reshadeEffect/flat params migrated in parse
+        val reshadeEffects = com.winlator.cmod.runtime.reshade.ReshadeManager.scanEffects(context)
+        state.reshadeEffects.value = reshadeEffects
+        state.reshadeLoadout.init(
+            reshadeEffects,
+            getShortcutSetting(
+                com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_LOADOUT,
+                container.getExtra(com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_LOADOUT, "")
+            ).ifEmpty { null },
+            getShortcutSetting(
+                com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_MODE,
+                container.getExtra(com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_MODE, "solo")
+            ),
+            getShortcutSetting(
+                com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_PARAMS,
+                container.getExtra(com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_PARAMS, "")
+            ).ifEmpty { null },
+            getShortcutSetting(
+                com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_EFFECT,
+                container.getExtra(com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_EFFECT, "None")
+            ),
+        )
+
         // Graphics driver (basic entries - will be updated after contents sync)
         val graphicsDriverArr =
             context.resources.getStringArray(R.array.graphics_driver_entries).toList()
@@ -1252,6 +1275,32 @@ class ShortcutSettingsComposeDialog private constructor(
                 shortcut.putExtra("sgsrEnabled", null)
                 shortcut.putExtra("sgsrUpscaleMode", null)
                 shortcut.putExtra("sgsrSharpness", null)
+            }
+
+            // saveOverride not putExtra: putExtra leaves hasContainerOverride false, so a reshade-only shortcut gets use_container_defaults=1 and reads back the container's extras
+            run {
+                val loadoutJson = state.reshadeLoadout.loadoutJsonOrNull() ?: ""
+                hasContainerOverride = hasContainerOverride or saveOverride(
+                    com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_LOADOUT,
+                    loadoutJson,
+                    container.getExtra(com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_LOADOUT, "")
+                )
+                hasContainerOverride = hasContainerOverride or saveOverride(
+                    com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_MODE,
+                    if (loadoutJson.isEmpty()) "" else state.reshadeLoadout.mode,
+                    // "solo" is how launch resolves an unset mode; matching it avoids a spurious reshadeMode override
+                    if (loadoutJson.isEmpty()) "" else container.getExtra(com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_MODE, "solo")
+                )
+                hasContainerOverride = hasContainerOverride or saveOverride(
+                    com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_PARAMS,
+                    if (loadoutJson.isEmpty()) "" else (state.reshadeLoadout.paramsJsonOrNull() ?: ""),
+                    container.getExtra(com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_PARAMS, "")
+                )
+                hasContainerOverride = hasContainerOverride or saveOverride(
+                    com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_EFFECT,
+                    if (loadoutJson.isEmpty()) "" else state.reshadeLoadout.firstEffectName(),
+                    container.getExtra(com.winlator.cmod.runtime.reshade.ReshadeConfigWriter.EXTRA_EFFECT, "")
+                )
             }
 
             // Desktop Theme — stored as compound "THEME,TYPE,COLOR" string
