@@ -101,6 +101,7 @@ public class EnvVarsView extends FrameLayout {
     {"MESA_EXTENSION_MAX_YEAR", "TEXT"},
     {"WINE_DESKTOP_CAPTURE", "CHECKBOX", "0", "1"},
     {"WRAPPER_MAX_IMAGE_COUNT", "TEXT"},
+    {"WRAPPER_DMAHEAP_CACHED", "CHECKBOX", "0", "1"},
     {"MESA_GL_VERSION_OVERRIDE", "TEXT"},
     {"PULSE_LATENCY_MSEC", "NUMBER"},
     {"ALSA_LATENCY_MS", "NUMBER"},

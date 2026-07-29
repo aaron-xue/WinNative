@@ -346,6 +346,7 @@
     <string name="input_controls_editor_confirm_duplicate_profile">Czy chcesz zduplikować ten profil?</string>
     <string name="input_controls_editor_title">Edytor sterowania</string>
     <string name="input_controls_editor_toggle_switch">Przełącznik</string>
+    <string name="input_controls_editor_swipeable">Aktywacja przesunięciem</string>
     <string name="input_controls_editor_profile_exported_to">Profil wyeksportowany do</string>
     <string name="input_controls_editor_unable_to_import">Nie można zaimportować profilu</string>
     <string name="input_controls_editor_import_profile">Importuj profil</string>
@@ -444,6 +445,10 @@
     <string name="container_box64_compatibility">Kompatybilność</string>
     <string name="container_box64_intermediate">Pośredni</string>
     <string name="container_box64_performance">Wydajność</string>
+    <string name="container_fexcore_performance_tso">Wydajność TSO</string>
+    <string name="container_fexcore_extreme">Ekstremalny</string>
+    <string name="container_fexcore_extreme_tso">Ekstremalny TSO</string>
+    <string name="container_fexcore_denuvo">Denuvo</string>
     <string name="box64_env_var_help__dynarec_safeflags">
         Obsługa flag w opcodach CALL/RET&lt;br /&gt;&lt;br /&gt;
         &lt;b&gt;0&lt;/b&gt; : Traktuje CALL/RET jakby nigdy nie potrzebowały flag (szybciej, niestabilne)&lt;br /&gt;
@@ -532,6 +537,7 @@
 
     <!-- Container > Graphics Driver -->
     <string name="container_graphics_driver">Sterownik grafiki</string>
+    <string name="container_zink_mode">Tryb Zink</string>
     <string name="container_graphics_transcoder">Transkoder BCn</string>
     <string name="container_graphics_quality">Jakość BCn</string>
     <string name="container_graphics_configuration">Konfiguracja sterownika grafiki</string>
@@ -1596,15 +1602,28 @@ Zainstalowana ścieżka:
     <string name="file_manager_paste">Wklej</string>
     <string name="file_manager_paste_here">Wklej tutaj</string>
     <string name="file_manager_new_folder">Nowy folder</string>
+    <string name="file_manager_new_folder_short">Folder</string>
+    <string name="file_manager_multi_select">Wybierz</string>
     <string name="file_manager_create">Utwórz</string>
     <string name="file_manager_delete">Usuń</string>
+    <string name="file_manager_copy_count">Kopiuj (%1$d)</string>
+    <string name="file_manager_cut_count">Wytnij (%1$d)</string>
+    <string name="file_manager_delete_count">Usuń (%1$d)</string>
+    <string name="file_manager_extract">Wypakuj</string>
+    <string name="file_manager_extract_here">Wypakuj tutaj</string>
+    <string name="file_manager_extract_to">Wypakuj do…</string>
+    <string name="file_manager_extracting">Wypakowywanie %1$s</string>
+    <string name="file_manager_extract_failed">Wypakowywanie nie powiodło się</string>
     <string name="file_manager_run_boot">Uruchom / Rozruch</string>
     <string name="file_manager_create_shortcut">Utwórz skrót</string>
     <string name="file_manager_run_in_container">Uruchom w kontenerze</string>
     <string name="file_manager_no_containers">Brak dostępnych kontenerów</string>
     <string name="file_manager_delete_confirm">Usunąć \"%1$s\"? Tej operacji nie można cofnąć.</string>
+    <string name="file_manager_delete_confirm_multi">Usunąć %1$d elementów? Tej operacji nie można cofnąć.</string>
     <string name="file_manager_copying">Kopiowanie %1$s</string>
     <string name="file_manager_moving">Przenoszenie %1$s</string>
+    <string name="file_manager_copying_count">Kopiowanie %1$d elementów</string>
+    <string name="file_manager_moving_count">Przenoszenie %1$d elementów</string>
     <string name="file_manager_paste_into_itself">Nie można wkleić folderu do niego samego</string>
     <string name="file_manager_operation_failed">Operacja nie powiodła się</string>
     <string name="file_manager_delete_failed">Usuwanie nie powiodło się</string>

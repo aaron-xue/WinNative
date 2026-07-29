@@ -385,6 +385,7 @@
     <string name="input_controls_editor_reset_unavailable">ไม่มีสแนปช็อตต้นฉบับสำหรับโปรไฟล์นี้</string>
     <string name="input_controls_editor_title">ตัวแก้ไขการควบคุม</string>
     <string name="input_controls_editor_toggle_switch">สวิตช์เปิด/ปิด</string>
+    <string name="input_controls_editor_swipeable">ปัดได้</string>
     <string name="input_controls_editor_profile_exported_to">ส่งออกโปรไฟล์ไปยัง</string>
     <string name="input_controls_editor_unable_to_import">ไม่สามารถนำเข้าโปรไฟล์</string>
     <string name="input_controls_editor_import_profile">นำเข้าโปรไฟล์</string>
@@ -487,6 +488,10 @@
     <string name="container_box64_compatibility">ความเข้ากันได้</string>
     <string name="container_box64_intermediate">ระดับกลาง</string>
     <string name="container_box64_performance">ประสิทธิภาพ</string>
+    <string name="container_fexcore_performance_tso">ประสิทธิภาพ TSO</string>
+    <string name="container_fexcore_extreme">สุดขีด</string>
+    <string name="container_fexcore_extreme_tso">สุดขีด TSO</string>
+    <string name="container_fexcore_denuvo">Denuvo</string>
     <string name="box64_env_var_help__dynarec">เปิดหรือปิดใช้งานตัวรีคอมไพล์แบบไดนามิกของ Box64</string>
     <string name="box64_env_var_help__dynarec_safeflags">
         การจัดการแฟล็กบน opcode CALL/RET&lt;br /&gt;&lt;br /&gt;
@@ -594,6 +599,7 @@
 
     <!-- Container > Graphics Driver -->
     <string name="container_graphics_driver">ไดรเวอร์กราฟิก</string>
+    <string name="container_zink_mode">โหมด Zink</string>
     <string name="container_graphics_configuration">การกำหนดค่าไดรเวอร์กราฟิก</string>
     <string name="container_graphics_version">เวอร์ชันไดรเวอร์กราฟิก</string>
     <string name="container_graphics_available_extensions">ส่วนขยายที่ใช้ได้</string>
@@ -1586,15 +1592,28 @@
     <string name="file_manager_paste">วาง</string>
     <string name="file_manager_paste_here">วางที่นี่</string>
     <string name="file_manager_new_folder">โฟลเดอร์ใหม่</string>
+    <string name="file_manager_new_folder_short">โฟลเดอร์</string>
+    <string name="file_manager_multi_select">เลือก</string>
     <string name="file_manager_create">สร้าง</string>
     <string name="file_manager_delete">ลบ</string>
+    <string name="file_manager_copy_count">คัดลอก (%1$d)</string>
+    <string name="file_manager_cut_count">ตัด (%1$d)</string>
+    <string name="file_manager_delete_count">ลบ (%1$d)</string>
+    <string name="file_manager_extract">แตกไฟล์</string>
+    <string name="file_manager_extract_here">แตกไฟล์ที่นี่</string>
+    <string name="file_manager_extract_to">แตกไฟล์ไปที่…</string>
+    <string name="file_manager_extracting">กำลังแตกไฟล์ %1$s</string>
+    <string name="file_manager_extract_failed">แตกไฟล์ไม่สำเร็จ</string>
     <string name="file_manager_run_boot">รัน / บูต</string>
     <string name="file_manager_create_shortcut">สร้างทางลัด</string>
     <string name="file_manager_run_in_container">รันในคอนเทนเนอร์</string>
     <string name="file_manager_no_containers">ไม่มีคอนเทนเนอร์ที่พร้อมใช้งาน</string>
     <string name="file_manager_delete_confirm">ลบ \"%1$s\" หรือไม่? การกระทำนี้ไม่สามารถยกเลิกได้</string>
+    <string name="file_manager_delete_confirm_multi">ลบ %1$d รายการหรือไม่? การกระทำนี้ไม่สามารถยกเลิกได้</string>
     <string name="file_manager_copying">กำลังคัดลอก %1$s</string>
     <string name="file_manager_moving">กำลังย้าย %1$s</string>
+    <string name="file_manager_copying_count">กำลังคัดลอก %1$d รายการ</string>
+    <string name="file_manager_moving_count">กำลังย้าย %1$d รายการ</string>
     <string name="file_manager_paste_into_itself">ไม่สามารถวางโฟลเดอร์ลงในตัวมันเองได้</string>
     <string name="file_manager_operation_failed">การดำเนินการล้มเหลว</string>
     <string name="file_manager_delete_failed">ลบล้มเหลว</string>

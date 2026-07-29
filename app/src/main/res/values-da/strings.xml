@@ -342,6 +342,7 @@
     <string name="input_controls_editor_confirm_duplicate_profile">Vil du duplikere denne profil?</string>
     <string name="input_controls_editor_title">Kontroleditor</string>
     <string name="input_controls_editor_toggle_switch">Skiftekontakt</string>
+    <string name="input_controls_editor_swipeable">Swipebar</string>
     <string name="input_controls_editor_profile_exported_to">Profil eksporteret til</string>
     <string name="input_controls_editor_unable_to_import">Kan ikke importere profil</string>
     <string name="input_controls_editor_import_profile">Importer profil</string>
@@ -440,6 +441,10 @@
     <string name="container_box64_compatibility">Kompatibilitet</string>
     <string name="container_box64_intermediate">Mellemliggende</string>
     <string name="container_box64_performance">Ydeevne</string>
+    <string name="container_fexcore_performance_tso">Ydeevne TSO</string>
+    <string name="container_fexcore_extreme">Ekstrem</string>
+    <string name="container_fexcore_extreme_tso">Ekstrem TSO</string>
+    <string name="container_fexcore_denuvo">Denuvo</string>
     <string name="box64_env_var_help__dynarec_safeflags">
         Håndtering af flag på CALL/RET-opkoder&lt;br /&gt;&lt;br /&gt;
         &lt;b&gt;0&lt;/b&gt; : Behandler CALL/RET som om de aldrig havde brug for flag (hurtigere, ustabilt)&lt;br /&gt;
@@ -528,6 +533,7 @@
 
     <!-- Container > Graphics Driver -->
     <string name="container_graphics_driver">Grafikdriver</string>
+    <string name="container_zink_mode">Zink-tilstand</string>
     <string name="container_graphics_transcoder">BCn-transkoder</string>
     <string name="container_graphics_quality">BCn-kvalitet</string>
     <string name="container_graphics_configuration">Grafikdriver-konfiguration</string>
@@ -1589,15 +1595,28 @@ Installeret sti:
     <string name="file_manager_paste">Indsæt</string>
     <string name="file_manager_paste_here">Indsæt her</string>
     <string name="file_manager_new_folder">Ny mappe</string>
+    <string name="file_manager_new_folder_short">Mappe</string>
+    <string name="file_manager_multi_select">Vælg</string>
     <string name="file_manager_create">Opret</string>
     <string name="file_manager_delete">Slet</string>
+    <string name="file_manager_copy_count">Kopier (%1$d)</string>
+    <string name="file_manager_cut_count">Klip (%1$d)</string>
+    <string name="file_manager_delete_count">Slet (%1$d)</string>
+    <string name="file_manager_extract">Udpak</string>
+    <string name="file_manager_extract_here">Udpak her</string>
+    <string name="file_manager_extract_to">Udpak til…</string>
+    <string name="file_manager_extracting">Udpakker %1$s</string>
+    <string name="file_manager_extract_failed">Udpakning mislykkedes</string>
     <string name="file_manager_run_boot">Kør / Boot</string>
     <string name="file_manager_create_shortcut">Opret genvej</string>
     <string name="file_manager_run_in_container">Kør i container</string>
     <string name="file_manager_no_containers">Ingen containere tilgængelige</string>
     <string name="file_manager_delete_confirm">Slet \"%1$s\"? Dette kan ikke fortrydes.</string>
+    <string name="file_manager_delete_confirm_multi">Slet %1$d elementer? Dette kan ikke fortrydes.</string>
     <string name="file_manager_copying">Kopierer %1$s</string>
     <string name="file_manager_moving">Flytter %1$s</string>
+    <string name="file_manager_copying_count">Kopierer %1$d elementer</string>
+    <string name="file_manager_moving_count">Flytter %1$d elementer</string>
     <string name="file_manager_paste_into_itself">Kan ikke indsætte en mappe i sig selv</string>
     <string name="file_manager_operation_failed">Handlingen mislykkedes</string>
     <string name="file_manager_delete_failed">Sletning mislykkedes</string>

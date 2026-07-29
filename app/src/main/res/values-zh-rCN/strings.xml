@@ -342,6 +342,7 @@
     <string name="input_controls_editor_confirm_duplicate_profile">您要复制此配置文件吗？</string>
     <string name="input_controls_editor_title">控制编辑器</string>
     <string name="input_controls_editor_toggle_switch">切换开关</string>
+    <string name="input_controls_editor_swipeable">可滑动触发</string>
     <string name="input_controls_editor_profile_exported_to">配置文件已导出到</string>
     <string name="input_controls_editor_unable_to_import">无法导入配置文件</string>
     <string name="input_controls_editor_import_profile">导入配置文件</string>
@@ -440,6 +441,10 @@
     <string name="container_box64_compatibility">兼容性</string>
     <string name="container_box64_intermediate">中等</string>
     <string name="container_box64_performance">性能</string>
+    <string name="container_fexcore_performance_tso">性能 TSO</string>
+    <string name="container_fexcore_extreme">极限</string>
+    <string name="container_fexcore_extreme_tso">极限 TSO</string>
+    <string name="container_fexcore_denuvo">Denuvo</string>
     <string name="box64_env_var_help__dynarec_safeflags">
         CALL/RET 操作码的标志处理&lt;br /&gt;&lt;br /&gt;
         &lt;b&gt;0&lt;/b&gt;：将 CALL/RET 视为从不需要标志（更快，不稳定）&lt;br /&gt;
@@ -528,6 +533,7 @@
 
     <!-- Container > Graphics Driver -->
     <string name="container_graphics_driver">图形驱动</string>
+    <string name="container_zink_mode">Zink 模式</string>
     <string name="container_graphics_transcoder">BCn 转码器</string>
     <string name="container_graphics_quality">BCn 质量</string>
     <string name="container_graphics_configuration">图形驱动配置</string>
@@ -1590,15 +1596,28 @@
     <string name="file_manager_paste">粘贴</string>
     <string name="file_manager_paste_here">粘贴到此处</string>
     <string name="file_manager_new_folder">新建文件夹</string>
+    <string name="file_manager_new_folder_short">文件夹</string>
+    <string name="file_manager_multi_select">多选</string>
     <string name="file_manager_create">创建</string>
     <string name="file_manager_delete">删除</string>
+    <string name="file_manager_copy_count">复制 (%1$d)</string>
+    <string name="file_manager_cut_count">剪切 (%1$d)</string>
+    <string name="file_manager_delete_count">删除 (%1$d)</string>
+    <string name="file_manager_extract">解压</string>
+    <string name="file_manager_extract_here">解压到此处</string>
+    <string name="file_manager_extract_to">解压到…</string>
+    <string name="file_manager_extracting">正在解压 %1$s</string>
+    <string name="file_manager_extract_failed">解压失败</string>
     <string name="file_manager_run_boot">运行 / 启动</string>
     <string name="file_manager_create_shortcut">创建快捷方式</string>
     <string name="file_manager_run_in_container">在容器中运行</string>
     <string name="file_manager_no_containers">没有可用的容器</string>
     <string name="file_manager_delete_confirm">删除 \"%1$s\"？此操作无法撤消。</string>
+    <string name="file_manager_delete_confirm_multi">删除 %1$d 个项目？此操作无法撤消。</string>
     <string name="file_manager_copying">正在复制 %1$s</string>
     <string name="file_manager_moving">正在移动 %1$s</string>
+    <string name="file_manager_copying_count">正在复制 %1$d 个项目</string>
+    <string name="file_manager_moving_count">正在移动 %1$d 个项目</string>
     <string name="file_manager_paste_into_itself">无法将文件夹粘贴到其自身</string>
     <string name="file_manager_operation_failed">操作失败</string>
     <string name="file_manager_delete_failed">删除失败</string>

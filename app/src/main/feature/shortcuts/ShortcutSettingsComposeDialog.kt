@@ -332,7 +332,7 @@ class ShortcutSettingsComposeDialog private constructor(
                     activity = activity,
                     initialPath = resolveExePickerInitialPath(),
                     title = context.getString(R.string.common_ui_select_exe),
-                    allowedExtensions = setOf("exe"),
+                    allowedExtensions = DirectoryPickerDialog.ExecutableExtensions,
                     dimAmount = 0.5f,
                     preserveBackdropBlur = true,
                 ) { path ->
@@ -541,6 +541,10 @@ class ShortcutSettingsComposeDialog private constructor(
             state.selectedGraphicsDriver
         )
 
+        state.zinkModeEntries.value = context.resources.getStringArray(R.array.zink_mode_entries).toList()
+        state.selectedZinkMode.intValue =
+            if (getShortcutSetting("zinkMode", container.getZinkMode()) == "windows") 1 else 0
+
         // DX Wrapper
         val dxWrapperArr =
             context.resources.getStringArray(R.array.dxwrapper_entries).toList()
@@ -580,6 +584,7 @@ class ShortcutSettingsComposeDialog private constructor(
         else shortcut.getExtra("wineVersion", container.getWineVersion())
         val wineInfo = WineInfo.fromIdentifier(context, contentsManager, wineVersionStr)
         isArm64EC = wineInfo.isArm64EC
+        state.isArm64EC.value = isArm64EC
         state.wineVersionDisplay.value = formatWineVersionDisplay(wineInfo)
 
         rebuildEmulatorLists()
@@ -683,6 +688,7 @@ class ShortcutSettingsComposeDialog private constructor(
         val wineInfo = WineInfo.fromIdentifier(context, contentsManager, wineVersionStr)
         val archChanged = isArm64EC != wineInfo.isArm64EC
         isArm64EC = wineInfo.isArm64EC
+        state.isArm64EC.value = isArm64EC
         state.wineVersionDisplay.value = formatWineVersionDisplay(wineInfo)
 
         rebuildEmulatorLists()
@@ -1039,6 +1045,10 @@ class ShortcutSettingsComposeDialog private constructor(
             )
             hasContainerOverride =
                 hasContainerOverride or saveOverride("graphicsDriver", graphicsDriver, container.getGraphicsDriver())
+
+            val zinkMode = if (state.selectedZinkMode.intValue == 1) "windows" else "unix"
+            hasContainerOverride =
+                hasContainerOverride or saveOverride("zinkMode", zinkMode, container.getZinkMode())
 
             val graphicsDriverConfig = buildGraphicsDriverConfigFromState()
             hasContainerOverride = hasContainerOverride or saveOverride(
@@ -1485,7 +1495,7 @@ class ShortcutSettingsComposeDialog private constructor(
 
     private fun applySelectedExePath(path: String) {
         val exeFile = File(path)
-        if (!exeFile.isFile || !exeFile.name.endsWith(".exe", ignoreCase = true)) {
+        if (!exeFile.isFile || exeFile.extension.lowercase() !in DirectoryPickerDialog.ExecutableExtensions) {
             WinToast.show(context, context.getString(R.string.common_ui_select_valid_exe_file), Toast.LENGTH_SHORT, dialog.window?.decorView)
             return
         }
@@ -1892,7 +1902,7 @@ class ShortcutSettingsComposeDialog private constructor(
     }
 
     private fun buildGraphicsDriverConfigFromState(): String {
-        val vulkanVersion = state.gfxVulkanVersionEntries.value.getOrElse(state.gfxSelectedVulkanVersion.intValue) { "1.3" }
+        val vulkanVersion = state.gfxVulkanVersionEntries.value.getOrElse(state.gfxSelectedVulkanVersion.intValue) { "1.4" }
         val version = state.gfxDriverVersionEntries.value.getOrElse(state.gfxSelectedDriverVersion.intValue) { "" }
         val blacklisted = state.gfxBlacklistedExtensions.value.joinToString(",")
         val gpuName = state.gfxGpuNameEntries.value.getOrElse(state.gfxSelectedGpuName.intValue) { "Device" }
@@ -1976,7 +1986,7 @@ class ShortcutSettingsComposeDialog private constructor(
         // Load driver versions (will be populated after contents sync)
         loadGraphicsDriverVersions(container)
 
-        selectByValue(state.gfxVulkanVersionEntries.value, config["vulkanVersion"] ?: "1.3", state.gfxSelectedVulkanVersion)
+        selectByValue(state.gfxVulkanVersionEntries.value, config["vulkanVersion"] ?: "1.4", state.gfxSelectedVulkanVersion)
         selectByValue(state.gfxGpuNameEntries.value, config["gpuName"] ?: "Device", state.gfxSelectedGpuName)
         selectByNumber(state.gfxMaxDeviceMemoryEntries.value, config["maxDeviceMemory"] ?: "0", state.gfxSelectedMaxDeviceMemory)
         selectByValue(state.gfxPresentModeEntries.value, config["presentMode"] ?: "mailbox", state.gfxSelectedPresentMode)
@@ -2195,6 +2205,7 @@ class ShortcutSettingsComposeDialog private constructor(
         val wineVersionStr = newContainer.getWineVersion()
         val wineInfo = WineInfo.fromIdentifier(context, contentsManager, wineVersionStr)
         isArm64EC = wineInfo.isArm64EC
+        state.isArm64EC.value = isArm64EC
         state.wineVersionDisplay.value = formatWineVersionDisplay(wineInfo)
         rebuildEmulatorLists()
 

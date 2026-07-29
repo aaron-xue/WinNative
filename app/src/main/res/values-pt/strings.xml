@@ -385,6 +385,7 @@
     <string name="input_controls_editor_reset_unavailable">Não existe nenhum instantâneo original disponível para este perfil.</string>
     <string name="input_controls_editor_title">Editor de controlos</string>
     <string name="input_controls_editor_toggle_switch">Interruptor de alternância</string>
+    <string name="input_controls_editor_swipeable">Deslizável</string>
     <string name="input_controls_editor_profile_exported_to">Perfil exportado para</string>
     <string name="input_controls_editor_unable_to_import">Não foi possível importar o perfil</string>
     <string name="input_controls_editor_import_profile">Importar perfil</string>
@@ -487,6 +488,10 @@
     <string name="container_box64_compatibility">Compatibilidade</string>
     <string name="container_box64_intermediate">Intermédio</string>
     <string name="container_box64_performance">Desempenho</string>
+    <string name="container_fexcore_performance_tso">Desempenho TSO</string>
+    <string name="container_fexcore_extreme">Extremo</string>
+    <string name="container_fexcore_extreme_tso">Extremo TSO</string>
+    <string name="container_fexcore_denuvo">Denuvo</string>
     <string name="box64_env_var_help__dynarec">Ativa ou desativa o recompilador dinâmico do Box64.</string>
     <string name="box64_env_var_help__dynarec_safeflags">
         Tratamento de flags nos opcodes CALL/RET&lt;br /&gt;&lt;br /&gt;
@@ -594,6 +599,7 @@
 
     <!-- Container > Graphics Driver -->
     <string name="container_graphics_driver">Controlador Gráfico</string>
+    <string name="container_zink_mode">Modo Zink</string>
     <string name="container_graphics_configuration">Configuração do Controlador Gráfico</string>
     <string name="container_graphics_version">Versão do Controlador Gráfico</string>
     <string name="container_graphics_available_extensions">Extensões Disponíveis</string>
@@ -1586,15 +1592,28 @@ Caminho instalado:
     <string name="file_manager_paste">Colar</string>
     <string name="file_manager_paste_here">Colar aqui</string>
     <string name="file_manager_new_folder">Nova pasta</string>
+    <string name="file_manager_new_folder_short">Pasta</string>
+    <string name="file_manager_multi_select">Marcar</string>
     <string name="file_manager_create">Criar</string>
     <string name="file_manager_delete">Eliminar</string>
+    <string name="file_manager_copy_count">Copiar (%1$d)</string>
+    <string name="file_manager_cut_count">Cortar (%1$d)</string>
+    <string name="file_manager_delete_count">Eliminar (%1$d)</string>
+    <string name="file_manager_extract">Extrair</string>
+    <string name="file_manager_extract_here">Extrair aqui</string>
+    <string name="file_manager_extract_to">Extrair para…</string>
+    <string name="file_manager_extracting">A extrair %1$s</string>
+    <string name="file_manager_extract_failed">Falha na extração</string>
     <string name="file_manager_run_boot">Executar / Arrancar</string>
     <string name="file_manager_create_shortcut">Criar atalho</string>
     <string name="file_manager_run_in_container">Executar no contentor</string>
     <string name="file_manager_no_containers">Não há contentores disponíveis</string>
     <string name="file_manager_delete_confirm">Eliminar \"%1$s\"? Isto não pode ser anulado.</string>
+    <string name="file_manager_delete_confirm_multi">Eliminar %1$d itens? Isto não pode ser anulado.</string>
     <string name="file_manager_copying">A copiar %1$s</string>
     <string name="file_manager_moving">A mover %1$s</string>
+    <string name="file_manager_copying_count">A copiar %1$d itens</string>
+    <string name="file_manager_moving_count">A mover %1$d itens</string>
     <string name="file_manager_paste_into_itself">Não é possível colar uma pasta dentro de si própria</string>
     <string name="file_manager_operation_failed">A operação falhou</string>
     <string name="file_manager_delete_failed">A eliminação falhou</string>

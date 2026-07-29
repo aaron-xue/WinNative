@@ -303,6 +303,7 @@ private fun graphicsCardExpandExit() =
 private val SettingSliderThumbSize = 18.dp
 private const val SettingSliderTrackScaleY = 0.5f
 private val SettingLabelSize = 11.sp
+private val SettingLabelRowHeight = 22.dp
 private val SettingValueSize = 12.sp
 private val SettingSectionLabelSize = 12.sp
 private val SmartDropdownPressStartInset = 28.dp
@@ -400,6 +401,9 @@ class GameSettingsStateHolder {
     // Display
     val graphicsDriverEntries = mutableStateOf<List<String>>(emptyList())
     val selectedGraphicsDriver = mutableIntStateOf(0)
+    val isArm64EC = mutableStateOf(false)
+    val zinkModeEntries = mutableStateOf<List<String>>(emptyList())
+    val selectedZinkMode = mutableIntStateOf(0)
     val graphicsDriverVersion = mutableStateOf("")
     val dxWrapperEntries = mutableStateOf<List<String>>(emptyList())
     val selectedDxWrapper = mutableIntStateOf(0)
@@ -658,13 +662,13 @@ private fun buildSections(isSteam: Boolean, isContainer: Boolean): List<Pair<Int
     list += SEC_DISPLAY to SidebarSection(Icons.Outlined.Monitor, R.string.common_ui_graphics)
     list += SEC_ADVANCED to SidebarSection(Icons.Outlined.Settings, R.string.common_ui_advanced)
     list += SEC_RESHADE to SidebarSection(Icons.Outlined.AutoAwesome, R.string.reshade_section_title)
+    list += SEC_VARIABLES to SidebarSection(Icons.Outlined.Code, R.string.container_config_variables)
     list += SEC_INPUT to SidebarSection(Icons.Outlined.SportsEsports, R.string.common_ui_input_controls)
+    list += SEC_COMPONENTS to SidebarSection(Icons.Outlined.Extension, R.string.settings_content_components)
     if (isContainer) {
         list += SEC_DRIVES to SidebarSection(Icons.Outlined.Storage, R.string.container_config_drives)
     }
-    list += SEC_VARIABLES to SidebarSection(Icons.Outlined.Code, R.string.container_config_variables)
     list += SEC_WINE to SidebarSection(Icons.Outlined.Science, R.string.container_wine_title)
-    list += SEC_COMPONENTS to SidebarSection(Icons.Outlined.Extension, R.string.settings_content_components)
     if (isContainer) {
         list += SEC_SAVES to SidebarSection(Icons.Outlined.Inventory, R.string.saves_import_export_title)
     }
@@ -3500,23 +3504,35 @@ private fun ComponentsSection(
         Spacer(Modifier.height(8.dp))
         SettingGroup {
             val items = state.generalComponents.value
-            items.chunked(2).forEachIndexed { rowIndex, pair ->
+            val showZink = state.isArm64EC.value
+            val totalCells = items.size + if (showZink) 1 else 0
+            val rowCount = (totalCells + 1) / 2
+            for (rowIndex in 0 until rowCount) {
                 if (rowIndex > 0) Spacer(Modifier.height(SettingItemGap))
                 Row(horizontalArrangement = Arrangement.spacedBy(SettingItemGap)) {
-                    pair.forEachIndexed { colIndex, component ->
-                        val index = rowIndex * 2 + colIndex
+                    for (colIndex in 0..1) {
+                        val cell = rowIndex * 2 + colIndex
                         Box(Modifier.weight(1f)) {
-                            SettingDropdown(
-                                label = component.label,
-                                entries = state.winComponentEntries.value,
-                                selectedIndex = component.selectedIndex,
-                                onSelected = { newVal ->
-                                    callbacks.onUpdateWinComponent(false, index, newVal)
-                                }
-                            )
+                            if (cell < items.size) {
+                                val component = items[cell]
+                                SettingDropdown(
+                                    label = component.label,
+                                    entries = state.winComponentEntries.value,
+                                    selectedIndex = component.selectedIndex,
+                                    onSelected = { newVal ->
+                                        callbacks.onUpdateWinComponent(false, cell, newVal)
+                                    }
+                                )
+                            } else if (cell == items.size && showZink) {
+                                SettingDropdown(
+                                    label = stringResource(R.string.container_zink_mode),
+                                    entries = state.zinkModeEntries.value,
+                                    selectedIndex = state.selectedZinkMode.intValue,
+                                    onSelected = { state.selectedZinkMode.intValue = it }
+                                )
+                            }
                         }
                     }
-                    if (pair.size == 1) Box(Modifier.weight(1f))
                 }
             }
         }
@@ -5175,31 +5191,27 @@ private fun SettingDropdown(
     }
 
     Column(modifier = Modifier.fillMaxWidth().alpha(alpha)) {
-        if (labelTrailing != null) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = SettingTightGap),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    label,
-                    color = TextSecondary,
-                    fontSize = SettingLabelSize,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.3.sp
-                )
-                Spacer(Modifier.weight(1f))
-                labelTrailing()
-            }
-        } else {
+        // Fixed height keeps side-by-side dropdown fields on the same controller nav row.
+        Row(
+            modifier = Modifier.fillMaxWidth().height(SettingLabelRowHeight),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
                 label,
                 color = TextSecondary,
                 fontSize = SettingLabelSize,
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 0.3.sp,
-                modifier = Modifier.padding(bottom = SettingTightGap)
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
             )
+            if (labelTrailing != null) {
+                Spacer(Modifier.weight(1f))
+                labelTrailing()
+            }
         }
+        Spacer(Modifier.height(SettingTightGap))
         Box {
             Row(
                 modifier = Modifier

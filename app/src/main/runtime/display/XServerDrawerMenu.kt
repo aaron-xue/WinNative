@@ -1003,6 +1003,8 @@ interface XServerDrawerActionListener {
 
     fun onGyroscopeActivatorSelected(keycode: Int)
 
+    fun onGyroscopeActivatorBindingSelected(bindingName: String)
+
     fun onRightStickGyroChanged(enabled: Boolean)
 
     fun onGyroMouseEnabledChanged(enabled: Boolean)

@@ -292,6 +292,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private Shortcut shortcut;
     private boolean launchedFromPinnedShortcut = false;
     private String graphicsDriver = Container.DEFAULT_GRAPHICS_DRIVER;
+    private String zinkMode = Container.DEFAULT_ZINK_MODE;
     private HashMap<String, String> graphicsDriverConfig;
     private String audioDriver = Container.DEFAULT_AUDIO_DRIVER;
     private String emulator = Container.DEFAULT_EMULATOR;
@@ -545,6 +546,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private static final long EXIT_CLOUD_UPLOAD_RETRY_DELAY_MS = 1000L;
 
     private Handler  timeoutHandler = new Handler(Looper.getMainLooper());
+    private static final long POINTER_ACTIVITY_REARM_MS = 1000L;
+    private long lastPointerActivityAt = 0L;
     private Runnable hideControlsRunnable;
 
     private volatile boolean startFullscreenStretched;
@@ -1526,6 +1529,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         }
 
         graphicsDriver = container.getGraphicsDriver();
+        zinkMode = container.getZinkMode();
         String graphicsDriverConfig = container.getGraphicsDriverConfig();
         audioDriver = container.getAudioDriver();
         emulator = container.getEmulator();
@@ -1672,6 +1676,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             String rawShortcutDxwrapper = shortcutUsesDefaults ? "" : shortcut.getExtra("dxwrapper");
 
             graphicsDriver = getShortcutSetting("graphicsDriver", container.getGraphicsDriver());
+            zinkMode = getShortcutSetting("zinkMode", container.getZinkMode());
             graphicsDriverConfig = getShortcutSetting("graphicsDriverConfig", container.getGraphicsDriverConfig());
             audioDriver = getShortcutSetting("audioDriver", container.getAudioDriver());
             emulator = getShortcutSetting("emulator", container.getEmulator());
@@ -4109,6 +4114,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     }
 
     private String currentGyroActivatorLabel() {
+        if (preferences.getBoolean("mouse_gyro_enabled", false)) {
+            return WinHandler.getGyroMouseActivator(preferences).toString();
+        }
         String[] names = getResources().getStringArray(R.array.button_options);
         int[] keycodes = getResources().getIntArray(R.array.button_keycodes);
         int currentKeycode = preferences.getInt("gyro_trigger_button", KeyEvent.KEYCODE_BUTTON_L1);
@@ -4457,6 +4465,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                     @Override
                     public void onGyroscopeActivatorSelected(int keycode) {
                         preferences.edit().putInt("gyro_trigger_button", keycode).apply();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
+                    public void onGyroscopeActivatorBindingSelected(String bindingName) {
+                        preferences.edit().putString("gyro_mouse_trigger_binding", bindingName).apply();
                         renderDrawerMenu();
                     }
 
@@ -6131,6 +6145,20 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
     private void cancelMousePointerTimeout() {
         if (timeoutHandler != null && hideControlsRunnable != null) {
             timeoutHandler.removeCallbacks(hideControlsRunnable);
+        }
+    }
+
+    // Pointer movement that bypasses touch/mouse events (gyro) still counts as activity.
+    public void notifyPointerActivity() {
+        if (isMouseDisabled || xServer == null || xServer.getRenderer() == null) return;
+        boolean hidden = !xServer.getRenderer().isCursorVisible();
+        long now = SystemClock.uptimeMillis();
+        if (!hidden && now - lastPointerActivityAt < POINTER_ACTIVITY_REARM_MS) return;
+        lastPointerActivityAt = now;
+        if (hidden) xServer.getRenderer().setCursorVisible(true);
+        if (timeoutHandler != null && hideControlsRunnable != null) {
+            timeoutHandler.removeCallbacks(hideControlsRunnable);
+            timeoutHandler.postDelayed(hideControlsRunnable, 5000);
         }
     }
 
@@ -8077,6 +8105,24 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
             gamenativeMarker.delete();
         }
 
+        // libgallium_wgl.dll is present only while Windows Zink is installed — use as marker.
+        if (wineInfo != null && wineInfo.isArm64EC()
+                && !GPUInformation.getRenderer(null, null).contains("Mali")) {
+            File winWindowsDir = new File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows");
+            File zinkMarker = new File(winWindowsDir, "system32/libgallium_wgl.dll");
+            if ("windows".equals(zinkMode)) {
+                if (!zinkMarker.exists()) {
+                    try {
+                        TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/zink_dlls.tzst", winWindowsDir);
+                    } catch (Exception e) {
+                        Log.w("XServerDisplayActivity", "zink_dlls.tzst extraction failed", e);
+                    }
+                }
+            } else if (zinkMarker.exists()) {
+                WinComponentSetup.restoreWineBuiltinDllFiles(imageFs, wineInfo, "opengl32.dll", "libgallium_wgl.dll");
+            }
+        }
+
         if (adrenoToolsDriverId != null && !adrenoToolsDriverId.isEmpty()
                 && !adrenoToolsDriverId.equals("System")) {
             AdrenotoolsManager adrenotoolsManager = new AdrenotoolsManager(this);
@@ -8103,12 +8149,18 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         envVars.put("VK_ICD_FILENAMES", imageFs.getShareDir() + "/vulkan/icd.d/wrapper_icd.aarch64.json");
 
         String vulkanVersion = graphicsDriverConfig.get("vulkanVersion");
-        if (vulkanVersion == null) vulkanVersion = "1.3";
+        if (vulkanVersion == null) vulkanVersion = "1.4";
         try {
             String fullVkVersion = GPUInformation.getVulkanVersion(adrenoToolsDriverId, this);
             if (fullVkVersion != null && fullVkVersion.contains(".")) {
                 String[] parts = fullVkVersion.split("\\.");
                 if (parts.length >= 3) {
+                    // Never advertise a minor the driver does not implement.
+                    if (Integer.parseInt(parts[1]) < Integer.parseInt(vulkanVersion.split("\\.")[1])) {
+                        Log.i("GraphicsDriverExtraction", "Clamping Vulkan " + vulkanVersion
+                                + " to driver-supported " + parts[0] + "." + parts[1]);
+                        vulkanVersion = parts[0] + "." + parts[1];
+                    }
                     vulkanVersion = vulkanVersion + "." + parts[2];
                 }
             }
@@ -8610,12 +8662,24 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
         );
     }
 
+    // .msi and .bat/.cmd aren't PE images, so CreateProcess can't start them; run them through their interpreter.
+    private static String buildGuestProgramArgs(String windowsPath) {
+        String lower = windowsPath.toLowerCase(java.util.Locale.ROOT);
+        if (lower.endsWith(".msi")) {
+            return "\"C:\\windows\\system32\\msiexec.exe\" /i \"" + windowsPath + "\" /passive /norestart";
+        }
+        if (lower.endsWith(".bat") || lower.endsWith(".cmd")) {
+            return "\"C:\\windows\\system32\\cmd.exe\" /c \"" + windowsPath + "\"";
+        }
+        return "\"" + windowsPath + "\"";
+    }
+
     private String getWineStartCommand(GuestProgramLauncherComponent launcherComponent) {
         EnvVars envVars = getOverrideEnvVars();
         String args = "";
 
         if (bootExePath != null && !bootExePath.isEmpty()) {
-            args = "\"" + bootExePath + "\"";
+            args = buildGuestProgramArgs(bootExePath);
             if (bootExeArgs != null && !bootExeArgs.isEmpty()) args += " " + bootExeArgs;
         } else if (shortcut != null) {
             String path = shortcut.path;
@@ -8843,7 +8907,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity {
                         }
                     }
 
-                    args = "\"" + path + "\"" + extraArgs;
+                    args = buildGuestProgramArgs(path) + extraArgs;
                 } else {
                     args = "\"wfm.exe\"";
                 }

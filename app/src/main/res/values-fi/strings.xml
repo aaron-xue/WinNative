@@ -385,6 +385,7 @@
     <string name="input_controls_editor_reset_unavailable">Tälle profiilille ei ole saatavilla alkuperäistä tilannevedosta.</string>
     <string name="input_controls_editor_title">Ohjausten muokkain</string>
     <string name="input_controls_editor_toggle_switch">Vaihtokytkin</string>
+    <string name="input_controls_editor_swipeable">Pyyhkäisyaktivointi</string>
     <string name="input_controls_editor_profile_exported_to">Profiili viety kohteeseen</string>
     <string name="input_controls_editor_unable_to_import">Profiilia ei voitu tuoda</string>
     <string name="input_controls_editor_import_profile">Tuo profiili</string>
@@ -487,6 +488,10 @@
     <string name="container_box64_compatibility">Yhteensopivuus</string>
     <string name="container_box64_intermediate">Keskitaso</string>
     <string name="container_box64_performance">Suorituskyky</string>
+    <string name="container_fexcore_performance_tso">Suorituskyky TSO</string>
+    <string name="container_fexcore_extreme">Äärimmäinen</string>
+    <string name="container_fexcore_extreme_tso">Äärimmäinen TSO</string>
+    <string name="container_fexcore_denuvo">Denuvo</string>
     <string name="box64_env_var_help__dynarec">Ottaa käyttöön tai poistaa käytöstä Box64:n dynaamisen uudelleenkääntäjän.</string>
     <string name="box64_env_var_help__dynarec_safeflags">
         Lippujen käsittely CALL/RET-opkoodeissa&lt;br /&gt;&lt;br /&gt;
@@ -594,6 +599,7 @@
 
     <!-- Container > Graphics Driver -->
     <string name="container_graphics_driver">Grafiikka-ajuri</string>
+    <string name="container_zink_mode">Zink-tila</string>
     <string name="container_graphics_configuration">Grafiikka-ajurin asetukset</string>
     <string name="container_graphics_version">Grafiikka-ajurin versio</string>
     <string name="container_graphics_available_extensions">Saatavilla olevat laajennukset</string>
@@ -1586,15 +1592,28 @@ Asennuspolku:
     <string name="file_manager_paste">Liitä</string>
     <string name="file_manager_paste_here">Liitä tähän</string>
     <string name="file_manager_new_folder">Uusi kansio</string>
+    <string name="file_manager_new_folder_short">Kansio</string>
+    <string name="file_manager_multi_select">Valitse</string>
     <string name="file_manager_create">Luo</string>
     <string name="file_manager_delete">Poista</string>
+    <string name="file_manager_copy_count">Kopioi (%1$d)</string>
+    <string name="file_manager_cut_count">Leikkaa (%1$d)</string>
+    <string name="file_manager_delete_count">Poista (%1$d)</string>
+    <string name="file_manager_extract">Pura</string>
+    <string name="file_manager_extract_here">Pura tähän</string>
+    <string name="file_manager_extract_to">Pura kohteeseen…</string>
+    <string name="file_manager_extracting">Puretaan %1$s</string>
+    <string name="file_manager_extract_failed">Purkaminen epäonnistui</string>
     <string name="file_manager_run_boot">Suorita / käynnistä</string>
     <string name="file_manager_create_shortcut">Luo pikakuvake</string>
     <string name="file_manager_run_in_container">Suorita säilössä</string>
     <string name="file_manager_no_containers">Ei saatavilla olevia säilöjä</string>
     <string name="file_manager_delete_confirm">Poistetaanko \"%1$s\"? Tätä ei voi kumota.</string>
+    <string name="file_manager_delete_confirm_multi">Poistetaanko %1$d kohdetta? Tätä ei voi kumota.</string>
     <string name="file_manager_copying">Kopioidaan %1$s</string>
     <string name="file_manager_moving">Siirretään %1$s</string>
+    <string name="file_manager_copying_count">Kopioidaan %1$d kohdetta</string>
+    <string name="file_manager_moving_count">Siirretään %1$d kohdetta</string>
     <string name="file_manager_paste_into_itself">Kansiota ei voi liittää itseensä</string>
     <string name="file_manager_operation_failed">Toiminto epäonnistui</string>
     <string name="file_manager_delete_failed">Poisto epäonnistui</string>

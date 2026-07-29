@@ -385,6 +385,7 @@
     <string name="input_controls_editor_reset_unavailable">Bu profil için orijinal anlık görüntü mevcut değil.</string>
     <string name="input_controls_editor_title">Kontrol Düzenleyicisi</string>
     <string name="input_controls_editor_toggle_switch">Açma/Kapama Anahtarı</string>
+    <string name="input_controls_editor_swipeable">Kaydırılabilir</string>
     <string name="input_controls_editor_profile_exported_to">Profil şuraya dışa aktarıldı</string>
     <string name="input_controls_editor_unable_to_import">Profil içe aktarılamıyor</string>
     <string name="input_controls_editor_import_profile">Profili İçe Aktar</string>
@@ -487,6 +488,10 @@
     <string name="container_box64_compatibility">Uyumluluk</string>
     <string name="container_box64_intermediate">Orta</string>
     <string name="container_box64_performance">Performans</string>
+    <string name="container_fexcore_performance_tso">Performans TSO</string>
+    <string name="container_fexcore_extreme">Ekstrem</string>
+    <string name="container_fexcore_extreme_tso">Ekstrem TSO</string>
+    <string name="container_fexcore_denuvo">Denuvo</string>
     <string name="box64_env_var_help__dynarec">Box64 dinamik yeniden derleyicisini etkinleştirir veya devre dışı bırakır.</string>
     <string name="box64_env_var_help__dynarec_safeflags">
         CALL/RET opcode\'larında bayrakların işlenmesi&lt;br /&gt;&lt;br /&gt;
@@ -594,6 +599,7 @@
 
     <!-- Container > Graphics Driver -->
     <string name="container_graphics_driver">Grafik Sürücüsü</string>
+    <string name="container_zink_mode">Zink Modu</string>
     <string name="container_graphics_configuration">Grafik Sürücüsü Yapılandırması</string>
     <string name="container_graphics_version">Grafik Sürücüsü Sürümü</string>
     <string name="container_graphics_available_extensions">Kullanılabilir Uzantılar</string>
@@ -1586,15 +1592,28 @@ Yüklü konum:
     <string name="file_manager_paste">Yapıştır</string>
     <string name="file_manager_paste_here">Buraya yapıştır</string>
     <string name="file_manager_new_folder">Yeni Klasör</string>
+    <string name="file_manager_new_folder_short">Klasör</string>
+    <string name="file_manager_multi_select">Seç</string>
     <string name="file_manager_create">Oluştur</string>
     <string name="file_manager_delete">Sil</string>
+    <string name="file_manager_copy_count">Kopyala (%1$d)</string>
+    <string name="file_manager_cut_count">Kes (%1$d)</string>
+    <string name="file_manager_delete_count">Sil (%1$d)</string>
+    <string name="file_manager_extract">Çıkar</string>
+    <string name="file_manager_extract_here">Buraya çıkar</string>
+    <string name="file_manager_extract_to">Şuraya çıkar…</string>
+    <string name="file_manager_extracting">%1$s çıkarılıyor</string>
+    <string name="file_manager_extract_failed">Çıkarma başarısız</string>
     <string name="file_manager_run_boot">Çalıştır / Başlat</string>
     <string name="file_manager_create_shortcut">Kısayol Oluştur</string>
     <string name="file_manager_run_in_container">Kapsayıcıda çalıştır</string>
     <string name="file_manager_no_containers">Kullanılabilir kapsayıcı yok</string>
     <string name="file_manager_delete_confirm">\"%1$s\" silinsin mi? Bu geri alınamaz.</string>
+    <string name="file_manager_delete_confirm_multi">%1$d öğe silinsin mi? Bu geri alınamaz.</string>
     <string name="file_manager_copying">%1$s kopyalanıyor</string>
     <string name="file_manager_moving">%1$s taşınıyor</string>
+    <string name="file_manager_copying_count">%1$d öğe kopyalanıyor</string>
+    <string name="file_manager_moving_count">%1$d öğe taşınıyor</string>
     <string name="file_manager_paste_into_itself">Bir klasör kendi içine yapıştırılamaz</string>
     <string name="file_manager_operation_failed">İşlem başarısız oldu</string>
     <string name="file_manager_delete_failed">Silme başarısız oldu</string>

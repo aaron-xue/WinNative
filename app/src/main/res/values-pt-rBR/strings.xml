@@ -342,6 +342,7 @@
     <string name="input_controls_editor_confirm_duplicate_profile">Deseja duplicar este perfil?</string>
     <string name="input_controls_editor_title">Editor de Controles</string>
     <string name="input_controls_editor_toggle_switch">Interruptor</string>
+    <string name="input_controls_editor_swipeable">Deslizável</string>
     <string name="input_controls_editor_profile_exported_to">Perfil exportado para</string>
     <string name="input_controls_editor_unable_to_import">Nao foi possivel importar o perfil</string>
     <string name="input_controls_editor_import_profile">Importar Perfil</string>
@@ -440,6 +441,10 @@
     <string name="container_box64_compatibility">Compatibilidade</string>
     <string name="container_box64_intermediate">Intermediario</string>
     <string name="container_box64_performance">Desempenho</string>
+    <string name="container_fexcore_performance_tso">Desempenho TSO</string>
+    <string name="container_fexcore_extreme">Extremo</string>
+    <string name="container_fexcore_extreme_tso">Extremo TSO</string>
+    <string name="container_fexcore_denuvo">Denuvo</string>
     <string name="box64_env_var_help__dynarec_safeflags">
         Tratamento de flags nas opcodes CALL/RET&lt;br /&gt;&lt;br /&gt;
         &lt;b&gt;0&lt;/b&gt; : Trata CALL/RET como se nunca precisasse de flags (mais rapido, instavel)&lt;br /&gt;
@@ -528,6 +533,7 @@
 
     <!-- Container > Graphics Driver -->
     <string name="container_graphics_driver">Driver Grafico</string>
+    <string name="container_zink_mode">Modo Zink</string>
     <string name="container_graphics_transcoder">Transcodificador BCn</string>
     <string name="container_graphics_quality">Qualidade BCn</string>
     <string name="container_graphics_configuration">Configuracao do Driver Grafico</string>
@@ -1590,15 +1596,28 @@ Caminho instalado:
     <string name="file_manager_paste">Colar</string>
     <string name="file_manager_paste_here">Colar aqui</string>
     <string name="file_manager_new_folder">Nova Pasta</string>
+    <string name="file_manager_new_folder_short">Pasta</string>
+    <string name="file_manager_multi_select">Marcar</string>
     <string name="file_manager_create">Criar</string>
     <string name="file_manager_delete">Excluir</string>
+    <string name="file_manager_copy_count">Copiar (%1$d)</string>
+    <string name="file_manager_cut_count">Recortar (%1$d)</string>
+    <string name="file_manager_delete_count">Excluir (%1$d)</string>
+    <string name="file_manager_extract">Extrair</string>
+    <string name="file_manager_extract_here">Extrair aqui</string>
+    <string name="file_manager_extract_to">Extrair para…</string>
+    <string name="file_manager_extracting">Extraindo %1$s</string>
+    <string name="file_manager_extract_failed">Falha na extração</string>
     <string name="file_manager_run_boot">Executar / Inicializar</string>
     <string name="file_manager_create_shortcut">Criar Atalho</string>
     <string name="file_manager_run_in_container">Executar no container</string>
     <string name="file_manager_no_containers">Nenhum container disponivel</string>
     <string name="file_manager_delete_confirm">Excluir \"%1$s\"? Isso nao pode ser desfeito.</string>
+    <string name="file_manager_delete_confirm_multi">Excluir %1$d itens? Isso nao pode ser desfeito.</string>
     <string name="file_manager_copying">Copiando %1$s</string>
     <string name="file_manager_moving">Movendo %1$s</string>
+    <string name="file_manager_copying_count">Copiando %1$d itens</string>
+    <string name="file_manager_moving_count">Movendo %1$d itens</string>
     <string name="file_manager_paste_into_itself">Nao e possivel colar uma pasta dentro dela mesma</string>
     <string name="file_manager_operation_failed">Falha na operacao</string>
     <string name="file_manager_delete_failed">Falha ao excluir</string>
