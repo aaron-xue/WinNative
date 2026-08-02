@@ -134,7 +134,7 @@ Please match the existing code style and ensure any AI-assisted code is thorough
   ```
   tar -I zstd -cf example.tar.zst ./usr
   //tzst工具
-  tzst a extras.tzst home/ opt/ Steamless/ generate_interfaces_file.exe
+  tzst a retro-consoles.tzst cores/ data/ bundle-info.json
   ```
 - **tzst工具** Download standalone executables from the [Releases](https://github.com/xixu-me/tzst/releases) section.
 

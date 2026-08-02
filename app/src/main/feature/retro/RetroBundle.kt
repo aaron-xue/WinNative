@@ -112,6 +112,47 @@ object RetroBundle {
             version
         }
 
+    fun installFromFile(
+        context: Context,
+        file: File,
+        onProgress: (Progress) -> Unit = {},
+    ): Result<Version> =
+        runCatching {
+            onProgress(Progress.Verifying)
+
+            val staging = File(context.cacheDir, "retro-bundle-file").apply { deleteRecursively(); mkdirs() }
+            val stageDir = File(staging, "stage").apply { mkdirs() }
+            val ok =
+                TarCompressorUtils
+                    .extractAsync(TarCompressorUtils.Type.ZSTD, file, stageDir)
+                    .get()
+            if (ok != true) throw IllegalStateException("Bundle extraction failed")
+
+            val destination = root(context)
+            destination.deleteRecursively()
+            destination.parentFile?.mkdirs()
+            if (!stageDir.renameTo(destination)) {
+                stageDir.copyRecursively(destination, overwrite = true)
+                stageDir.deleteRecursively()
+            }
+
+            // Read bundle-info.json from extracted files
+            val infoFile = File(destination, INFO)
+            val markerVersion = if (infoFile.exists()) {
+                Version.parse(infoFile.readText())
+            } else {
+                Version(
+                    tag = "local-${System.currentTimeMillis()}",
+                    buildDate = "",
+                    sha256 = "",
+                    size = file.length(),
+                )
+            }
+            marker(context).writeText(markerVersion.toJson())
+            staging.deleteRecursively()
+            markerVersion
+        }
+
     fun uninstall(context: Context) {
         root(context).deleteRecursively()
     }

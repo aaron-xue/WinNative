@@ -2461,6 +2461,8 @@
     <string name="retro_bundle_required">请先下载主机核心 — 设置 › 复古</string>
     <string name="retro_ps2_device_unsupported">此设备无法运行 PS2 模拟 — 需要 OpenGL ES 3.1 或更高版本。</string>
     <string name="retro_scr_consoles_check">检查更新</string>
+    <string name="retro_scr_consoles_install_file">安装核心</string>
+    <string name="retro_scr_consoles_install_failed">安装失败</string>
     <string name="retro_scr_consoles_checking">正在检查更新…</string>
     <string name="retro_scr_consoles_download">下载主机核心</string>
     <string name="retro_scr_consoles_downloading">正在下载… %1$d / %2$d MB</string>

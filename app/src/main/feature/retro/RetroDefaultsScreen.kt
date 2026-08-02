@@ -984,36 +984,98 @@ private fun RetroConsoleBundleGroup(
                 modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
             )
         }
-        if (installed == null || updatable) {
-            OutlinedButton(
-                enabled = !busy && !checking,
-                onClick = {
-                    scope.launch {
-                        if (installed == null) {
-                            (published ?: check())?.let { install(it) }
-                        } else {
-                            published?.let { install(it) }
+        val pickLocalBundle: () -> Unit = {
+            (context as? android.app.Activity)?.let { activity ->
+                com.winlator.cmod.shared.android.DirectoryPickerDialog.showFile(
+                    activity = activity,
+                    title = context.getString(R.string.retro_scr_consoles_install_file),
+                    allowedExtensions = setOf("tzst"),
+                ) { path: String ->
+                scope.launch {
+                    busy = true
+                    progress = 0f
+                    step = installingText
+                    downloaded = 0L to 0L
+                    installError = null
+                    val result =
+                        withContext(Dispatchers.IO) {
+                            RetroBundle.installFromFile(context, File(path)) { p ->
+                                when (p) {
+                                    is RetroBundle.Progress.Downloading -> {
+                                        downloaded = p.bytes to p.total
+                                        if (p.total > 0) progress = p.bytes.toFloat() / p.total
+                                    }
+                                    RetroBundle.Progress.Verifying -> step = verifyingText
+                                    RetroBundle.Progress.Extracting -> step = installingText
+                                }
+                            }
                         }
+                    busy = false
+                    step = null
+                    if (result.isFailure) {
+                        installError = result.exceptionOrNull()?.let { it.message ?: it.toString() }
+                            ?: context.getString(R.string.retro_scr_consoles_install_failed)
                     }
-                },
+                    onChanged()
+                }
+            }
+            }
+        }
+
+        if (installed == null || updatable) {
+            Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    stringResource(
-                        if (installed == null) R.string.retro_scr_consoles_download
-                        else R.string.retro_scr_consoles_update,
-                    ),
-                )
+                OutlinedButton(
+                    enabled = !busy && !checking,
+                    onClick = {
+                        scope.launch {
+                            if (installed == null) {
+                                (published ?: check())?.let { install(it) }
+                            } else {
+                                published?.let { install(it) }
+                            }
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        stringResource(
+                            if (installed == null) R.string.retro_scr_consoles_download
+                            else R.string.retro_scr_consoles_update,
+                        ),
+                    )
+                }
+                OutlinedButton(
+                    enabled = !busy && !checking,
+                    onClick = pickLocalBundle,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.retro_scr_consoles_install_file))
+                }
             }
         } else {
-            OutlinedButton(
-                enabled = !busy && !checking,
-                onClick = {
-                    scope.launch { check() }
-                },
+            Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(stringResource(R.string.retro_scr_consoles_check))
+                OutlinedButton(
+                    enabled = !busy && !checking,
+                    onClick = {
+                        scope.launch { check() }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.retro_scr_consoles_check))
+                }
+                OutlinedButton(
+                    enabled = !busy && !checking,
+                    onClick = pickLocalBundle,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.retro_scr_consoles_install_file))
+                }
             }
         }
     }

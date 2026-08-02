@@ -2219,6 +2219,8 @@ Installed path:
     <string name="retro_scr_consoles_download">Download console cores</string>
     <string name="retro_scr_consoles_update">Update console cores</string>
     <string name="retro_scr_consoles_check">Check for updates</string>
+    <string name="retro_scr_consoles_install_file">Install from file</string>
+    <string name="retro_scr_consoles_install_failed">Install failed</string>
     <string name="retro_scr_retroachievements">RETROACHIEVEMENTS</string>
     <string name="retro_scr_account">Account</string>
     <string name="retro_scr_signed_in">Signed in</string>
