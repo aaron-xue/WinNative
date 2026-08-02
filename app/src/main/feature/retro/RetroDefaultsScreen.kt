@@ -952,8 +952,6 @@ private fun RetroConsoleBundleGroup(
         onChanged()
     }
 
-    androidx.compose.runtime.LaunchedEffect(Unit) { check() }
-
     RetroSettingGroup {
         RetroGroupTitle(stringResource(R.string.retro_scr_consoles_group))
         RetroInfoRow(
@@ -986,28 +984,37 @@ private fun RetroConsoleBundleGroup(
                 modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
             )
         }
-        OutlinedButton(
-            enabled = !busy && !checking,
-            onClick = {
-                scope.launch {
-                    if (installed == null || updatable) {
-                        (published ?: check())?.let { install(it) }
-                    } else {
-                        check()
+        if (installed == null || updatable) {
+            OutlinedButton(
+                enabled = !busy && !checking,
+                onClick = {
+                    scope.launch {
+                        if (installed == null) {
+                            (published ?: check())?.let { install(it) }
+                        } else {
+                            published?.let { install(it) }
+                        }
                     }
-                }
-            },
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-        ) {
-            Text(
-                stringResource(
-                    when {
-                        installed == null -> R.string.retro_scr_consoles_download
-                        updatable -> R.string.retro_scr_consoles_update
-                        else -> R.string.retro_scr_consoles_check
-                    },
-                ),
-            )
+                },
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            ) {
+                Text(
+                    stringResource(
+                        if (installed == null) R.string.retro_scr_consoles_download
+                        else R.string.retro_scr_consoles_update,
+                    ),
+                )
+            }
+        } else {
+            OutlinedButton(
+                enabled = !busy && !checking,
+                onClick = {
+                    scope.launch { check() }
+                },
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            ) {
+                Text(stringResource(R.string.retro_scr_consoles_check))
+            }
         }
     }
 }
