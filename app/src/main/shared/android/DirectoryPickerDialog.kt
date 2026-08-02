@@ -77,6 +77,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.material3.ripple
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -424,6 +427,8 @@ object DirectoryPickerDialog {
         val scope = rememberCoroutineScope()
         var currentDir by remember(initialDir.absolutePath) { mutableStateOf(initialDir) }
         var selectedFile by remember { mutableStateOf<File?>(null) }
+        var showPathInput by remember { mutableStateOf(false) }
+        var pathInputText by remember { mutableStateOf("") }
         var rootsExpanded by remember { mutableStateOf(false) }
         var refreshTick by remember { mutableStateOf(0) }
         var clipboard by remember { mutableStateOf<ClipData?>(null) }
@@ -736,7 +741,7 @@ object DirectoryPickerDialog {
             footerZone = false
         }
         LaunchedEffect(menuTarget) { if (menuTarget != null) menuRegistry.reset() }
-        LaunchedEffect(renameTarget, showNewFolder, deleteTargets, runTarget, transferProgress != null) {
+        LaunchedEffect(renameTarget, showNewFolder, showPathInput, deleteTargets, runTarget, transferProgress != null) {
             overlayRegistry.controllerActive = false
             overlayRegistry.reset()
         }
@@ -758,11 +763,28 @@ object DirectoryPickerDialog {
             footerRegistry.controllerActive = false
             contentRegistry.controllerActive = true
         }
+        val pathNotFound = activityString(R.string.common_ui_path_not_found)
+
+        fun applyTypedPath(typed: String) {
+            val target = File(typed.trim())
+            if (target.isDirectory) {
+                currentDir = target
+                selectedFile = null
+            } else if (target.isFile) {
+                currentDir = target.parentFile ?: currentDir
+                selectedFile = target
+            } else {
+                Toast.makeText(context, pathNotFound, Toast.LENGTH_SHORT).show()
+            }
+            showPathInput = false
+        }
+
         val handlers =
             remember(window) {
                 paneNavHandlers(
                     onDismiss = {
                         when {
+                            showPathInput -> showPathInput = false
                             renameTarget != null -> renameTarget = null
                             showNewFolder -> showNewFolder = false
                             deleteTargets != null -> deleteTargets = null
@@ -780,9 +802,11 @@ object DirectoryPickerDialog {
                     onStart = {
                         val overlayOpen =
                             rootsExpanded || menuTarget != null || renameTarget != null ||
-                                showNewFolder || deleteTargets != null || runTarget != null ||
-                                transferProgress != null
-                        if (!overlayOpen) {
+                                showNewFolder || showPathInput || deleteTargets != null ||
+                                runTarget != null || transferProgress != null
+                        if (showPathInput) {
+                            applyTypedPath(pathInputText)
+                        } else if (!overlayOpen) {
                             if (manage) {
                                 if (clipboard != null) pasteInto(currentDir) else onDismiss()
                             } else {
@@ -796,8 +820,9 @@ object DirectoryPickerDialog {
                         when {
                             menuTarget != null -> menuRegistry
                             rootsExpanded -> rootsRegistry
-                            renameTarget != null || showNewFolder || deleteTargets != null ||
-                                runTarget != null || transferProgress != null -> overlayRegistry
+                            renameTarget != null || showNewFolder || showPathInput ||
+                                deleteTargets != null || runTarget != null ||
+                                transferProgress != null -> overlayRegistry
                             footerZone -> footerRegistry
                             else -> contentRegistry
                         }
@@ -903,7 +928,13 @@ object DirectoryPickerDialog {
                     }
 
                     Spacer(Modifier.height(4.dp))
-                    CurrentPathCard(path = selectedFile?.name ?: currentDir.absolutePath)
+                    CurrentPathCard(
+                        path = selectedFile?.name ?: currentDir.absolutePath,
+                        onClick = {
+                            pathInputText = currentDir.absolutePath
+                            showPathInput = true
+                        },
+                    )
                     Spacer(Modifier.height(8.dp))
 
                     androidx.compose.foundation.layout.Box(
@@ -1191,6 +1222,20 @@ object DirectoryPickerDialog {
                 }
                 }
             }
+
+            if (showPathInput) {
+                CompositionLocalProvider(LocalPaneNav provides overlayRegistry) {
+                    TextInputOverlay(
+                        modifier = Modifier.matchParentSize(),
+                        title = activityString(R.string.common_ui_enter_path),
+                        initial = pathInputText,
+                        confirmLabel = activityString(R.string.common_ui_ok),
+                        onTextChange = { pathInputText = it },
+                        onConfirm = { applyTypedPath(it) },
+                        onDismiss = { showPathInput = false },
+                    )
+                }
+            }
         }
     }
 
@@ -1241,15 +1286,23 @@ object DirectoryPickerDialog {
     }
 
     @Composable
-    private fun CurrentPathCard(path: String) {
+    private fun CurrentPathCard(
+        path: String,
+        onClick: () -> Unit,
+    ) {
         Box(
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
+                    .paneNavItem(cornerRadius = 12.dp, onActivate = onClick)
                     .background(BgDark)
                     .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
-                    .padding(horizontal = CurrentPathHorizontalPadding, vertical = 4.dp),
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onClick,
+                    ).padding(horizontal = CurrentPathHorizontalPadding, vertical = 4.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             Text(
@@ -2036,8 +2089,15 @@ object DirectoryPickerDialog {
         confirmLabel: String,
         onConfirm: (String) -> Unit,
         onDismiss: () -> Unit,
+        onTextChange: (String) -> Unit = {},
     ) {
         var text by remember { mutableStateOf(initial) }
+        val focusRequester = remember { FocusRequester() }
+        val keyboard = LocalSoftwareKeyboardController.current
+        LaunchedEffect(Unit) {
+            focusRequester.requestFocus()
+            keyboard?.show()
+        }
         Box(
             modifier =
                 modifier
@@ -2071,9 +2131,12 @@ object DirectoryPickerDialog {
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = text,
-                    onValueChange = { text = it },
+                    onValueChange = {
+                        text = it
+                        onTextChange(it)
+                    },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                 )
                 Spacer(Modifier.height(16.dp))
                 Row(
