@@ -175,3 +175,49 @@
 -dontwarn androidx.window.sidecar.SidecarInterface
 -dontwarn androidx.window.sidecar.SidecarProvider
 -dontwarn androidx.window.sidecar.SidecarWindowLayoutInfo
+
+# libretrodroid (com.swordfish.libretrodroid) — the native libretro core calls
+# back into LibretroDroid's static onNative* methods via JNI (RegisterNatives /
+# FindClass). The AAR ships an EMPTY proguard.txt (verified), so R8 sees these
+# JNI callbacks as "unused" and strips/renames them unless we keep them here.
+# With minifyEnabled=false (debug) nothing is stripped, so this only manifests
+# in release builds.
+# Crash 2026-08-16 (release only):
+#   java.lang.NoSuchMethodError: no static method
+#   "Lcom/swordfish/libretrodroid/LibretroDroid;.onNativeNetpacketPeer(ZI)V"
+#   at com.swordfish.libretrodroid.LibretroDroid.nativeInitNetpacketPeerBridge
+#   at com.swordfish.libretrodroid.LibretroDroid.<clinit>
+# Keep the whole package (LibretroDroid, RetroAchievements, Controller, etc.)
+# since the .so resolves all of them by name — mirrors the Steam/zstd keeps above.
+# [[libretrodroid_jni_callbacks]]
+-keep class com.swordfish.libretrodroid.** { *; }
+-keepclassmembers class com.swordfish.libretrodroid.** { *; }
+-dontwarn com.swordfish.libretrodroid.**
+
+# armsx2 PS2 emulator (aetherSX2/Play fork) — native lib emucore_4k/16k.so in the
+# retro bundle looks up Java classes/methods BY NAME via JNI FindClass /
+# RegisterNatives (e.g. kr.co.iefriends.pcsx2.NativeApp.onPadRumble/playSound/
+# vmSetPaused/onTestResults/openContentUri, com.armsx2.input.PadRouter,
+# com.armsx2.runtime.MainActivityRuntime, org.libsdl.app.SDL* glue). R8 sees
+# these only as unused static methods and strips/renames them, so release
+# (minifyEnabled=true) crashes with NoSuchMethodError while debug builds are
+# fine. Same root cause as the libretrodroid crash above.
+# [[armsx2_jni_callbacks]]
+-keep class kr.co.iefriends.pcsx2.** { *; }
+-keepclassmembers class kr.co.iefriends.pcsx2.** { *; }
+-dontwarn kr.co.iefriends.pcsx2.**
+-keep class com.armsx2.** { *; }
+-keepclassmembers class com.armsx2.** { *; }
+-dontwarn com.armsx2.**
+-keep class org.libsdl.app.** { *; }
+-keepclassmembers class org.libsdl.app.** { *; }
+-dontwarn org.libsdl.app.**
+
+# Dolphin GameCube/Wii emulator — NativeLibrary.kt already carries @Keep on its
+# JNI callback methods, but pin the whole package so the native libmain.so lookup
+# (RegisterNatives/FindClass for NativeLibrary, WnHost, ButtonType, utils.Analytics
+# etc.) is never renamed. Same release-only NoSuchMethodError risk as the others.
+# [[dolphin_jni_callbacks]]
+-keep class org.dolphinemu.dolphinemu.** { *; }
+-keepclassmembers class org.dolphinemu.dolphinemu.** { *; }
+-dontwarn org.dolphinemu.dolphinemu.**

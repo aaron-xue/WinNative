@@ -336,7 +336,7 @@ class RetroActivity : FixedFontScaleAppCompatActivity(), RetroInputView.Listener
                 sourceFile
             }
 
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_USER
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 
         netplayArmedThisSession = RetroDefaults.netplayEnabled(this, resolvedSystem.id)
         if (!netplayArmedThisSession && RetroNetplayLobby.isInRoomSession()) {
