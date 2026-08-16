@@ -1096,7 +1096,7 @@ open class MainActivityRuntime : ComponentActivity() {
             1 -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             2 -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
             3 -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
-            else -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         }
     }
 
