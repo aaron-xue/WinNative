@@ -2540,7 +2540,7 @@ Percorso installato:
     <string name="registry_export_done">Registro esportato</string>
     <string name="registry_export_failed">Esportazione del registro fallita</string>
     <string name="registry_current_wine">Wine attuale: %1$s</string>
-    <string name="registry_cpu_spoof_hint">Preset selezionato automaticamente per l'architettura Wine: %1$s</string>
+    <string name="registry_cpu_spoof_hint">Preset selezionato automaticamente per l\'architettura Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">Cancella</string>
     <string name="registry_cpu_spoof_cleared">Valori di spoofing CPU rimossi</string>
 </resources>

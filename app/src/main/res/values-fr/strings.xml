@@ -2512,7 +2512,7 @@ Chemin installé :
     <string name="registry_editor">Registre</string>
     <string name="registry_hive_user">Utilisateur (user.reg)</string>
     <string name="registry_hive_system">Système (system.reg)</string>
-    <string name="registry_file_not_found">Fichier de registre introuvable. Veuillez dabord enregistrer le conteneur.</string>
+    <string name="registry_file_not_found">Fichier de registre introuvable. Veuillez d\'abord enregistrer le conteneur.</string>
     <string name="registry_root">Racine</string>
     <string name="registry_add_key">Ajouter une clé</string>
     <string name="registry_add_value">Ajouter une valeur</string>
@@ -2527,7 +2527,7 @@ Chemin installé :
     <string name="registry_value">Valeur</string>
     <string name="registry_import">Importer .reg</string>
     <string name="registry_import_done">Registre importé avec succès</string>
-    <string name="registry_import_failed">Échec de limportation du registre</string>
+    <string name="registry_import_failed">Échec de l\'importation du registre</string>
     <string name="registry_cpu_spoof">Usurpation CPU (ARM)</string>
     <string name="registry_cpu_spoof_done">Usurpation CPU appliquée à system.reg</string>
     <string name="registry_default_value">(Par défaut)</string>
@@ -2538,9 +2538,9 @@ Chemin installé :
     <string name="registry_saved">Registre mis à jour</string>
     <string name="registry_export">Exporter .reg</string>
     <string name="registry_export_done">Registre exporté</string>
-    <string name="registry_export_failed">Échec de lexportation du registre</string>
+    <string name="registry_export_failed">Échec de l\'exportation du registre</string>
     <string name="registry_current_wine">Wine actuel : %1$s</string>
-    <string name="registry_cpu_spoof_hint">Préréglage automatiquement sélectionné pour larchitecture Wine : %1$s</string>
+    <string name="registry_cpu_spoof_hint">Préréglage automatiquement sélectionné pour l\'architecture Wine : %1$s</string>
     <string name="registry_cpu_spoof_clear">Effacer</string>
-    <string name="registry_cpu_spoof_cleared">Valeurs dusurpation CPU supprimées</string>
+    <string name="registry_cpu_spoof_cleared">Valeurs d\'usurpation CPU supprimées</string>
 </resources>

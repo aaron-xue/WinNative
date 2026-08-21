@@ -527,7 +527,7 @@ public class WineRegistryEditor implements Closeable {
                   applyImportedValue(currentKey, currentName, currentRaw, currentValue.toString());
               }
               currentKey = stripHivePrefix(line.substring(1, line.length() - 1));
-              ensureKey(currentKey);
+              if (!currentKey.isEmpty()) ensureKey(currentKey);
               currentName = null;
               currentRaw = null;
               currentValue = null;
@@ -558,17 +558,6 @@ public class WineRegistryEditor implements Closeable {
       }
       if (currentKey != null && currentRaw != null) {
           applyImportedValue(currentKey, currentName, currentRaw, currentValue.toString());
-      }
-  }
-
-  private void ensureKey(String key) {
-      if (key == null || key.isEmpty() || hasKey(key)) return;
-      String[] parts = key.split("\\\\");
-      StringBuilder current = new StringBuilder();
-      for (String part : parts) {
-          if (current.length() > 0) current.append("\\");
-          current.append(part);
-          if (!hasKey(current.toString())) createKey(current.toString());
       }
   }
 

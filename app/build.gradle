@@ -234,6 +234,7 @@ android {
     sourceSets {
         main {
             java.srcDirs = [
+                    'src/main/java',
                     'src/main/app',
                     'src/main/feature',
                     'src/main/sharedmemory',

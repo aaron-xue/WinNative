@@ -43,6 +43,8 @@ add_subdirectory(adrenotools)
 add_subdirectory(wn-steam-client)
 add_subdirectory(wn-steam-bootstrap)
 add_subdirectory(wn-libsteamclient)
+# MMKV: high-performance key-value storage (built from Tencent/MMKV source)
+add_subdirectory(mmkv)
 
 find_package(curl REQUIRED CONFIG)
 

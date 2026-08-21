@@ -493,9 +493,9 @@ fun RegistryEditorTab(
                         }
                     }
                     showAddKeyDialog = false
-                }) { Text(stringResource(R.string.ok)) }
+                }) { Text(stringResource(R.string.common_ui_ok)) }
             },
-            dismissButton = { TextButton(onClick = { showAddKeyDialog = false }) { Text(stringResource(R.string.cancel)) } }
+            dismissButton = { TextButton(onClick = { showAddKeyDialog = false }) { Text(stringResource(R.string.common_ui_cancel)) } }
         )
     }
 
@@ -572,9 +572,9 @@ fun RegistryEditorTab(
                     }
                     addingValue = false
                     editingValue = null
-                }) { Text(stringResource(R.string.ok)) }
+                }) { Text(stringResource(R.string.common_ui_ok)) }
             },
-            dismissButton = { TextButton(onClick = { addingValue = false; editingValue = null }) { Text(stringResource(R.string.cancel)) } }
+            dismissButton = { TextButton(onClick = { addingValue = false; editingValue = null }) { Text(stringResource(R.string.common_ui_cancel)) } }
         )
     }
 
@@ -673,7 +673,7 @@ fun RegistryEditorTab(
                         showSpoofDialog = false
                         onToast(ctx.getString(R.string.registry_cpu_spoof_done))
                     }) {
-                        Text(stringResource(R.string.apply))
+                        Text(stringResource(R.string.common_ui_apply))
                     }
                     TextButton(onClick = {
                         scope.launch(Dispatchers.IO) {
@@ -701,7 +701,7 @@ fun RegistryEditorTab(
                         Text(stringResource(R.string.registry_cpu_spoof_clear), color = MaterialTheme.colorScheme.error)
                     }
                     TextButton(onClick = { showSpoofDialog = false }) {
-                        Text(stringResource(R.string.cancel))
+                        Text(stringResource(R.string.common_ui_cancel))
                     }
                 }
             }
@@ -723,9 +723,9 @@ fun RegistryEditorTab(
                         refreshKey++
                     }
                     deleteKeyConfirm = null
-                }) { Text(stringResource(R.string.ok), color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.common_ui_ok), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { deleteKeyConfirm = null }) { Text(stringResource(R.string.cancel)) } }
+            dismissButton = { TextButton(onClick = { deleteKeyConfirm = null }) { Text(stringResource(R.string.common_ui_cancel)) } }
         )
     }
 
@@ -744,9 +744,9 @@ fun RegistryEditorTab(
                         refreshKey++
                     }
                     deleteValueConfirm = null
-                }) { Text(stringResource(R.string.ok), color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.common_ui_ok), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { deleteValueConfirm = null }) { Text(stringResource(R.string.cancel)) } }
+            dismissButton = { TextButton(onClick = { deleteValueConfirm = null }) { Text(stringResource(R.string.common_ui_cancel)) } }
         )
     }
 }

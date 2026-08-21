@@ -2527,8 +2527,8 @@
     <string name="registry_delete_value">Видалити значення</string>
     <string name="registry_confirm_delete_key">Видалити розділ "%1$s" і всі його дочірні розділи?</string>
     <string name="registry_confirm_delete_value">Видалити значення "%1$s"?</string>
-    <string name="registry_key_name">Ім'я розділу</string>
-    <string name="registry_value_name">Ім'я значення</string>
+    <string name="registry_key_name">Ім\'я розділу</string>
+    <string name="registry_value_name">Ім\'я значення</string>
     <string name="registry_type">Тип</string>
     <string name="registry_value">Значення</string>
     <string name="registry_import">Імпортувати .reg</string>
