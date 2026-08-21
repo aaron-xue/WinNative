@@ -2511,5 +2511,40 @@
     <string name="retro_scr_consoles_verifying">正在校验下载…</string>
     <string name="retro_scr_consoles_working">处理中…</string>
     <string name="retro_tab_system">系统</string>
+
+    <string name="registry_editor">注册表</string>
+    <string name="registry_hive_user">用户（user.reg）</string>
+    <string name="registry_hive_system">系统（system.reg）</string>
+    <string name="registry_file_not_found">未找到注册表文件。请先保存容器。</string>
+    <string name="registry_root">根目录</string>
+    <string name="registry_add_key">新建项</string>
+    <string name="registry_add_value">新建值</string>
+    <string name="registry_edit_value">编辑值</string>
+    <string name="registry_delete_key">删除项</string>
+    <string name="registry_delete_value">删除值</string>
+    <string name="registry_confirm_delete_key">删除“%1$s”及其所有子项？</string>
+    <string name="registry_confirm_delete_value">删除值“%1$s”？</string>
+    <string name="registry_key_name">项名称</string>
+    <string name="registry_value_name">值名称</string>
+    <string name="registry_type">类型</string>
+    <string name="registry_value">值</string>
+    <string name="registry_import">导入 .reg</string>
+    <string name="registry_import_done">注册表导入成功</string>
+    <string name="registry_import_failed">导入注册表失败</string>
+    <string name="registry_cpu_spoof">CPU 伪装（ARM）</string>
+    <string name="registry_cpu_spoof_done">已应用 CPU 伪装到 system.reg</string>
+    <string name="registry_default_value">（默认）</string>
+    <string name="registry_empty">（空）</string>
+    <string name="registry_invalid_hex">无效的十六进制值</string>
+    <string name="registry_created">容器尚未创建</string>
+    <string name="registry_delete_key_error">删除项失败</string>
+    <string name="registry_saved">注册表已更新</string>
+    <string name="registry_export">导出 .reg</string>
+    <string name="registry_export_done">注册表已导出</string>
+    <string name="registry_export_failed">导出注册表失败</string>
+    <string name="registry_current_wine">当前 Wine：%1$s</string>
+    <string name="registry_cpu_spoof_hint">已根据 Wine 架构自动选择预设：%1$s</string>
+    <string name="registry_cpu_spoof_clear">清除</string>
+    <string name="registry_cpu_spoof_cleared">已移除 CPU 伪装</string>
 </resources>
 
