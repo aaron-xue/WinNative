@@ -1,27 +1,46 @@
 package com.winlator.cmod.feature.settings.containers;
 
 import android.net.Uri
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.winlator.cmod.R
+import com.winlator.cmod.runtime.container.Container
+import com.winlator.cmod.runtime.container.ContainerCreation
+import com.winlator.cmod.runtime.container.ContainerManager
 import com.winlator.cmod.runtime.container.MmkvPreferences
+import com.winlator.cmod.runtime.content.ContentsManager
+import com.winlator.cmod.runtime.wine.WineInfo
 import com.winlator.cmod.runtime.wine.WineRegistryEditor
+import com.winlator.cmod.shared.theme.WinNativeTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -59,6 +78,103 @@ private val PRESET_INTEL = CpuSpoofPreset(
     mhz = 2016,
     featureSet = "2b7bbfff",
 )
+
+class ContainerRegistryEditorActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Immersive display — same handling as ContainerFileManagerActivity
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.hide(WindowInsetsCompat.Type.statusBars())
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+        val containerId = intent.getIntExtra("container_id", -1)
+        if (containerId == -1) {
+            finish()
+            return
+        }
+        val container = ContainerManager(this).getContainerById(containerId) ?: run {
+            finish()
+            return
+        }
+
+        val contentsManager = ContentsManager(this)
+        val wineVersionId = container.getWineVersion()
+        val wineVersion =
+            ContainerCreation.displayNameForWineVersion(this, contentsManager, wineVersionId)
+        val wineInfo = WineInfo.fromIdentifier(this, contentsManager, wineVersionId)
+        val wineArch = if (wineInfo.isArm64EC()) "arm64ec" else "x86_64"
+        val rootDir = container.getRootDir()
+
+        setContent {
+            WinNativeTheme {
+                val statusBar = WindowInsets.statusBars.asPaddingValues()
+                val navBar = WindowInsets.navigationBars.asPaddingValues()
+
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(
+                                    start = 16.dp,
+                                    top = statusBar.calculateTopPadding() + 4.dp,
+                                    end = 16.dp,
+                                    bottom = navBar.calculateBottomPadding(),
+                                ),
+                    ) {
+                        // ── Header ──
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            IconButton(onClick = { finish() }) {
+                                Icon(
+                                    Icons.AutoMirrored.Outlined.ArrowBack,
+                                    contentDescription = stringResource(R.string.common_ui_back),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = stringResource(R.string.registry_editor),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                        ) {
+                            RegistryEditorTab(
+                                containerRootDir = rootDir,
+                                wineVersion = wineVersion,
+                                wineArch = wineArch,
+                                onToast = { msg ->
+                                    Toast.makeText(
+                                        this@ContainerRegistryEditorActivity,
+                                        msg,
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun RegistryEditorTab(
@@ -208,7 +324,7 @@ fun RegistryEditorTab(
                             part,
                             style = MaterialTheme.typography.bodySmall,
                             color = if (isLast) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
-                            fontWeight = if (isLast) androidx.compose.ui.text.font.FontWeight.Bold else null,
+                            fontWeight = if (isLast) FontWeight.Bold else null,
                             modifier = if (isLast) Modifier.padding(4.dp) else Modifier.clickable { currentPath = targetPath }.padding(4.dp)
                         )
                     }
@@ -265,7 +381,7 @@ fun RegistryEditorTab(
                 Text(
                     "Subkeys (${subKeys.size})",
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
                 subKeys.forEach { subKey ->
@@ -290,7 +406,7 @@ fun RegistryEditorTab(
             Text(
                 "Values (${values.size})",
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
             if (values.isEmpty()) {
@@ -314,7 +430,7 @@ fun RegistryEditorTab(
                                 Text(
                                     value.name ?: stringResource(R.string.registry_default_value),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                                    fontWeight = FontWeight.Medium,
                                     fontFamily = FontFamily.Monospace
                                 )
                                 Text(
@@ -632,6 +748,42 @@ fun RegistryEditorTab(
             },
             dismissButton = { TextButton(onClick = { deleteValueConfirm = null }) { Text(stringResource(R.string.cancel)) } }
         )
+    }
+}
+
+@Composable
+private fun SectionCard(
+    title: String,
+    icon: ImageVector,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    ) {
+        Column(Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    icon,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            content()
+        }
     }
 }
 

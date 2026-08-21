@@ -137,6 +137,7 @@ fun ContainersScreen(
     onRemoveContainer: (Container) -> Unit,
     onShowInfo: (Container) -> Unit,
     onFileManager: (Container) -> Unit,
+    onRegistryEditor: (Container) -> Unit,
     onDismissDialog: () -> Unit,
     onConfirmDuplicateDialog: (Container) -> Unit,
     onConfirmRemoveDialog: (Container) -> Unit,
@@ -210,6 +211,7 @@ fun ContainersScreen(
                                                     onInstallComponents = { onInstallComponents(container) },
                                                     onRemove = { onRemoveContainer(container) },
                                                     onFileManager = { onFileManager(container) },
+                                                    onRegistryEditor = { onRegistryEditor(container) },
                                                     onShowInfo = { onShowInfo(container) },
                                                 )
                                             }
@@ -406,6 +408,7 @@ private fun ContainerCard(
     onRemove: () -> Unit,
     onShowInfo: () -> Unit,
     onFileManager: () -> Unit,
+    onRegistryEditor: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val nameFontSize =
@@ -463,6 +466,13 @@ private fun ContainerCard(
                         onClick = {
                             menuExpanded = false
                             onFileManager()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.registry_editor), color = ContainersTextPrimary) },
+                        onClick = {
+                            menuExpanded = false
+                            onRegistryEditor()
                         }
                     )
                     DropdownMenuItem(

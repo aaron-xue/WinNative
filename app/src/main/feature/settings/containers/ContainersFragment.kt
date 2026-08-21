@@ -21,6 +21,7 @@ import com.winlator.cmod.R
 import com.winlator.cmod.app.shell.UnifiedActivity
 import com.winlator.cmod.feature.settings.ContainerSettingsComposeDialog
 import com.winlator.cmod.feature.settings.containers.ContainerFileManagerActivity
+import com.winlator.cmod.feature.settings.containers.ContainerRegistryEditorActivity
 import com.winlator.cmod.feature.shortcuts.ShortcutsFragment
 import com.winlator.cmod.runtime.container.Container
 import com.winlator.cmod.runtime.container.ContainerManager
@@ -67,6 +68,7 @@ class ContainersFragment : Fragment() {
                         onRemoveContainer = ::removeContainer,
                         onShowInfo = ::showContainerInfo,
                         onFileManager = ::openFileManager,
+                        onRegistryEditor = ::openRegistryEditor,
                         onDismissDialog = ::dismissDialog,
                         onConfirmDuplicateDialog = ::performDuplicateContainer,
                         onConfirmRemoveDialog = ::performRemoveContainer,
@@ -149,6 +151,15 @@ class ContainersFragment : Fragment() {
         val ctx = context ?: return
         startActivity(
             Intent(ctx, ContainerFileManagerActivity::class.java).apply {
+                putExtra("container_id", container.id)
+            },
+        )
+    }
+
+    private fun openRegistryEditor(container: Container) {
+        val ctx = context ?: return
+        startActivity(
+            Intent(ctx, ContainerRegistryEditorActivity::class.java).apply {
                 putExtra("container_id", container.id)
             },
         )
