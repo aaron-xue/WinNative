@@ -19,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.tencent.mmkv.MMKV
 
 @HiltAndroidApp
 class PluviaApp : Application() {
@@ -41,6 +42,9 @@ class PluviaApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+
+        MMKV.initialize(this)
+        MMKV.defaultMMKV(MMKV.MULTI_PROCESS_MODE, null)
 
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             Log.e("PluviaApp", "CRASH in thread ${thread.name}", throwable)
