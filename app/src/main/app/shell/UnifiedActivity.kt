@@ -208,6 +208,7 @@ import com.winlator.cmod.shared.android.ActivityResultHost
 import com.winlator.cmod.shared.android.AppTerminationHelper
 import com.winlator.cmod.shared.android.DirectoryPickerDialog
 import com.winlator.cmod.shared.android.FixedFontScaleAppCompatActivity
+import com.winlator.cmod.shared.android.LandscapeOnlyActivity
 import com.winlator.cmod.shared.android.RefreshRateUtils
 import com.winlator.cmod.shared.io.StorageUtils
 import com.winlator.cmod.shared.io.FileUtils
@@ -330,6 +331,7 @@ internal class DownloadsNavBridge {
 @AndroidEntryPoint
 class UnifiedActivity :
     FixedFontScaleAppCompatActivity(),
+    LandscapeOnlyActivity,
     ActivityResultHost {
     @Inject lateinit var dbProvider: Lazy<PluviaDatabase>
 

@@ -10,6 +10,7 @@ import com.winlator.cmod.feature.stores.epic.ui.component.dialog.AuthWebViewDial
 import com.winlator.cmod.feature.stores.gog.service.GOGConstants
 import com.winlator.cmod.feature.stores.steam.utils.redactUrlForLogging
 import com.winlator.cmod.shared.android.FixedFontScaleComponentActivity
+import com.winlator.cmod.shared.android.LandscapeOnlyActivity
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import timber.log.Timber
 
@@ -18,7 +19,7 @@ import timber.log.Timber
  * the authorization code when GOG redirects to the success URL (aligns with gog-support).
  * Uses a per-session state parameter for CSRF protection.
  */
-class GOGOAuthActivity : FixedFontScaleComponentActivity() {
+class GOGOAuthActivity : FixedFontScaleComponentActivity(), LandscapeOnlyActivity {
     companion object {
         const val EXTRA_AUTH_CODE = "auth_code"
         const val EXTRA_ERROR = "error"

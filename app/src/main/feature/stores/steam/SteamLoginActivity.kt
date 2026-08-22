@@ -50,6 +50,7 @@ import com.winlator.cmod.feature.stores.steam.ui.SteamLoginViewModel
 import com.winlator.cmod.feature.stores.steam.ui.components.QrCodeImage
 import com.winlator.cmod.feature.stores.steam.ui.data.UserLoginState
 import com.winlator.cmod.shared.android.FixedFontScaleComponentActivity
+import com.winlator.cmod.shared.android.LandscapeOnlyActivity
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import com.winlator.cmod.shared.ui.outlinedSwitchColors
 import timber.log.Timber
@@ -64,7 +65,7 @@ private val TextPrimary = Color(0xFFF0F4FF)
 private val TextSecondary = Color(0xFF7A8FA8)
 private val DangerRed = Color(0xFFFF7A88)
 
-class SteamLoginActivity : FixedFontScaleComponentActivity() {
+class SteamLoginActivity : FixedFontScaleComponentActivity(), LandscapeOnlyActivity {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

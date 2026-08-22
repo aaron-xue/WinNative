@@ -41,6 +41,7 @@ import com.winlator.cmod.runtime.container.Shortcut
 import com.winlator.cmod.runtime.display.ui.FrameRating
 import com.winlator.cmod.runtime.input.controls.ExternalController
 import com.winlator.cmod.shared.android.FixedFontScaleAppCompatActivity
+import com.winlator.cmod.shared.android.LandscapeOnlyActivity
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
@@ -50,7 +51,7 @@ import kotlinx.coroutines.withTimeout
 import java.io.File
 import kotlin.math.abs
 
-class RetroActivity : FixedFontScaleAppCompatActivity(), RetroInputView.Listener {
+class RetroActivity : FixedFontScaleAppCompatActivity(), LandscapeOnlyActivity, RetroInputView.Listener {
     companion object {
         const val EXTRA_ROM_PATH = "retro_rom_path"
         const val EXTRA_SYSTEM_ID = "retro_system_id"

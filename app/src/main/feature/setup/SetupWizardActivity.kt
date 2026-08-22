@@ -129,6 +129,7 @@ import com.winlator.cmod.runtime.display.environment.ImageFsInstaller
 import com.winlator.cmod.runtime.wine.WineInfo
 import com.winlator.cmod.shared.ui.toast.WinToast
 import com.winlator.cmod.shared.android.FixedFontScaleFragmentActivity
+import com.winlator.cmod.shared.android.LandscapeOnlyActivity
 import com.winlator.cmod.shared.ui.widget.chasingBorder
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import kotlinx.coroutines.Dispatchers
@@ -209,7 +210,7 @@ private suspend fun LazyListState.scrollToSelected(index: Int) {
     if (!fullyVisible) runCatching { animateScrollToItem(index) }
 }
 
-class SetupWizardActivity : FixedFontScaleFragmentActivity() {
+class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActivity {
     companion object {
         private const val PREFS_NAME = "winnative_setup"
         private const val EXTRA_FORCE_SHOW = "force_show"

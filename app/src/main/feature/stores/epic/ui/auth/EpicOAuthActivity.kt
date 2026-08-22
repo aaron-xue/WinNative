@@ -12,11 +12,12 @@ import com.winlator.cmod.feature.stores.epic.service.EpicConstants
 import com.winlator.cmod.feature.stores.epic.ui.component.dialog.AuthWebViewDialog
 import com.winlator.cmod.feature.stores.steam.utils.redactUrlForLogging
 import com.winlator.cmod.shared.android.FixedFontScaleComponentActivity
+import com.winlator.cmod.shared.android.LandscapeOnlyActivity
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import timber.log.Timber
 
 // Captures Epic OAuth codes from redirect URLs or the JSON redirect body.
-class EpicOAuthActivity : FixedFontScaleComponentActivity() {
+class EpicOAuthActivity : FixedFontScaleComponentActivity(), LandscapeOnlyActivity {
     companion object {
         const val EXTRA_AUTH_CODE = "auth_code"
         const val EXTRA_ERROR = "error"
