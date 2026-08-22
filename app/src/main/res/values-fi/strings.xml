@@ -192,6 +192,8 @@
     <string name="library_games_layout_carousel">Karuselli</string>
     <string name="library_games_layout_list">Luettelo</string>
     <string name="library_games_view_options_header">NÄKYMÄASETUKSET</string>
+    <string name="library_games_force_landscape">Pakota vaakasuunta</string>
+    <string name="library_games_force_landscape_description">Pidä sovellus vaakasuunnassa laitteen kääntämisestä riippumatta</string>
     <string name="library_games_immersive_mode">Immersiivinen tila</string>
     <string name="library_games_immersive_mode_description">Käytä valitun pelin kuvitusta taustana</string>
     <string name="library_games_immersive_blur">Sumenna tausta</string>
@@ -1836,6 +1838,8 @@ Asennuspolku:
     <string name="retro_lr_letter_color">Kirjaimen väri</string>
     <string name="retro_lr_shadow_color">Varjon väri</string>
     <string name="retro_lr_background_color">Taustaväri</string>
+    <string name="retro_lr_shell_background">Ohjaimen tausta</string>
+    <string name="retro_lr_shell_background_subtitle">Täyttää painikkeiden ympärillä olevan alueen. Poista se käytöstä, jotta peli voi käyttää koko näyttöä.</string>
     <string name="retro_lr_reset_colors">Palauta värit</string>
     <string name="retro_lr_colors_reset">Värit palautettu</string>
     <string name="retro_lr_performance_hud">Suorituskyky-HUD</string>

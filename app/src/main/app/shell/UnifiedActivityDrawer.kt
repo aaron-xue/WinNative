@@ -220,6 +220,7 @@ import com.winlator.cmod.shared.android.RefreshRateUtils
 import com.winlator.cmod.shared.io.StorageUtils
 import com.winlator.cmod.shared.io.FileUtils
 import com.winlator.cmod.shared.ui.CarouselView
+import com.winlator.cmod.shared.ui.layout.screenWidthDp
 import com.winlator.cmod.shared.ui.dialog.PopupDialog
 import com.winlator.cmod.shared.ui.dialog.PopupTextAction
 import androidx.compose.foundation.focusGroup
@@ -348,11 +349,13 @@ internal fun UnifiedActivity.DrawerContent(
     libraryLayoutMode: LibraryLayoutMode,
     immersiveMode: Boolean,
     immersiveBlur: Boolean,
+    forceLandscape: Boolean,
     onLibraryLayoutSelected: (LibraryLayoutMode) -> Unit,
     onStoreVisibleChanged: (String, Boolean) -> Unit,
     onContentFiltersChanged: (String, Boolean) -> Unit,
     onImmersiveModeChanged: (Boolean) -> Unit,
     onImmersiveBlurChanged: (Boolean) -> Unit,
+    onForceLandscapeChanged: (Boolean) -> Unit,
     onExportAll: () -> Unit,
     onExitApp: () -> Unit,
 ) {
@@ -369,7 +372,7 @@ internal fun UnifiedActivity.DrawerContent(
         drawerContainerColor = Color(0xFF12121B),
         drawerContentColor = TextPrimary,
         windowInsets = WindowInsets(0, 0, 0, 0),
-        modifier = Modifier.width(324.dp),
+        modifier = Modifier.width(minOf(324.dp, screenWidthDp() - 56.dp)),
     ) {
         CompositionLocalProvider(LocalPaneNav provides navRegistry) {
         Column(
@@ -379,6 +382,15 @@ internal fun UnifiedActivity.DrawerContent(
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
         ) {
+
+            DrawerSwitchCard(
+                label = stringResource(R.string.library_games_force_landscape),
+                description = stringResource(R.string.library_games_force_landscape_description),
+                checked = forceLandscape,
+                onCheckedChange = onForceLandscapeChanged,
+            )
+
+            Spacer(Modifier.height(16.dp))
 
             // ── Layouts ──
             Text(
@@ -844,14 +856,17 @@ internal fun UnifiedActivity.AddCustomGameDialog(onDismiss: () -> Unit) {
             } else {
                 LibraryShortcutUtils.detectCustomGameFolder(path)
             }
-        // Auto-generate a game name from the EXE name (without extension)
         if (gameName.isBlank()) {
             gameName =
-                java.io
-                    .File(path)
-                    .nameWithoutExtension
-                    .replace("_", " ")
-                    .replace("-", " ")
+                if (detectedRetro != null) {
+                    java.io
+                        .File(path)
+                        .nameWithoutExtension
+                        .replace("_", " ")
+                        .replace("-", " ")
+                } else {
+                    LibraryShortcutUtils.suggestCustomGameName(path)
+                }
         }
     }
 

@@ -26,11 +26,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.winlator.cmod.shared.ui.layout.screenWidthDp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.abs
 
 enum class ViewMode { Grid }
+
+fun gridColumnsForWidth(widthDp: Int): Int =
+    when {
+        widthDp <= 0 -> 4
+        widthDp < 480 -> 2
+        widthDp < 700 -> 3
+        else -> 4
+    }
+
+@Composable
+fun defaultGridColumns(): Int = gridColumnsForWidth(screenWidthDp().value.toInt())
 
 /**
  * Unified grid layout used by store tabs
@@ -49,7 +61,7 @@ enum class ViewMode { Grid }
 fun <T> FourByTwoGridView(
     items: List<T>,
     modifier: Modifier = Modifier,
-    columns: Int = 4,
+    columns: Int = defaultGridColumns(),
     spacing: Dp = 12.dp,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     gridState: LazyGridState = rememberLazyGridState(),

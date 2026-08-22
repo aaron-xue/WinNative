@@ -207,6 +207,8 @@
     <string name="library_games_layout_carousel">輪播</string>
     <string name="library_games_layout_list">清單</string>
     <string name="library_games_view_options_header">檢視選項</string>
+    <string name="library_games_force_landscape">強制橫向</string>
+    <string name="library_games_force_landscape_description">忽略裝置旋轉，始終以橫向顯示應用程式</string>
     <string name="library_games_immersive_mode">沉浸模式</string>
     <string name="library_games_immersive_mode_description">將目前聚焦遊戲的美術圖用作背景</string>
     <string name="library_games_immersive_blur">模糊背景</string>
@@ -1855,6 +1857,8 @@
     <string name="retro_lr_letter_color">字母顏色</string>
     <string name="retro_lr_shadow_color">陰影顏色</string>
     <string name="retro_lr_background_color">背景顏色</string>
+    <string name="retro_lr_shell_background">手把背景</string>
+    <string name="retro_lr_shell_background_subtitle">填滿按鈕周圍的區域。關閉後遊戲可以使用整個螢幕。</string>
     <string name="retro_lr_reset_colors">重置顏色</string>
     <string name="retro_lr_colors_reset">顏色已重置</string>
     <string name="retro_lr_performance_hud">效能 HUD</string>

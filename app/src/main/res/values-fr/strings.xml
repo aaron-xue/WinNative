@@ -207,6 +207,8 @@
     <string name="library_games_layout_carousel">Carrousel</string>
     <string name="library_games_layout_list">Liste</string>
     <string name="library_games_view_options_header">OPTIONS D’AFFICHAGE</string>
+    <string name="library_games_force_landscape">Forcer le paysage</string>
+    <string name="library_games_force_landscape_description">Garder l\'application en paysage, en ignorant la rotation de l\'appareil</string>
     <string name="library_games_immersive_mode">Mode immersif</string>
     <string name="library_games_immersive_mode_description">Utiliser l’illustration du jeu sélectionné comme arrière-plan</string>
     <string name="library_games_immersive_blur">Flouter l’arrière-plan</string>
@@ -1856,6 +1858,8 @@ Chemin installé :
     <string name="retro_lr_letter_color">Couleur des lettres</string>
     <string name="retro_lr_shadow_color">Couleur de l\'ombre</string>
     <string name="retro_lr_background_color">Couleur de fond</string>
+    <string name="retro_lr_shell_background">Fond de la manette</string>
+    <string name="retro_lr_shell_background_subtitle">Remplit l\'espace autour des boutons. Désactivez-le pour que le jeu occupe tout l\'écran.</string>
     <string name="retro_lr_reset_colors">Réinitialiser les couleurs</string>
     <string name="retro_lr_colors_reset">Couleurs réinitialisées</string>
     <string name="retro_lr_performance_hud">HUD de performances</string>

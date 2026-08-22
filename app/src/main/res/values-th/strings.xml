@@ -192,6 +192,8 @@
     <string name="library_games_layout_carousel">คารูเซล</string>
     <string name="library_games_layout_list">รายการ</string>
     <string name="library_games_view_options_header">ตัวเลือกมุมมอง</string>
+    <string name="library_games_force_landscape">บังคับแนวนอน</string>
+    <string name="library_games_force_landscape_description">ให้แอปอยู่ในแนวนอนเสมอ โดยไม่สนใจการหมุนอุปกรณ์</string>
     <string name="library_games_immersive_mode">โหมดอิมเมอร์ซีฟ</string>
     <string name="library_games_immersive_mode_description">ใช้ภาพเกมที่โฟกัสเป็นพื้นหลัง</string>
     <string name="library_games_immersive_blur">เบลอพื้นหลัง</string>
@@ -1836,6 +1838,8 @@
     <string name="retro_lr_letter_color">สีตัวอักษร</string>
     <string name="retro_lr_shadow_color">สีเงา</string>
     <string name="retro_lr_background_color">สีพื้นหลัง</string>
+    <string name="retro_lr_shell_background">พื้นหลังคอนโทรลเลอร์</string>
+    <string name="retro_lr_shell_background_subtitle">เติมพื้นที่รอบ ๆ ปุ่ม ปิดไว้เพื่อให้เกมใช้ได้เต็มหน้าจอ</string>
     <string name="retro_lr_reset_colors">รีเซ็ตสี</string>
     <string name="retro_lr_colors_reset">รีเซ็ตสีแล้ว</string>
     <string name="retro_lr_performance_hud">HUD ประสิทธิภาพ</string>

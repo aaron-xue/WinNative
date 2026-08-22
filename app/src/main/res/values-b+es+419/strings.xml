@@ -192,6 +192,8 @@
     <string name="library_games_layout_carousel">Carrusel</string>
     <string name="library_games_layout_list">Lista</string>
     <string name="library_games_view_options_header">OPCIONES DE VISTA</string>
+    <string name="library_games_force_landscape">Forzar horizontal</string>
+    <string name="library_games_force_landscape_description">Mantener la app en horizontal, ignorando la rotación del dispositivo</string>
     <string name="library_games_immersive_mode">Modo inmersivo</string>
     <string name="library_games_immersive_mode_description">Usar el arte del juego enfocado como fondo</string>
     <string name="library_games_immersive_blur">Desenfocar fondo</string>
@@ -1836,6 +1838,8 @@ Ruta instalada:
     <string name="retro_lr_letter_color">Color de letras</string>
     <string name="retro_lr_shadow_color">Color de sombra</string>
     <string name="retro_lr_background_color">Color de fondo</string>
+    <string name="retro_lr_shell_background">Fondo del control</string>
+    <string name="retro_lr_shell_background_subtitle">Rellena el espacio alrededor de los botones. Desactívalo para que el juego use toda la pantalla.</string>
     <string name="retro_lr_reset_colors">Restablecer colores</string>
     <string name="retro_lr_colors_reset">Colores restablecidos</string>
     <string name="retro_lr_performance_hud">HUD de rendimiento</string>

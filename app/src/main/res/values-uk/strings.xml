@@ -211,6 +211,8 @@
     <string name="library_games_layout_carousel">Карусель</string>
     <string name="library_games_layout_list">Список</string>
     <string name="library_games_view_options_header">ПАРАМЕТРИ ВИГЛЯДУ</string>
+    <string name="library_games_force_landscape">Лише альбомна</string>
+    <string name="library_games_force_landscape_description">Тримати застосунок в альбомній орієнтації, ігноруючи поворот пристрою</string>
     <string name="library_games_immersive_mode">Режим занурення</string>
     <string name="library_games_immersive_mode_description">Використовувати зображення вибраної гри як фон</string>
     <string name="library_games_immersive_blur">Розмити фон</string>
@@ -1862,6 +1864,8 @@
     <string name="retro_lr_letter_color">Колір літери</string>
     <string name="retro_lr_shadow_color">Колір тіні</string>
     <string name="retro_lr_background_color">Колір фону</string>
+    <string name="retro_lr_shell_background">Фон контролера</string>
+    <string name="retro_lr_shell_background_subtitle">Заповнює область навколо кнопок. Вимкніть його, щоб гра займала весь екран.</string>
     <string name="retro_lr_reset_colors">Скинути кольори</string>
     <string name="retro_lr_colors_reset">Кольори скинуто</string>
     <string name="retro_lr_performance_hud">HUD продуктивності</string>

@@ -192,6 +192,8 @@
     <string name="library_games_layout_carousel">カルーセル</string>
     <string name="library_games_layout_list">リスト</string>
     <string name="library_games_view_options_header">表示オプション</string>
+    <string name="library_games_force_landscape">横向き固定</string>
+    <string name="library_games_force_landscape_description">デバイスの回転を無視してアプリを横向きに固定します</string>
     <string name="library_games_immersive_mode">没入モード</string>
     <string name="library_games_immersive_mode_description">フォーカス中のゲームアートを背景として使用</string>
     <string name="library_games_immersive_blur">背景をぼかす</string>
@@ -1836,6 +1838,8 @@
     <string name="retro_lr_letter_color">文字の色</string>
     <string name="retro_lr_shadow_color">影の色</string>
     <string name="retro_lr_background_color">背景の色</string>
+    <string name="retro_lr_shell_background">コントローラーの背景</string>
+    <string name="retro_lr_shell_background_subtitle">ボタンの周りの領域を塗りつぶします。オフにするとゲームが画面全体を使えます。</string>
     <string name="retro_lr_reset_colors">色をリセット</string>
     <string name="retro_lr_colors_reset">色をリセットしました</string>
     <string name="retro_lr_performance_hud">パフォーマンス HUD</string>

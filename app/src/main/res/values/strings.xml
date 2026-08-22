@@ -209,6 +209,8 @@
     <string name="library_games_layout_carousel">Carousel</string>
     <string name="library_games_layout_list">List</string>
     <string name="library_games_view_options_header">VIEW OPTIONS</string>
+    <string name="library_games_force_landscape">Force Landscape</string>
+    <string name="library_games_force_landscape_description">Keep the app in landscape, ignoring device rotation</string>
     <string name="library_games_immersive_mode">Immersive Mode</string>
     <string name="library_games_immersive_mode_description">Use focused game art as background</string>
     <string name="library_games_immersive_blur">Blur Background</string>
@@ -1907,6 +1909,8 @@ Installed path:
     <string name="retro_lr_letter_color">Letter Color</string>
     <string name="retro_lr_shadow_color">Shadow Color</string>
     <string name="retro_lr_background_color">Background Color</string>
+    <string name="retro_lr_shell_background">Controller Background</string>
+    <string name="retro_lr_shell_background_subtitle">Fills the space around the buttons. Turn it off so the game can use the whole screen.</string>
     <string name="retro_lr_reset_colors">Reset Colors</string>
     <string name="retro_lr_colors_reset">Colors reset</string>
     <string name="retro_lr_performance_hud">Performance HUD</string>

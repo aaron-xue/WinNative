@@ -207,6 +207,8 @@
     <string name="library_games_layout_carousel">轮播</string>
     <string name="library_games_layout_list">列表</string>
     <string name="library_games_view_options_header">视图选项</string>
+    <string name="library_games_force_landscape">强制横屏</string>
+    <string name="library_games_force_landscape_description">忽略设备旋转，始终以横屏显示应用</string>
     <string name="library_games_immersive_mode">沉浸模式</string>
     <string name="library_games_immersive_mode_description">将当前聚焦游戏的美术图用作背景</string>
     <string name="library_games_immersive_blur">模糊背景</string>
@@ -1856,6 +1858,8 @@
     <string name="retro_lr_letter_color">字母颜色</string>
     <string name="retro_lr_shadow_color">阴影颜色</string>
     <string name="retro_lr_background_color">背景颜色</string>
+    <string name="retro_lr_shell_background">手柄背景</string>
+    <string name="retro_lr_shell_background_subtitle">填充按钮周围的区域。关闭后游戏可以使用整个屏幕。</string>
     <string name="retro_lr_reset_colors">重置颜色</string>
     <string name="retro_lr_colors_reset">颜色已重置</string>
     <string name="retro_lr_performance_hud">性能 HUD</string>

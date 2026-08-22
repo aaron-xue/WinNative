@@ -207,6 +207,8 @@
     <string name="library_games_layout_carousel">Karussell</string>
     <string name="library_games_layout_list">Liste</string>
     <string name="library_games_view_options_header">ANSICHTSOPTIONEN</string>
+    <string name="library_games_force_landscape">Querformat erzwingen</string>
+    <string name="library_games_force_landscape_description">App im Querformat halten und die Geräterotation ignorieren</string>
     <string name="library_games_immersive_mode">Immersiver Modus</string>
     <string name="library_games_immersive_mode_description">Grafik des fokussierten Spiels als Hintergrund verwenden</string>
     <string name="library_games_immersive_blur">Hintergrund verwischen</string>
@@ -1855,6 +1857,8 @@ Installierter Pfad:
     <string name="retro_lr_letter_color">Buchstabenfarbe</string>
     <string name="retro_lr_shadow_color">Schattenfarbe</string>
     <string name="retro_lr_background_color">Hintergrundfarbe</string>
+    <string name="retro_lr_shell_background">Controller-Hintergrund</string>
+    <string name="retro_lr_shell_background_subtitle">Füllt den Bereich um die Tasten. Deaktiviere ihn, damit das Spiel den ganzen Bildschirm nutzen kann.</string>
     <string name="retro_lr_reset_colors">Farben zurücksetzen</string>
     <string name="retro_lr_colors_reset">Farben zurückgesetzt</string>
     <string name="retro_lr_performance_hud">Leistungs-HUD</string>

@@ -283,10 +283,11 @@ internal fun UnifiedActivity.moveLibraryFocus(
     var newIdx = idx
     when (currentLibraryLayoutMode) {
         LibraryLayoutMode.GRID_4 -> {
+            val cols = storeColumns
             if (left) newIdx = (idx - 1).coerceAtLeast(0)
             if (right) newIdx = (idx + 1).coerceAtMost(count - 1)
-            if (up) newIdx = (idx - 4).coerceAtLeast(0)
-            if (down) newIdx = (idx + 4).coerceAtMost(count - 1)
+            if (up) newIdx = (idx - cols).coerceAtLeast(0)
+            if (down) newIdx = (idx + cols).coerceAtMost(count - 1)
         }
 
         LibraryLayoutMode.CAROUSEL -> {
@@ -373,8 +374,15 @@ internal fun UnifiedActivity.hideImeIfVisible(): Boolean {
 
 internal fun UnifiedActivity.applySettingsSidebarNav(keyCode: Int) {
     when (keyCode) {
-        android.view.KeyEvent.KEYCODE_DPAD_UP -> moveSettingsItem(-1)
-        android.view.KeyEvent.KEYCODE_DPAD_DOWN -> moveSettingsItem(1)
+        android.view.KeyEvent.KEYCODE_DPAD_UP -> {
+            settingsNavBridge.revealSidebar()
+            moveSettingsItem(-1)
+        }
+        android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
+            settingsNavBridge.revealSidebar()
+            moveSettingsItem(1)
+        }
+        android.view.KeyEvent.KEYCODE_DPAD_LEFT -> settingsNavBridge.revealSidebar()
         android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> enterSettingsContent()
     }
 }
