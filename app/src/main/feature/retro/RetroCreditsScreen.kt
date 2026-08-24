@@ -1,7 +1,11 @@
 package com.winlator.cmod.feature.retro
 
+import android.app.ActivityManager
 import android.content.Context
+import android.os.Build
 import android.util.Log
+import java.io.File
+import java.io.IOException
 import java.util.Locale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,9 +52,12 @@ fun RetroCreditsScreen(bridge: SettingsNavBridge? = null) {
     val context = LocalContext.current
     val contentNav = rememberSettingsContentNav(bridge)
 
-    // 进入界面时采集一次 GPU 信息并打印到 logcat（LaunchedEffect 保证只执行一次）
+    // 系统信息含 /proc/cpuinfo 读取与 Vulkan native 调用，只构建一次避免重组时重复执行
+    val systemInfo = remember(context) { buildSystemInfo(context) }
+
+    // 进入界面时打印一次到 logcat（LaunchedEffect 保证只执行一次）
     LaunchedEffect(Unit) {
-        Log.d(TAG, "GPU info:\n${getGpuInfo(context)}")
+        Log.d(TAG, "System info:\n$systemInfo")
     }
 
     fun open(url: String) {
@@ -75,7 +83,7 @@ fun RetroCreditsScreen(bridge: SettingsNavBridge? = null) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                stringResource(R.string.retro_scr_credits_licenses),
+                stringResource(R.string.system_info),
                 color = CreditsSub,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
@@ -83,63 +91,13 @@ fun RetroCreditsScreen(bridge: SettingsNavBridge? = null) {
                 modifier = Modifier.padding(top = 4.dp),
             )
             Text(
-                stringResource(R.string.retro_scr_credits_desc),
+                systemInfo,
                 color = CreditsSub,
                 style = MaterialTheme.typography.labelMedium,
             )
-            RetroSettingGroup {
-                RETRO_CREDITS.forEach { credit ->
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable { open(credit.url) }
-                                .paneNavItem(
-                                    cornerRadius = 8.dp,
-                                    onActivate = { open(credit.url) },
-                                    highlightColor = Color(0xFF4FC3F7),
-                                    tapToSelect = true,
-                                )
-                                .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(credit.name, color = CreditsText, style = MaterialTheme.typography.bodyMedium)
-                            Text(credit.detail, color = CreditsSub, fontSize = 11.sp)
-                        }
-                        Text(credit.license, color = CreditsSub, fontSize = 11.sp)
-                    }
-                }
-            }
         }
     }
 }
-
-internal data class RetroCredit(
-    val name: String,
-    val detail: String,
-    val license: String,
-    val url: String,
-)
-
-internal val RETRO_CREDITS =
-    listOf(
-        RetroCredit("ARMSX2", "PlayStation 2", "GPL-3.0", "https://github.com/ARMSX2/ARMSX2"),
-        RetroCredit("Beetle PSX", "PlayStation", "GPL-2.0", "https://github.com/libretro/beetle-psx-libretro"),
-        RetroCredit("Dolphin", "GameCube / Wii", "GPL-2.0", "https://github.com/dolphin-emu/dolphin"),
-        RetroCredit("FCEUmm", "NES", "GPL-2.0", "https://github.com/libretro/libretro-fceumm"),
-        RetroCredit("Gambatte", "Game Boy / Color", "GPL-2.0", "https://github.com/libretro/gambatte-libretro"),
-        RetroCredit("Genesis Plus GX", "Genesis / SMS / GG", "GPX", "https://github.com/libretro/Genesis-Plus-GX"),
-        RetroCredit("LibretroDroid", "libretro frontend", "GPL-3.0", "https://github.com/Swordfish90/LibretroDroid"),
-        RetroCredit("mGBA", "Game Boy Advance", "MPL-2.0", "https://github.com/libretro/mgba"),
-        RetroCredit("ParaLLEl N64", "Nintendo 64", "GPL-2.0", "https://github.com/libretro/parallel-n64"),
-        RetroCredit("PCSX2", "PS2 upstream of ARMSX2", "GPL-3.0", "https://github.com/pcsx2/pcsx2"),
-        RetroCredit("rcheevos", "RetroAchievements", "MIT", "https://github.com/RetroAchievements/rcheevos"),
-        RetroCredit("Snapdragon GSR", "Upscaling", "BSD-3", "https://github.com/quic/snapdragon-gsr"),
-        RetroCredit("Snes9x", "SNES", "Snes9x", "https://github.com/libretro/snes9x"),
-        RetroCredit("SwanStation", "PlayStation", "GPL-3.0", "https://github.com/libretro/swanstation"),
-        RetroCredit("Winlator", "Windows-on-Android base", "GPL-3.0", "https://github.com/brunodev85/winlator"),
-    )
 
 private fun getGpuInfo(context: Context): String {
     val gpuInfo = StringBuilder()
@@ -184,3 +142,90 @@ private fun vkVersionMajor(version: Int): Int = version shr 22
 private fun vkVersionMinor(version: Int): Int = (version shr 12) and 0x3FF
 
 private fun vkVersionPatch(version: Int): Int = version and 0xFFF
+
+private fun getCpuInfoFromProc(context: Context): String {
+    val cpuInfo = StringBuilder()
+    val variant = StringBuilder()
+    var processorCount = 0
+    var cpuFeatures: String? = null
+
+    try {
+        File("/proc/cpuinfo").bufferedReader().useLines { lines ->
+            lines.forEach { line ->
+                when {
+                    line.startsWith("processor") -> processorCount++
+
+                    line.startsWith("CPU variant") -> {
+                        val parts = line.split(":")
+                        if (parts.size > 1) {
+                            variant.append("CPU").append(processorCount - 1)
+                                .append("：").append(parts[1].trim())
+                                .append(System.lineSeparator())
+                        }
+                    }
+
+                    (line.startsWith("Features") || line.startsWith("flags")) && cpuFeatures == null -> {
+                        val parts = line.split(":")
+                        if (parts.size > 1) {
+                            cpuFeatures = parts[1].trim()
+                        }
+                    }
+                }
+            }
+        }
+
+        cpuInfo.append(context.getString(R.string.system_info_cpu_cores)).append("：").append(processorCount).append(System.lineSeparator())
+        cpuInfo.append(variant)
+        // 局部变量承接，避免 var 被 lambda 捕获后 smart cast 失效
+        val features = cpuFeatures
+        if (features != null) {
+            cpuInfo.append(context.getString(R.string.system_info_cpu_features)).append("：").append(features)
+        }
+    } catch (e: IOException) {
+        cpuInfo.append("Unable to read /proc/cpuinfo: ").append(e.message)
+    }
+    return cpuInfo.toString()
+}
+
+/** 汇总设备 / CPU / GPU / 内存信息，供系统信息界面展示。 */
+private fun buildSystemInfo(context: Context): String = buildString {
+    val sep = System.lineSeparator()
+    val str: (Int) -> String = { resId -> context.getString(resId) }
+
+    // === 通用信息 ===
+    append("=== ${str(R.string.system_info_general_information)} ===").append(sep)
+    append("${str(R.string.system_info_device_manufacturer)}：${Build.MANUFACTURER}").append(sep)
+    append("${str(R.string.system_info_device_model)}：${Build.MODEL}").append(sep)
+    append("${str(R.string.system_info_device_name)}：${Build.DEVICE}").append(sep)
+    append("${str(R.string.system_info_product)}：${Build.PRODUCT}").append(sep)
+    append("${str(R.string.system_info_hardware)}：${Build.HARDWARE}").append(sep)
+    // joinToString 直接以 ", " 连接，避免 Arrays.toString 产生的方括号包裹
+    append("${str(R.string.system_info_supported_abis)}：${Build.SUPPORTED_ABIS.joinToString(", ")}").append(sep)
+    append("${str(R.string.system_info_android_version)}：${Build.VERSION.RELEASE} API（${Build.VERSION.SDK_INT}）").append(sep)
+    append("${str(R.string.system_info_android_security_patch)}：${Build.VERSION.SECURITY_PATCH}").append(sep)
+    append("${str(R.string.system_info_build_id)}：${Build.ID}").append(sep).append(sep)
+
+    // === CPU 信息 ===
+    append("=== ${str(R.string.system_info_cpu_info)} ===").append(sep)
+    // SOC_MODEL 为 API 31+（Android 12）新增，旧系统下为空字符串
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && Build.SOC_MODEL.orEmpty().isNotBlank()) {
+        // system_info_soc 资源值自带冒号（"SOC:"），故以空格连接
+        append("${str(R.string.system_info_soc)} ${Build.SOC_MODEL}").append(sep)
+    }
+    append(getCpuInfoFromProc(context)).append(sep).append(sep)
+
+    // === GPU 信息 ===
+    append("=== ${str(R.string.system_info_gpu_information)} ===").append(sep)
+    append(getGpuInfo(context)).append(sep)
+
+    // === 内存信息 ===
+    append("=== ${str(R.string.system_info_memory_info)} ===").append(sep)
+    // getSystemService 可能返回 null，用 as? 安全转换并判空；totalMem 为 0 时显示 "?"
+    val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+    val totalRamMb = activityManager?.let { am ->
+        val memInfo = ActivityManager.MemoryInfo()
+        am.getMemoryInfo(memInfo)
+        memInfo.totalMem.takeIf { it > 0 }?.div(1024 * 1024)
+    }
+    append("${str(R.string.system_info_total_memory)}： ${totalRamMb ?: "?"} MB")
+}

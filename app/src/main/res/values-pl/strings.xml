@@ -2210,10 +2210,7 @@ Zainstalowana ścieżka:
     <string name="retro_scr_shader">Shader</string>
     <string name="retro_scr_sgsr_upscaling">Skalowanie SGSR</string>
     <string name="retro_scr_performance_hud">HUD wydajności</string>
-    <string name="retro_scr_credits_licenses">AUTORZY &amp; LICENCJE</string>
-    <string name="retro_scr_credits_desc">Niektóre funkcje WinNative są oparte na tych projektach open-source. Dotknij, aby zobaczyć każde źródło.</string>
     <string name="retro_scr_tab_defaults">Domyślne</string>
-    <string name="retro_scr_tab_credits">Autorzy</string>
     <string name="retro_scr_enable_hardcore_title">Włączyć tryb Hardcore?</string>
     <string name="retro_scr_enable_hardcore_body">Tryb Hardcore resetuje teraz grę i wyłącza wczytywanie stanów zapisu, przewijanie i kody. Wszelkie niezapisane postępy zostaną utracone. Kontynuować?</string>
     <string name="retro_scr_cancel">Anuluj</string>
@@ -2553,4 +2550,25 @@ Zainstalowana ścieżka:
     <string name="registry_cpu_spoof_hint">Preferencja wybrana automatycznie dla architektury Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">Wyczyść</string>
     <string name="registry_cpu_spoof_cleared">Wartości spoofingu CPU usunięte</string>
+    <string name="system_info">Informacje o systemie</string>
+    <string name="system_info_gpu_model">Model GPU</string>
+    <string name="system_info_vulkan_version">Wersja Vulkan</string>
+    <string name="system_info_vulkan_driver_version">Wersja sterownika Vulkan</string>
+    <string name="system_info_cpu_cores">Rdzenie CPU</string>
+    <string name="system_info_cpu_features">Funkcje CPU</string>
+    <string name="system_info_general_information">Informacje ogólne</string>
+    <string name="system_info_device_manufacturer">Producent</string>
+    <string name="system_info_device_model">Model urządzenia</string>
+    <string name="system_info_device_name">Nazwa urządzenia</string>
+    <string name="system_info_product">Produkt</string>
+    <string name="system_info_hardware">Sprzęt</string>
+    <string name="system_info_supported_abis">Obsługiwane ABI</string>
+    <string name="system_info_android_version">Wersja Androida</string>
+    <string name="system_info_android_security_patch">Poprawka bezpieczeństwa</string>
+    <string name="system_info_build_id">Identyfikator kompilacji</string>
+    <string name="system_info_cpu_info">Informacje o CPU</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">Informacje o GPU</string>
+    <string name="system_info_memory_info">Informacje o pamięci</string>
+    <string name="system_info_total_memory">Całkowita pamięć</string>
 </resources>

@@ -2346,10 +2346,7 @@ Installed path:
     <string name="retro_scr_shader">Shader</string>
     <string name="retro_scr_sgsr_upscaling">SGSR upscaling</string>
     <string name="retro_scr_performance_hud">Performance HUD</string>
-    <string name="retro_scr_credits_licenses">CREDITS &amp; LICENSES</string>
-    <string name="retro_scr_credits_desc">Some of WinNative\'s features are built on these open-source projects. Tap to view each source.</string>
     <string name="retro_scr_tab_defaults">Defaults</string>
-    <string name="retro_scr_tab_credits">Credits</string>
     <string name="retro_scr_enable_hardcore_title">Enable Hardcore mode?</string>
     <string name="retro_scr_enable_hardcore_body">Hardcore mode resets the game now and disables loading save states, fast forward, and cheats. Any unsaved progress will be lost. Continue?</string>
     <string name="retro_scr_cancel">Cancel</string>
@@ -2560,7 +2557,25 @@ Installed path:
     <string name="registry_cpu_spoof_clear">Clear</string>
     <string name="registry_cpu_spoof_cleared">CPU spoof values removed</string>
 
+    <string name="system_info">SystemInfo</string>
     <string name="system_info_gpu_model">GPU Model</string>
     <string name="system_info_vulkan_version">Vulkan Version</string>
     <string name="system_info_vulkan_driver_version">Vulkan Driver Version</string>
+    <string name="system_info_cpu_cores">CPU Cores</string>
+    <string name="system_info_cpu_features">CPU Features</string>
+    <string name="system_info_general_information">General Information</string>
+    <string name="system_info_device_manufacturer">Manufacturer</string>
+    <string name="system_info_device_model">Device Model</string>
+    <string name="system_info_device_name">Device name</string>
+    <string name="system_info_product">Product</string>
+    <string name="system_info_hardware">Hardware</string>
+    <string name="system_info_supported_abis">Supported ABIs</string>
+    <string name="system_info_android_version">Android Version</string>
+    <string name="system_info_android_security_patch">Security Patch</string>
+    <string name="system_info_build_id">Build ID</string>
+    <string name="system_info_cpu_info">CPU Information</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">GPU Information</string>
+    <string name="system_info_memory_info">Memory Information</string>
+    <string name="system_info_total_memory">Total Memory</string>
 </resources>

@@ -2184,10 +2184,7 @@ Installerad sökväg:
     <string name="retro_scr_shader">Shader</string>
     <string name="retro_scr_sgsr_upscaling">SGSR-uppskalning</string>
     <string name="retro_scr_performance_hud">Prestanda-HUD</string>
-    <string name="retro_scr_credits_licenses">MEDVERKANDE &amp; LICENSER</string>
-    <string name="retro_scr_credits_desc">Vissa av WinNatives funktioner bygger på dessa projekt med öppen källkod. Tryck för att visa varje källa.</string>
     <string name="retro_scr_tab_defaults">Standarder</string>
-    <string name="retro_scr_tab_credits">Medverkande</string>
     <string name="retro_scr_enable_hardcore_title">Aktivera Hardcore-läge?</string>
     <string name="retro_scr_enable_hardcore_body">Hardcore-läge återställer spelet nu och inaktiverar inläsning av sparade tillstånd, snabbspolning och fusk. Osparade framsteg går förlorade. Fortsätta?</string>
     <string name="retro_scr_cancel">Avbryt</string>
@@ -2527,4 +2524,25 @@ Installerad sökväg:
     <string name="registry_cpu_spoof_hint">Förinställning vald automatiskt för Wine-arkitektur: %1$s</string>
     <string name="registry_cpu_spoof_clear">Rensa</string>
     <string name="registry_cpu_spoof_cleared">CPU-spoofing-värden borttagna</string>
+    <string name="system_info">Systeminformation</string>
+    <string name="system_info_gpu_model">GPU-modell</string>
+    <string name="system_info_vulkan_version">Vulkan-version</string>
+    <string name="system_info_vulkan_driver_version">Vulkan-drivrutinsversion</string>
+    <string name="system_info_cpu_cores">CPU-kärnor</string>
+    <string name="system_info_cpu_features">CPU-funktioner</string>
+    <string name="system_info_general_information">Allmän information</string>
+    <string name="system_info_device_manufacturer">Tillverkare</string>
+    <string name="system_info_device_model">Enhetsmodell</string>
+    <string name="system_info_device_name">Enhetsnamn</string>
+    <string name="system_info_product">Produkt</string>
+    <string name="system_info_hardware">Maskinvara</string>
+    <string name="system_info_supported_abis">ABI som stöds</string>
+    <string name="system_info_android_version">Android-version</string>
+    <string name="system_info_android_security_patch">Säkerhetskorrigering</string>
+    <string name="system_info_build_id">Versions-ID</string>
+    <string name="system_info_cpu_info">CPU-information</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">GPU-information</string>
+    <string name="system_info_memory_info">Minnesinformation</string>
+    <string name="system_info_total_memory">Totalt minne</string>
 </resources>

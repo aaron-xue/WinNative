@@ -2203,10 +2203,7 @@ Installeret sti:
     <string name="retro_scr_shader">Shader</string>
     <string name="retro_scr_sgsr_upscaling">SGSR-opskalering</string>
     <string name="retro_scr_performance_hud">Ydeevne-HUD</string>
-    <string name="retro_scr_credits_licenses">MEDVIRKENDE &amp; LICENSER</string>
-    <string name="retro_scr_credits_desc">Nogle af WinNatives funktioner er bygget på disse open source-projekter. Tryk for at se hver kilde.</string>
     <string name="retro_scr_tab_defaults">Standarder</string>
-    <string name="retro_scr_tab_credits">Medvirkende</string>
     <string name="retro_scr_enable_hardcore_title">Aktivér Hardcore-tilstand?</string>
     <string name="retro_scr_enable_hardcore_body">Hardcore-tilstand nulstiller spillet nu og deaktiverer indlæsning af gemte tilstande, spol frem og snydekoder. Ugemt fremskridt går tabt. Fortsæt?</string>
     <string name="retro_scr_cancel">Annuller</string>
@@ -2546,4 +2543,25 @@ Installeret sti:
     <string name="registry_cpu_spoof_hint">Forudindstilling automatisk valgt til Wine-arkitektur: %1$s</string>
     <string name="registry_cpu_spoof_clear">Ryd</string>
     <string name="registry_cpu_spoof_cleared">CPU-spoofing-værdier fjernet</string>
+    <string name="system_info">Systemoplysninger</string>
+    <string name="system_info_gpu_model">GPU-model</string>
+    <string name="system_info_vulkan_version">Vulkan-version</string>
+    <string name="system_info_vulkan_driver_version">Vulkan-driverversion</string>
+    <string name="system_info_cpu_cores">CPU-kernerne</string>
+    <string name="system_info_cpu_features">CPU-funktioner</string>
+    <string name="system_info_general_information">Generelle oplysninger</string>
+    <string name="system_info_device_manufacturer">Producent</string>
+    <string name="system_info_device_model">Enhedsmodel</string>
+    <string name="system_info_device_name">Enhedsnavn</string>
+    <string name="system_info_product">Produkt</string>
+    <string name="system_info_hardware">Hardware</string>
+    <string name="system_info_supported_abis">Understøttede ABI\'er</string>
+    <string name="system_info_android_version">Android-version</string>
+    <string name="system_info_android_security_patch">Sikkerhedsopdatering</string>
+    <string name="system_info_build_id">Build-id</string>
+    <string name="system_info_cpu_info">CPU-oplysninger</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">GPU-oplysninger</string>
+    <string name="system_info_memory_info">Hukommelsesoplysninger</string>
+    <string name="system_info_total_memory">Samlet hukommelse</string>
 </resources>

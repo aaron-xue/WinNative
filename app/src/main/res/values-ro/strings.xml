@@ -2203,10 +2203,7 @@ Cale instalata:
     <string name="retro_scr_shader">Shader</string>
     <string name="retro_scr_sgsr_upscaling">Mărire SGSR</string>
     <string name="retro_scr_performance_hud">HUD performanță</string>
-    <string name="retro_scr_credits_licenses">CREDITE &amp; LICENȚE</string>
-    <string name="retro_scr_credits_desc">Unele funcții ale WinNative sunt construite pe aceste proiecte open-source. Atinge pentru a vedea fiecare sursă.</string>
     <string name="retro_scr_tab_defaults">Implicite</string>
-    <string name="retro_scr_tab_credits">Credite</string>
     <string name="retro_scr_enable_hardcore_title">Activezi modul Hardcore?</string>
     <string name="retro_scr_enable_hardcore_body">Modul Hardcore resetează jocul acum și dezactivează încărcarea salvărilor de stare, derularea rapidă și codurile. Orice progres nesalvat va fi pierdut. Continui?</string>
     <string name="retro_scr_cancel">Anulează</string>
@@ -2546,4 +2543,25 @@ Cale instalata:
     <string name="registry_cpu_spoof_hint">Preselecție selectată automat pentru arhitectura Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">Șterge</string>
     <string name="registry_cpu_spoof_cleared">Valorile de spoofing CPU au fost eliminate</string>
+    <string name="system_info">Informații despre sistem</string>
+    <string name="system_info_gpu_model">Model GPU</string>
+    <string name="system_info_vulkan_version">Versiune Vulkan</string>
+    <string name="system_info_vulkan_driver_version">Versiune driver Vulkan</string>
+    <string name="system_info_cpu_cores">Nuclee CPU</string>
+    <string name="system_info_cpu_features">Caracteristici CPU</string>
+    <string name="system_info_general_information">Informații generale</string>
+    <string name="system_info_device_manufacturer">Producător</string>
+    <string name="system_info_device_model">Model dispozitiv</string>
+    <string name="system_info_device_name">Nume dispozitiv</string>
+    <string name="system_info_product">Produs</string>
+    <string name="system_info_hardware">Hardware</string>
+    <string name="system_info_supported_abis">ABI-uri suportate</string>
+    <string name="system_info_android_version">Versiune Android</string>
+    <string name="system_info_android_security_patch">Patch de securitate</string>
+    <string name="system_info_build_id">ID construcție</string>
+    <string name="system_info_cpu_info">Informații CPU</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">Informații GPU</string>
+    <string name="system_info_memory_info">Informații memorie</string>
+    <string name="system_info_total_memory">Memorie totală</string>
 </resources>

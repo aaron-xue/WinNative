@@ -2204,10 +2204,7 @@
     <string name="retro_scr_shader">着色器</string>
     <string name="retro_scr_sgsr_upscaling">SGSR 放大</string>
     <string name="retro_scr_performance_hud">性能 HUD</string>
-    <string name="retro_scr_credits_licenses">鸣谢 &amp; 许可</string>
-    <string name="retro_scr_credits_desc">WinNative 的部分功能基于这些开源项目构建。点按可查看各来源。</string>
     <string name="retro_scr_tab_defaults">默认</string>
-    <string name="retro_scr_tab_credits">鸣谢</string>
     <string name="retro_scr_enable_hardcore_title">启用硬核模式？</string>
     <string name="retro_scr_enable_hardcore_body">硬核模式将立即重置游戏，并禁用加载即时存档、快进和金手指。任何未保存的进度都将丢失。是否继续？</string>
     <string name="retro_scr_cancel">取消</string>
@@ -2550,5 +2547,25 @@
     <string name="registry_cpu_spoof_hint">已根据 Wine 架构自动选择预设：%1$s</string>
     <string name="registry_cpu_spoof_clear">清除</string>
     <string name="registry_cpu_spoof_cleared">已移除 CPU 伪装</string>
+    <string name="system_info">系统信息</string>
+    <string name="system_info_gpu_model">GPU 型号</string>
+    <string name="system_info_vulkan_version">Vulkan 版本</string>
+    <string name="system_info_vulkan_driver_version">Vulkan 驱动版本</string>
+    <string name="system_info_cpu_cores">CPU 核心数</string>
+    <string name="system_info_cpu_features">CPU 特性</string>
+    <string name="system_info_general_information">常规信息</string>
+    <string name="system_info_device_manufacturer">制造商</string>
+    <string name="system_info_device_model">设备型号</string>
+    <string name="system_info_device_name">设备名称</string>
+    <string name="system_info_product">产品</string>
+    <string name="system_info_hardware">硬件</string>
+    <string name="system_info_supported_abis">支持的 ABI</string>
+    <string name="system_info_android_version">Android 版本</string>
+    <string name="system_info_android_security_patch">安全补丁</string>
+    <string name="system_info_build_id">构建 ID</string>
+    <string name="system_info_cpu_info">CPU 信息</string>
+    <string name="system_info_soc">SOC：</string>
+    <string name="system_info_gpu_information">GPU 信息</string>
+    <string name="system_info_memory_info">内存信息</string>
+    <string name="system_info_total_memory">总内存</string>
 </resources>
-

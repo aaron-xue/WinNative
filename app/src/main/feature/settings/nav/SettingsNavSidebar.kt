@@ -116,7 +116,7 @@ enum class SettingsNavItem(
     RETRO(R.id.main_menu_retro, Icons.Outlined.VideogameAsset, R.string.settings_retro_title, NavSection.SYSTEM),
     OTHER(R.id.main_menu_other, Icons.Outlined.Widgets, R.string.common_ui_other, NavSection.SYSTEM),
     DEBUG(R.id.main_menu_advanced, Icons.Outlined.BugReport, R.string.settings_debug_title, NavSection.TOOLS),
-    CREDITS(R.id.main_menu_credits, Icons.Outlined.Info, R.string.retro_scr_tab_credits, NavSection.CREDITS),
+    CREDITS(R.id.main_menu_credits, Icons.Outlined.Info, R.string.system_info, NavSection.CREDITS),
     ;
 
     companion object {

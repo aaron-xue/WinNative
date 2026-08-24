@@ -2184,10 +2184,7 @@ Yüklü konum:
     <string name="retro_scr_shader">Gölgelendirici</string>
     <string name="retro_scr_sgsr_upscaling">SGSR ölçekleme</string>
     <string name="retro_scr_performance_hud">Performans HUD</string>
-    <string name="retro_scr_credits_licenses">KATKIDA BULUNANLAR &amp; LİSANSLAR</string>
-    <string name="retro_scr_credits_desc">WinNative\'in bazı özellikleri bu açık kaynaklı projeler üzerine kuruludur. Her kaynağı görüntülemek için dokunun.</string>
     <string name="retro_scr_tab_defaults">Varsayılanlar</string>
-    <string name="retro_scr_tab_credits">Katkıda Bulunanlar</string>
     <string name="retro_scr_enable_hardcore_title">Hardcore modu etkinleştirilsin mi?</string>
     <string name="retro_scr_enable_hardcore_body">Hardcore modu oyunu şimdi sıfırlar ve durum kaydı yükleme, ileri sarma ile hileleri devre dışı bırakır. Kaydedilmemiş tüm ilerleme kaybolur. Devam edilsin mi?</string>
     <string name="retro_scr_cancel">İptal</string>
@@ -2527,4 +2524,25 @@ Yüklü konum:
     <string name="registry_cpu_spoof_hint">Wine mimarisi için otomatik olarak seçilen önayar: %1$s</string>
     <string name="registry_cpu_spoof_clear">Temizle</string>
     <string name="registry_cpu_spoof_cleared">CPU spoofing değerleri kaldırıldı</string>
+    <string name="system_info">Sistem bilgisi</string>
+    <string name="system_info_gpu_model">GPU Modeli</string>
+    <string name="system_info_vulkan_version">Vulkan Sürümü</string>
+    <string name="system_info_vulkan_driver_version">Vulkan Sürücü Sürümü</string>
+    <string name="system_info_cpu_cores">CPU Çekirdekleri</string>
+    <string name="system_info_cpu_features">CPU Özellikleri</string>
+    <string name="system_info_general_information">Genel Bilgiler</string>
+    <string name="system_info_device_manufacturer">Üretici</string>
+    <string name="system_info_device_model">Cihaz Modeli</string>
+    <string name="system_info_device_name">Cihaz Adı</string>
+    <string name="system_info_product">Ürün</string>
+    <string name="system_info_hardware">Donanım</string>
+    <string name="system_info_supported_abis">Desteklenen ABI\'ler</string>
+    <string name="system_info_android_version">Android Sürümü</string>
+    <string name="system_info_android_security_patch">Güvenlik Yaması</string>
+    <string name="system_info_build_id">Derleme Kimliği</string>
+    <string name="system_info_cpu_info">CPU Bilgisi</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">GPU Bilgisi</string>
+    <string name="system_info_memory_info">Bellek Bilgisi</string>
+    <string name="system_info_total_memory">Toplam Bellek</string>
 </resources>

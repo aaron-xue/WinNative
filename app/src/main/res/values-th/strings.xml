@@ -2184,10 +2184,7 @@
     <string name="retro_scr_shader">เชดเดอร์</string>
     <string name="retro_scr_sgsr_upscaling">SGSR อัปสเกลลิง</string>
     <string name="retro_scr_performance_hud">HUD ประสิทธิภาพ</string>
-    <string name="retro_scr_credits_licenses">เครดิต &amp; ลิขสิทธิ์</string>
-    <string name="retro_scr_credits_desc">ฟีเจอร์บางอย่างของ WinNative สร้างขึ้นบนโปรเจกต์โอเพนซอร์สเหล่านี้ แตะเพื่อดูแต่ละแหล่งที่มา</string>
     <string name="retro_scr_tab_defaults">ค่าเริ่มต้น</string>
-    <string name="retro_scr_tab_credits">เครดิต</string>
     <string name="retro_scr_enable_hardcore_title">เปิดโหมดฮาร์ดคอร์?</string>
     <string name="retro_scr_enable_hardcore_body">โหมดฮาร์ดคอร์จะรีเซ็ตเกมทันทีและปิดการโหลดสเตตบันทึก การกรอไปข้างหน้า และสูตรโกง ความคืบหน้าที่ยังไม่ได้บันทึกจะสูญหาย ดำเนินการต่อ?</string>
     <string name="retro_scr_cancel">ยกเลิก</string>
@@ -2527,4 +2524,25 @@
     <string name="registry_cpu_spoof_hint">ค่าที่ตั้งไว้ล่วงหน้าถูกเลือกอัตโนมัติสำหรับสถาปัตยกรรม Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">ล้าง</string>
     <string name="registry_cpu_spoof_cleared">ลบค่าการแอบอ้าง CPU แล้ว</string>
+    <string name="system_info">ข้อมูลระบบ</string>
+    <string name="system_info_gpu_model">รุ่น GPU</string>
+    <string name="system_info_vulkan_version">เวอร์ชัน Vulkan</string>
+    <string name="system_info_vulkan_driver_version">เวอร์ชันไดรเวอร์ Vulkan</string>
+    <string name="system_info_cpu_cores">จำนวนคอร์ CPU</string>
+    <string name="system_info_cpu_features">คุณสมบัติ CPU</string>
+    <string name="system_info_general_information">ข้อมูลทั่วไป</string>
+    <string name="system_info_device_manufacturer">ผู้ผลิต</string>
+    <string name="system_info_device_model">รุ่นอุปกรณ์</string>
+    <string name="system_info_device_name">ชื่ออุปกรณ์</string>
+    <string name="system_info_product">ผลิตภัณฑ์</string>
+    <string name="system_info_hardware">ฮาร์ดแวร์</string>
+    <string name="system_info_supported_abis">ABI ที่รองรับ</string>
+    <string name="system_info_android_version">เวอร์ชัน Android</string>
+    <string name="system_info_android_security_patch">แพตช์ความปลอดภัย</string>
+    <string name="system_info_build_id">ID บิลด์</string>
+    <string name="system_info_cpu_info">ข้อมูล CPU</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">ข้อมูล GPU</string>
+    <string name="system_info_memory_info">ข้อมูลหน่วยความจำ</string>
+    <string name="system_info_total_memory">หน่วยความจำรวม</string>
 </resources>

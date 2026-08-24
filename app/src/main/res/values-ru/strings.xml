@@ -2110,10 +2110,7 @@
     <string name="retro_scr_shader">Шейдер</string>
     <string name="retro_scr_sgsr_upscaling">Апскейл SGSR</string>
     <string name="retro_scr_performance_hud">HUD производительности</string>
-    <string name="retro_scr_credits_licenses">БЛАГОДАРНОСТИ &amp; ЛИЦЕНЗИИ</string>
-    <string name="retro_scr_credits_desc">Некоторые функции WinNative построены на этих проектах с открытым исходным кодом. Нажмите, чтобы посмотреть каждый источник.</string>
     <string name="retro_scr_tab_defaults">По умолчанию</string>
-    <string name="retro_scr_tab_credits">Благодарности</string>
     <string name="retro_scr_enable_hardcore_title">Включить режим Hardcore?</string>
     <string name="retro_scr_enable_hardcore_body">Режим Hardcore сбрасывает игру сейчас и отключает загрузку сохранений состояний, ускорение и читы. Любой несохранённый прогресс будет потерян. Продолжить?</string>
     <string name="retro_scr_cancel">Отмена</string>
@@ -2453,4 +2450,25 @@
     <string name="registry_cpu_spoof_hint">Пресет автоматически выбран для архитектуры Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">Очистить</string>
     <string name="registry_cpu_spoof_cleared">Значения подмены CPU удалены</string>
+    <string name="system_info">Информация о системе</string>
+    <string name="system_info_gpu_model">Модель GPU</string>
+    <string name="system_info_vulkan_version">Версия Vulkan</string>
+    <string name="system_info_vulkan_driver_version">Версия драйвера Vulkan</string>
+    <string name="system_info_cpu_cores">Количество ядер CPU</string>
+    <string name="system_info_cpu_features">Функции CPU</string>
+    <string name="system_info_general_information">Общая информация</string>
+    <string name="system_info_device_manufacturer">Производитель</string>
+    <string name="system_info_device_model">Модель устройства</string>
+    <string name="system_info_device_name">Имя устройства</string>
+    <string name="system_info_product">Продукт</string>
+    <string name="system_info_hardware">Оборудование</string>
+    <string name="system_info_supported_abis">Поддерживаемые ABI</string>
+    <string name="system_info_android_version">Версия Android</string>
+    <string name="system_info_android_security_patch">Патч безопасности</string>
+    <string name="system_info_build_id">Идентификатор сборки</string>
+    <string name="system_info_cpu_info">Информация о CPU</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">Информация о GPU</string>
+    <string name="system_info_memory_info">Информация о памяти</string>
+    <string name="system_info_total_memory">Объем памяти</string>
 </resources>

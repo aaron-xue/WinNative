@@ -2184,10 +2184,7 @@ Installert bane:
     <string name="retro_scr_shader">Shader</string>
     <string name="retro_scr_sgsr_upscaling">SGSR-oppskalering</string>
     <string name="retro_scr_performance_hud">Ytelse-HUD</string>
-    <string name="retro_scr_credits_licenses">BIDRAGSYTERE &amp; LISENSER</string>
-    <string name="retro_scr_credits_desc">Noen av WinNatives funksjoner er bygget på disse åpen kildekode-prosjektene. Trykk for å se hver kilde.</string>
     <string name="retro_scr_tab_defaults">Standarder</string>
-    <string name="retro_scr_tab_credits">Bidragsytere</string>
     <string name="retro_scr_enable_hardcore_title">Aktivere Hardcore-modus?</string>
     <string name="retro_scr_enable_hardcore_body">Hardcore-modus tilbakestiller spillet nå og deaktiverer innlasting av lagrede tilstander, spoling fremover og juksekoder. Ulagret fremdrift går tapt. Fortsette?</string>
     <string name="retro_scr_cancel">Avbryt</string>
@@ -2527,4 +2524,25 @@ Installert bane:
     <string name="registry_cpu_spoof_hint">Forhåndsinnstilling automatisk valgt for Wine-arkitektur: %1$s</string>
     <string name="registry_cpu_spoof_clear">Tøm</string>
     <string name="registry_cpu_spoof_cleared">CPU-spoofing-verdier fjernet</string>
+    <string name="system_info">Systeminformasjon</string>
+    <string name="system_info_gpu_model">GPU-modell</string>
+    <string name="system_info_vulkan_version">Vulkan-versjon</string>
+    <string name="system_info_vulkan_driver_version">Vulkan-driverversjon</string>
+    <string name="system_info_cpu_cores">CPU-kjerner</string>
+    <string name="system_info_cpu_features">CPU-funksjoner</string>
+    <string name="system_info_general_information">Generell informasjon</string>
+    <string name="system_info_device_manufacturer">Produsent</string>
+    <string name="system_info_device_model">Enhetsmodell</string>
+    <string name="system_info_device_name">Enhetsnavn</string>
+    <string name="system_info_product">Produkt</string>
+    <string name="system_info_hardware">Maskinvare</string>
+    <string name="system_info_supported_abis">Støttede ABI-er</string>
+    <string name="system_info_android_version">Android-versjon</string>
+    <string name="system_info_android_security_patch">Sikkerhetsoppdatering</string>
+    <string name="system_info_build_id">Bygg-ID</string>
+    <string name="system_info_cpu_info">CPU-informasjon</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">GPU-informasjon</string>
+    <string name="system_info_memory_info">Minneinformasjon</string>
+    <string name="system_info_total_memory">Totalt minne</string>
 </resources>

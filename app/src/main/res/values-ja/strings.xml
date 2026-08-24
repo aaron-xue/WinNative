@@ -2184,10 +2184,7 @@
     <string name="retro_scr_shader">シェーダー</string>
     <string name="retro_scr_sgsr_upscaling">SGSR アップスケーリング</string>
     <string name="retro_scr_performance_hud">パフォーマンス HUD</string>
-    <string name="retro_scr_credits_licenses">クレジット &amp; ライセンス</string>
-    <string name="retro_scr_credits_desc">WinNative の一部の機能はこれらのオープンソースプロジェクトを基盤としています。タップして各ソースを表示します。</string>
     <string name="retro_scr_tab_defaults">デフォルト</string>
-    <string name="retro_scr_tab_credits">クレジット</string>
     <string name="retro_scr_enable_hardcore_title">ハードコアモードを有効にしますか？</string>
     <string name="retro_scr_enable_hardcore_body">ハードコアモードは今すぐゲームをリセットし、ステートセーブのロード、早送り、チートを無効にします。保存していない進行状況は失われます。続行しますか？</string>
     <string name="retro_scr_cancel">キャンセル</string>
@@ -2527,4 +2524,25 @@
     <string name="registry_cpu_spoof_hint">Wine アーキテクチャに合わせてプリセットが自動選択されました: %1$s</string>
     <string name="registry_cpu_spoof_clear">クリア</string>
     <string name="registry_cpu_spoof_cleared">CPU スプーフィング値を削除しました</string>
+    <string name="system_info">システム情報</string>
+    <string name="system_info_gpu_model">GPU モデル</string>
+    <string name="system_info_vulkan_version">Vulkan バージョン</string>
+    <string name="system_info_vulkan_driver_version">Vulkan ドライバーバージョン</string>
+    <string name="system_info_cpu_cores">CPU コア数</string>
+    <string name="system_info_cpu_features">CPU 機能</string>
+    <string name="system_info_general_information">一般情報</string>
+    <string name="system_info_device_manufacturer">メーカー</string>
+    <string name="system_info_device_model">デバイスモデル</string>
+    <string name="system_info_device_name">デバイス名</string>
+    <string name="system_info_product">製品</string>
+    <string name="system_info_hardware">ハードウェア</string>
+    <string name="system_info_supported_abis">対応 ABI</string>
+    <string name="system_info_android_version">Android バージョン</string>
+    <string name="system_info_android_security_patch">セキュリティパッチ</string>
+    <string name="system_info_build_id">ビルド ID</string>
+    <string name="system_info_cpu_info">CPU 情報</string>
+    <string name="system_info_soc">SOC：</string>
+    <string name="system_info_gpu_information">GPU 情報</string>
+    <string name="system_info_memory_info">メモリ情報</string>
+    <string name="system_info_total_memory">合計メモリ</string>
 </resources>

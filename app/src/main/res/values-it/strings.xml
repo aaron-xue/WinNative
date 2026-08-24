@@ -2204,10 +2204,7 @@ Percorso installato:
     <string name="retro_scr_shader">Shader</string>
     <string name="retro_scr_sgsr_upscaling">Upscaling SGSR</string>
     <string name="retro_scr_performance_hud">HUD prestazioni</string>
-    <string name="retro_scr_credits_licenses">CREDITI &amp; LICENZE</string>
-    <string name="retro_scr_credits_desc">Alcune funzioni di WinNative si basano su questi progetti open source. Tocca per visualizzare ogni fonte.</string>
     <string name="retro_scr_tab_defaults">Predefiniti</string>
-    <string name="retro_scr_tab_credits">Crediti</string>
     <string name="retro_scr_enable_hardcore_title">Attivare la modalità Hardcore?</string>
     <string name="retro_scr_enable_hardcore_body">La modalità Hardcore reimposta il gioco ora e disattiva il caricamento dei salvataggi rapidi, l\'avanzamento rapido e i trucchi. Ogni progresso non salvato andrà perso. Continuare?</string>
     <string name="retro_scr_cancel">Annulla</string>
@@ -2547,4 +2544,25 @@ Percorso installato:
     <string name="registry_cpu_spoof_hint">Preset selezionato automaticamente per l\'architettura Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">Cancella</string>
     <string name="registry_cpu_spoof_cleared">Valori di spoofing CPU rimossi</string>
+    <string name="system_info">Informazioni di sistema</string>
+    <string name="system_info_gpu_model">Modello GPU</string>
+    <string name="system_info_vulkan_version">Versione Vulkan</string>
+    <string name="system_info_vulkan_driver_version">Versione driver Vulkan</string>
+    <string name="system_info_cpu_cores">Core CPU</string>
+    <string name="system_info_cpu_features">Funzionalità CPU</string>
+    <string name="system_info_general_information">Informazioni generali</string>
+    <string name="system_info_device_manufacturer">Produttore</string>
+    <string name="system_info_device_model">Modello del dispositivo</string>
+    <string name="system_info_device_name">Nome del dispositivo</string>
+    <string name="system_info_product">Prodotto</string>
+    <string name="system_info_hardware">Hardware</string>
+    <string name="system_info_supported_abis">ABI supportati</string>
+    <string name="system_info_android_version">Versione Android</string>
+    <string name="system_info_android_security_patch">Patch di sicurezza</string>
+    <string name="system_info_build_id">ID build</string>
+    <string name="system_info_cpu_info">Informazioni CPU</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">Informazioni GPU</string>
+    <string name="system_info_memory_info">Informazioni memoria</string>
+    <string name="system_info_total_memory">Memoria totale</string>
 </resources>

@@ -2140,10 +2140,7 @@
     <string name="retro_scr_shader">शेडर</string>
     <string name="retro_scr_sgsr_upscaling">SGSR अपस्केलिंग</string>
     <string name="retro_scr_performance_hud">प्रदर्शन HUD</string>
-    <string name="retro_scr_credits_licenses">क्रेडिट &amp; लाइसेंस</string>
-    <string name="retro_scr_credits_desc">WinNative की कुछ सुविधाएँ इन ओपन-सोर्स परियोजनाओं पर आधारित हैं. प्रत्येक स्रोत देखने के लिए टैप करें.</string>
     <string name="retro_scr_tab_defaults">डिफ़ॉल्ट</string>
-    <string name="retro_scr_tab_credits">क्रेडिट</string>
     <string name="retro_scr_enable_hardcore_title">हार्डकोर मोड सक्षम करें?</string>
     <string name="retro_scr_enable_hardcore_body">हार्डकोर मोड अभी गेम रीसेट करता है और सेव स्टेट लोड करना, फ़ास्ट फ़ॉरवर्ड, और चीट्स अक्षम कर देता है. कोई भी असहेजी प्रगति खो जाएगी. जारी रखें?</string>
     <string name="retro_scr_cancel">रद्द करें</string>
@@ -2483,4 +2480,25 @@
     <string name="registry_cpu_spoof_hint">Wine आर्किटेक्चर के लिए प्रीसेट स्वचालित रूप से चुना गया: %1$s</string>
     <string name="registry_cpu_spoof_clear">साफ़ करें</string>
     <string name="registry_cpu_spoof_cleared">CPU स्पूफ़ मान हटा दिए गए</string>
+    <string name="system_info">सिस्टम जानकारी</string>
+    <string name="system_info_gpu_model">GPU मॉडल</string>
+    <string name="system_info_vulkan_version">Vulkan संस्करण</string>
+    <string name="system_info_vulkan_driver_version">Vulkan ड्राइवर संस्करण</string>
+    <string name="system_info_cpu_cores">CPU कोर</string>
+    <string name="system_info_cpu_features">CPU विशेषताएँ</string>
+    <string name="system_info_general_information">सामान्य जानकारी</string>
+    <string name="system_info_device_manufacturer">निर्माता</string>
+    <string name="system_info_device_model">डिवाइस मॉडल</string>
+    <string name="system_info_device_name">डिवाइस नाम</string>
+    <string name="system_info_product">उत्पाद</string>
+    <string name="system_info_hardware">हार्डवेयर</string>
+    <string name="system_info_supported_abis">समर्थित ABI</string>
+    <string name="system_info_android_version">Android संस्करण</string>
+    <string name="system_info_android_security_patch">सुरक्षा पैच</string>
+    <string name="system_info_build_id">बिल्ड ID</string>
+    <string name="system_info_cpu_info">CPU जानकारी</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">GPU जानकारी</string>
+    <string name="system_info_memory_info">मेमोरी जानकारी</string>
+    <string name="system_info_total_memory">कुल मेमोरी</string>
 </resources>

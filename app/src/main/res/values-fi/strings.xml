@@ -2184,10 +2184,7 @@ Asennuspolku:
     <string name="retro_scr_shader">Sävytin</string>
     <string name="retro_scr_sgsr_upscaling">SGSR-skaalaus</string>
     <string name="retro_scr_performance_hud">Suorituskyky-HUD</string>
-    <string name="retro_scr_credits_licenses">TEKIJÄT &amp; LISENSSIT</string>
-    <string name="retro_scr_credits_desc">Osa WinNativen ominaisuuksista perustuu näihin avoimen lähdekoodin projekteihin. Napauta nähdäksesi kunkin lähteen.</string>
     <string name="retro_scr_tab_defaults">Oletukset</string>
-    <string name="retro_scr_tab_credits">Tekijät</string>
     <string name="retro_scr_enable_hardcore_title">Otetaanko Hardcore-tila käyttöön?</string>
     <string name="retro_scr_enable_hardcore_body">Hardcore-tila nollaa pelin nyt ja poistaa käytöstä tallennustilojen latauksen, pikakelauksen ja huijaukset. Kaikki tallentamaton edistyminen menetetään. Jatketaanko?</string>
     <string name="retro_scr_cancel">Peruuta</string>
@@ -2527,4 +2524,25 @@ Asennuspolku:
     <string name="registry_cpu_spoof_hint">Esiasetus valittu automaattisesti Wine-arkkitehtuurin mukaan: %1$s</string>
     <string name="registry_cpu_spoof_clear">Tyhjennä</string>
     <string name="registry_cpu_spoof_cleared">CPU:n huijausarvot poistettu</string>
+    <string name="system_info">Järjestelmätiedot</string>
+    <string name="system_info_gpu_model">GPU-malli</string>
+    <string name="system_info_vulkan_version">Vulkan-versio</string>
+    <string name="system_info_vulkan_driver_version">Vulkan-ohjaimen versio</string>
+    <string name="system_info_cpu_cores">CPU-ytimet</string>
+    <string name="system_info_cpu_features">CPU-ominaisuudet</string>
+    <string name="system_info_general_information">Yleiset tiedot</string>
+    <string name="system_info_device_manufacturer">Valmistaja</string>
+    <string name="system_info_device_model">Laitteen malli</string>
+    <string name="system_info_device_name">Laitteen nimi</string>
+    <string name="system_info_product">Tuote</string>
+    <string name="system_info_hardware">Laitteisto</string>
+    <string name="system_info_supported_abis">Tuetut ABI:t</string>
+    <string name="system_info_android_version">Android-versio</string>
+    <string name="system_info_android_security_patch">Suojauskorjaus</string>
+    <string name="system_info_build_id">Koontitunnus</string>
+    <string name="system_info_cpu_info">CPU-tiedot</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">GPU-tiedot</string>
+    <string name="system_info_memory_info">Muist tiedot</string>
+    <string name="system_info_total_memory">Kokonaismuisti</string>
 </resources>

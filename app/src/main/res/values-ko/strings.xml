@@ -2205,10 +2205,7 @@
     <string name="retro_scr_shader">셰이더</string>
     <string name="retro_scr_sgsr_upscaling">SGSR 업스케일링</string>
     <string name="retro_scr_performance_hud">성능 HUD</string>
-    <string name="retro_scr_credits_licenses">크레딧 &amp; 라이선스</string>
-    <string name="retro_scr_credits_desc">WinNative의 일부 기능은 이러한 오픈 소스 프로젝트를 기반으로 합니다. 탭하여 각 소스를 확인하세요.</string>
     <string name="retro_scr_tab_defaults">기본값</string>
-    <string name="retro_scr_tab_credits">크레딧</string>
     <string name="retro_scr_enable_hardcore_title">하드코어 모드를 사용하시겠습니까?</string>
     <string name="retro_scr_enable_hardcore_body">하드코어 모드는 지금 게임을 재설정하고 상태 저장 불러오기, 빨리 감기, 치트를 비활성화합니다. 저장하지 않은 진행 상황은 손실됩니다. 계속하시겠습니까?</string>
     <string name="retro_scr_cancel">취소</string>
@@ -2548,4 +2545,25 @@
     <string name="registry_cpu_spoof_hint">Wine 아키텍처에 따라 프리셋이 자동 선택되었습니다: %1$s</string>
     <string name="registry_cpu_spoof_clear">지우기</string>
     <string name="registry_cpu_spoof_cleared">CPU 스푸프 값이 제거되었습니다</string>
+    <string name="system_info">시스템 정보</string>
+    <string name="system_info_gpu_model">GPU 모델</string>
+    <string name="system_info_vulkan_version">Vulkan 버전</string>
+    <string name="system_info_vulkan_driver_version">Vulkan 드라이버 버전</string>
+    <string name="system_info_cpu_cores">CPU 코어 수</string>
+    <string name="system_info_cpu_features">CPU 기능</string>
+    <string name="system_info_general_information">일반 정보</string>
+    <string name="system_info_device_manufacturer">제조업체</string>
+    <string name="system_info_device_model">기기 모델</string>
+    <string name="system_info_device_name">기기 이름</string>
+    <string name="system_info_product">제품</string>
+    <string name="system_info_hardware">하드웨어</string>
+    <string name="system_info_supported_abis">지원 ABI</string>
+    <string name="system_info_android_version">Android 버전</string>
+    <string name="system_info_android_security_patch">보안 패치</string>
+    <string name="system_info_build_id">빌드 ID</string>
+    <string name="system_info_cpu_info">CPU 정보</string>
+    <string name="system_info_soc">SOC:</string>
+    <string name="system_info_gpu_information">GPU 정보</string>
+    <string name="system_info_memory_info">메모리 정보</string>
+    <string name="system_info_total_memory">총 메모리</string>
 </resources>
