@@ -24,6 +24,10 @@ public abstract class GPUInformation {
 
   public static native String[] enumerateExtensions(String driverName, Context context);
 
+  public static native String getSystemApiVersion();
+  
+  public static native String getSystemDriverVersion();
+
   static {
     System.loadLibrary("winlator");
   }

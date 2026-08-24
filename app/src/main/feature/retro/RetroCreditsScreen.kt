@@ -1,5 +1,8 @@
 package com.winlator.cmod.feature.retro
 
+import android.content.Context
+import android.util.Log
+import java.util.Locale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.winlator.cmod.R
 import com.winlator.cmod.feature.settings.SettingsNavBridge
+import com.winlator.cmod.runtime.system.GPUInformation
 import com.winlator.cmod.shared.ui.focus.rememberSettingsContentNav
 import com.winlator.cmod.shared.ui.nav.LocalPaneNav
 import com.winlator.cmod.shared.ui.nav.paneNavItem
@@ -35,10 +40,17 @@ private val CreditsBg = Color(0xFF101018)
 private val CreditsText = Color(0xFFF0F4FF)
 private val CreditsSub = Color(0xFF93A6BC)
 
+private const val TAG = "RetroCreditsScreen"
+
 @Composable
 fun RetroCreditsScreen(bridge: SettingsNavBridge? = null) {
     val context = LocalContext.current
     val contentNav = rememberSettingsContentNav(bridge)
+
+    // 进入界面时采集一次 GPU 信息并打印到 logcat（LaunchedEffect 保证只执行一次）
+    LaunchedEffect(Unit) {
+        Log.d(TAG, "GPU info:\n${getGpuInfo(context)}")
+    }
 
     fun open(url: String) {
         runCatching {
@@ -128,3 +140,47 @@ internal val RETRO_CREDITS =
         RetroCredit("SwanStation", "PlayStation", "GPL-3.0", "https://github.com/libretro/swanstation"),
         RetroCredit("Winlator", "Windows-on-Android base", "GPL-3.0", "https://github.com/brunodev85/winlator"),
     )
+
+private fun getGpuInfo(context: Context): String {
+    val gpuInfo = StringBuilder()
+    try {
+        // Get GPU model via Vulkan API
+        val gpuModel = GPUInformation.getRenderer(null, context)
+        if (gpuModel != null && !gpuModel.isEmpty()) {
+            gpuInfo.append(context.getString(R.string.system_info_gpu_model)).append("：").append(gpuModel).append(System.lineSeparator())
+        }
+
+        // Get Vulkan version via Vulkan API
+        val apiVersionStr = GPUInformation.getSystemApiVersion()
+        if (apiVersionStr != null && apiVersionStr.isNotEmpty()) {
+            // Native side may return either a packed int ("1157627904") or an
+            // already formatted string ("1.3.231"); handle both.
+            val versionStr =
+                apiVersionStr.toIntOrNull()?.let { version ->
+                    String.format(
+                        Locale.ENGLISH,
+                        "%d.%d.%d",
+                        vkVersionMajor(version),
+                        vkVersionMinor(version),
+                        vkVersionPatch(version),
+                    )
+                } ?: apiVersionStr
+            gpuInfo.append(context.getString(R.string.system_info_vulkan_version)).append("：").append(versionStr).append(System.lineSeparator())
+        }
+
+        // Get Vulkan driver version via Vulkan API
+        val driverVersion = GPUInformation.getSystemDriverVersion()
+        if (driverVersion != null && !driverVersion.isEmpty()) {
+            gpuInfo.append(context.getString(R.string.system_info_vulkan_driver_version)).append("：").append(driverVersion).append(System.lineSeparator())
+        }
+    } catch (e: Exception) {
+        gpuInfo.append("Unable to get GPU info: ").append(e.message)
+    }
+    return gpuInfo.toString()
+}
+
+private fun vkVersionMajor(version: Int): Int = version shr 22
+
+private fun vkVersionMinor(version: Int): Int = (version shr 12) and 0x3FF
+
+private fun vkVersionPatch(version: Int): Int = version and 0xFFF

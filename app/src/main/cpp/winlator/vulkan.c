@@ -10,9 +10,20 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "file_utils.h"
 
 #define LOG_TAG "System.out"
 #define printf(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+#define APP_CACHE_DIR "/data/data/app.winnative/cache"
+#define MEMFREE(x) \
+    do { \
+        if (x != NULL) { \
+            free(x); \
+            x = NULL; \
+        } \
+    } \
+    while(0)
+#define LIBVULKAN_PATH "/system/lib64/libvulkan.so"
 
 VkInstance instance;
 VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -196,7 +207,7 @@ static void preload_vendor_icd_deps() {
 
 void *winlator_open_system_vulkan(void) {
   preload_vendor_icd_deps();
-  return dlopen("/system/lib64/libvulkan.so", RTLD_LOCAL | RTLD_NOW);
+  return dlopen(LIBVULKAN_PATH, RTLD_LOCAL | RTLD_NOW);
 }
 
 void *winlator_open_vulkan(JNIEnv *env, jobject context, const char *driver_name) {
@@ -493,4 +504,149 @@ Java_com_winlator_cmod_runtime_system_GPUInformation_enumerateExtensions(
   }
 
   return extensions;
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_winlator_cmod_runtime_system_GPUInformation_getSystemApiVersion(
+    JNIEnv *env, jclass obj) {
+    int version = 0;
+    char versionStr[16] = {0};
+
+    // 缓存中保存的是十进制整数版本号，命中时直接格式化返回。
+    char* content = fileGetContents(APP_CACHE_DIR "/.vk-api-version", NULL, NULL);
+    if (content) {
+        version = strtol(content, NULL, 10);
+        MEMFREE(content);
+        if (version > 0) {
+            snprintf(versionStr, sizeof(versionStr), "%d.%d.%d",
+                     VK_VERSION_MAJOR(version), VK_VERSION_MINOR(version),
+                     VK_VERSION_PATCH(version));
+            return (*env)->NewStringUTF(env, versionStr);
+        }
+    }
+
+    VkResult result = VK_SUCCESS;
+    VkInstance instance = VK_NULL_HANDLE;
+
+    void* libvulkan = dlopen(LIBVULKAN_PATH, RTLD_NOW | RTLD_LOCAL);
+    if (!libvulkan) goto done;
+
+    PFN_vkCreateInstance vkCreateInstance = dlsym(libvulkan, "vkCreateInstance");
+    PFN_vkDestroyInstance vkDestroyInstance = dlsym(libvulkan, "vkDestroyInstance");
+    PFN_vkEnumeratePhysicalDevices vkEnumeratePhysicalDevices = dlsym(libvulkan, "vkEnumeratePhysicalDevices");
+    PFN_vkGetPhysicalDeviceProperties vkGetPhysicalDeviceProperties = dlsym(libvulkan, "vkGetPhysicalDeviceProperties");
+    PFN_vkGetPhysicalDeviceFeatures vkGetPhysicalDeviceFeatures = dlsym(libvulkan, "vkGetPhysicalDeviceFeatures");
+    // 任一入口缺失都直接放弃，避免后续调用 NULL 函数指针。
+    if (!vkCreateInstance || !vkDestroyInstance || !vkEnumeratePhysicalDevices ||
+        !vkGetPhysicalDeviceProperties || !vkGetPhysicalDeviceFeatures)
+        goto done;
+
+    VkInstanceCreateInfo createInfo = {0};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+
+    result = vkCreateInstance(&createInfo, NULL, &instance);
+    if (result != VK_SUCCESS) goto done;
+
+    uint32_t deviceCount = 1;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    result = vkEnumeratePhysicalDevices(instance, &deviceCount, &physicalDevice);
+    // VK_INCOMPLETE 可接受：数组小于设备数时首个设备仍会被写入。
+    if ((result != VK_SUCCESS && result != VK_INCOMPLETE) ||
+        physicalDevice == VK_NULL_HANDLE)
+        goto done;
+
+    VkPhysicalDeviceProperties properties = {0};
+    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+    version = properties.apiVersion;
+    if (version >= VK_MAKE_VERSION(1, 3, 0)) {
+        VkPhysicalDeviceFeatures features = {0};
+        vkGetPhysicalDeviceFeatures(physicalDevice, &features);
+        // requiredFeatures 标记了必须为 VK_TRUE 的关键特性；任一缺失即降级报告 1.2。
+        static const VkPhysicalDeviceFeatures requiredFeatures = {VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_FALSE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_FALSE, VK_TRUE, VK_TRUE, VK_FALSE, VK_FALSE, VK_TRUE, VK_TRUE, VK_TRUE, VK_FALSE, VK_TRUE, VK_TRUE, VK_TRUE, VK_TRUE, VK_FALSE, VK_TRUE, VK_TRUE};
+        // VkPhysicalDeviceFeatures 仅由 VkBool32 组成、无 padding，可直接 memcmp。
+        if (memcmp(&features, &requiredFeatures, sizeof(requiredFeatures)) != 0) {
+            version = VK_MAKE_VERSION(1, 2, 0);
+        }
+    }
+
+    char value[32] = {0};
+    snprintf(value, sizeof(value), "%d", version);
+    filePutContents(APP_CACHE_DIR "/.vk-api-version", value, strlen(value));
+
+done:
+    if (instance) vkDestroyInstance(instance, NULL);
+    if (libvulkan) dlclose(libvulkan);
+    if (version == 0) return NULL;
+    snprintf(versionStr, sizeof(versionStr), "%d.%d.%d",
+             VK_VERSION_MAJOR(version), VK_VERSION_MINOR(version),
+             VK_VERSION_PATCH(version));
+    return (*env)->NewStringUTF(env, versionStr);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_winlator_cmod_runtime_system_GPUInformation_getSystemDriverVersion(
+    JNIEnv *env, jclass obj) {
+    void *libvulkan = NULL;
+    VkInstance instance = VK_NULL_HANDLE;
+    jstring result = NULL;
+    char versionStr[33];
+
+    PFN_vkCreateInstance vkCreateInstance = NULL;
+    PFN_vkDestroyInstance vkDestroyInstance = NULL;
+    PFN_vkEnumeratePhysicalDevices vkEnumeratePhysicalDevices = NULL;
+    PFN_vkGetPhysicalDeviceProperties vkGetPhysicalDeviceProperties = NULL;
+
+    // Load the system Vulkan driver. winlator_open_system_vulkan() also
+    // preloads vendor ICD deps so vkGetPhysicalDeviceProperties can report the
+    // real driver (same pattern as getSystemApiVersion).
+    libvulkan = winlator_open_system_vulkan();
+    if (!libvulkan) goto done;
+
+    vkCreateInstance =
+        (PFN_vkCreateInstance)dlsym(libvulkan, "vkCreateInstance");
+    vkDestroyInstance =
+        (PFN_vkDestroyInstance)dlsym(libvulkan, "vkDestroyInstance");
+    vkEnumeratePhysicalDevices = (PFN_vkEnumeratePhysicalDevices)dlsym(
+        libvulkan, "vkEnumeratePhysicalDevices");
+    vkGetPhysicalDeviceProperties = (PFN_vkGetPhysicalDeviceProperties)dlsym(
+        libvulkan, "vkGetPhysicalDeviceProperties");
+    if (!vkCreateInstance || !vkDestroyInstance || !vkEnumeratePhysicalDevices ||
+        !vkGetPhysicalDeviceProperties)
+        goto done;
+
+    VkInstanceCreateInfo createInfo = {0};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+
+    VkResult res = vkCreateInstance(&createInfo, NULL, &instance);
+    if (res != VK_SUCCESS || instance == VK_NULL_HANDLE) goto done;
+
+    uint32_t deviceCount = 0;
+    res = vkEnumeratePhysicalDevices(instance, &deviceCount, NULL);
+    if (res != VK_SUCCESS || deviceCount == 0) goto done;
+
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    deviceCount = 1;
+    res = vkEnumeratePhysicalDevices(instance, &deviceCount, &physicalDevice);
+    // VK_INCOMPLETE is fine: the array is smaller than the device count, but
+    // the first device is still written.
+    if ((res != VK_SUCCESS && res != VK_INCOMPLETE) ||
+        physicalDevice == VK_NULL_HANDLE)
+        goto done;
+
+    VkPhysicalDeviceProperties properties = {0};
+    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+    // 3x uint32 (10 digits max each) + 2 dots + NUL = 33 bytes.
+    snprintf(versionStr, sizeof(versionStr), "%d.%d.%d",
+             VK_VERSION_MAJOR(properties.driverVersion),
+             VK_VERSION_MINOR(properties.driverVersion),
+             VK_VERSION_PATCH(properties.driverVersion));
+
+    result = (*env)->NewStringUTF(env, versionStr);
+
+done:
+    if (instance) vkDestroyInstance(instance, NULL);
+    if (libvulkan) dlclose(libvulkan);
+    return result;
 }
