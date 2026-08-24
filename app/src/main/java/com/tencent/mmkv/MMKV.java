@@ -1818,6 +1818,7 @@ public class MMKV implements SharedPreferences, SharedPreferences.Editor {
      * @deprecated This method is deprecated.
      * Use the {@link #initialize(Context, String, LibLoader, MMKVLogLevel, MMKVHandler)} method instead.
      */
+    @Deprecated
     public static void registerHandler(MMKVHandler handler) {
         gCallbackHandler = handler;
         gWantLogReDirecting = gCallbackHandler.wantLogRedirecting();

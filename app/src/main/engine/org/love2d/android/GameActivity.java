@@ -72,6 +72,7 @@ public class GameActivity extends SDLActivity {
     public static final int FILE_PICKER_REQUEST_CODE = 4;
     public static final int FILE_CREATE_REQUEST_CODE = 5;
     /** @deprecated Prefer FILE_PICKER_REQUEST_CODE; kept for older call sites. */
+    @Deprecated
     public static final int ROM_PICKER_REQUEST_CODE = FILE_PICKER_REQUEST_CODE;
     // Mirrors conf.lua's t.identity ("pokemon-love2d"): where the picked file
     // is dropped so RomImporter's existing folder scan finds it -- see
