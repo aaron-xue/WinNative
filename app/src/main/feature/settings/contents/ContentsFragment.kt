@@ -38,6 +38,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.Locale
 
 class ContentsFragment : Fragment() {
     private lateinit var manager: ContentsManager
@@ -327,7 +328,7 @@ class ContentsFragment : Fragment() {
         DirectoryPickerDialog.showFile(
             activity = activity,
             title = getString(R.string.settings_content_install),
-            allowedExtensions = setOf("wcp", "xz", "txz", "tzst"),
+            allowedExtensions = INSTALL_CONTENT_EXTENSIONS,
             allowMultiSelect = true,
             onSelectedAll = { paths -> installContentsFromPaths(paths) },
         ) { path ->
@@ -336,8 +337,13 @@ class ContentsFragment : Fragment() {
     }
 
     private fun installContentsFromPaths(paths: List<String>) {
-        if (paths.isEmpty()) return
-        val queue = ArrayDeque(paths)
+        val filtered =
+            paths.filter { path ->
+                val file = File(path)
+                file.isFile && file.extension.lowercase(Locale.ROOT) in INSTALL_CONTENT_EXTENSIONS
+            }
+        if (filtered.isEmpty()) return
+        val queue = ArrayDeque(filtered)
         if (queue.size > 1) {
             updateDownloadProgress(
                 title = getString(R.string.settings_content_installing_title),
@@ -698,5 +704,6 @@ class ContentsFragment : Fragment() {
         private const val STATE_CONTENT_TYPE = "state_content_type"
         private const val TAG = "ContentsFragment"
         private const val PREF_AUTO_CREATE_CONTAINER = "components_auto_create_container"
+        private val INSTALL_CONTENT_EXTENSIONS = setOf("wcp", "xz", "txz", "tzst")
     }
 }

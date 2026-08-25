@@ -1161,6 +1161,25 @@ object DirectoryPickerDialog {
                                 modifier = Modifier.height(FooterButtonHeight),
                                 onClick = onDismiss,
                             )
+                            if (fileMultiSelect) {
+                                val selectablePaths =
+                                    entries.filter { it.isSelectableFile }.map { it.target.absolutePath }
+                                val allSelected =
+                                    selectablePaths.isNotEmpty() && selectedPaths.containsAll(selectablePaths)
+                                SecondaryActionChip(
+                                    label = activityString(
+                                        if (allSelected) R.string.common_ui_deselect_all else R.string.common_ui_select_all,
+                                    ),
+                                    icon = Icons.Outlined.Checklist,
+                                    accent = true,
+                                    compact = true,
+                                    modifier = Modifier.height(FooterButtonHeight),
+                                    onClick = {
+                                        selectedPaths =
+                                            if (allSelected) emptySet() else selectablePaths.toSet()
+                                    },
+                                )
+                            }
                             FooterActionButton(
                                 label = activityString(R.string.common_ui_ok),
                                 modifier = Modifier.height(FooterButtonHeight),
