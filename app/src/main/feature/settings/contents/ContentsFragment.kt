@@ -343,6 +343,7 @@ class ContentsFragment : Fragment() {
                 file.isFile && file.extension.lowercase(Locale.ROOT) in INSTALL_CONTENT_EXTENSIONS
             }
         if (filtered.isEmpty()) return
+        val pendingContainers = mutableListOf<ContentProfile>()
         val queue = ArrayDeque(filtered)
         if (queue.size > 1) {
             updateDownloadProgress(
@@ -352,14 +353,57 @@ class ContentsFragment : Fragment() {
             )
         }
         fun installNext() {
-            val path = queue.removeFirstOrNull() ?: return
+            val path = queue.removeFirstOrNull()
+            if (path == null) {
+                // All installs finished: create any deferred containers
+                // sequentially (one at a time, waiting for each to finish).
+                if (pendingContainers.isNotEmpty()) {
+                    createContainersSequentially(pendingContainers)
+                }
+                return
+            }
             installSelectedContent(
                 uri = Uri.fromFile(File(path)),
                 completionMessage = getString(R.string.settings_content_installed_success),
+                deferAutoCreate = true,
+                onInstalled = { profile -> pendingContainers += profile },
                 onTerminal = { installNext() },
             )
         }
         installNext()
+    }
+
+    private fun createContainersSequentially(profiles: List<ContentProfile>) {
+        val queue = ArrayDeque(profiles)
+        val context = requireContext()
+        val containerManager = ContainerManager(context)
+        fun createNext() {
+            val profile = queue.removeFirstOrNull()
+            if (profile == null) {
+                clearDownloadProgress()
+                return
+            }
+            updateDownloadProgress(
+                title = getString(R.string.containers_list_creating),
+                message = profile.verName,
+                indeterminate = true,
+            )
+            ContainerCreation.createContainerForProfileAsync(
+                context,
+                containerManager,
+                manager,
+                profile,
+            ) { newContainer ->
+                if (newContainer != null) {
+                    WinToast.show(
+                        context,
+                        getString(R.string.settings_content_container_created, newContainer.name),
+                    )
+                }
+                createNext()
+            }
+        }
+        createNext()
     }
 
     private fun onRemoveRequested(profile: ContentProfile) {
@@ -443,6 +487,8 @@ class ContentsFragment : Fragment() {
         uri: Uri,
         completionMessage: String,
         sourceRemoteUrl: String? = null,
+        deferAutoCreate: Boolean = false,
+        onInstalled: ((ContentProfile) -> Unit)? = null,
         onTerminal: (() -> Unit)? = null,
     ) {
         val callback =
@@ -517,7 +563,7 @@ class ContentsFragment : Fragment() {
                                 profile.type == ContentProfile.ContentType.CONTENT_TYPE_PROTON
                         )
 
-                        if (willAutoCreate) {
+                        if (willAutoCreate && !deferAutoCreate) {
                             // Keep the download/install popup open and swap
                             // its title — avoids a flash between dialogs.
                             updateDownloadProgress(
@@ -542,6 +588,7 @@ class ContentsFragment : Fragment() {
                                 onTerminal?.invoke()
                             }
                         } else {
+                            if (willAutoCreate) onInstalled?.invoke(profile)
                             clearDownloadProgress()
                             onTerminal?.invoke()
                         }
