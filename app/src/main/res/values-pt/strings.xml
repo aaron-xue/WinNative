@@ -1196,6 +1196,7 @@ Por ex. <b>META</b> para <i>tecla META</i>, \n
     <string name="settings_content_installed_success">Conteúdo instalado com sucesso!</string>
     <string name="settings_content_downloading_title">A Transferir Conteúdo</string>
     <string name="settings_content_installing_title">A Instalar Conteúdo</string>
+    <string name="settings_content_install_multiple">Instalando %1$d arquivos…</string>
     <string name="settings_content_extracting_title">A Extrair Conteúdo</string>
     <string name="settings_content_extracting_detail">A extrair (%1$d ficheiros)</string>
     <string name="settings_content_preparing_package">A preparar o pacote</string>

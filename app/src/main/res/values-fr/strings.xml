@@ -923,6 +923,7 @@ Par ex. <b>META</b> pour la <i>touche META</i>, \n
     <string name="settings_content_installed_success">Contenu installé avec succès !</string>
     <string name="settings_content_downloading_title">Téléchargement du contenu</string>
     <string name="settings_content_installing_title">Installation du contenu</string>
+    <string name="settings_content_install_multiple">Installation de %1$d fichiers…</string>
     <string name="settings_content_extracting_title">Extraction du contenu</string>
     <string name="settings_content_extracting_detail">Extraction (%1$d fichiers)</string>
     <string name="settings_content_preparing_package">Préparation du paquet</string>

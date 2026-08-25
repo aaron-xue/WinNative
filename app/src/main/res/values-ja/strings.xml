@@ -1196,6 +1196,7 @@
     <string name="settings_content_installed_success">コンテンツをインストールしました！</string>
     <string name="settings_content_downloading_title">コンテンツをダウンロード中</string>
     <string name="settings_content_installing_title">コンテンツをインストール中</string>
+    <string name="settings_content_install_multiple">%1$d 個のファイルをインストール中…</string>
     <string name="settings_content_extracting_title">コンテンツを展開中</string>
     <string name="settings_content_extracting_detail">展開中（%1$d ファイル）</string>
     <string name="settings_content_preparing_package">パッケージを準備中</string>

@@ -923,6 +923,7 @@
     <string name="settings_content_installed_success">콘텐츠가 성공적으로 설치되었습니다!</string>
     <string name="settings_content_downloading_title">콘텐츠 다운로드 중</string>
     <string name="settings_content_installing_title">콘텐츠 설치 중</string>
+    <string name="settings_content_install_multiple">%1$d개 파일 설치 중…</string>
     <string name="settings_content_extracting_title">콘텐츠 추출 중</string>
     <string name="settings_content_extracting_detail">추출 중 (%1$d개 파일)</string>
     <string name="settings_content_preparing_package">패키지 준비 중</string>

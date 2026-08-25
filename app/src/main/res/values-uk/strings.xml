@@ -929,6 +929,7 @@
     <string name="settings_content_installed_success">Контент успішно встановлено!</string>
     <string name="settings_content_downloading_title">Завантаження контенту</string>
     <string name="settings_content_installing_title">Встановлення контенту</string>
+    <string name="settings_content_install_multiple">Встановлення %1$d файлів…</string>
     <string name="settings_content_extracting_title">Розпакування контенту</string>
     <string name="settings_content_extracting_detail">Розпакування (%1$d файлів)</string>
     <string name="settings_content_preparing_package">Підготовка пакета</string>

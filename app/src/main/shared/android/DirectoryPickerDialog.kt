@@ -237,6 +237,8 @@ object DirectoryPickerDialog {
         dimAmount: Float = 0.30f,
         preserveBackdropBlur: Boolean = false,
         extraRoots: List<ManagedRoot> = emptyList(),
+        allowMultiSelect: Boolean = false,
+        onSelectedAll: ((List<String>) -> Unit)? = null,
         onSelected: (String) -> Unit,
     ) {
         showPicker(
@@ -249,6 +251,8 @@ object DirectoryPickerDialog {
             dimAmount = dimAmount,
             preserveBackdropBlur = preserveBackdropBlur,
             extraRoots = extraRoots,
+            allowMultiSelect = allowMultiSelect,
+            onSelectedAll = onSelectedAll,
             onSelected = onSelected,
         )
     }
@@ -296,6 +300,8 @@ object DirectoryPickerDialog {
         containers: List<ManagedContainer> = emptyList(),
         onRunFile: ((String, Int) -> Unit)? = null,
         onCreateShortcut: ((String) -> Unit)? = null,
+        allowMultiSelect: Boolean = false,
+        onSelectedAll: ((List<String>) -> Unit)? = null,
         onSelected: (String) -> Unit,
     ) {
         if (!ensureAllFilesAccess(activity)) return
@@ -373,6 +379,14 @@ object DirectoryPickerDialog {
                                     onRunFile = onRunFile,
                                     onCreateShortcut = onCreateShortcut,
                                     onDismiss = ::dismissPicker,
+                                    allowMultiSelect = allowMultiSelect,
+                                    onSelectAll =
+                                        onSelectedAll?.let { callback ->
+                                            { paths ->
+                                                callback(paths)
+                                                dismissPicker()
+                                            }
+                                        },
                                     onSelect = { path ->
                                         onSelected(path)
                                         dismissPicker()
@@ -431,9 +445,12 @@ object DirectoryPickerDialog {
         onRunFile: ((String, Int) -> Unit)? = null,
         onCreateShortcut: ((String) -> Unit)? = null,
         onDismiss: () -> Unit,
+        allowMultiSelect: Boolean = false,
+        onSelectAll: ((List<String>) -> Unit)? = null,
         onSelect: (String) -> Unit,
     ) {
         val manage = mode == SelectionMode.MANAGE
+        val fileMultiSelect = mode == SelectionMode.FILE && allowMultiSelect
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
         var currentDir by remember(initialDir.absolutePath) { mutableStateOf(initialDir) }
@@ -679,6 +696,9 @@ object DirectoryPickerDialog {
                 title
                     .takeUnless { it.equals(footerTitle, ignoreCase = true) }
                     ?: activityString(R.string.common_ui_browse_local_folders_directly)
+            } else if (fileMultiSelect) {
+                if (selectedPaths.isEmpty()) currentDir.absolutePath
+                else activityString(R.string.selected_count, selectedPaths.size)
             } else {
                 selectedFile?.absolutePath ?: currentDir.absolutePath
         }
@@ -783,7 +803,11 @@ object DirectoryPickerDialog {
                 selectedFile = null
             } else if (target.isFile) {
                 currentDir = target.parentFile ?: currentDir
-                selectedFile = target
+                if (fileMultiSelect) {
+                    selectedPaths = selectedPaths + target.absolutePath
+                } else {
+                    selectedFile = target
+                }
             } else {
                 Toast.makeText(context, pathNotFound, Toast.LENGTH_SHORT).show()
             }
@@ -989,7 +1013,13 @@ object DirectoryPickerDialog {
                                     val isMenuOpen =
                                         manage && menuTarget?.absolutePath == entry.target.absolutePath
                                     val path = entry.target.absolutePath
-                                    val multiSelectable = manage && multiSelect && !entry.isParent
+                                    val multiSelectable =
+                                        if (fileMultiSelect) {
+                                            // FILE multi-select: only files are selectable; folders keep navigating.
+                                            entry.isSelectableFile
+                                        } else {
+                                            manage && multiSelect && !entry.isParent
+                                        }
                                     val openMenu = {
                                         if (multiSelectable && path !in selectedPaths) selectedPaths = selectedPaths + path
                                         menuTarget = entry.target
@@ -997,7 +1027,7 @@ object DirectoryPickerDialog {
                                     EntryTile(
                                         entry = entry,
                                         selected =
-                                            if (manage && multiSelect) {
+                                            if (manage && multiSelect || fileMultiSelect) {
                                                 path in selectedPaths
                                             } else {
                                                 selectedFile?.absolutePath == path
@@ -1135,6 +1165,11 @@ object DirectoryPickerDialog {
                                 label = activityString(R.string.common_ui_ok),
                                 modifier = Modifier.height(FooterButtonHeight),
                                 onClick = {
+                                    if (fileMultiSelect) {
+                                        if (selectedPaths.isEmpty()) return@FooterActionButton
+                                        onSelectAll?.invoke(selectedPaths.toList())
+                                        return@FooterActionButton
+                                    }
                                     val selectedPath =
                                         if (mode == SelectionMode.FILE) {
                                             selectedFile?.absolutePath ?: return@FooterActionButton

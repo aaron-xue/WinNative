@@ -1196,6 +1196,7 @@ T.ex. <b>META</b> för <i>META-tangent</i>, \n
     <string name="settings_content_installed_success">Innehåll installerat!</string>
     <string name="settings_content_downloading_title">Laddar ner innehåll</string>
     <string name="settings_content_installing_title">Installerar innehåll</string>
+    <string name="settings_content_install_multiple">Installerar %1$d filer…</string>
     <string name="settings_content_extracting_title">Extraherar innehåll</string>
     <string name="settings_content_extracting_detail">Extraherar (%1$d filer)</string>
     <string name="settings_content_preparing_package">Förbereder paket</string>

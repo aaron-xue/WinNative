@@ -993,6 +993,7 @@
     <string name="settings_content_installed_success">Контент успешно установлен!</string>
     <string name="settings_content_downloading_title">Загрузка контента</string>
     <string name="settings_content_installing_title">Установка контента</string>
+    <string name="settings_content_install_multiple">Установка %1$d файлов…</string>
     <string name="settings_content_extracting_title">Извлечение контента</string>
     <string name="settings_content_extracting_detail">Извлечение (%1$d файлов)</string>
     <string name="settings_content_preparing_package">Готовим пакет</string>

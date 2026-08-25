@@ -328,17 +328,32 @@ class ContentsFragment : Fragment() {
             activity = activity,
             title = getString(R.string.settings_content_install),
             allowedExtensions = setOf("wcp", "xz", "txz", "tzst"),
+            allowMultiSelect = true,
+            onSelectedAll = { paths -> installContentsFromPaths(paths) },
         ) { path ->
+            installContentsFromPaths(listOf(path))
+        }
+    }
+
+    private fun installContentsFromPaths(paths: List<String>) {
+        if (paths.isEmpty()) return
+        val queue = ArrayDeque(paths)
+        if (queue.size > 1) {
             updateDownloadProgress(
                 title = getString(R.string.settings_content_installing_title),
-                message = getString(R.string.settings_content_preparing_package),
+                message = getString(R.string.settings_content_install_multiple, queue.size),
                 indeterminate = true,
             )
+        }
+        fun installNext() {
+            val path = queue.removeFirstOrNull() ?: return
             installSelectedContent(
-                Uri.fromFile(File(path)),
-                getString(R.string.settings_content_installed_success),
+                uri = Uri.fromFile(File(path)),
+                completionMessage = getString(R.string.settings_content_installed_success),
+                onTerminal = { installNext() },
             )
         }
+        installNext()
     }
 
     private fun onRemoveRequested(profile: ContentProfile) {
@@ -422,6 +437,7 @@ class ContentsFragment : Fragment() {
         uri: Uri,
         completionMessage: String,
         sourceRemoteUrl: String? = null,
+        onTerminal: (() -> Unit)? = null,
     ) {
         val callback =
             object : ContentsManager.OnInstallFinishedCallback {
@@ -463,6 +479,7 @@ class ContentsFragment : Fragment() {
                                 null,
                             )
                         }
+                        onTerminal?.invoke()
                     }
                 }
 
@@ -516,9 +533,11 @@ class ContentsFragment : Fragment() {
                                         getString(R.string.settings_content_container_created, newContainer.name),
                                     )
                                 }
+                                onTerminal?.invoke()
                             }
                         } else {
                             clearDownloadProgress()
+                            onTerminal?.invoke()
                         }
                     }
                 }
@@ -563,6 +582,7 @@ class ContentsFragment : Fragment() {
                         runOnMain {
                             clearDownloadProgress()
                             WinToast.show(requireContext(), R.string.input_controls_editor_unable_to_import)
+                            onTerminal?.invoke()
                         }
                     }
             } finally {

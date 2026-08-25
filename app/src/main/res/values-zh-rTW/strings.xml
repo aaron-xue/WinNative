@@ -923,6 +923,7 @@
     <string name="settings_content_installed_success">內容已成功安裝！</string>
     <string name="settings_content_downloading_title">正在下載內容</string>
     <string name="settings_content_installing_title">正在安裝內容</string>
+    <string name="settings_content_install_multiple">正在安裝 %1$d 個檔案…</string>
     <string name="settings_content_extracting_title">正在解壓內容</string>
     <string name="settings_content_extracting_detail">正在解壓\u2026（%1$d 個檔案）</string>
     <string name="settings_content_preparing_package">正在準備套件\u2026</string>

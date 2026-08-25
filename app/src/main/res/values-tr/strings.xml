@@ -1196,6 +1196,7 @@ E.g. <b>META</b> için <i>META tuşu</i>, \n
     <string name="settings_content_installed_success">İçerik başarıyla yüklendi!</string>
     <string name="settings_content_downloading_title">İçerik İndiriliyor</string>
     <string name="settings_content_installing_title">İçerik Yükleniyor</string>
+    <string name="settings_content_install_multiple">%1$d dosya yükleniyor…</string>
     <string name="settings_content_extracting_title">İçerik Çıkarılıyor</string>
     <string name="settings_content_extracting_detail">Çıkarılıyor (%1$d dosya)</string>
     <string name="settings_content_preparing_package">Paket hazırlanıyor</string>

@@ -922,6 +922,7 @@ Z. B. <b>META</b> für <i>Meta-Taste</i>, \n
     <string name="settings_content_installed_success">Inhalt erfolgreich installiert!</string>
     <string name="settings_content_downloading_title">Inhalt wird heruntergeladen</string>
     <string name="settings_content_installing_title">Inhalt wird installiert</string>
+    <string name="settings_content_install_multiple">Installiere %1$d Dateien…</string>
     <string name="settings_content_extracting_title">Inhalt wird entpackt</string>
     <string name="settings_content_extracting_detail">Entpacken (%1$d Dateien)</string>
     <string name="settings_content_preparing_package">Paket wird vorbereitet</string>
