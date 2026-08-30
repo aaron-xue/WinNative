@@ -229,7 +229,7 @@ public class WineRegistryEditor implements Closeable {
 
   public List<String> getSubKeys(String key) {
       ArrayList<String> subKeys = new ArrayList<>();
-      String escapedKey = escape(key);
+      String escapedKey = key.isEmpty() ? null : escape(key) + "\\\\";
 
       try (BufferedReader reader = new BufferedReader(new FileReader(cloneFile), StreamUtils.BUFFER_SIZE)) {
           String line;
@@ -238,16 +238,41 @@ public class WineRegistryEditor implements Closeable {
               int endIndex = line.indexOf(']');
               if (endIndex <= 1) continue;
               String fullKey = line.substring(1, endIndex);
-              if (key.isEmpty()) {
-                  if (fullKey.indexOf('\\') == -1) subKeys.add(unescape(fullKey));
-              } else if (fullKey.startsWith(escapedKey + "\\\\")) {
-                  String rest = fullKey.substring(escapedKey.length() + 2);
-                  if (rest.indexOf('\\') == -1 && !rest.isEmpty()) subKeys.add(unescape(rest));
-              }
+              String rest;
+              if (escapedKey == null) rest = fullKey;
+              else if (fullKey.startsWith(escapedKey)) rest = fullKey.substring(escapedKey.length());
+              else continue;
+              if (rest.isEmpty()) continue;
+              int slash = rest.indexOf("\\\\");
+              String child = slash == -1 ? rest : rest.substring(0, slash);
+              if (child.isEmpty()) continue;
+              String unescapedChild = unescape(child);
+              if (!subKeys.contains(unescapedChild)) subKeys.add(unescapedChild);
           }
       } catch (IOException e) {
       }
       return subKeys;
+  }
+
+  public List<String> searchKeys(String query, int limit) {
+      ArrayList<String> result = new ArrayList<>();
+      String q = query.toLowerCase(Locale.ENGLISH);
+      try (BufferedReader reader = new BufferedReader(new FileReader(cloneFile), StreamUtils.BUFFER_SIZE)) {
+          String line;
+          while ((line = reader.readLine()) != null) {
+              if (!line.startsWith("[")) continue;
+              int endIndex = line.indexOf(']');
+              if (endIndex <= 1) continue;
+              String fullKey = line.substring(1, endIndex);
+              String unescaped = unescape(fullKey);
+              if (unescaped.toLowerCase(Locale.ENGLISH).contains(q)) {
+                  result.add(unescaped);
+                  if (result.size() >= limit) break;
+              }
+          }
+      } catch (IOException e) {
+      }
+      return result;
   }
 
   public List<RegValue> getValues(String key) {
@@ -338,6 +363,11 @@ public class WineRegistryEditor implements Closeable {
   }
 
   public void setHexValue(String key, String name, String value) {
+    setTypedHexValue(key, name, "hex:", value);
+  }
+
+  // Запись hex-значения с произвольным префиксом типа (hex:, hex(b):, hex(2):, hex(7):)
+  public void setTypedHexValue(String key, String name, String hexTypePrefix, String value) {
     int start = (int) Mathf.roundTo(name.length(), 2) + 7;
     StringBuilder lines = new StringBuilder();
     for (int i = 0, j = start; i < value.length(); i++) {
@@ -348,7 +378,7 @@ public class WineRegistryEditor implements Closeable {
       }
       lines.append(value.charAt(i));
     }
-    setRawValue(key, name, "hex:" + lines);
+    setRawValue(key, name, hexTypePrefix + lines);
   }
 
   public void setHexValue(String key, String name, byte[] bytes) {
@@ -595,8 +625,10 @@ public class WineRegistryEditor implements Closeable {
   }
 
   private static String stripHivePrefix(String key) {
-      if (key.equals("HKEY_LOCAL_MACHINE") || key.equals("HKEY_CURRENT_USER")) return "";
-      String[] prefixes = {"HKEY_LOCAL_MACHINE\\", "HKEY_CURRENT_USER\\", "HKEY_USERS\\.DEFAULT\\", "HKEY_USERS\\"};
+      if (key.equals("HKEY_LOCAL_MACHINE") || key.equals("HKEY_CURRENT_USER")
+              || key.equals("HKEY_CLASSES_ROOT") || key.equals("HKEY_CURRENT_CONFIG")) return "";
+      String[] prefixes = {"HKEY_LOCAL_MACHINE\\", "HKEY_CURRENT_USER\\", "HKEY_USERS\\.DEFAULT\\",
+              "HKEY_USERS\\", "HKEY_CLASSES_ROOT\\", "HKEY_CURRENT_CONFIG\\"};
       for (String prefix : prefixes) {
           if (key.startsWith(prefix)) return key.substring(prefix.length());
       }
