@@ -65,6 +65,7 @@ import com.winlator.cmod.shared.android.DirectoryPickerDialog
 import com.winlator.cmod.shared.android.ImageUtils
 import com.winlator.cmod.shared.io.AssetPaths
 import com.winlator.cmod.runtime.wine.EnvVars
+import com.winlator.cmod.runtime.wine.LocaleEnv
 import com.winlator.cmod.runtime.wine.WineUtils
 import com.winlator.cmod.shared.io.FileUtils
 import com.winlator.cmod.shared.util.KeyValueSet
@@ -435,8 +436,11 @@ class ShortcutSettingsComposeDialog private constructor(
             if (container.isUseUnixLibs) "1" else "0"
         ) == "1"
 
-        // LC_ALL
+        // LC_ALL — fall back to the device locale when neither the shortcut nor
+        // the container has a stored value (mirrors the container dialog).
         state.lcAll.value = getShortcutSetting("lc_all", container.getLC_ALL())
+            .takeUnless { it.isNullOrEmpty() }
+            ?: LocaleEnv.deriveFromDevice()
 
         // CPU Affinity
         val cpuList = getShortcutSetting("cpuList", container.getCPUList(true))
@@ -2279,6 +2283,8 @@ class ShortcutSettingsComposeDialog private constructor(
         }
 
         state.lcAll.value = container.getLC_ALL()
+            .takeUnless { it.isNullOrEmpty() }
+            ?: LocaleEnv.deriveFromDevice()
         state.fullscreenStretched.value = container.isFullscreenStretched
         state.useUnixLibs.value = container.isUseUnixLibs
 

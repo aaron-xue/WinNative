@@ -6,6 +6,7 @@ import com.winlator.cmod.runtime.compat.fexcore.FEXCorePreset
 import com.winlator.cmod.runtime.content.ContentProfile
 import com.winlator.cmod.runtime.content.ContentsManager
 import com.winlator.cmod.runtime.display.winhandler.WinHandler
+import com.winlator.cmod.runtime.wine.LocaleEnv
 import com.winlator.cmod.runtime.wine.WineInfo
 import com.winlator.cmod.runtime.wine.WineThemeManager
 import com.winlator.cmod.runtime.wine.WineUtils
@@ -185,7 +186,7 @@ object ContainerCreation {
             put("fexcorePreset", FEXCorePreset.PERFORMANCE_TSO)
             put("desktopTheme", WineThemeManager.DEFAULT_DESKTOP_THEME)
             put("midiSoundFont", "")
-            put("lc_all", "")
+            put("lc_all", LocaleEnv.deriveFromDevice())
             put("execArgs", "")
         }
     }
@@ -321,6 +322,10 @@ object ContainerCreation {
         container.setFEXCoreVersion(defaults.fexcoreVersion)
         container.setBox64Preset(Box64Preset.PERFORMANCE)
         container.setFEXCorePreset(FEXCorePreset.PERFORMANCE_TSO)
+        // Only default the locale when none is stored; never clobber a user choice.
+        if (container.getLC_ALL().isNullOrEmpty()) {
+            container.setLC_ALL(LocaleEnv.deriveFromDevice())
+        }
         container.saveData()
     }
 
