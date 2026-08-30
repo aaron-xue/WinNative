@@ -19,6 +19,7 @@ import com.winlator.cmod.app.service.NetworkMonitor
 import com.winlator.cmod.app.service.download.DownloadCoordinator
 import com.winlator.cmod.feature.shortcuts.LibraryShortcutUtils
 import com.winlator.cmod.feature.stores.steam.data.AppInfo
+import com.winlator.cmod.feature.stores.steam.data.BranchInfo
 import com.winlator.cmod.feature.stores.steam.data.CachedLicense
 import com.winlator.cmod.feature.stores.steam.data.DepotInfo
 import com.winlator.cmod.feature.stores.steam.data.DownloadFailedException
@@ -166,6 +167,63 @@ import kotlin.time.Duration.Companion.seconds
 
 // Depot/manifest resolution + size calculation, split out of SteamService.kt (behavior-identical).
 
+internal const val STEAM_DEFAULT_BRANCH = SteamBranchSelection.DEFAULT_BRANCH
+
+internal fun SteamService.Companion.getSelectableBranches(appId: Int): List<BranchInfo> =
+    SteamBranchSelection.selectableBranches(getAppInfoOf(appId)?.branches.orEmpty())
+
+internal fun SteamService.Companion.getSelectedBranch(appId: Int): String {
+    if (appId <= 0) return STEAM_DEFAULT_BRANCH
+    val stored = runCatching { PrefManager.getSelectedBranch(appId) }.getOrDefault("")
+    val branches = getAppInfoOf(appId)?.branches.orEmpty()
+    val resolved = SteamBranchSelection.resolveBranch(stored, branches)
+    if (stored.isNotBlank() && !resolved.equals(stored.trim(), ignoreCase = true)) {
+        Timber.w(
+            "Steam branch '${stored.trim()}' is not selectable for appId=$appId " +
+                "(missing or password protected); falling back to $resolved",
+        )
+    }
+    return resolved
+}
+
+internal fun SteamService.Companion.setSelectedBranch(
+    appId: Int,
+    branch: String,
+) {
+    if (appId <= 0) return
+    val normalized = branch.trim()
+    val persisted = if (normalized.isBlank() || normalized.equals(STEAM_DEFAULT_BRANCH, ignoreCase = true)) "" else normalized
+    runCatching { PrefManager.setSelectedBranch(appId, persisted) }
+        .onFailure { Timber.w(it, "Could not persist Steam branch selection for appId=$appId") }
+}
+
+internal fun SteamService.Companion.getInstalledBranch(appId: Int): String =
+    runCatching { PrefManager.getInstalledBranch(appId) }
+        .getOrDefault("")
+        .ifBlank { STEAM_DEFAULT_BRANCH }
+
+internal fun SteamService.Companion.getInstalledBuildId(appId: Int): Long =
+    runCatching { PrefManager.getInstalledBuildId(appId) }.getOrDefault(0L)
+
+internal fun SteamService.Companion.branchBuildId(
+    appId: Int,
+    branch: String,
+): Long = SteamBranchSelection.buildIdForBranch(getAppInfoOf(appId)?.branches.orEmpty(), branch)
+
+internal fun SteamService.Companion.recordInstalledBranch(
+    appId: Int,
+    branch: String,
+) {
+    if (appId <= 0) return
+    val resolved = branch.ifBlank { STEAM_DEFAULT_BRANCH }
+    val buildId = branchBuildId(appId, resolved)
+    runCatching {
+        PrefManager.setInstalledBranch(appId, resolved)
+        PrefManager.setInstalledBuildId(appId, buildId)
+    }.onFailure { Timber.w(it, "Could not record installed Steam branch for appId=$appId") }
+    Timber.i("Recorded installed Steam branch appId=$appId branch=$resolved buildId=$buildId")
+}
+
 internal fun SteamService.Companion.getEntitledDepotIds(packageId: Int): Set<Int>? {
     if (packageId == INVALID_PKG_ID) return null
     val depotIds =
@@ -192,6 +250,68 @@ internal fun SteamService.Companion.isDepotEntitled(
     if (depot.sharedInstall || depot.depotFromApp != INVALID_APP_ID) return true
     // Package depot lists are often incomplete for base content; owning the app entitles it.
     return depot.dlcAppId == INVALID_APP_ID
+}
+
+private val SUPERSEDED_DEPOTS: Map<Int, Map<Int, Int>> =
+    mapOf(
+        993090 to mapOf(993092 to 993091),
+    )
+
+internal fun SteamService.Companion.dropSupersededDepots(
+    appId: Int,
+    depots: Map<Int, DepotInfo>,
+): Map<Int, DepotInfo> {
+    val rules = SUPERSEDED_DEPOTS[appId] ?: return depots
+    val dropped = depots.keys.filter { rules[it]?.let { preferred -> preferred in depots } == true }
+    if (dropped.isEmpty()) return depots
+    Timber.i("Dropping superseded depots $dropped for appId=$appId; preferred twin is present")
+    return depots.filterKeys { it !in dropped }
+}
+
+internal fun SteamService.Companion.repairSupersededInstall(
+    appId: Int,
+    appDirPath: String,
+    selectedDepotIds: Set<Int>,
+): Boolean {
+    val rules = SUPERSEDED_DEPOTS[appId] ?: return false
+    if (appDirPath.isBlank()) return false
+
+    val installed = readInstalledDepotManifestIds(appDirPath)
+    val stale = rules.filterKeys { it in installed }.filterValues { it in selectedDepotIds }
+    if (stale.isEmpty()) return false
+
+    val depotDir = File(appDirPath, ".DepotDownloader")
+    val configFile = File(depotDir, "depot.config")
+    val affected = stale.keys + stale.values
+
+    val rewritten =
+        runCatching {
+            if (!configFile.isFile) return@runCatching false
+            val json = JSONObject(configFile.readText())
+            val manifests = json.optJSONObject("installedManifestIDs") ?: return@runCatching false
+            affected.forEach { manifests.remove(it.toString()) }
+            configFile.writeText(json.toString())
+            true
+        }.getOrElse {
+            Timber.w(it, "Could not rewrite depot.config repairing superseded depots for appId=$appId")
+            false
+        }
+    if (!rewritten) return false
+
+    depotDir
+        .listFiles()
+        .orEmpty()
+        .forEach { file ->
+            if (!file.name.endsWith(".manifest")) return@forEach
+            val depotId = file.name.substringBefore('_').toIntOrNull() ?: return@forEach
+            if (depotId in affected) file.delete()
+        }
+
+    Timber.i(
+        "Repaired superseded Steam install for appId=$appId: cleared depots $affected " +
+            "so ${stale.values} re-download and overwrite files the stale twin had won",
+    )
+    return true
 }
 
 internal fun SteamService.Companion.getSelectedDownloadDepots(

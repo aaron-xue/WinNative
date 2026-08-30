@@ -142,6 +142,7 @@ import okhttp3.FormBody
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
+import com.winlator.cmod.feature.library.LosslessAutoImport
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
@@ -170,6 +171,7 @@ internal fun SteamService.Companion.finalizeSnapshotResumeAsComplete(
     mainAppDepots: Map<Int, DepotInfo>,
     dlcAppDepots: Map<Int, DepotInfo>,
     userSelectedDlcAppIds: List<Int>,
+    branch: String = STEAM_DEFAULT_BRANCH,
 ): DownloadInfo {
     val downloadingAppIds = CopyOnWriteArrayList<Int>()
     val calculatedDlcAppIds = CopyOnWriteArrayList<Int>()
@@ -190,6 +192,7 @@ internal fun SteamService.Companion.finalizeSnapshotResumeAsComplete(
     }
 
     val info = DownloadInfo(1, appId, downloadingAppIds)
+    info.branch = branch
     info.setPersistencePath(appDirPath)
     info.updateStatus(DownloadPhase.COMPLETE)
     info.setProgress(1f)
@@ -472,6 +475,7 @@ internal suspend fun SteamService.Companion.completeAppDownload(
                         "(disk full / permissions?). Game files are on disk but next launch may re-validate.",
                 )
             }
+            recordInstalledBranch(downloadInfo.gameId, downloadInfo.branch)
             runCatching { MarkerUtils.removeMarker(appDirPath, Marker.DOWNLOAD_IN_PROGRESS_MARKER) }
             runCatching { MarkerUtils.removeMarker(appDirPath, Marker.STEAM_DLL_REPLACED) }
             runCatching { MarkerUtils.removeMarker(appDirPath, Marker.STEAM_COLDCLIENT_USED) }
@@ -530,6 +534,15 @@ internal suspend fun SteamService.Companion.completeAppDownload(
         downloadInfo.setActive(false)
         downloadInfo.updateStatus(DownloadPhase.COMPLETE)
         PluviaApp.events.emit(AndroidEvent.LibraryInstallStatusChanged(downloadInfo.gameId))
+
+        if (downloadInfo.gameId == LosslessAutoImport.STEAM_APP_ID) {
+            instance?.let { context ->
+                Thread {
+                    val outcome = runCatching { LosslessAutoImport.sync(context) }.getOrNull()
+                    Timber.i("Lossless Scaling finished downloading; shader import result=${outcome?.result}")
+                }.start()
+            }
+        }
 
         downloadInfo.clearPersistedBytesDownloaded(appDirPath, sync = true)
         // Notify the coordinator to advance the cross-store queue and persist COMPLETE.

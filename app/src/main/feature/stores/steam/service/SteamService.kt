@@ -1085,6 +1085,7 @@ class SteamService : Service() {
                     if (appInfo != null) {
                         instance?.appInfoDao?.update(appInfo.copy(isDownloaded = false))
                     }
+                    runCatching { PrefManager.clearInstalledBranchState(appId) }
                     LibraryShortcutUtils.deleteSteamShortcuts(PluviaApp.instance, appId)
                     PluviaApp.events.emit(AndroidEvent.LibraryInstallStatusChanged(appId))
                     withContext(kotlinx.coroutines.Dispatchers.Main) {
@@ -1250,12 +1251,15 @@ class SteamService : Service() {
                     it.osArch == OSArch.Arch64 && (it.osList.contains(OS.windows) || (it.osList.isEmpty() || it.osList.contains(OS.none)))
                 }
 
-            return appInfo.depots
-                .asSequence()
-                .filter { (depotId, depot) ->
-                    return@filter isDepotEntitled(depotId, depot, entitledDepotIds) &&
-                        filterForDownloadableDepots(depot, has64Bit, preferredLanguage, ownedDlc)
-                }.associate { it.toPair() }
+            return dropSupersededDepots(
+                appId,
+                appInfo.depots
+                    .asSequence()
+                    .filter { (depotId, depot) ->
+                        return@filter isDepotEntitled(depotId, depot, entitledDepotIds) &&
+                            filterForDownloadableDepots(depot, has64Bit, preferredLanguage, ownedDlc)
+                    }.associate { it.toPair() },
+            )
         }
 
         /** Downloadable depots for an app, including all DLCs. */
@@ -1307,7 +1311,7 @@ class SteamService : Service() {
                 }
             }
 
-            return map
+            return dropSupersededDepots(appId, map)
         }
 
         internal data class GroupedBaseAppDlcDepot(
@@ -1320,7 +1324,7 @@ class SteamService : Service() {
             appId: Int,
             userSelectedDlcAppIds: Collection<Int> = emptyList(),
             preferredLanguage: String = PrefManager.containerLanguage,
-            branch: String = "public",
+            branch: String = getSelectedBranch(appId),
         ): ManifestSizes {
             ensureFreshDepotData(appId)
             val selectedDepots = getSelectedDownloadDepots(appId, userSelectedDlcAppIds, preferredLanguage, branch)
@@ -1333,7 +1337,7 @@ class SteamService : Service() {
             appId: Int,
             userSelectedDlcAppIds: Collection<Int> = emptyList(),
             preferredLanguage: String = PrefManager.containerLanguage,
-            branch: String = "public",
+            branch: String = getSelectedBranch(appId),
         ): ManifestSizes {
             ensureFreshDepotData(appId)
             val selectedDepots = getSelectedDownloadDepots(appId, userSelectedDlcAppIds, preferredLanguage, branch)
@@ -1352,7 +1356,7 @@ class SteamService : Service() {
             appId: Int,
             dlcAppId: Int,
             preferredLanguage: String = PrefManager.containerLanguage,
-            branch: String = "public",
+            branch: String = getSelectedBranch(appId),
         ): ManifestSizes {
             val service = instance ?: return ManifestSizes()
             ensureFreshDepotData(appId)
@@ -2286,7 +2290,7 @@ class SteamService : Service() {
             if (appId <= 0) return@runCatching
             val depots = resolvePreferredLaunchDepotIds(
                 appId = appId,
-                branch = resolveSelectedBetaName(appId).ifBlank { "public" },
+                branch = resolveSelectedBetaName(appId).ifBlank { STEAM_DEFAULT_BRANCH },
             )
             if (depots.isEmpty()) {
                 Timber.w(
@@ -2304,12 +2308,12 @@ class SteamService : Service() {
 
         suspend fun pushAppDlcsToLibSteamClient(appId: Int) = runCatching {
             if (appId <= 0) return@runCatching
-            val selectedBranch = resolveSelectedBetaName(appId).ifBlank { "public" }
-            val localBuildId = resolvePreferredLaunchBuildId(getAppInfoOf(appId), selectedBranch)
+            val selectedBranch = resolveSelectedBetaName(appId).ifBlank { STEAM_DEFAULT_BRANCH }
+            val localBuildId = resolveInstalledBuildId(appId, selectedBranch)
             if (localBuildId > 0) {
                 com.winlator.cmod.feature.stores.steam.wnsteam.WnLibSteamClient
                     .setAppBuildId(appId, localBuildId)
-                Timber.i("Pushed local buildId=$localBuildId to libsteamclient.so (app $appId)")
+                Timber.i("Pushed installed buildId=$localBuildId to libsteamclient.so (app $appId branch=$selectedBranch)")
             }
             val snapshotJson = withWnSession { s ->
                 withContext(Dispatchers.IO) { s.getLibrarySnapshotJson() }
@@ -2330,10 +2334,15 @@ class SteamService : Service() {
                 val arr = obj.optJSONArray("dlc") ?: continue
                 for (k in 0 until arr.length()) dlcIds.add(arr.optInt(k))
             }
-            if (parentBuildId > 0) {
+            if (parentBuildId > 0 && localBuildId <= 0) {
                 com.winlator.cmod.feature.stores.steam.wnsteam.WnLibSteamClient
                     .setAppBuildId(appId, parentBuildId)
-                Timber.i("Pushed buildId=$parentBuildId to libsteamclient.so (app $appId)")
+                Timber.i("Pushed snapshot buildId=$parentBuildId to libsteamclient.so (app $appId)")
+            } else if (parentBuildId > 0 && parentBuildId != localBuildId) {
+                Timber.i(
+                    "Keeping installed buildId=$localBuildId for app $appId; the library snapshot " +
+                        "reports the latest public build $parentBuildId, which is not what is on disk",
+                )
             }
             if (dlcIds.isEmpty()) {
                 com.winlator.cmod.feature.stores.steam.wnsteam.WnLibSteamClient
@@ -2570,16 +2579,25 @@ class SteamService : Service() {
         @JvmStatic
         fun resolveSelectedBetaName(appId: Int): String {
             if (appId <= 0) return ""
-            val svc = instance ?: return ""
-            return runCatching {
-                for (sc in ContainerManager(svc).loadShortcuts()) {
-                    val scAppId = sc.getExtra("app_id").toIntOrNull() ?: continue
-                    if (scAppId != appId) continue
-                    val branch = sc.getExtra("selectedBranch").trim()
-                    if (branch.isNotEmpty()) return@runCatching branch
-                }
-                ""
-            }.getOrElse { "" }
+            val shortcutBranch =
+                instance?.let { svc ->
+                    runCatching {
+                        for (sc in ContainerManager(svc).loadShortcuts()) {
+                            val scAppId = sc.getExtra("app_id").toIntOrNull() ?: continue
+                            if (scAppId != appId) continue
+                            val branch = sc.getExtra("selectedBranch").trim()
+                            if (branch.isNotEmpty()) return@runCatching branch
+                        }
+                        ""
+                    }.getOrElse { "" }
+                }.orEmpty()
+            if (shortcutBranch.isNotEmpty()) return shortcutBranch
+
+            val installed = getInstalledBranch(appId)
+            if (!installed.equals(STEAM_DEFAULT_BRANCH, ignoreCase = true)) return installed
+
+            val selected = getSelectedBranch(appId)
+            return if (selected.equals(STEAM_DEFAULT_BRANCH, ignoreCase = true)) "" else selected
         }
 
         suspend fun refreshEncryptedAppTicketForLibSteamClient(appId: Int): Boolean {
@@ -3786,12 +3804,12 @@ class SteamService : Service() {
 
         suspend fun isUpdatePending(
             appId: Int,
-            branch: String = "public",
+            branch: String = getSelectedBranch(appId),
         ): Boolean = checkForAppUpdate(appId, branch).hasUpdate
 
         suspend fun checkForAppUpdate(
             appId: Int,
-            branch: String = "public",
+            branch: String = getSelectedBranch(appId),
         ): SteamUpdateInfo =
             withContext(Dispatchers.IO) {
                 fun SteamUpdateInfo.logged(): SteamUpdateInfo {
@@ -3825,6 +3843,8 @@ class SteamService : Service() {
                 if (selectedDepots.isEmpty()) {
                     return@withContext SteamUpdateInfo(message = "No installed depots to update").logged()
                 }
+
+                repairSupersededInstall(appId, appDirPath, selectedDepots.keys)
 
                 val installedManifestIds = readInstalledDepotManifestIds(appDirPath)
                 val cachedManifestFiles: Set<String> =

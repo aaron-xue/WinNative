@@ -287,12 +287,19 @@ open class MainActivityRuntime : ComponentActivity() {
         @Volatile var quitAfterStop = false
         @Volatile var launchedExternally = false
 
+        private fun finishHostActivity() {
+            val activity = instance ?: return
+            if (com.armsx2.WinNativeHost.enabled() || !activity.isTaskRoot) {
+                activity.finish()
+            } else {
+                activity.finishAndRemoveTask()
+            }
+        }
+
         private fun finishToLauncherIfRequested() {
             if (quitAfterStop) {
                 quitAfterStop = false
-                instance?.runOnUiThread {
-                    if (com.armsx2.WinNativeHost.enabled()) instance?.finish() else instance?.finishAndRemoveTask()
-                }
+                instance?.runOnUiThread { finishHostActivity() }
             }
         }
 
@@ -306,9 +313,7 @@ open class MainActivityRuntime : ComponentActivity() {
         @JvmStatic
         fun exitApp() {
             if (eState.value == EmuState.STOPPED && !vmStopInProgress && !vmRunLoopActive) {
-                instance?.runOnUiThread {
-                    if (com.armsx2.WinNativeHost.enabled()) instance?.finish() else instance?.finishAndRemoveTask()
-                }
+                instance?.runOnUiThread { finishHostActivity() }
             } else {
                 quitAfterStop = true
                 stop()
@@ -1092,12 +1097,7 @@ open class MainActivityRuntime : ComponentActivity() {
     }
 
     fun applyEmulationOrientation() {
-        requestedOrientation = when (prefs.getInt("ui.orientation", 0)) {
-            1 -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-            2 -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
-            3 -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
-            else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        }
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
     }
 
     private fun applyEdgeToEdge() {
@@ -2104,7 +2104,7 @@ open class MainActivityRuntime : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        if (isChangingConfigurations()) {
+        if (isChangingConfigurations() || !isFinishing || instance !== this) {
             super.onDestroy()
             return
         }
