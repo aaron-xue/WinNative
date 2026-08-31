@@ -366,7 +366,7 @@ public class WineRegistryEditor implements Closeable {
     setTypedHexValue(key, name, "hex:", value);
   }
 
-  // Запись hex-значения с произвольным префиксом типа (hex:, hex(b):, hex(2):, hex(7):)
+  // 使用任意类型前缀（hex:、hex(b):、hex(2):、hex(7):）写入 hex 值
   public void setTypedHexValue(String key, String name, String hexTypePrefix, String value) {
     int start = (int) Mathf.roundTo(name.length(), 2) + 7;
     StringBuilder lines = new StringBuilder();
