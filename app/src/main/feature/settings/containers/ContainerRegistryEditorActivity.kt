@@ -681,7 +681,7 @@ private fun RegistryEditorScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .heightIn(max = 220.dp),
+                        .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Row(
@@ -772,6 +772,8 @@ private fun RegistryEditorScreen(
             }
 
             // ── 键树 ──
+            // 搜索时隐藏树，只显示搜索结果
+            if (searchResults == null) {
             // 从搜索跳转后自动滚动到目标节点
             LaunchedEffect(visibleTreeNodes, pendingScrollPath) {
                 val target = pendingScrollPath ?: return@LaunchedEffect
@@ -883,6 +885,7 @@ private fun RegistryEditorScreen(
                         }
                     }
                 }
+            }
             }
 
             if (selectedHive?.key == "HKEY_LOCAL_MACHINE") {
@@ -1662,7 +1665,7 @@ private fun RegEditorBottomBar(
     ) {
         onAddKey?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(80.dp),
+                modifier = Modifier.width(96.dp),
                 image = Icons.Outlined.CreateNewFolder,
                 label = stringResource(R.string.registry_add_key),
                 tint = RegAccent,
@@ -1672,7 +1675,7 @@ private fun RegEditorBottomBar(
         }
         onAddValue?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(80.dp),
+                modifier = Modifier.width(96.dp),
                 image = Icons.Outlined.Add,
                 label = stringResource(R.string.registry_add_value),
                 tint = RegAccent,
@@ -1682,7 +1685,7 @@ private fun RegEditorBottomBar(
         }
         onImport?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(80.dp),
+                modifier = Modifier.width(96.dp),
                 image = Icons.Outlined.FileOpen,
                 label = stringResource(R.string.registry_import),
                 tint = RegTextSecondary,
@@ -1692,7 +1695,7 @@ private fun RegEditorBottomBar(
         }
         onExport?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(80.dp),
+                modifier = Modifier.width(96.dp),
                 image = Icons.Outlined.FileDownload,
                 label = stringResource(R.string.registry_export),
                 tint = RegTextSecondary,
@@ -1702,7 +1705,7 @@ private fun RegEditorBottomBar(
         }
         onEditValue?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(80.dp),
+                modifier = Modifier.width(96.dp),
                 image = Icons.Outlined.Edit,
                 label = stringResource(R.string.registry_edit_value),
                 tint = RegAccent,
@@ -1712,7 +1715,7 @@ private fun RegEditorBottomBar(
         }
         onDeleteKey?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(80.dp),
+                modifier = Modifier.width(96.dp),
                 image = Icons.Outlined.Delete,
                 label = stringResource(R.string.registry_delete_key),
                 tint = RegDanger,
