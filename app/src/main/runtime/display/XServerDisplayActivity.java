@@ -8386,7 +8386,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private void evaluateControllerAutoHide() {
         if (inputControlsView == null) return;
 
-        if (!preferences.getBoolean("auto_hide_touch_on_controller", false)) {
+        if (!preferences.getBoolean("auto_hide_touch_on_controller", true)) {
             if (controllerAutoHidden) {
                 controllerAutoHidden = false;
                 applyTouchscreenOverlayPreference();
