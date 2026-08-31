@@ -756,6 +756,8 @@
     <string name="input_controls_auto_hide_section">觸控螢幕控制</string>
     <string name="input_controls_auto_hide_on_controller_title">連接控制器時自動隱藏</string>
     <string name="input_controls_auto_hide_on_controller_summary">連接控制器時隱藏觸控螢幕控制</string>
+    <string name="input_controls_show_controller_hints_title">顯示手把提示</string>
+    <string name="input_controls_show_controller_hints_summary">在遊戲介面顯示手把按鍵映射提示</string>
     <string name="session_gyroscope_title">陀螺儀</string>
     <string name="session_gyroscope_calibrate">校準陀螺儀</string>
     <string name="session_gyroscope_enable_right_stick">啟用右搖桿陀螺儀動態感應</string>
@@ -2624,4 +2626,3 @@
     <string name="settings_frame_generation_not_owned">影格生成使用 Lossless Scaling 的著色器。請使用目前登入的帳號在 Steam 上購買以啟用此功能。</string>
     <string name="settings_frame_generation_locate">選擇 Lossless.dll…</string>
 </resources>
-

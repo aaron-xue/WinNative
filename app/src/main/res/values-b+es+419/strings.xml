@@ -1022,6 +1022,8 @@ Por ejemplo, <b>META</b> para la <i>tecla META</i>, \n
     <string name="input_controls_auto_hide_section">Controles táctiles</string>
     <string name="input_controls_auto_hide_on_controller_title">Ocultar automáticamente con el control</string>
     <string name="input_controls_auto_hide_on_controller_summary">Oculta los controles táctiles cuando hay un control conectado</string>
+    <string name="input_controls_show_controller_hints_title">Mostrar sugerencias de control</string>
+    <string name="input_controls_show_controller_hints_summary">Mostrar sugerencias de mapeo de control en la pantalla del juego</string>
 
     <!-- Session > Gyroscope -->
     <string name="session_gyroscope_title">Giroscopio</string>

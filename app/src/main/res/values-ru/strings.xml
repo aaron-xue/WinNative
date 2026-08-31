@@ -825,6 +825,8 @@
     <string name="input_controls_auto_hide_section">Сенсорное управление</string>
     <string name="input_controls_auto_hide_on_controller_title">Автоскрытие при контроллере</string>
     <string name="input_controls_auto_hide_on_controller_summary">Скрывать сенсорное управление при подключении контроллера</string>
+    <string name="input_controls_show_controller_hints_title">Показывать подсказки контроллера</string>
+    <string name="input_controls_show_controller_hints_summary">Показывать подсказки сопоставления контроллера на экране игры</string>
     <string name="session_gyroscope_title">Гироскоп</string>
     <string name="session_gyroscope_calibrate">Калибровка гироскопа</string>
     <string name="session_gyroscope_enable_right_stick">Включить управление правым стиком через гироскоп</string>

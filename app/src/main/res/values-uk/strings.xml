@@ -761,6 +761,8 @@
     <string name="input_controls_auto_hide_section">Сенсорне керування</string>
     <string name="input_controls_auto_hide_on_controller_title">Автоприховування з контролером</string>
     <string name="input_controls_auto_hide_on_controller_summary">Приховувати сенсорне керування, коли під\'єднано контролер</string>
+    <string name="input_controls_show_controller_hints_title">Показувати підказки контролера</string>
+    <string name="input_controls_show_controller_hints_summary">Показувати підказки зіставлення контролера на екрані гри</string>
     <string name="session_gyroscope_title">Гіроскоп</string>
     <string name="session_gyroscope_calibrate">Калібрувати гіроскоп</string>
     <string name="session_gyroscope_enable_right_stick">Увімкнути гіроскопічний рух правого стіка</string>
@@ -2630,4 +2632,3 @@
     <string name="settings_frame_generation_not_owned">Генерація кадрів використовує шейдери Lossless Scaling. Придбайте його у Steam під поточним обліковим записом, щоб увімкнути це.</string>
     <string name="settings_frame_generation_locate">Вибрати Lossless.dll…</string>
 </resources>
-

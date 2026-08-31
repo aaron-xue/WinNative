@@ -137,6 +137,7 @@ import com.winlator.cmod.runtime.audio.midi.MidiHandler;
 import com.winlator.cmod.runtime.audio.midi.MidiManager;
 import com.winlator.cmod.runtime.display.renderer.VulkanRenderer;
 import com.winlator.cmod.runtime.display.ui.FrameRating;
+import com.winlator.cmod.runtime.display.ui.ExternalControllerHintsView;
 import com.winlator.cmod.runtime.display.ui.MagnifierView;
 import com.winlator.cmod.runtime.display.ui.MangoHudView;
 import com.winlator.cmod.runtime.display.ui.XServerSurfaceView;
@@ -279,6 +280,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private int currentGestureProfileId = 0;
     private ImageFs imageFs;
     private FrameRating frameRating = null;
+    private ExternalControllerHintsView controllerHintsView = null;
     private MangoHudView mangoHud = null;
     private boolean effectiveShowFPS = false;
     // Phone gauge HUD (Compose host) shown with touch controls disabled while a physical controller + external display are active.
@@ -7773,6 +7775,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         rootView.addView(frameRating);
         if (perfController != null) perfController.attachToFrameRating(frameRating);
 
+        boolean showControllerHints = preferences.getBoolean("show_controller_hints", false);
+        controllerHintsView = new ExternalControllerHintsView(this);
+        controllerHintsView.setVisibility(showControllerHints ? View.VISIBLE : View.GONE);
+        rootView.addView(controllerHintsView);
+
         if (preferences.getBoolean(MangoHudView.PREF_ENABLED, false)) {
             mangoHud = new MangoHudView(this);
             mangoHud.setEngineName(mangoEngineLabel());
@@ -8562,6 +8569,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         startTouchscreenTimeout();
         // In controller-HUD mode the on-screen controls stay hidden even though the profile is set.
         if (controllerHudMode) inputControlsView.setVisibility(View.GONE);
+
+        if (controllerHintsView != null) {
+            boolean showHints = preferences.getBoolean("show_controller_hints", false);
+            controllerHintsView.setProfile(profile);
+            controllerHintsView.setVisibility(showHints ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void hideInputControls() {
@@ -8579,6 +8592,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             winHandler.sendGamepadState();
         }
         startTouchscreenTimeout();
+
+        if (controllerHintsView != null) {
+            controllerHintsView.setProfile(null);
+            controllerHintsView.setVisibility(View.GONE);
+        }
     }
 
     private void extractGraphicsDriverFiles() {

@@ -1118,6 +1118,8 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="input_controls_auto_hide_section">Touchscreen Controls</string>
     <string name="input_controls_auto_hide_on_controller_title">Auto-hide on Controller</string>
     <string name="input_controls_auto_hide_on_controller_summary">Hide touchscreen controls when a controller is connected</string>
+    <string name="input_controls_show_controller_hints_title">Show Controller Hints</string>
+    <string name="input_controls_show_controller_hints_summary">Display controller mapping hints on the game screen</string>
 
     <!-- Session > Gyroscope -->
     <string name="session_gyroscope_title">Gyroscope</string>

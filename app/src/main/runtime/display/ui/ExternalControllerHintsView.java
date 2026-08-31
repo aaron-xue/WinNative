@@ -16,15 +16,21 @@ import android.widget.TextView;
 
 import com.winlator.cmod.R;
 import com.winlator.cmod.runtime.input.controls.Binding;
+import com.winlator.cmod.runtime.input.controls.ControlsProfile;
+import com.winlator.cmod.runtime.input.controls.ExternalController;
 import com.winlator.cmod.runtime.input.controls.ExternalControllerBinding;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+
 /**
- * Floating overlay (similar to {@code FrameRating}) that shows the JoyToKey mappings of the
- * current shortcut profile as "gamepad icon + description" rows. The icon is chosen
- * automatically from the {@code ic_input_xbox_*} drawables based on the mapped gamepad key.
+ * Floating overlay (similar to {@code FrameRating}) that shows the controller mappings
+ * of the current shortcut's {@link ControlsProfile} as "gamepad icon + description" rows.
+ * The icon is chosen automatically from the {@code ic_input_xbox_*} drawables based on
+ * the mapped gamepad source key.
  *
- * The overlay can be dragged to any position on screen and tapped to toggle between vertical
- * and horizontal layout. Position and direction changes are reported through
+ * <p>The overlay can be dragged to any position on screen and tapped to toggle between
+ * vertical and horizontal layout. Position and direction changes are reported through
  * {@link OnConfigChangedListener} so the host can persist them.
  */
 public class ExternalControllerHintsView extends LinearLayout {
@@ -37,7 +43,7 @@ public class ExternalControllerHintsView extends LinearLayout {
     }
 
     private final Context context;
-    private JoyToKeyConfig lastConfig = null;
+    private ControlsProfile lastProfile = null;
     private OnConfigChangedListener configChangedListener = null;
 
     // Position as a fraction of the parent size (0..1); -1 until the user actually drags it.
@@ -73,7 +79,7 @@ public class ExternalControllerHintsView extends LinearLayout {
     public void setDirection(int direction) {
         if (getOrientation() == direction) return;
         setOrientation(direction);
-        if (lastConfig != null) setConfig(lastConfig);
+        if (lastProfile != null) setProfile(lastProfile);
     }
 
     public float getPositionX() {
@@ -112,23 +118,44 @@ public class ExternalControllerHintsView extends LinearLayout {
         this.configChangedListener = listener;
     }
 
-    /** Renders one row per mapping; the text is the description when present, otherwise the target binding name. */
-    public void setConfig(JoyToKeyConfig config) {
-        lastConfig = config;
+    /**
+     * Renders one row per {@link ExternalControllerBinding} found in the profile's
+     * controllers. The text is the binding's user note when present, otherwise the
+     * target {@link Binding} name. Duplicate source key codes are collapsed so the
+     * view stays compact.
+     */
+    public void setProfile(ControlsProfile profile) {
+        lastProfile = profile;
         removeAllViews();
-        if (config == null) {
+        if (profile == null) {
             setVisibility(GONE);
             return;
         }
-        for (JoyToKeyMapping mapping : config.getMappings()) {
-            String text = mapping.getDescription();
-            if (text == null || text.trim().isEmpty()) {
-                Binding binding = mapping.getBinding();
-                text = binding != null ? binding.toString() : "";
-            }
-            addRow(iconFor(mapping.getKeyCode()), text);
+        ArrayList<ExternalController> controllers = profile.loadControllers();
+        if (controllers == null || controllers.isEmpty()) {
+            setVisibility(GONE);
+            return;
         }
-        setVisibility(config.getMappings().isEmpty() ? GONE : VISIBLE);
+        HashSet<Integer> seenKeys = new HashSet<>();
+        int rowCount = 0;
+        for (ExternalController controller : controllers) {
+            int bindingCount = controller.getControllerBindingCount();
+            for (int i = 0; i < bindingCount; i++) {
+                ExternalControllerBinding ecb = controller.getControllerBindingAt(i);
+                if (ecb == null) continue;
+                int keyCode = ecb.getKeyCodeForAxis();
+                if (!seenKeys.add(keyCode)) continue;
+                Binding binding = ecb.getBinding();
+                if (binding == null || binding == Binding.NONE) continue;
+                String text = ecb.getNote();
+                if (text == null || text.trim().isEmpty()) {
+                    text = binding.toString();
+                }
+                addRow(iconFor(keyCode), text);
+                rowCount++;
+            }
+        }
+        setVisibility(rowCount == 0 ? GONE : VISIBLE);
     }
 
     private void addRow(int iconRes, String text) {
