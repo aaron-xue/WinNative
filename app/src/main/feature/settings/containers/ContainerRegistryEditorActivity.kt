@@ -908,6 +908,7 @@ private fun RegistryEditorScreen(
             RegEditorBottomBar(
                 modifier = Modifier.align(Alignment.BottomCenter),
                 navBarPadding = navBarPadding,
+                enabled = currentPath.isNotEmpty(),
                 onAddKey = { showAddKeyDialog = true },
                 onAddValue = { addingValue = true },
                 onExport = { exportLauncher.launch("registry_export.reg") },
@@ -1585,17 +1586,24 @@ private fun RegEditorActionButton(
     image: ImageVector,
     label: String,
     tint: Color,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
+    val contentTint = if (enabled) tint else tint.copy(alpha = 0.4f)
     Box(
         modifier = modifier
             .height(36.dp)
             .clip(RoundedCornerShape(9.dp))
-            .background(RegSubcard)
-            .border(1.dp, RegOutline, RoundedCornerShape(9.dp))
+            .background(if (enabled) RegSubcard else RegSubcard.copy(alpha = 0.5f))
+            .border(
+                1.dp,
+                if (enabled) RegOutline else RegOutline.copy(alpha = 0.4f),
+                RoundedCornerShape(9.dp),
+            )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
+                enabled = enabled,
                 onClick = onClick,
             )
             .padding(horizontal = 10.dp),
@@ -1605,16 +1613,17 @@ private fun RegEditorActionButton(
             Icon(
                 imageVector = image,
                 contentDescription = null,
-                tint = tint,
+                tint = contentTint,
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(6.dp))
             Text(
                 text = label,
-                color = tint,
+                color = contentTint,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -1625,6 +1634,7 @@ private fun RegEditorActionButton(
 private fun RegEditorBottomBar(
     modifier: Modifier = Modifier,
     navBarPadding: PaddingValues,
+    enabled: Boolean = true,
     onAddKey: (() -> Unit)? = null,
     onAddValue: (() -> Unit)? = null,
     onImport: (() -> Unit)? = null,
@@ -1647,60 +1657,66 @@ private fun RegEditorBottomBar(
                 end = 16.dp,
                 bottom = 8.dp + navBarPadding.calculateBottomPadding(),
             ),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         onAddKey?.let {
             RegEditorActionButton(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(80.dp),
                 image = Icons.Outlined.CreateNewFolder,
                 label = stringResource(R.string.registry_add_key),
                 tint = RegAccent,
+                enabled = enabled,
                 onClick = it,
             )
         }
         onAddValue?.let {
             RegEditorActionButton(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(80.dp),
                 image = Icons.Outlined.Add,
                 label = stringResource(R.string.registry_add_value),
                 tint = RegAccent,
+                enabled = enabled,
                 onClick = it,
             )
         }
         onImport?.let {
             RegEditorActionButton(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(80.dp),
                 image = Icons.Outlined.FileOpen,
                 label = stringResource(R.string.registry_import),
                 tint = RegTextSecondary,
+                enabled = enabled,
                 onClick = it,
             )
         }
         onExport?.let {
             RegEditorActionButton(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(80.dp),
                 image = Icons.Outlined.FileDownload,
                 label = stringResource(R.string.registry_export),
                 tint = RegTextSecondary,
+                enabled = enabled,
                 onClick = it,
             )
         }
         onEditValue?.let {
             RegEditorActionButton(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(80.dp),
                 image = Icons.Outlined.Edit,
                 label = stringResource(R.string.registry_edit_value),
                 tint = RegAccent,
+                enabled = enabled,
                 onClick = it,
             )
         }
         onDeleteKey?.let {
             RegEditorActionButton(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(80.dp),
                 image = Icons.Outlined.Delete,
                 label = stringResource(R.string.registry_delete_key),
                 tint = RegDanger,
+                enabled = enabled,
                 onClick = it,
             )
         }
