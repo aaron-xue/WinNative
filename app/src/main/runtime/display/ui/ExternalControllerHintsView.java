@@ -84,7 +84,7 @@ public class ExternalControllerHintsView extends LinearLayout {
         this.context = context;
         this.preferences = PreferenceManager.getDefaultSharedPreferences(context);
 
-        setOrientation(DIRECTION_HORIZONTAL);
+        setOrientation(DIRECTION_VERTICAL);
         GradientDrawable backdrop = new GradientDrawable();
         backdrop.setColor(0xA6000000);
         backdrop.setCornerRadius(dp(8));
@@ -92,12 +92,19 @@ public class ExternalControllerHintsView extends LinearLayout {
         setPadding(dp(10), dp(6), dp(10), dp(6));
         setVisibility(GONE);
 
+        // Explicit WRAP_CONTENT: when added to a FrameLayout without LayoutParams the default
+        // is MATCH_PARENT, which would stretch this overlay across the whole screen (a full-screen
+        // dark mask) and break anchor/drag math (parent minus self = 0).
+        setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
         loadPersistedPreferences();
         setupTapAndDragListener();
     }
 
     private void loadPersistedPreferences() {
-        currentAnchor = preferences.getInt(PREF_HINTS_ANCHOR, ANCHOR_TOP_CENTER);
+        currentAnchor = preferences.getInt(PREF_HINTS_ANCHOR, ANCHOR_LEFT_CENTER);
     }
 
     @Override
