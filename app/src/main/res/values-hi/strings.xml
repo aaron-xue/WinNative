@@ -1033,6 +1033,7 @@
     <string name="settings_content_downloading_title">कंटेंट डाउनलोड हो रहा है</string>
     <string name="settings_content_installing_title">कंटेंट इंस्टॉल हो रहा है</string>
     <string name="settings_content_install_multiple">%1$d फ़ाइलें इंस्टॉल हो रही हैं…</string>
+    <string name="settings_content_install_progress">इंस्टॉल हो रहा है %1$d/%2$d</string>
     <string name="settings_content_extracting_title">कंटेंट निकाला जा रहा है</string>
     <string name="settings_content_extracting_detail">निकाला जा रहा है... (%1$d फ़ाइलें)</string>
     <string name="settings_content_preparing_package">पैकेज तैयार किया जा रहा है</string>

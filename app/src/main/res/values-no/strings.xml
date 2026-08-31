@@ -1201,6 +1201,7 @@ F.eks. <b>META</b> for <i>META-tast</i>, \n
     <string name="settings_content_downloading_title">Laster ned innhold</string>
     <string name="settings_content_installing_title">Installerer innhold</string>
     <string name="settings_content_install_multiple">Installerer %1$d filer…</string>
+    <string name="settings_content_install_progress">Installerer %1$d/%2$d</string>
     <string name="settings_content_extracting_title">Pakker ut innhold</string>
     <string name="settings_content_extracting_detail">Pakker ut (%1$d filer)</string>
     <string name="settings_content_preparing_package">Forbereder pakke</string>

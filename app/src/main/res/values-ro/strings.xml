@@ -924,6 +924,7 @@ De ex. <b>META</b> pentru <i>tasta META</i>, \n
     <string name="settings_content_downloading_title">Se descarca continutul</string>
     <string name="settings_content_installing_title">Se instaleaza continutul</string>
     <string name="settings_content_install_multiple">Se instalează %1$d fișiere…</string>
+    <string name="settings_content_install_progress">Se instalează %1$d/%2$d</string>
     <string name="settings_content_extracting_title">Se extrage continutul</string>
     <string name="settings_content_extracting_detail">Se extrage (%1$d fisiere)</string>
     <string name="settings_content_preparing_package">Se pregateste pachetul</string>

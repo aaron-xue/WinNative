@@ -924,6 +924,7 @@
     <string name="settings_content_downloading_title">正在下载内容</string>
     <string name="settings_content_installing_title">正在安装内容</string>
     <string name="settings_content_install_multiple">正在安装 %1$d 个文件…</string>
+    <string name="settings_content_install_progress">正在安装 %1$d/%2$d</string>
     <string name="settings_content_extracting_title">正在解压内容</string>
     <string name="settings_content_extracting_detail">正在解压（%1$d 个文件）</string>
     <string name="settings_content_preparing_package">正在准备包</string>

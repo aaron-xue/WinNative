@@ -345,13 +345,8 @@ class ContentsFragment : Fragment() {
         if (filtered.isEmpty()) return
         val pendingContainers = mutableListOf<ContentProfile>()
         val queue = ArrayDeque(filtered)
-        if (queue.size > 1) {
-            updateDownloadProgress(
-                title = getString(R.string.settings_content_installing_title),
-                message = getString(R.string.settings_content_install_multiple, queue.size),
-                indeterminate = true,
-            )
-        }
+        val total = queue.size
+        var current = 0
         fun installNext() {
             val path = queue.removeFirstOrNull()
             if (path == null) {
@@ -359,9 +354,20 @@ class ContentsFragment : Fragment() {
                 // sequentially (one at a time, waiting for each to finish).
                 if (pendingContainers.isNotEmpty()) {
                     createContainersSequentially(pendingContainers)
+                } else {
+                    clearDownloadProgress()
                 }
                 return
             }
+            current++
+            // Show progress for this item right away. Extraction callbacks may be
+            // sparse for small files, so without this the overlay would stay hidden
+            // between the previous item's completion and this item's first callback.
+            updateDownloadProgress(
+                title = getString(R.string.settings_content_installing_title),
+                message = getString(R.string.settings_content_install_progress, current, total),
+                indeterminate = true,
+            )
             installSelectedContent(
                 uri = Uri.fromFile(File(path)),
                 completionMessage = getString(R.string.settings_content_installed_success),

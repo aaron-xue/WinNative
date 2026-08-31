@@ -930,6 +930,7 @@ Np. <b>META</b> dla <i>klawisza META</i>, \n
     <string name="settings_content_downloading_title">Pobieranie zawartości</string>
     <string name="settings_content_installing_title">Instalowanie zawartości</string>
     <string name="settings_content_install_multiple">Instalowanie %1$d plików…</string>
+    <string name="settings_content_install_progress">Instalowanie %1$d/%2$d</string>
     <string name="settings_content_extracting_title">Wypakowywanie zawartości</string>
     <string name="settings_content_extracting_detail">Wypakowywanie (%1$d plików)</string>
     <string name="settings_content_preparing_package">Przygotowywanie pakietu</string>

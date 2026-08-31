@@ -1201,6 +1201,7 @@
     <string name="settings_content_downloading_title">กำลังดาวน์โหลดเนื้อหา</string>
     <string name="settings_content_installing_title">กำลังติดตั้งเนื้อหา</string>
     <string name="settings_content_install_multiple">กำลังติดตั้ง %1$d ไฟล์…</string>
+    <string name="settings_content_install_progress">กำลังติดตั้ง %1$d/%2$d</string>
     <string name="settings_content_extracting_title">กำลังแตกเนื้อหา</string>
     <string name="settings_content_extracting_detail">กำลังแตก (%1$d ไฟล์)</string>
     <string name="settings_content_preparing_package">กำลังเตรียมแพ็กเกจ</string>

@@ -1201,6 +1201,7 @@ E.g. <b>META</b> for <i>META-näppäin</i>, \n
     <string name="settings_content_downloading_title">Ladataan sisältöä</string>
     <string name="settings_content_installing_title">Asennetaan sisältöä</string>
     <string name="settings_content_install_multiple">Asennetaan %1$d tiedostoa…</string>
+    <string name="settings_content_install_progress">Asennetaan %1$d/%2$d</string>
     <string name="settings_content_extracting_title">Puretaan sisältöä</string>
     <string name="settings_content_extracting_detail">Puretaan (%1$d tiedostoa)</string>
     <string name="settings_content_preparing_package">Valmistellaan pakettia</string>

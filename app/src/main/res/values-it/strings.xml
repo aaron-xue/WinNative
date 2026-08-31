@@ -924,6 +924,7 @@ Ad es. <b>META</b> per il <i>tasto META</i>, \n
     <string name="settings_content_downloading_title">Download contenuto</string>
     <string name="settings_content_installing_title">Installazione contenuto</string>
     <string name="settings_content_install_multiple">Installazione di %1$d file…</string>
+    <string name="settings_content_install_progress">Installazione %1$d/%2$d</string>
     <string name="settings_content_extracting_title">Estrazione contenuto</string>
     <string name="settings_content_extracting_detail">Estrazione in corso (%1$d file)</string>
     <string name="settings_content_preparing_package">Preparazione pacchetto</string>
