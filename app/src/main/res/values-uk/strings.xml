@@ -2081,7 +2081,7 @@
     <string name="retro_gs_engine_3d">Воксельний 3D</string>
     <string name="retro_gs_engine_3d_subtitle">Грати в цю гру у воксельному 3D-рушії замість стандартного ядра</string>
     <string name="retro_gs_engine_3d_note">Власні налаштування 3D-рушія містяться в ігровому меню.</string>
-    <string name="retro_gs_engine_3d_uncached">Запустіть гру один раз, щоб налаштування 3D-рушія з’явилися тут.</string>
+    <string name="retro_gs_engine_3d_uncached">Запустіть гру один раз, щоб налаштування 3D-рушія з\u2019явилися тут.</string>
     <string name="retro_gs_engine_3d_leave">Залишити як у грі</string>
     <string name="retro_gs_engine_3d_audio_note">Звуком керує 3D-рушій. Скористайтеся вкладкою «Звук» в ігровому меню.</string>
     <string name="retro_stadium_row">ROM Stadium</string>
@@ -2350,7 +2350,7 @@
     <string name="retro_gs_adaptive_sticks_subtitle">Sticks stay hidden until you touch their area, then appear where you press</string>
     <string name="retro_lr_adaptive_sticks">Adaptive Sticks</string>
     <string name="retro_scr_ps2_hdd_images">PS2 HDD Images</string>
-    <string name="retro_scr_ps2_hdd_format">A .raw HDD image, or a .zip containing one (e.g. a game’s downloaded HDD with maps/DLC)</string>
+    <string name="retro_scr_ps2_hdd_format">A .raw HDD image, or a .zip containing one (e.g. a game\u2019s downloaded HDD with maps/DLC)</string>
     <string name="retro_scr_import_hdd_image">Import HDD Image</string>
     <string name="retro_scr_importing">Importing…</string>
     <string name="retro_scr_hdd_imported">Imported %1$s</string>
@@ -2478,7 +2478,7 @@
     <string name="retro_gs_console_changed">Тепер ідентифіковано як %1$s</string>
     <!-- ReShade -->
     <string name="reshade_section_title">ReShade</string>
-    <string name="reshade_section_hint">Застосовуйте ефект ReShade (.fx) до ігор DXVK/VKD3D (Vulkan) через вбудований шар vkBasalt. Помістіть кожен ефект в окрему папку в Android/data/&lt;package&gt;/files/ReShade/. Налаштування параметрів у реальному часі та перемикач у грі з’являться з оновленням шару з гарячим перезавантаженням.</string>
+    <string name="reshade_section_hint">Застосовуйте ефект ReShade (.fx) до ігор DXVK/VKD3D (Vulkan) через вбудований шар vkBasalt. Помістіть кожен ефект в окрему папку в Android/data/&lt;package&gt;/files/ReShade/. Налаштування параметрів у реальному часі та перемикач у грі з\u2019являться з оновленням шару з гарячим перезавантаженням.</string>
     <string name="reshade_catalog_title">Ефекти ReShade</string>
     <string name="reshade_catalog_search">Пошук ефектів…</string>
     <string name="reshade_catalog_installed">Встановлено (%1$d)</string>
@@ -2568,7 +2568,7 @@
     <string name="registry_cpu_spoof_hint">Пресет автоматично обрано для архітектури Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">Очистити</string>
     <string name="registry_cpu_spoof_cleared">Значення підміни CPU видалено</string>
-    <string name="registry_computer">Комп'ютер</string>
+    <string name="registry_computer">Комп\u2019ютер</string>
     <string name="registry_search">Пошук ключів</string>
     <string name="registry_search_results">Результати: %1$d</string>
     <string name="registry_search_empty">Нічого не знайдено</string>
