@@ -2542,6 +2542,14 @@ Asennuspolku:
     <string name="registry_cpu_spoof_hint">Esiasetus valittu automaattisesti Wine-arkkitehtuurin mukaan: %1$s</string>
     <string name="registry_cpu_spoof_clear">Tyhjennä</string>
     <string name="registry_cpu_spoof_cleared">CPU:n huijausarvot poistettu</string>
+    <string name="registry_computer">Tietokone</string>
+    <string name="registry_search">Hae avaimia</string>
+    <string name="registry_search_results">Tulokset: %1$d</string>
+    <string name="registry_search_empty">Ei tuloksia</string>
+    <string name="registry_copied">Kopioitu: %1$s</string>
+    <string name="registry_values">Arvot</string>
+    <string name="registry_key_no_values_hint">Täällä ei ole arvoja. Aliavaimet: %1$d — avaa ne nähdäksesi arvot</string>
+
     <string name="system_info">Järjestelmätiedot</string>
     <string name="system_info_gpu_model">GPU-malli</string>
     <string name="system_info_vulkan_version">Vulkan-versio</string>

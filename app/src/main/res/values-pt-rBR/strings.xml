@@ -2562,6 +2562,14 @@ Caminho instalado:
     <string name="registry_cpu_spoof_hint">Predefinição selecionada automaticamente para a arquitetura do Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">Limpar</string>
     <string name="registry_cpu_spoof_cleared">Valores de spoofing de CPU removidos</string>
+    <string name="registry_computer">Computador</string>
+    <string name="registry_search">Pesquisar chaves</string>
+    <string name="registry_search_results">Resultados: %1$d</string>
+    <string name="registry_search_empty">Nada encontrado</string>
+    <string name="registry_copied">Copiado: %1$s</string>
+    <string name="registry_values">Valores</string>
+    <string name="registry_key_no_values_hint">Nenhum valor aqui. Subchaves: %1$d — abra-as para ver os valores</string>
+
     <string name="system_info">Informações do sistema</string>
     <string name="system_info_gpu_model">Modelo da GPU</string>
     <string name="system_info_vulkan_version">Versão do Vulkan</string>

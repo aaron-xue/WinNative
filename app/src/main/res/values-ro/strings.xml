@@ -2561,6 +2561,14 @@ Cale instalata:
     <string name="registry_cpu_spoof_hint">Preselecție selectată automat pentru arhitectura Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">Șterge</string>
     <string name="registry_cpu_spoof_cleared">Valorile de spoofing CPU au fost eliminate</string>
+    <string name="registry_computer">Computer</string>
+    <string name="registry_search">Căutare chei</string>
+    <string name="registry_search_results">Rezultate: %1$d</string>
+    <string name="registry_search_empty">Nu s-a găsit nimic</string>
+    <string name="registry_copied">Copiat: %1$s</string>
+    <string name="registry_values">Valori</string>
+    <string name="registry_key_no_values_hint">Nicio valoare aici. Subchei: %1$d — deschide-le pentru a vedea valorile</string>
+
     <string name="system_info">Informații despre sistem</string>
     <string name="system_info_gpu_model">Model GPU</string>
     <string name="system_info_vulkan_version">Versiune Vulkan</string>

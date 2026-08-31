@@ -2542,6 +2542,14 @@ Yüklü konum:
     <string name="registry_cpu_spoof_hint">Wine mimarisi için otomatik olarak seçilen önayar: %1$s</string>
     <string name="registry_cpu_spoof_clear">Temizle</string>
     <string name="registry_cpu_spoof_cleared">CPU spoofing değerleri kaldırıldı</string>
+    <string name="registry_computer">Bilgisayar</string>
+    <string name="registry_search">Anahtarları ara</string>
+    <string name="registry_search_results">Sonuçlar: %1$d</string>
+    <string name="registry_search_empty">Hiçbir şey bulunamadı</string>
+    <string name="registry_copied">Kopyalandı: %1$s</string>
+    <string name="registry_values">Değerler</string>
+    <string name="registry_key_no_values_hint">Burada değer yok. Alt anahtarlar: %1$d — değerleri görmek için bunları açın</string>
+
     <string name="system_info">Sistem bilgisi</string>
     <string name="system_info_gpu_model">GPU Modeli</string>
     <string name="system_info_vulkan_version">Vulkan Sürümü</string>

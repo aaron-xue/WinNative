@@ -2542,6 +2542,14 @@ Installerad sökväg:
     <string name="registry_cpu_spoof_hint">Förinställning vald automatiskt för Wine-arkitektur: %1$s</string>
     <string name="registry_cpu_spoof_clear">Rensa</string>
     <string name="registry_cpu_spoof_cleared">CPU-spoofing-värden borttagna</string>
+    <string name="registry_computer">Dator</string>
+    <string name="registry_search">Sök nycklar</string>
+    <string name="registry_search_results">Resultat: %1$d</string>
+    <string name="registry_search_empty">Inget hittades</string>
+    <string name="registry_copied">Kopierat: %1$s</string>
+    <string name="registry_values">Värden</string>
+    <string name="registry_key_no_values_hint">Inga värden här. Undernycklar: %1$d — öppna dem för att se värdena</string>
+
     <string name="system_info">Systeminformation</string>
     <string name="system_info_gpu_model">GPU-modell</string>
     <string name="system_info_vulkan_version">Vulkan-version</string>

@@ -2598,6 +2598,14 @@
     <string name="registry_cpu_spoof_hint">已根据 Wine 架构自动选择预设：%1$s</string>
     <string name="registry_cpu_spoof_clear">清除</string>
     <string name="registry_cpu_spoof_cleared">已移除 CPU 伪装</string>
+    <string name="registry_computer">计算机</string>
+    <string name="registry_search">搜索键</string>
+    <string name="registry_search_results">结果: %1$d</string>
+    <string name="registry_search_empty">未找到</string>
+    <string name="registry_copied">已复制: %1$s</string>
+    <string name="registry_values">值</string>
+    <string name="registry_key_no_values_hint">这里没有值。子键: %1$d — 打开它们以查看值</string>
+
     <string name="system_info">系统信息</string>
     <string name="system_info_gpu_model">GPU 型号</string>
     <string name="system_info_vulkan_version">Vulkan 版本</string>

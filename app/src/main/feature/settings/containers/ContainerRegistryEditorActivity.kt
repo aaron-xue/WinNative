@@ -81,8 +81,8 @@ private val RegDanger = Color(0xFFFF7A88)
 
 private val REG_VALUE_TYPES = listOf("String", "Dword", "Qword", "Hex", "ExpandString", "MultiString")
 
-// Модель хайва — как в CronyX: Computer-экран со списком из 5 корневых разделов.
-// Каждый хайв сопоставляется с .reg-файлом Wine и корневым путём внутри файла.
+// 注册表根键(hive)模型 — 仿照 CronyX：Computer 界面显示 5 个根分区的列表。
+// 每个 hive 对应一个 Wine 的 .reg 文件及文件内的根路径。
 private data class RegistryHive(
     val key: String,
     val fileName: String,
@@ -224,12 +224,12 @@ private fun RegistryEditorScreen(
     val sp = remember { MmkvPreferences() }
     val scope = rememberCoroutineScope()
 
-    // Computer-корневой экран: null = показать список из 5 хайвов
+    // Computer 根界面：null = 显示 5 个 hive 的列表
     var selectedHive by remember { mutableStateOf<RegistryHive?>(null) }
     var currentPath by remember { mutableStateOf("") }
     var refreshKey by remember { mutableStateOf(0) }
 
-    // Поиск по текущему хайву
+    // 在当前 hive 中搜索
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<String>?>(null) }
     var searchExpanded by remember { mutableStateOf(false) }
@@ -241,7 +241,7 @@ private fun RegistryEditorScreen(
     val hivePrefix = selectedHive?.key ?: ""
     val rootPrefix = selectedHive?.rootPrefix ?: ""
 
-    // Путь внутри .reg-файла для заданного пути, отображаемого в UI (относительно хайва)
+    // 将 UI 中显示的路径（相对 hive）转换为 .reg 文件内的路径
     fun filePathFor(uiPath: String): String = when {
         rootPrefix.isEmpty() -> uiPath
         uiPath.isEmpty() -> rootPrefix
@@ -251,7 +251,7 @@ private fun RegistryEditorScreen(
     var values by remember { mutableStateOf<List<WineRegistryEditor.RegValue>>(emptyList()) }
     var fileExists by remember { mutableStateOf(false) }
 
-    // Дерево: загруженные подключи по пути + раскрытые узлы
+    // 树形结构：按路径缓存已加载的子键 + 展开的节点
     var loadedChildren by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
     var expandedPaths by remember { mutableStateOf<Set<String>>(emptySet()) }
     val treeListState = rememberLazyListState()
@@ -276,7 +276,7 @@ private fun RegistryEditorScreen(
         }
     }
 
-    // Раскрывает всех предков пути и загружает их подключи, чтобы узел стал видимым в дереве
+    // 展开路径的所有祖先节点并加载它们的子键，使目标节点在树中可见
     suspend fun expandPathTo(path: String) {
         val parts = path.split("\\").filter { it.isNotEmpty() }
         val ancestorPaths = buildList {
@@ -297,7 +297,7 @@ private fun RegistryEditorScreen(
         expandedPaths = expandedPaths + ancestorPaths
     }
 
-    // Принудительно перечитывает подключи узла (сохраняя остальной кеш и развёрнутое состояние)
+    // 强制重新读取节点的子键（保留其余缓存和展开状态）
     fun reloadChildrenForce(path: String) {
         scope.launch(Dispatchers.IO) {
             val children = regFile?.let { WineRegistryEditor(it).use { r -> r.getSubKeys(filePathFor(path)) } } ?: emptyList()
@@ -305,7 +305,7 @@ private fun RegistryEditorScreen(
         }
     }
 
-    // После импорта перечитываем корень и все раскрытые узлы, сохраняя развёрнутое состояние
+    // 导入后重新读取根节点和所有展开的节点，保留展开状态
     fun reloadExpandedHive() {
         val paths = expandedPaths + ""
         scope.launch(Dispatchers.IO) {
@@ -367,9 +367,9 @@ private fun RegistryEditorScreen(
         values = WineRegistryEditor(regFile).use { reg -> reg.getValues(filePathFor(currentPath)) }
     }
 
-    // Загрузка корневых подключей выбранного хайва (при первом показе и при переключении хайва).
-    // Внимание: не зависит от refreshKey, иначе любое обновление сбрасывало бы весь кеш дерева,
-    // и развёрнутые узлы «сворачивались», оставаясь с раскрытой стрелкой.
+    // 加载所选 hive 的根子键（首次显示和切换 hive 时）。
+    // 注意：不依赖 refreshKey，否则任何更新都会重置整个树缓存，
+    // 已展开的节点会"折叠"，但箭头仍保持展开状态。
     LaunchedEffect(regFile, selectedHive) {
         if (regFile == null || !regFile.isFile) return@LaunchedEffect
         loadedChildren = withContext(Dispatchers.IO) {
@@ -391,7 +391,7 @@ private fun RegistryEditorScreen(
         if (q.isEmpty() || regFile == null) return
         scope.launch(Dispatchers.IO) {
             val raw = WineRegistryEditor(regFile).use { it.searchKeys(q, 300) }
-            // Для хайвов с корневым префиксом убираем его, чтобы пути совпадали с UI
+            // 对于带根前缀的 hive，去掉前缀，使路径与 UI 一致
             searchResults = raw.map { p ->
                 when {
                     rootPrefix.isEmpty() -> p
@@ -649,7 +649,7 @@ private fun RegistryEditorScreen(
             }
 
             if (selectedHive == null) {
-                // ── Computer: корневой экран со списком из 5 хайвов ──
+                // ── Computer：显示 5 个 hive 列表的根界面 ──
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -723,7 +723,7 @@ private fun RegistryEditorScreen(
                                             searchResults = null
                                             searchQuery = ""
                                             currentPath = keyPath
-                                            // Раскрываем всех предков и прокручиваем к выбранному узлу
+                                            // 展开所有祖先节点并滚动到选中的节点
                                             pendingScrollPath = keyPath
                                             scope.launch { expandPathTo(keyPath) }
                                         },
@@ -771,13 +771,13 @@ private fun RegistryEditorScreen(
                 return@Column
             }
 
-            // ── Дерево ключей ──
-            // Автопрокрутка к целевому узлу после перехода из поиска
+            // ── 键树 ──
+            // 从搜索跳转后自动滚动到目标节点
             LaunchedEffect(visibleTreeNodes, pendingScrollPath) {
                 val target = pendingScrollPath ?: return@LaunchedEffect
                 val index = visibleTreeNodes.indexOfFirst { it.first == target }
                 if (index >= 0) {
-                    treeListState.scrollToItem(index + 1) // +1 пропускает заголовок "Computer"
+                    treeListState.scrollToItem(index + 1) // +1 跳过 "Computer" 标题
                     pendingScrollPath = null
                 }
             }
@@ -896,7 +896,7 @@ private fun RegistryEditorScreen(
             }
         }
 
-        // ── Плавающая панель действий внизу экрана ──
+        // ── 屏幕底部的浮动操作面板 ──
         // hive 根界面：固定显示导入；树形界面：显示其余操作按钮（含导出）
         if (containerRootDir != null && selectedHive == null) {
             RegEditorBottomBar(
@@ -918,7 +918,7 @@ private fun RegistryEditorScreen(
         }
     }
 
-    // ── Диалог значений выбранного ключа ──
+    // ── 所选键的值对话框 ──
     if (showValuesDialog) {
         RegEditorOverlay(onDismiss = { showValuesDialog = false }) {
             PopupDialog(
@@ -1011,7 +1011,7 @@ private fun RegistryEditorScreen(
         }
     }
 
-    // ── Диалог добавления ключа ──
+    // ── 添加键对话框 ──
     if (showAddKeyDialog) {
         var keyName by remember { mutableStateOf("") }
         RegEditorOverlay(onDismiss = { showAddKeyDialog = false }) {
@@ -1059,7 +1059,7 @@ private fun RegistryEditorScreen(
         }
     }
 
-    // ── Диалог добавления/редактирования значения ──
+    // ── 添加/编辑值对话框 ──
     if (addingValue || editingValue != null) {
         val existing = editingValue
         var valueName by remember(existing) { mutableStateOf(existing?.name ?: "") }
@@ -1196,7 +1196,7 @@ private fun RegistryEditorScreen(
         }
     }
 
-    // ── Диалог спуфинга CPU ──
+    // ── CPU 伪装对话框 ──
     if (showSpoofDialog) {
         val autoPreset = if (wineArch.equals("arm64ec", true)) PRESET_ARM else PRESET_INTEL
         var spoofIdentifier by remember { mutableStateOf(sp.getString(PREFS_SPOOF_IDENTIFIER, null) ?: autoPreset.identifier) }
@@ -1357,7 +1357,7 @@ private fun RegistryEditorScreen(
         }
     }
 
-    // ── Подтверждение удаления ключа ──
+    // ── 确认删除键 ──
     deleteKeyConfirm?.let { keyPath ->
         RegEditorOverlay(onDismiss = { deleteKeyConfirm = null }) {
             PopupDialog(
@@ -1372,7 +1372,7 @@ private fun RegistryEditorScreen(
                             reg.removeKey(fileKey, true)
                         }
                         refreshKey++
-                        // Перечитываем родителя, чтобы удалённый ключ исчез из дерева
+                        // 重新读取父节点，让被删除的键从树中消失
                         reloadChildrenForce(keyPath.substringBeforeLast("\\", ""))
                     }
                     deleteKeyConfirm = null
@@ -1384,7 +1384,7 @@ private fun RegistryEditorScreen(
         }
     }
 
-    // ── Подтверждение удаления значения ──
+    // ── 确认删除值 ──
     deleteValueConfirm?.let { value ->
         RegEditorOverlay(onDismiss = { deleteValueConfirm = null }) {
             PopupDialog(
@@ -1629,7 +1629,7 @@ private fun RegEditorActionButton(
     }
 }
 
-// ── Плавающая панель действий (внизу экрана) ──────────────────────────
+// ── 浮动操作面板（屏幕底部）────────────────────────────────────────
 @Composable
 private fun RegEditorBottomBar(
     modifier: Modifier = Modifier,

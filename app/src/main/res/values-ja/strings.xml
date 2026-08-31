@@ -2542,6 +2542,14 @@
     <string name="registry_cpu_spoof_hint">Wine アーキテクチャに合わせてプリセットが自動選択されました: %1$s</string>
     <string name="registry_cpu_spoof_clear">クリア</string>
     <string name="registry_cpu_spoof_cleared">CPU スプーフィング値を削除しました</string>
+    <string name="registry_computer">コンピューター</string>
+    <string name="registry_search">キーを検索</string>
+    <string name="registry_search_results">結果: %1$d</string>
+    <string name="registry_search_empty">見つかりません</string>
+    <string name="registry_copied">コピーしました: %1$s</string>
+    <string name="registry_values">値</string>
+    <string name="registry_key_no_values_hint">ここには値がありません。サブキー: %1$d — 開いて値を確認してください</string>
+
     <string name="system_info">システム情報</string>
     <string name="system_info_gpu_model">GPU モデル</string>
     <string name="system_info_vulkan_version">Vulkan バージョン</string>

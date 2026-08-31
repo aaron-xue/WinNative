@@ -2542,6 +2542,14 @@
     <string name="registry_cpu_spoof_hint">ค่าที่ตั้งไว้ล่วงหน้าถูกเลือกอัตโนมัติสำหรับสถาปัตยกรรม Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">ล้าง</string>
     <string name="registry_cpu_spoof_cleared">ลบค่าการแอบอ้าง CPU แล้ว</string>
+    <string name="registry_computer">คอมพิวเตอร์</string>
+    <string name="registry_search">ค้นหาคีย์</string>
+    <string name="registry_search_results">ผลลัพธ์: %1$d</string>
+    <string name="registry_search_empty">ไม่พบรายการ</string>
+    <string name="registry_copied">คัดลอกแล้ว: %1$s</string>
+    <string name="registry_values">ค่า</string>
+    <string name="registry_key_no_values_hint">ไม่มีค่าที่นี่ คีย์ย่อย: %1$d — เปิดเพื่อดูค่า</string>
+
     <string name="system_info">ข้อมูลระบบ</string>
     <string name="system_info_gpu_model">รุ่น GPU</string>
     <string name="system_info_vulkan_version">เวอร์ชัน Vulkan</string>

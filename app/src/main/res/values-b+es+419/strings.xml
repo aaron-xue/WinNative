@@ -2542,6 +2542,14 @@ Ruta instalada:
     <string name="registry_cpu_spoof_hint">Preajuste seleccionado automáticamente para la arquitectura de Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">Borrar</string>
     <string name="registry_cpu_spoof_cleared">Valores de suplantación de CPU eliminados</string>
+    <string name="registry_computer">Computadora</string>
+    <string name="registry_search">Buscar claves</string>
+    <string name="registry_search_results">Resultados: %1$d</string>
+    <string name="registry_search_empty">No se encontró nada</string>
+    <string name="registry_copied">Copiado: %1$s</string>
+    <string name="registry_values">Valores</string>
+    <string name="registry_key_no_values_hint">No hay valores aquí. Subclaves: %1$d — ábrelas para ver los valores</string>
+
     <string name="system_info">Información del sistema</string>
     <string name="system_info_gpu_model">Modelo de GPU</string>
     <string name="system_info_vulkan_version">Versión de Vulkan</string>
