@@ -2,6 +2,7 @@ package com.winlator.cmod.runtime.input;
 
 import android.app.Activity;
 import android.content.Context;
+import android.hardware.input.InputManager;
 import android.view.InputDevice;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,6 +31,9 @@ public class ControllerAssignmentDialog {
 
   private final TextView restartRequiredView;
   private final int initialPlayerCount;
+
+  private InputManager inputManager;
+  private InputManager.InputDeviceListener inputDeviceListener;
 
   // ---------- Public entry points -----------------------------------------
 
@@ -83,6 +87,8 @@ public class ControllerAssignmentDialog {
 
   public void showContentDialog() {
     dialog.show();
+    registerDeviceListener();
+
     Window w = dialog.getWindow();
     if (w == null) return;
 
@@ -98,6 +104,55 @@ public class ControllerAssignmentDialog {
     int capPx = dp(dialog.getContext(), 540);
     int target = Math.min((int) (widthPx * 0.90f), capPx);
     w.setLayout(target, WindowManager.LayoutParams.WRAP_CONTENT);
+  }
+
+  /**
+   * While the assignment dialog is visible, listen for gamepad plug/unplug so a controller that
+   * is connected after the dialog opened is picked up without closing and reopening it.
+   */
+  private void registerDeviceListener() {
+    if (inputManager != null || inputDeviceListener != null) return;
+    final InputManager manager =
+        (InputManager) hostActivity.getSystemService(Context.INPUT_SERVICE);
+    if (manager == null) return;
+
+    final InputManager.InputDeviceListener listener =
+        new InputManager.InputDeviceListener() {
+          @Override
+          public void onInputDeviceAdded(int deviceId) {
+            refreshFromDeviceEvent();
+          }
+
+          @Override
+          public void onInputDeviceRemoved(int deviceId) {
+            refreshFromDeviceEvent();
+          }
+
+          @Override
+          public void onInputDeviceChanged(int deviceId) {
+            refreshFromDeviceEvent();
+          }
+        };
+
+    manager.registerInputDeviceListener(listener, null);
+    this.inputManager = manager;
+    this.inputDeviceListener = listener;
+
+    // Unregister when the dialog is dismissed so we don't leak a binder callback.
+    dialog.setOnDismissListener(d -> unregisterDeviceListener());
+  }
+
+  private void unregisterDeviceListener() {
+    if (inputManager != null && inputDeviceListener != null) {
+      inputManager.unregisterInputDeviceListener(inputDeviceListener);
+    }
+    inputManager = null;
+    inputDeviceListener = null;
+  }
+
+  private void refreshFromDeviceEvent() {
+    // InputDeviceListener callbacks arrive on a binder thread; hop to the main thread.
+    hostActivity.runOnUiThread(() -> populateView());
   }
 
   private void initializeViews() {
