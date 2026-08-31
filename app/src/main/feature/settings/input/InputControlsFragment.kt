@@ -220,6 +220,8 @@ class InputControlsFragment : Fragment() {
                                 onRemoveController = ::removeController,
                                 onBindingTypeClick = ::showBindingTypePicker,
                                 onBindingValueClick = ::showBindingValuePicker,
+                                onBindingNoteChanged = ::updateBindingNote,
+                                onBindingNoteCommit = ::commitBindingNote,
                                 onRemoveBinding = ::removeBinding,
                             ),
                     )
@@ -384,6 +386,7 @@ class InputControlsFragment : Fragment() {
                             },
                         typeLabel = bindingTypeEntries[bindingTypeIndex(binding)],
                         bindingLabel = binding.binding.toString(),
+                        note = binding.note,
                     ),
                 )
             }
@@ -1133,6 +1136,31 @@ class InputControlsFragment : Fragment() {
                 launch(Dispatchers.Main) {
                     publishUiState()
                 }
+            }
+        }
+    }
+
+    private fun updateBindingNote(
+        controllerId: String,
+        keyCode: Int,
+        note: String,
+    ) {
+        val (controller, binding) = findBinding(controllerId, keyCode) ?: return
+        if (binding.note == note) return
+        binding.note = note
+        currentProfile?.putController(controller)
+    }
+
+    private fun commitBindingNote(
+        controllerId: String,
+        keyCode: Int,
+    ) {
+        val (controller, _) = findBinding(controllerId, keyCode) ?: return
+        currentProfile?.putController(controller)
+        lifecycleScope.launch(Dispatchers.IO) {
+            currentProfile?.save()
+            launch(Dispatchers.Main) {
+                publishUiState()
             }
         }
     }

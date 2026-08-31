@@ -334,6 +334,7 @@
     <string name="input_controls_editor_shape">形状</string>
     <string name="input_controls_editor_type">类型</string>
     <string name="input_controls_editor_binding">绑定</string>
+    <string name="input_controls_editor_note">备注</string>
     <string name="input_controls_editor_binding_up">绑定 上</string>
     <string name="input_controls_editor_binding_right">绑定 右</string>
     <string name="input_controls_editor_binding_down">绑定 下</string>

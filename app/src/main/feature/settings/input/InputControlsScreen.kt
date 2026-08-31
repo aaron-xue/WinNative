@@ -85,6 +85,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -236,6 +237,7 @@ data class InputControllerBindingState(
     val label: String,
     val typeLabel: String,
     val bindingLabel: String,
+    val note: String = "",
 )
 
 data class InputControlsScreenActions(
@@ -288,6 +290,8 @@ data class InputControlsScreenActions(
     val onRemoveController: (String) -> Unit,
     val onBindingTypeClick: (String, Int) -> Unit,
     val onBindingValueClick: (String, Int) -> Unit,
+    val onBindingNoteChanged: (String, Int, String) -> Unit,
+    val onBindingNoteCommit: (String, Int) -> Unit,
     val onRemoveBinding: (String, Int) -> Unit,
 )
 
@@ -2766,6 +2770,13 @@ private fun BindingRow(
             onClick = { actions.onBindingValueClick(controllerId, state.keyCode) },
         )
         Spacer(Modifier.width(InputCompactGap))
+        BindingNoteField(
+            value = state.note,
+            modifier = Modifier.weight(0.9f),
+            onValueChange = { actions.onBindingNoteChanged(controllerId, state.keyCode, it) },
+            onCommit = { actions.onBindingNoteCommit(controllerId, state.keyCode) },
+        )
+        Spacer(Modifier.width(4.dp))
         IconActionButton(
             image = Icons.Outlined.Delete,
             contentDescription = stringResource(R.string.common_ui_remove),
@@ -2774,6 +2785,68 @@ private fun BindingRow(
             size = 28.dp,
         )
     }
+}
+
+@Composable
+private fun BindingNoteField(
+    value: String,
+    modifier: Modifier = Modifier,
+    onValueChange: (String) -> Unit,
+    onCommit: () -> Unit,
+) {
+    var text by remember { mutableStateOf(value) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val focused by interactionSource.collectIsFocusedAsState()
+    BasicTextField(
+        value = text,
+        onValueChange = {
+            text = it
+            onValueChange(it)
+        },
+        singleLine = true,
+        textStyle = TextStyle(color = InputTextPrimary, fontSize = InputSecondaryTextSize),
+        cursorBrush = SolidColor(InputAccent),
+        interactionSource = interactionSource,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions =
+            KeyboardActions(
+                onDone = {
+                    onCommit()
+                },
+            ),
+        decorationBox = { innerTextField ->
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .requiredHeightIn(min = 28.dp)
+                        .clip(RoundedCornerShape(InputFieldCorner))
+                        .background(InputField)
+                        .border(
+                            if (focused) 1.5.dp else 1.dp,
+                            if (focused) InputAccent else InputOutline,
+                            RoundedCornerShape(InputFieldCorner),
+                        )
+                        .padding(horizontal = 7.dp, vertical = 5.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (text.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.input_controls_editor_note),
+                        color = InputTextSecondary,
+                        fontSize = InputSecondaryTextSize,
+                    )
+                }
+                innerTextField()
+            }
+        },
+        modifier =
+            modifier.onFocusChanged { focus ->
+                if (!focus.isFocused) {
+                    onCommit()
+                }
+            },
+    )
 }
 
 @Composable

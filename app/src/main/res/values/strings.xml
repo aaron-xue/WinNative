@@ -375,6 +375,7 @@
     <string name="input_controls_editor_shape">Shape</string>
     <string name="input_controls_editor_type">Type</string>
     <string name="input_controls_editor_binding">Binding</string>
+    <string name="input_controls_editor_note">Note</string>
     <string name="binding_primary">Primary binding</string>
     <string name="binding_secondary">Secondary binding</string>
     <string name="binding_third">Third binding</string>

@@ -255,6 +255,9 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
           controllerBinding.setKeyCode(controllerBindingJSONObject.getInt("keyCode"));
           controllerBinding.setBinding(
               Binding.fromString(controllerBindingJSONObject.getString("binding")));
+          if (controllerBindingJSONObject.has("note")) {
+            controllerBinding.setNote(controllerBindingJSONObject.getString("note"));
+          }
           controller.addControllerBinding(controllerBinding);
         }
         controllers.add(controller);

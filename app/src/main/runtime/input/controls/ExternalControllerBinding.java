@@ -17,6 +17,7 @@ public class ExternalControllerBinding {
   public static final byte AXIS_RZ_POSITIVE = -8;
   private short keyCode;
   private Binding binding = Binding.NONE;
+  private String note = "";
 
   public int getKeyCodeForAxis() {
     return keyCode;
@@ -34,11 +35,20 @@ public class ExternalControllerBinding {
     this.binding = binding;
   }
 
+  public String getNote() {
+    return note;
+  }
+
+  public void setNote(String note) {
+    this.note = note;
+  }
+
   public JSONObject toJSONObject() {
     try {
       JSONObject controllerBindingJSONObject = new JSONObject();
       controllerBindingJSONObject.put("keyCode", keyCode);
       controllerBindingJSONObject.put("binding", binding.name());
+      if (!note.isEmpty()) controllerBindingJSONObject.put("note", note);
       return controllerBindingJSONObject;
     } catch (JSONException e) {
       return null;
