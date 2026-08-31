@@ -4871,14 +4871,6 @@ private fun InputSection(state: GameSettingsStateHolder) {
 
             Spacer(Modifier.height(4.dp))
 
-            SettingCheckbox(
-                label = stringResource(R.string.input_controls_show_controller_hints_title),
-                checked = state.showControllerHints.value,
-                onCheckedChange = { state.showControllerHints.value = it }
-            )
-
-            Spacer(Modifier.height(4.dp))
-
             // Touch input mode (Trackpad / Touchscreen / Map to Right Stick)
             val gesturesOff = state.selectedGestureProfile.intValue == 0
             val onSelectMode: (Int) -> Unit = { mode ->
@@ -5050,6 +5042,60 @@ private fun InputSection(state: GameSettingsStateHolder) {
                 ) {
                     HtmlText(
                         stringResource(R.string.container_config_help_dinput),
+                        color = TextPrimary,
+                        fontSize = SettingLabelSize,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // Show controller hints (moved from Input Controls block) with help tooltip
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(Modifier.weight(1f)) {
+                SettingCheckbox(
+                    label = stringResource(R.string.input_controls_show_controller_hints_title),
+                    checked = state.showControllerHints.value,
+                    onCheckedChange = { state.showControllerHints.value = it }
+                )
+            }
+            var showControllerHintsHelp by remember { mutableStateOf(false) }
+            val controllerHintsHelpOffset = rememberSmartDropdownOffset()
+            Box {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(InputSurface)
+                        .border(1.dp, InputBorder, RoundedCornerShape(6.dp))
+                        .paneNavItem(cornerRadius = 6.dp, onActivate = { showControllerHintsHelp = !showControllerHintsHelp }, highlightColor = NavHighlight)
+                        .smartDropdownAnchor(offset = controllerHintsHelpOffset) { showControllerHintsHelp = !showControllerHintsHelp },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.HelpOutline,
+                        contentDescription = null,
+                        tint = TextPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                DropdownMenu(
+                    expanded = showControllerHintsHelp,
+                    onDismissRequest = { showControllerHintsHelp = false },
+                    offset = controllerHintsHelpOffset.value,
+                    shape = RoundedCornerShape(8.dp),
+                    containerColor = CardSurface,
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .width(280.dp)
+                ) {
+                    HtmlText(
+                        stringResource(R.string.input_controls_show_controller_hints_summary),
                         color = TextPrimary,
                         fontSize = SettingLabelSize,
                         lineHeight = 16.sp
