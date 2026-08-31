@@ -256,6 +256,8 @@ private fun RegistryEditorScreen(
     var expandedPaths by remember { mutableStateOf<Set<String>>(emptySet()) }
     val treeListState = rememberLazyListState()
     var pendingScrollPath by remember { mutableStateOf<String?>(null) }
+    // 展开树后强制递增，驱动 LaunchedEffect 重新检测滚动目标
+    var treeExpandTick by remember { mutableStateOf(0) }
 
     fun loadChildren(path: String) {
         if (loadedChildren.containsKey(path)) return
@@ -295,6 +297,7 @@ private fun RegistryEditorScreen(
         }
         loadedChildren = loadedChildren + fetched
         expandedPaths = expandedPaths + ancestorPaths
+        treeExpandTick++
     }
 
     // 强制重新读取节点的子键（保留其余缓存和展开状态）
@@ -775,7 +778,8 @@ private fun RegistryEditorScreen(
             // 搜索时隐藏树，只显示搜索结果
             if (searchResults == null) {
             // 从搜索跳转后自动滚动到目标节点
-            LaunchedEffect(visibleTreeNodes, pendingScrollPath) {
+            // key 使用 treeExpandTick：展开完成后必然变化，确保重新检测目标
+            LaunchedEffect(treeExpandTick, pendingScrollPath) {
                 val target = pendingScrollPath ?: return@LaunchedEffect
                 val index = visibleTreeNodes.indexOfFirst { it.first == target }
                 if (index >= 0) {
@@ -1665,7 +1669,7 @@ private fun RegEditorBottomBar(
     ) {
         onAddKey?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(96.dp),
+                modifier = Modifier.width(106.dp),
                 image = Icons.Outlined.CreateNewFolder,
                 label = stringResource(R.string.registry_add_key),
                 tint = RegAccent,
@@ -1675,7 +1679,7 @@ private fun RegEditorBottomBar(
         }
         onAddValue?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(96.dp),
+                modifier = Modifier.width(106.dp),
                 image = Icons.Outlined.Add,
                 label = stringResource(R.string.registry_add_value),
                 tint = RegAccent,
@@ -1685,7 +1689,7 @@ private fun RegEditorBottomBar(
         }
         onImport?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(96.dp),
+                modifier = Modifier.width(106.dp),
                 image = Icons.Outlined.FileOpen,
                 label = stringResource(R.string.registry_import),
                 tint = RegTextSecondary,
@@ -1695,7 +1699,7 @@ private fun RegEditorBottomBar(
         }
         onExport?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(96.dp),
+                modifier = Modifier.width(106.dp),
                 image = Icons.Outlined.FileDownload,
                 label = stringResource(R.string.registry_export),
                 tint = RegTextSecondary,
@@ -1705,7 +1709,7 @@ private fun RegEditorBottomBar(
         }
         onEditValue?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(96.dp),
+                modifier = Modifier.width(106.dp),
                 image = Icons.Outlined.Edit,
                 label = stringResource(R.string.registry_edit_value),
                 tint = RegAccent,
@@ -1715,7 +1719,7 @@ private fun RegEditorBottomBar(
         }
         onDeleteKey?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(96.dp),
+                modifier = Modifier.width(106.dp),
                 image = Icons.Outlined.Delete,
                 label = stringResource(R.string.registry_delete_key),
                 tint = RegDanger,
