@@ -2468,6 +2468,14 @@
     <string name="registry_cpu_spoof_hint">Пресет автоматически выбран для архитектуры Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">Очистить</string>
     <string name="registry_cpu_spoof_cleared">Значения подмены CPU удалены</string>
+    <string name="registry_computer">Компьютер</string>
+    <string name="registry_search">Поиск ключей</string>
+    <string name="registry_search_results">Результаты: %1$d</string>
+    <string name="registry_search_empty">Ничего не найдено</string>
+    <string name="registry_copied">Скопировано: %1$s</string>
+    <string name="registry_values">Значения</string>
+    <string name="registry_key_no_values_hint">Здесь нет значений. Подключи: %1$d — откройте их, чтобы увидеть значения</string>
+
     <string name="system_info">Информация о системе</string>
     <string name="system_info_gpu_model">Модель GPU</string>
     <string name="system_info_vulkan_version">Версия Vulkan</string>

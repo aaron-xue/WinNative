@@ -2498,6 +2498,14 @@
     <string name="registry_cpu_spoof_hint">Wine आर्किटेक्चर के लिए प्रीसेट स्वचालित रूप से चुना गया: %1$s</string>
     <string name="registry_cpu_spoof_clear">साफ़ करें</string>
     <string name="registry_cpu_spoof_cleared">CPU स्पूफ़ मान हटा दिए गए</string>
+    <string name="registry_computer">कंप्यूटर</string>
+    <string name="registry_search">कुंजियाँ खोजें</string>
+    <string name="registry_search_results">परिणाम: %1$d</string>
+    <string name="registry_search_empty">कुछ नहीं मिला</string>
+    <string name="registry_copied">कॉपी किया गया: %1$s</string>
+    <string name="registry_values">मान</string>
+    <string name="registry_key_no_values_hint">यहाँ कोई मान नहीं है। उप-कुंजियाँ: %1$d — मान देखने के लिए उन्हें खोलें</string>
+
     <string name="system_info">सिस्टम जानकारी</string>
     <string name="system_info_gpu_model">GPU मॉडल</string>
     <string name="system_info_vulkan_version">Vulkan संस्करण</string>

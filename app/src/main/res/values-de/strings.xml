@@ -2561,6 +2561,14 @@ Installierter Pfad:
     <string name="registry_cpu_spoof_hint">Voreinstellung automatisch für Wine-Architektur ausgewählt: %1$s</string>
     <string name="registry_cpu_spoof_clear">Löschen</string>
     <string name="registry_cpu_spoof_cleared">CPU-Spoofing-Werte entfernt</string>
+    <string name="registry_computer">Computer</string>
+    <string name="registry_search">Schlüssel suchen</string>
+    <string name="registry_search_results">Ergebnisse: %1$d</string>
+    <string name="registry_search_empty">Nichts gefunden</string>
+    <string name="registry_copied">Kopiert: %1$s</string>
+    <string name="registry_values">Werte</string>
+    <string name="registry_key_no_values_hint">Keine Werte hier. Unterschlüssel: %1$d — öffnen Sie sie, um Werte zu sehen</string>
+
     <string name="system_info">Systeminformationen</string>
     <string name="system_info_gpu_model">GPU-Modell</string>
     <string name="system_info_vulkan_version">Vulkan-Version</string>

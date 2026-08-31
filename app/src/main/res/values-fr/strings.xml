@@ -2562,6 +2562,14 @@ Chemin installé :
     <string name="registry_cpu_spoof_hint">Préréglage automatiquement sélectionné pour l\'architecture Wine : %1$s</string>
     <string name="registry_cpu_spoof_clear">Effacer</string>
     <string name="registry_cpu_spoof_cleared">Valeurs d\'usurpation CPU supprimées</string>
+    <string name="registry_computer">Ordinateur</string>
+    <string name="registry_search">Rechercher des clés</string>
+    <string name="registry_search_results">Résultats : %1$d</string>
+    <string name="registry_search_empty">Rien trouvé</string>
+    <string name="registry_copied">Copié : %1$s</string>
+    <string name="registry_values">Valeurs</string>
+    <string name="registry_key_no_values_hint">Aucune valeur ici. Sous-clés : %1$d — ouvrez-les pour voir les valeurs</string>
+
     <string name="system_info">Informations système</string>
     <string name="system_info_gpu_model">Modèle GPU</string>
     <string name="system_info_vulkan_version">Version Vulkan</string>

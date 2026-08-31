@@ -2563,6 +2563,14 @@
     <string name="registry_cpu_spoof_hint">Wine 아키텍처에 따라 프리셋이 자동 선택되었습니다: %1$s</string>
     <string name="registry_cpu_spoof_clear">지우기</string>
     <string name="registry_cpu_spoof_cleared">CPU 스푸프 값이 제거되었습니다</string>
+    <string name="registry_computer">컴퓨터</string>
+    <string name="registry_search">키 검색</string>
+    <string name="registry_search_results">결과: %1$d</string>
+    <string name="registry_search_empty">결과 없음</string>
+    <string name="registry_copied">복사됨: %1$s</string>
+    <string name="registry_values">값</string>
+    <string name="registry_key_no_values_hint">여기에 값이 없습니다. 하위 키: %1$d — 값을 보려면 열어 보세요</string>
+
     <string name="system_info">시스템 정보</string>
     <string name="system_info_gpu_model">GPU 모델</string>
     <string name="system_info_vulkan_version">Vulkan 버전</string>

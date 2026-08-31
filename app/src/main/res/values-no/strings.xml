@@ -2542,6 +2542,14 @@ Installert bane:
     <string name="registry_cpu_spoof_hint">Forhåndsinnstilling automatisk valgt for Wine-arkitektur: %1$s</string>
     <string name="registry_cpu_spoof_clear">Tøm</string>
     <string name="registry_cpu_spoof_cleared">CPU-spoofing-verdier fjernet</string>
+    <string name="registry_computer">Datamaskin</string>
+    <string name="registry_search">Søk etter nøkler</string>
+    <string name="registry_search_results">Resultater: %1$d</string>
+    <string name="registry_search_empty">Ingenting funnet</string>
+    <string name="registry_copied">Kopiert: %1$s</string>
+    <string name="registry_values">Verdier</string>
+    <string name="registry_key_no_values_hint">Ingen verdier her. Undernøkler: %1$d — åpne dem for å se verdiene</string>
+
     <string name="system_info">Systeminformasjon</string>
     <string name="system_info_gpu_model">GPU-modell</string>
     <string name="system_info_vulkan_version">Vulkan-versjon</string>

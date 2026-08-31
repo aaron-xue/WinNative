@@ -2561,6 +2561,14 @@ Installeret sti:
     <string name="registry_cpu_spoof_hint">Forudindstilling automatisk valgt til Wine-arkitektur: %1$s</string>
     <string name="registry_cpu_spoof_clear">Ryd</string>
     <string name="registry_cpu_spoof_cleared">CPU-spoofing-værdier fjernet</string>
+    <string name="registry_computer">Computer</string>
+    <string name="registry_search">Søg efter nøgler</string>
+    <string name="registry_search_results">Resultater: %1$d</string>
+    <string name="registry_search_empty">Intet fundet</string>
+    <string name="registry_copied">Kopieret: %1$s</string>
+    <string name="registry_values">Værdier</string>
+    <string name="registry_key_no_values_hint">Ingen værdier her. Undernøgler: %1$d — åbn dem for at se værdier</string>
+
     <string name="system_info">Systemoplysninger</string>
     <string name="system_info_gpu_model">GPU-model</string>
     <string name="system_info_vulkan_version">Vulkan-version</string>

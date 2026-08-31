@@ -2561,6 +2561,14 @@
     <string name="registry_cpu_spoof_hint">已依 Wine 架構自動選擇預設：%1$s</string>
     <string name="registry_cpu_spoof_clear">清除</string>
     <string name="registry_cpu_spoof_cleared">已移除 CPU 偽裝</string>
+    <string name="registry_computer">電腦</string>
+    <string name="registry_search">搜尋機碼</string>
+    <string name="registry_search_results">結果: %1$d</string>
+    <string name="registry_search_empty">找不到項目</string>
+    <string name="registry_copied">已複製: %1$s</string>
+    <string name="registry_values">值</string>
+    <string name="registry_key_no_values_hint">這裡沒有值。子機碼: %1$d — 開啟它們以查看值</string>
+
     <string name="system_info">系統資訊</string>
     <string name="system_info_gpu_model">GPU 型號</string>
     <string name="system_info_vulkan_version">Vulkan 版本</string>

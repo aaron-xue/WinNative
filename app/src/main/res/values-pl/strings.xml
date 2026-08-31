@@ -2568,6 +2568,14 @@ Zainstalowana ścieżka:
     <string name="registry_cpu_spoof_hint">Preferencja wybrana automatycznie dla architektury Wine: %1$s</string>
     <string name="registry_cpu_spoof_clear">Wyczyść</string>
     <string name="registry_cpu_spoof_cleared">Wartości spoofingu CPU usunięte</string>
+    <string name="registry_computer">Komputer</string>
+    <string name="registry_search">Szukaj kluczy</string>
+    <string name="registry_search_results">Wyniki: %1$d</string>
+    <string name="registry_search_empty">Nic nie znaleziono</string>
+    <string name="registry_copied">Skopiowano: %1$s</string>
+    <string name="registry_values">Wartości</string>
+    <string name="registry_key_no_values_hint">Brak wartości. Podklucze: %1$d — otwórz je, aby zobaczyć wartości</string>
+
     <string name="system_info">Informacje o systemie</string>
     <string name="system_info_gpu_model">Model GPU</string>
     <string name="system_info_vulkan_version">Wersja Vulkan</string>
