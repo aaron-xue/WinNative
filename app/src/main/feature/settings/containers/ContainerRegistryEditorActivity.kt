@@ -17,6 +17,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -251,6 +254,8 @@ private fun RegistryEditorScreen(
     // Дерево: загруженные подключи по пути + раскрытые узлы
     var loadedChildren by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
     var expandedPaths by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val treeListState = rememberLazyListState()
+    var pendingScrollPath by remember { mutableStateOf<String?>(null) }
 
     fun loadChildren(path: String) {
         if (loadedChildren.containsKey(path)) return
@@ -268,6 +273,46 @@ private fun RegistryEditorScreen(
         } else {
             expandedPaths = expandedPaths + path
             loadChildren(path)
+        }
+    }
+
+    // Раскрывает всех предков пути и загружает их подключи, чтобы узел стал видимым в дереве
+    suspend fun expandPathTo(path: String) {
+        val parts = path.split("\\").filter { it.isNotEmpty() }
+        val ancestorPaths = buildList {
+            var acc = ""
+            parts.forEach { p ->
+                acc = if (acc.isEmpty()) p else "$acc\\$p"
+                add(acc)
+            }
+        }
+        val missing = ancestorPaths.filter { !loadedChildren.containsKey(it) }
+        val fetched = if (missing.isEmpty()) emptyMap()
+        else withContext(Dispatchers.IO) {
+            missing.associateWith { p ->
+                regFile?.let { WineRegistryEditor(it).use { r -> r.getSubKeys(filePathFor(p)) } } ?: emptyList()
+            }
+        }
+        loadedChildren = loadedChildren + fetched
+        expandedPaths = expandedPaths + ancestorPaths
+    }
+
+    // Принудительно перечитывает подключи узла (сохраняя остальной кеш и развёрнутое состояние)
+    fun reloadChildrenForce(path: String) {
+        scope.launch(Dispatchers.IO) {
+            val children = regFile?.let { WineRegistryEditor(it).use { r -> r.getSubKeys(filePathFor(path)) } } ?: emptyList()
+            loadedChildren = loadedChildren + (path to children)
+        }
+    }
+
+    // После импорта перечитываем корень и все раскрытые узлы, сохраняя развёрнутое состояние
+    fun reloadExpandedHive() {
+        val paths = expandedPaths + ""
+        scope.launch(Dispatchers.IO) {
+            val fresh = paths.associateWith { p ->
+                regFile?.let { WineRegistryEditor(it).use { r -> r.getSubKeys(filePathFor(p)) } } ?: emptyList()
+            }
+            loadedChildren = loadedChildren + fresh
         }
     }
 
@@ -323,8 +368,9 @@ private fun RegistryEditorScreen(
     }
 
     // Загрузка корневых подключей выбранного хайва (при первом показе и при переключении хайва).
-    // Зависит от selectedHive и refreshKey, чтобы гарантированно перезапускаться при входе в хайв.
-    LaunchedEffect(regFile, selectedHive, refreshKey) {
+    // Внимание: не зависит от refreshKey, иначе любое обновление сбрасывало бы весь кеш дерева,
+    // и развёрнутые узлы «сворачивались», оставаясь с раскрытой стрелкой.
+    LaunchedEffect(regFile, selectedHive) {
         if (regFile == null || !regFile.isFile) return@LaunchedEffect
         loadedChildren = withContext(Dispatchers.IO) {
             WineRegistryEditor(regFile).use { reg ->
@@ -365,7 +411,7 @@ private fun RegistryEditorScreen(
     var showSpoofDialog by remember { mutableStateOf(false) }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri == null || regFile == null) return@rememberLauncherForActivityResult
+        if (uri == null) return@rememberLauncherForActivityResult
         try {
             val bytes = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() }
             if (bytes == null) {
@@ -373,9 +419,20 @@ private fun RegistryEditorScreen(
                 return@rememberLauncherForActivityResult
             }
             val content = decodeRegText(bytes)
-            scope.launch(Dispatchers.IO) {
-                WineRegistryEditor(regFile).use { it.importRegFile(content) }
-                refreshKey++
+            val file = regFile
+            if (file != null) {
+                // 树形界面：导入到当前 hive
+                scope.launch(Dispatchers.IO) {
+                    WineRegistryEditor(file).use { it.importRegFile(content) }
+                    refreshKey++
+                    reloadExpandedHive()
+                }
+            } else {
+                // hive 根界面：按 HKEY_* 前缀分发到各 hive 文件
+                scope.launch(Dispatchers.IO) {
+                    importRegToHives(containerRootDir, content)
+                    refreshKey++
+                }
             }
             onToast(ctx.getString(R.string.registry_import_done))
         } catch (e: Exception) {
@@ -413,7 +470,7 @@ private fun RegistryEditorScreen(
                     top = statusBarPadding.calculateTopPadding(),
                     end = 16.dp,
                     bottom = navBarPadding.calculateBottomPadding()
-                        + if (selectedHive != null && fileExists) 56.dp else 0.dp,
+                        + if (containerRootDir != null && (selectedHive == null || fileExists)) 56.dp else 0.dp,
                 ),
         ) {
             // ── Header ──
@@ -666,15 +723,9 @@ private fun RegistryEditorScreen(
                                             searchResults = null
                                             searchQuery = ""
                                             currentPath = keyPath
-                                            // Перезагружаем корневые подключи, чтобы дерево не сломалось после поиска
-                                            scope.launch(Dispatchers.IO) {
-                                                val rootChildren =
-                                                    regFile?.let { WineRegistryEditor(it).use { r -> r.getSubKeys(filePathFor("")) } }
-                                                        ?: emptyList()
-                                                loadedChildren = mapOf("" to rootChildren)
-                                            }
-                                            expandedPaths = emptySet()
-                                            refreshKey++
+                                            // Раскрываем всех предков и прокручиваем к выбранному узлу
+                                            pendingScrollPath = keyPath
+                                            scope.launch { expandPathTo(keyPath) }
                                         },
                                     )
                                     .padding(horizontal = 10.dp, vertical = 8.dp),
@@ -721,37 +772,50 @@ private fun RegistryEditorScreen(
             }
 
             // ── Дерево ключей ──
+            // Автопрокрутка к целевому узлу после перехода из поиска
+            LaunchedEffect(visibleTreeNodes, pendingScrollPath) {
+                val target = pendingScrollPath ?: return@LaunchedEffect
+                val index = visibleTreeNodes.indexOfFirst { it.first == target }
+                if (index >= 0) {
+                    treeListState.scrollToItem(index + 1) // +1 пропускает заголовок "Computer"
+                    pendingScrollPath = null
+                }
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(vertical = 4.dp),
             ) {
-                Column(
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(12.dp))
                         .background(RegCard)
                         .border(1.dp, RegOutline, RoundedCornerShape(12.dp))
-                        .verticalScroll(rememberScrollState())
                         .padding(vertical = 4.dp),
+                    state = treeListState,
                 ) {
-                    Text(
-                        text = stringResource(R.string.registry_computer),
-                        color = RegTextSecondary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                    )
-                    if (visibleTreeNodes.isEmpty()) {
+                    item {
                         Text(
-                            text = stringResource(R.string.registry_empty),
+                            text = stringResource(R.string.registry_computer),
                             color = RegTextSecondary,
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(12.dp),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         )
                     }
-                    visibleTreeNodes.forEach { (nodePath, depth) ->
+                    if (visibleTreeNodes.isEmpty()) {
+                        item {
+                            Text(
+                                text = stringResource(R.string.registry_empty),
+                                color = RegTextSecondary,
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(12.dp),
+                            )
+                        }
+                    }
+                    items(visibleTreeNodes, key = { it.first }) { (nodePath, depth) ->
                         val nodeName = nodePath.substringAfterLast("\\")
                         val isExpanded = nodePath in expandedPaths
                         val hasLoaded = loadedChildren.containsKey(nodePath)
@@ -768,8 +832,9 @@ private fun RegistryEditorScreen(
                                     indication = null,
                                     onClick = {
                                         currentPath = nodePath
+                                    },
+                                    onDoubleClick = {
                                         if (!loadedEmpty) toggleNode(nodePath)
-                                        refreshKey++
                                     },
                                     onLongClick = { copyToClipboard(nodePath) },
                                 )
@@ -832,13 +897,19 @@ private fun RegistryEditorScreen(
         }
 
         // ── Плавающая панель действий внизу экрана ──
-        if (selectedHive != null && fileExists) {
+        // hive 根界面：固定显示导入；树形界面：显示其余操作按钮（含导出）
+        if (containerRootDir != null && selectedHive == null) {
+            RegEditorBottomBar(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                navBarPadding = navBarPadding,
+                onImport = { importLauncher.launch(arrayOf("*/*")) },
+            )
+        } else if (selectedHive != null && fileExists) {
             RegEditorBottomBar(
                 modifier = Modifier.align(Alignment.BottomCenter),
                 navBarPadding = navBarPadding,
                 onAddKey = { showAddKeyDialog = true },
                 onAddValue = { addingValue = true },
-                onImport = { importLauncher.launch(arrayOf("*/*")) },
                 onExport = { exportLauncher.launch("registry_export.reg") },
                 onEditValue = { showValuesDialog = true },
                 onDeleteKey = { if (currentPath.isNotEmpty()) deleteKeyConfirm = currentPath },
@@ -958,6 +1029,7 @@ private fun RegistryEditorScreen(
                                 reg.setStringValue(fileKey, null, "")
                             }
                             refreshKey++
+                            reloadChildrenForce(currentPath)
                         }
                     }
                     showAddKeyDialog = false
@@ -1299,6 +1371,8 @@ private fun RegistryEditorScreen(
                             reg.removeKey(fileKey, true)
                         }
                         refreshKey++
+                        // Перечитываем родителя, чтобы удалённый ключ исчез из дерева
+                        reloadChildrenForce(keyPath.substringBeforeLast("\\", ""))
                     }
                     deleteKeyConfirm = null
                     showValuesDialog = false
@@ -1551,12 +1625,12 @@ private fun RegEditorActionButton(
 private fun RegEditorBottomBar(
     modifier: Modifier = Modifier,
     navBarPadding: PaddingValues,
-    onAddKey: () -> Unit,
-    onAddValue: () -> Unit,
-    onImport: () -> Unit,
-    onExport: () -> Unit,
-    onEditValue: () -> Unit,
-    onDeleteKey: () -> Unit,
+    onAddKey: (() -> Unit)? = null,
+    onAddValue: (() -> Unit)? = null,
+    onImport: (() -> Unit)? = null,
+    onExport: (() -> Unit)? = null,
+    onEditValue: (() -> Unit)? = null,
+    onDeleteKey: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -1576,48 +1650,60 @@ private fun RegEditorBottomBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RegEditorActionButton(
-            modifier = Modifier.weight(1f),
-            image = Icons.Outlined.CreateNewFolder,
-            label = stringResource(R.string.registry_add_key),
-            tint = RegAccent,
-            onClick = onAddKey,
-        )
-        RegEditorActionButton(
-            modifier = Modifier.weight(1f),
-            image = Icons.Outlined.Add,
-            label = stringResource(R.string.registry_add_value),
-            tint = RegAccent,
-            onClick = onAddValue,
-        )
-        RegEditorActionButton(
-            modifier = Modifier.weight(1f),
-            image = Icons.Outlined.FileOpen,
-            label = stringResource(R.string.registry_import),
-            tint = RegTextSecondary,
-            onClick = onImport,
-        )
-        RegEditorActionButton(
-            modifier = Modifier.weight(1f),
-            image = Icons.Outlined.FileDownload,
-            label = stringResource(R.string.registry_export),
-            tint = RegTextSecondary,
-            onClick = onExport,
-        )
-        RegEditorActionButton(
-            modifier = Modifier.weight(1f),
-            image = Icons.Outlined.Edit,
-            label = stringResource(R.string.registry_edit_value),
-            tint = RegAccent,
-            onClick = onEditValue,
-        )
-        RegEditorActionButton(
-            modifier = Modifier.weight(1f),
-            image = Icons.Outlined.Delete,
-            label = stringResource(R.string.registry_delete_key),
-            tint = RegDanger,
-            onClick = onDeleteKey,
-        )
+        onAddKey?.let {
+            RegEditorActionButton(
+                modifier = Modifier.weight(1f),
+                image = Icons.Outlined.CreateNewFolder,
+                label = stringResource(R.string.registry_add_key),
+                tint = RegAccent,
+                onClick = it,
+            )
+        }
+        onAddValue?.let {
+            RegEditorActionButton(
+                modifier = Modifier.weight(1f),
+                image = Icons.Outlined.Add,
+                label = stringResource(R.string.registry_add_value),
+                tint = RegAccent,
+                onClick = it,
+            )
+        }
+        onImport?.let {
+            RegEditorActionButton(
+                modifier = Modifier.weight(1f),
+                image = Icons.Outlined.FileOpen,
+                label = stringResource(R.string.registry_import),
+                tint = RegTextSecondary,
+                onClick = it,
+            )
+        }
+        onExport?.let {
+            RegEditorActionButton(
+                modifier = Modifier.weight(1f),
+                image = Icons.Outlined.FileDownload,
+                label = stringResource(R.string.registry_export),
+                tint = RegTextSecondary,
+                onClick = it,
+            )
+        }
+        onEditValue?.let {
+            RegEditorActionButton(
+                modifier = Modifier.weight(1f),
+                image = Icons.Outlined.Edit,
+                label = stringResource(R.string.registry_edit_value),
+                tint = RegAccent,
+                onClick = it,
+            )
+        }
+        onDeleteKey?.let {
+            RegEditorActionButton(
+                modifier = Modifier.weight(1f),
+                image = Icons.Outlined.Delete,
+                label = stringResource(R.string.registry_delete_key),
+                tint = RegDanger,
+                onClick = it,
+            )
+        }
     }
 }
 
@@ -1752,4 +1838,29 @@ private fun decodeRegText(bytes: ByteArray): String {
         return String(bytes, 3, bytes.size - 3, Charsets.UTF_8)
     }
     return String(bytes, Charsets.UTF_8)
+}
+
+// ── Hive 根界面导入：按 HKEY_* 前缀分发到对应 .reg 文件 ──────────────
+private fun importRegToHives(rootDir: File?, regText: String) {
+    if (rootDir == null) return
+    val targets = LinkedHashMap<String, StringBuilder>()
+    var currentHiveFile = "system.reg"
+    for (rawLine in regText.replace("\r\n", "\n").replace('\r', '\n').split("\n")) {
+        val line = rawLine.trim()
+        if (line.startsWith("[") && line.endsWith("]")) {
+            val keyPath = line.substring(1, line.length - 1)
+            currentHiveFile = when {
+                keyPath.startsWith("HKEY_CURRENT_USER") || keyPath.startsWith("HKEY_USERS") -> "user.reg"
+                else -> "system.reg"
+            }
+        }
+        targets.getOrPut(currentHiveFile) { StringBuilder() }.append(rawLine).append("\n")
+    }
+    for ((fileName, sb) in targets) {
+        try {
+            WineRegistryEditor(File(rootDir, ".wine/$fileName")).use { it.importRegFile(sb.toString()) }
+        } catch (e: Exception) {
+            // 单个 hive 导入失败不阻断其余 hive
+        }
+    }
 }
