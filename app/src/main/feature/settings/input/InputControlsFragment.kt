@@ -1,11 +1,13 @@
 package com.winlator.cmod.feature.settings
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.hardware.input.InputManager
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
@@ -83,6 +85,9 @@ class InputControlsFragment : Fragment() {
     private var gyroListener: SensorEventListener? = null
     private var gyroPreviewView: InputControlsView? = null
     private val remoteProfileRequestInFlight = AtomicBoolean(false)
+
+    private var inputManager: InputManager? = null
+    private var inputDeviceListener: InputManager.InputDeviceListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -241,12 +246,56 @@ class InputControlsFragment : Fragment() {
         super.onResume()
         refreshVisibleControllers()
         publishUiState()
+        registerInputDeviceListener()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unregisterInputDeviceListener()
     }
 
     override fun onDestroyView() {
+        unregisterInputDeviceListener()
         detachGyroPreview()
         stopControllerInputCapture()
         super.onDestroyView()
+    }
+
+    /**
+     * Listens for gamepad plug/unplug while this page is visible so a controller that is
+     * connected after the fragment has already been shown is picked up without leaving the page.
+     */
+    private fun registerInputDeviceListener() {
+        if (inputManager != null) return
+        val context = context ?: return
+        val manager = context.getSystemService(Context.INPUT_SERVICE) as? InputManager ?: return
+        val listener =
+            object : InputManager.InputDeviceListener {
+                override fun onInputDeviceAdded(deviceId: Int) = refreshControllersFromDeviceEvent()
+                override fun onInputDeviceRemoved(deviceId: Int) = refreshControllersFromDeviceEvent()
+                override fun onInputDeviceChanged(deviceId: Int) = refreshControllersFromDeviceEvent()
+            }
+        manager.registerInputDeviceListener(listener, null)
+        this.inputManager = manager
+        this.inputDeviceListener = listener
+    }
+
+    private fun unregisterInputDeviceListener() {
+        val manager = inputManager
+        val listener = inputDeviceListener
+        if (manager != null && listener != null) {
+            manager.unregisterInputDeviceListener(listener)
+        }
+        inputManager = null
+        inputDeviceListener = null
+    }
+
+    private fun refreshControllersFromDeviceEvent() {
+        view?.post {
+            if (!isAdded) return@post
+            refreshVisibleControllers()
+            publishUiState()
+        }
     }
 
     fun dispatchKeyEvent(event: KeyEvent): Boolean {
