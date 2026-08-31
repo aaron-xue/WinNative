@@ -162,7 +162,7 @@ data class InputControlsScreenState(
     val selectedProfileElementCount: Int = 0,
     val selectedProfileCanReset: Boolean = false,
     val overlayOpacity: Int = 40,
-    val autoHideTouchOnController: Boolean = false,
+    val autoHideTouchOnController: Boolean = true,
     val showControllerHints: Boolean = false,
     val gyroscopeEnabled: Boolean = false,
     val gyroscopeModeIndex: Int = 0,

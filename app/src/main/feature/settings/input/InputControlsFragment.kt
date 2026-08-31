@@ -329,7 +329,7 @@ class InputControlsFragment : Fragment() {
                 selectedProfileElementCount = profile?.elementCountFromFile ?: 0,
                 selectedProfileCanReset = profile != null && manager.canResetProfile(profile),
                 overlayOpacity = (preferences.getFloat("overlay_opacity", InputControlsView.DEFAULT_OVERLAY_OPACITY) * 100).toInt(),
-                autoHideTouchOnController = preferences.getBoolean("auto_hide_touch_on_controller", false),
+                autoHideTouchOnController = preferences.getBoolean("auto_hide_touch_on_controller", true),
                 showControllerHints = preferences.getBoolean("show_controller_hints", false),
                 gyroscopeEnabled = preferences.getBoolean("gyro_enabled", false),
                 gyroscopeModeIndex = preferences.getInt("gyro_mode", 0),
