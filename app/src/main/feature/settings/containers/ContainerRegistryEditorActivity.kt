@@ -1,15 +1,11 @@
-package com.winlator.cmod.feature.settings.containers;
+﻿package com.winlator.cmod.feature.settings.containers;
 
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.net.Uri
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -61,8 +57,10 @@ import com.winlator.cmod.runtime.container.MmkvPreferences
 import com.winlator.cmod.runtime.content.ContentsManager
 import com.winlator.cmod.runtime.wine.WineInfo
 import com.winlator.cmod.runtime.wine.WineRegistryEditor
+import com.winlator.cmod.shared.android.DirectoryPickerDialog
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import com.winlator.cmod.shared.ui.dialog.PopupDialog
+import com.winlator.cmod.shared.ui.toast.WinToast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -193,13 +191,6 @@ class ContainerRegistryEditorActivity : ComponentActivity() {
                         wineVersion = wineVersion,
                         wineArch = wineArch,
                         containerName = container.name,
-                        onToast = { msg ->
-                            Toast.makeText(
-                                this@ContainerRegistryEditorActivity,
-                                msg,
-                                Toast.LENGTH_LONG,
-                            ).show()
-                        },
                         onBack = { finish() },
                     )
                 }
@@ -215,7 +206,6 @@ private fun RegistryEditorScreen(
     wineVersion: String,
     wineArch: String,
     containerName: String,
-    onToast: (String) -> Unit,
     onBack: () -> Unit,
 ) {
     val ctx = LocalContext.current
@@ -386,7 +376,7 @@ private fun RegistryEditorScreen(
 
     fun copyToClipboard(text: String) {
         clipboard.setPrimaryClip(ClipData.newPlainText("registry", text))
-        onToast(ctx.getString(R.string.registry_copied, text))
+        WinToast.show(ctx, ctx.getString(R.string.registry_copied, text))
     }
 
     fun runSearch() {
@@ -413,49 +403,54 @@ private fun RegistryEditorScreen(
     var deleteValueConfirm by remember { mutableStateOf<WineRegistryEditor.RegValue?>(null) }
     var showSpoofDialog by remember { mutableStateOf(false) }
 
-    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        try {
-            val bytes = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            if (bytes == null) {
-                onToast(ctx.getString(R.string.registry_import_failed))
-                return@rememberLauncherForActivityResult
-            }
-            val content = decodeRegText(bytes)
-            val file = regFile
-            if (file != null) {
-                // 树形界面：导入到当前 hive
-                scope.launch(Dispatchers.IO) {
-                    WineRegistryEditor(file).use { it.importRegFile(content) }
-                    refreshKey++
-                    reloadExpandedHive()
+    val activity = ctx as? ComponentActivity
+
+    fun promptImport() {
+        val act = activity ?: return
+        DirectoryPickerDialog.showFile(
+            activity = act,
+            title = act.getString(R.string.registry_import),
+            allowedExtensions = setOf("reg"),
+        ) { path ->
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val bytes = File(path).readBytes()
+                    val content = decodeRegText(bytes)
+                    val file = regFile
+                    if (file != null) {
+                        WineRegistryEditor(file).use { it.importRegFile(content) }
+                        refreshKey++
+                        reloadExpandedHive()
+                    } else {
+                        importRegToHives(containerRootDir, content)
+                        refreshKey++
+                    }
+                    WinToast.show(ctx, act.getString(R.string.registry_import_done))
+                } catch (e: Exception) {
+                    WinToast.show(ctx, act.getString(R.string.registry_import_failed) + ": ${e.message}")
                 }
-            } else {
-                // hive 根界面：按 HKEY_* 前缀分发到各 hive 文件
-                scope.launch(Dispatchers.IO) {
-                    importRegToHives(containerRootDir, content)
-                    refreshKey++
-                }
             }
-            onToast(ctx.getString(R.string.registry_import_done))
-        } catch (e: Exception) {
-            onToast(ctx.getString(R.string.registry_import_failed) + ": ${e.message}")
         }
     }
 
-    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri: Uri? ->
-        if (uri == null || regFile == null) return@rememberLauncherForActivityResult
+    fun promptExport() {
+        val act = activity ?: return
+        if (regFile == null) return
         val path = filePathFor(currentPath)
         val prefix = hivePrefix
-        scope.launch(Dispatchers.IO) {
-            try {
-                val text = WineRegistryEditor(regFile).use { it.exportReg(path, prefix) }
-                ctx.contentResolver.openOutputStream(uri)?.use { os ->
-                    os.write(text.toByteArray(Charsets.UTF_8))
+        DirectoryPickerDialog.show(
+            activity = act,
+            title = act.getString(R.string.registry_export),
+        ) { dirPath ->
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val text = WineRegistryEditor(regFile).use { it.exportReg(path, prefix) }
+                    val outFile = File(dirPath, "registry_export.reg")
+                    outFile.writeText(text, Charsets.UTF_8)
+                    WinToast.show(ctx, act.getString(R.string.registry_export_done))
+                } catch (e: Exception) {
+                    WinToast.show(ctx, act.getString(R.string.registry_export_failed) + ": ${e.message}")
                 }
-                onToast(ctx.getString(R.string.registry_export_done))
-            } catch (e: Exception) {
-                onToast(ctx.getString(R.string.registry_export_failed) + ": ${e.message}")
             }
         }
     }
@@ -909,7 +904,7 @@ private fun RegistryEditorScreen(
             RegEditorBottomBar(
                 modifier = Modifier.align(Alignment.BottomCenter),
                 navBarPadding = navBarPadding,
-                onImport = { importLauncher.launch(arrayOf("*/*")) },
+                onImport = { promptImport() },
             )
         } else if (selectedHive != null && fileExists) {
             RegEditorBottomBar(
@@ -918,7 +913,7 @@ private fun RegistryEditorScreen(
                 enabled = currentPath.isNotEmpty(),
                 onAddKey = { showAddKeyDialog = true },
                 onAddValue = { addingValue = true },
-                onExport = { exportLauncher.launch("registry_export.reg") },
+                onExport = { promptExport() },
                 onEditValue = { showValuesDialog = true },
                 onDeleteKey = { if (currentPath.isNotEmpty()) deleteKeyConfirm = currentPath },
             )
@@ -1116,9 +1111,9 @@ private fun RegistryEditorScreen(
                                 }
                             }
                             refreshKey++
-                            onToast(ctx.getString(R.string.registry_saved))
+                            WinToast.show(ctx, ctx.getString(R.string.registry_saved))
                         } catch (e: Exception) {
-                            onToast(ctx.getString(R.string.registry_invalid_hex))
+                            WinToast.show(ctx, ctx.getString(R.string.registry_invalid_hex))
                         }
                     }
                     addingValue = false
@@ -1247,7 +1242,7 @@ private fun RegistryEditorScreen(
                         .putString(PREFS_SPOOF_FEATURESET, spoofFeatureSet)
                         .apply()
                     showSpoofDialog = false
-                    onToast(ctx.getString(R.string.registry_cpu_spoof_done))
+                    WinToast.show(ctx, ctx.getString(R.string.registry_cpu_spoof_done))
                 },
                 onCancel = { showSpoofDialog = false },
                 accentColor = RegAccent,
@@ -1281,7 +1276,7 @@ private fun RegistryEditorScreen(
                                     .remove(PREFS_SPOOF_FEATURESET)
                                     .apply()
                                 showSpoofDialog = false
-                                onToast(ctx.getString(R.string.registry_cpu_spoof_cleared))
+                                WinToast.show(ctx, ctx.getString(R.string.registry_cpu_spoof_cleared))
                             },
                         )
                         RegEditorTextAction(
@@ -1308,7 +1303,7 @@ private fun RegistryEditorScreen(
                                     .putString(PREFS_SPOOF_FEATURESET, spoofFeatureSet)
                                     .apply()
                                 showSpoofDialog = false
-                                onToast(ctx.getString(R.string.registry_cpu_spoof_done))
+                                WinToast.show(ctx, ctx.getString(R.string.registry_cpu_spoof_done))
                             },
                         )
                         RegEditorTextAction(
