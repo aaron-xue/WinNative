@@ -7775,7 +7775,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         rootView.addView(frameRating);
         if (perfController != null) perfController.attachToFrameRating(frameRating);
 
-        boolean showControllerHints = preferences.getBoolean("show_controller_hints", false);
+        boolean showControllerHints = shortcut != null && "1".equals(shortcut.getExtra("showControllerHints", "0"));
         controllerHintsView = new ExternalControllerHintsView(this);
         controllerHintsView.setVisibility(showControllerHints ? View.VISIBLE : View.GONE);
         rootView.addView(controllerHintsView);
@@ -8571,7 +8571,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (controllerHudMode) inputControlsView.setVisibility(View.GONE);
 
         if (controllerHintsView != null) {
-            boolean showHints = preferences.getBoolean("show_controller_hints", false);
+            boolean showHints = shortcut != null && "1".equals(shortcut.getExtra("showControllerHints", "0"));
             controllerHintsView.setProfile(profile);
             controllerHintsView.setVisibility(showHints ? View.VISIBLE : View.GONE);
         }

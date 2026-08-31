@@ -163,7 +163,6 @@ data class InputControlsScreenState(
     val selectedProfileCanReset: Boolean = false,
     val overlayOpacity: Int = 40,
     val autoHideTouchOnController: Boolean = true,
-    val showControllerHints: Boolean = false,
     val gyroscopeEnabled: Boolean = false,
     val gyroscopeModeIndex: Int = 0,
     val gyroOrientationEnabled: Boolean = false,
@@ -256,7 +255,6 @@ data class InputControlsScreenActions(
     val onMultiChoiceDialogConfirm: (Set<Int>) -> Unit,
     val onOverlayOpacityChanged: (Int) -> Unit,
     val onAutoHideTouchOnControllerChanged: (Boolean) -> Unit,
-    val onShowControllerHintsChanged: (Boolean) -> Unit,
     val onGyroscopeEnabledChanged: (Boolean) -> Unit,
     val onGyroscopeModeSelected: (Int) -> Unit,
     val onGyroOrientationModeChanged: (Boolean) -> Unit,
@@ -331,7 +329,6 @@ fun InputControlsScreen(
             ) {
                 SectionLabel(stringResource(R.string.input_controls_auto_hide_section))
                 AutoHideTouchCard(state, actions)
-                ShowControllerHintsCard(state, actions)
                 ProfileCard(state, actions)
                 SectionLabel(stringResource(R.string.input_controls_editor_input_profiles_section))
                 ActionCard(
@@ -1687,50 +1684,6 @@ private fun AutoHideTouchCard(
             AppSwitch(
                 checked = state.autoHideTouchOnController,
                 onCheckedChange = actions.onAutoHideTouchOnControllerChanged,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ShowControllerHintsCard(
-    state: InputControlsScreenState,
-    actions: InputControlsScreenActions,
-) {
-    CardShell {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .paneNavItem(
-                        cornerRadius = InputCardCorner,
-                        onActivate = {
-                            actions.onShowControllerHintsChanged(!state.showControllerHints)
-                        },
-                        highlightColor = InputNavHighlight,
-                    ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconBox(Icons.Outlined.Visibility, InputTextSecondary)
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.input_controls_show_controller_hints_title),
-                    color = InputTextPrimary,
-                    fontSize = InputPrimaryTextSize,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.height(1.dp))
-                Text(
-                    text = stringResource(R.string.input_controls_show_controller_hints_summary),
-                    color = InputTextSecondary,
-                    fontSize = InputSecondaryTextSize,
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            AppSwitch(
-                checked = state.showControllerHints,
-                onCheckedChange = actions.onShowControllerHintsChanged,
             )
         }
     }

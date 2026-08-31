@@ -552,6 +552,7 @@ class GameSettingsStateHolder {
     val numControllersEntries = mutableStateOf<List<String>>(emptyList())
     val selectedNumControllers = mutableIntStateOf(0)
     val disableXInput = mutableStateOf(false)
+    val showControllerHints = mutableStateOf(false)
     val simTouchScreen = mutableStateOf(false)
     val screenTouchMode = mutableIntStateOf(0)
     val gestureProfileEntries = mutableStateOf<List<String>>(emptyList())
@@ -4866,6 +4867,14 @@ private fun InputSection(state: GameSettingsStateHolder) {
                 label = stringResource(R.string.shortcuts_properties_disable_xinput),
                 checked = state.disableXInput.value,
                 onCheckedChange = { state.disableXInput.value = it }
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            SettingCheckbox(
+                label = stringResource(R.string.input_controls_show_controller_hints_title),
+                checked = state.showControllerHints.value,
+                onCheckedChange = { state.showControllerHints.value = it }
             )
 
             Spacer(Modifier.height(4.dp))
