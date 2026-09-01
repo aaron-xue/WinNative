@@ -887,15 +887,6 @@ private fun RegistryEditorScreen(
             }
             }
 
-            if (selectedHive?.key == "HKEY_LOCAL_MACHINE") {
-                RegEditorActionButton(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    image = Icons.Outlined.Memory,
-                    label = stringResource(R.string.registry_cpu_spoof),
-                    tint = RegAccent,
-                    onClick = { showSpoofDialog = true },
-                )
-            }
         }
 
         // ── 屏幕底部的浮动操作面板 ──
@@ -916,6 +907,7 @@ private fun RegistryEditorScreen(
                 onExport = { promptExport() },
                 onEditValue = { showValuesDialog = true },
                 onDeleteKey = { if (currentPath.isNotEmpty()) deleteKeyConfirm = currentPath },
+                onCpuSpoof = if (selectedHive?.key == "HKEY_LOCAL_MACHINE") ({ showSpoofDialog = true }) else null,
             )
         }
     }
@@ -1643,6 +1635,7 @@ private fun RegEditorBottomBar(
     onExport: (() -> Unit)? = null,
     onEditValue: (() -> Unit)? = null,
     onDeleteKey: (() -> Unit)? = null,
+    onCpuSpoof: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -1718,6 +1711,16 @@ private fun RegEditorBottomBar(
                 image = Icons.Outlined.Delete,
                 label = stringResource(R.string.registry_delete_key),
                 tint = RegDanger,
+                enabled = enabled,
+                onClick = it,
+            )
+        }
+        onCpuSpoof?.let {
+            RegEditorActionButton(
+                modifier = Modifier.width(136.dp),
+                image = Icons.Outlined.Memory,
+                label = stringResource(R.string.registry_cpu_spoof),
+                tint = RegAccent,
                 enabled = enabled,
                 onClick = it,
             )

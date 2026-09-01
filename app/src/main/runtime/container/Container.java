@@ -695,18 +695,19 @@ public class Container {
         catch (JSONException e) {}
     }
 
-    public static String getFallbackCPUList() {
+    private static String buildFirstNCpuList(int n) {
         String cpuList = "";
-        int numProcessors = Runtime.getRuntime().availableProcessors();
-        for (int i = 0; i < numProcessors; i++) cpuList += (!cpuList.isEmpty() ? "," : "")+i;
+        int count = Math.min(n, Runtime.getRuntime().availableProcessors());
+        for (int i = 0; i < count; i++) cpuList += (!cpuList.isEmpty() ? "," : "")+i;
         return cpuList;
     }
 
+    public static String getFallbackCPUList() {
+        return buildFirstNCpuList(4);
+    }
+
     public static String getFallbackCPUListWoW64() {
-        String cpuList = "";
-        int numProcessors = Runtime.getRuntime().availableProcessors();
-        for (int i = numProcessors / 2; i < numProcessors; i++) cpuList += (!cpuList.isEmpty() ? "," : "")+i;
-        return cpuList;
+        return buildFirstNCpuList(4);
     }
 
     // Check if a specific environment variable exists
