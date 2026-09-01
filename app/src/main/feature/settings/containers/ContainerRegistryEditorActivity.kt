@@ -1717,11 +1717,11 @@ private fun RegEditorBottomBar(
         }
         onCpuSpoof?.let {
             RegEditorActionButton(
-                modifier = Modifier.width(136.dp),
+                modifier = Modifier.width(146.dp),
                 image = Icons.Outlined.Memory,
                 label = stringResource(R.string.registry_cpu_spoof),
                 tint = RegAccent,
-                enabled = enabled,
+                enabled = true,
                 onClick = it,
             )
         }
