@@ -425,6 +425,8 @@ class UnifiedActivity :
     val storeFocusIndex = kotlinx.coroutines.flow.MutableStateFlow(0)
     var storeItemCount: Int = 0
 
+    val storeHeaderVisible = kotlinx.coroutines.flow.MutableStateFlow(true)
+
     internal val storeColumns: Int
         get() = com.winlator.cmod.shared.ui.gridColumnsForWidth(resources.configuration.screenWidthDp)
 
