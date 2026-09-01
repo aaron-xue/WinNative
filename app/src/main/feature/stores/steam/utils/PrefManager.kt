@@ -441,5 +441,5 @@ object PrefManager {
         requirePrefs().edit().clear().commit()
     }
 
-    const val DEFAULT_STORE_VISIBLE = "steam,epic,gog,itch"
+    const val DEFAULT_STORE_VISIBLE = ""
 }
