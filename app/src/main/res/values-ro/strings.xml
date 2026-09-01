@@ -923,6 +923,7 @@ De ex. <b>META</b> pentru <i>tasta META</i>, \n
     <string name="settings_content_file_list">Lista fisiere</string>
     <string name="settings_content_install_directory">Director de instalare</string>
     <string name="settings_content_installed_success">Continut instalat cu succes!</string>
+    <string name="settings_content_batch_install_all_done">Toate cele %1$d componente instalate!</string>
     <string name="settings_content_downloading_title">Se descarca continutul</string>
     <string name="settings_content_installing_title">Se instaleaza continutul</string>
     <string name="settings_content_install_multiple">Se instalează %1$d fișiere…</string>

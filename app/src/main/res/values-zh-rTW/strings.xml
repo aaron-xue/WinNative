@@ -924,6 +924,7 @@
     <string name="settings_content_file_list">檔案清單</string>
     <string name="settings_content_install_directory">安裝目錄</string>
     <string name="settings_content_installed_success">內容已成功安裝！</string>
+    <string name="settings_content_batch_install_all_done">全部 %1$d 個元件安裝完成！</string>
     <string name="settings_content_downloading_title">正在下載內容</string>
     <string name="settings_content_installing_title">正在安裝內容</string>
     <string name="settings_content_install_multiple">正在安裝 %1$d 個檔案…</string>

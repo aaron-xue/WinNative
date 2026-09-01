@@ -923,6 +923,7 @@ Ad es. <b>META</b> per il <i>tasto META</i>, \n
     <string name="settings_content_file_list">Lista file</string>
     <string name="settings_content_install_directory">Cartella di installazione</string>
     <string name="settings_content_installed_success">Contenuto installato con successo!</string>
+    <string name="settings_content_batch_install_all_done">Tutti i %1$d componenti installati!</string>
     <string name="settings_content_downloading_title">Download contenuto</string>
     <string name="settings_content_installing_title">Installazione contenuto</string>
     <string name="settings_content_install_multiple">Installazione di %1$d file…</string>

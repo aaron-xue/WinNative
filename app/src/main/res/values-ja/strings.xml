@@ -1200,6 +1200,7 @@
     <string name="settings_content_file_list">ファイル一覧</string>
     <string name="settings_content_install_directory">インストール先ディレクトリ</string>
     <string name="settings_content_installed_success">コンテンツをインストールしました！</string>
+    <string name="settings_content_batch_install_all_done">%1$d 個のコンポーネントをインストールしました！</string>
     <string name="settings_content_downloading_title">コンテンツをダウンロード中</string>
     <string name="settings_content_installing_title">コンテンツをインストール中</string>
     <string name="settings_content_install_multiple">%1$d 個のファイルをインストール中…</string>

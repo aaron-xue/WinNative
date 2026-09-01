@@ -1200,6 +1200,7 @@ E.g. <b>META</b> için <i>META tuşu</i>, \n
     <string name="settings_content_file_list">Dosya Listesi</string>
     <string name="settings_content_install_directory">Yükleme Dizini</string>
     <string name="settings_content_installed_success">İçerik başarıyla yüklendi!</string>
+    <string name="settings_content_batch_install_all_done">Tüm %1$d bileşenler yüklendi!</string>
     <string name="settings_content_downloading_title">İçerik İndiriliyor</string>
     <string name="settings_content_installing_title">İçerik Yükleniyor</string>
     <string name="settings_content_install_multiple">%1$d dosya yükleniyor…</string>

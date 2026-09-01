@@ -1032,6 +1032,7 @@
     <string name="settings_content_file_list">फ़ाइल सूची</string>
     <string name="settings_content_install_directory">इंस्टॉल डायरेक्टरी</string>
     <string name="settings_content_installed_success">कंटेंट सफलतापूर्वक इंस्टॉल हुआ!</string>
+    <string name="settings_content_batch_install_all_done">सभी %1$d घटक इंस्टॉल हो गए!</string>
     <string name="settings_content_downloading_title">कंटेंट डाउनलोड हो रहा है</string>
     <string name="settings_content_installing_title">कंटेंट इंस्टॉल हो रहा है</string>
     <string name="settings_content_install_multiple">%1$d फ़ाइलें इंस्टॉल हो रही हैं…</string>

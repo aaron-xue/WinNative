@@ -923,6 +923,7 @@
     <string name="settings_content_file_list">파일 목록</string>
     <string name="settings_content_install_directory">설치 디렉터리</string>
     <string name="settings_content_installed_success">콘텐츠가 성공적으로 설치되었습니다!</string>
+    <string name="settings_content_batch_install_all_done">모든 %1$d개 구성요소가 설치되었습니다!</string>
     <string name="settings_content_downloading_title">콘텐츠 다운로드 중</string>
     <string name="settings_content_installing_title">콘텐츠 설치 중</string>
     <string name="settings_content_install_multiple">%1$d개 파일 설치 중…</string>

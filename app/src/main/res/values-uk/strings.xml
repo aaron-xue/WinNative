@@ -929,6 +929,7 @@
     <string name="settings_content_file_list">Список файлів</string>
     <string name="settings_content_install_directory">Тека встановлення</string>
     <string name="settings_content_installed_success">Контент успішно встановлено!</string>
+    <string name="settings_content_batch_install_all_done">Усі %1$d компоненти встановлено!</string>
     <string name="settings_content_downloading_title">Завантаження контенту</string>
     <string name="settings_content_installing_title">Встановлення контенту</string>
     <string name="settings_content_install_multiple">Встановлення %1$d файлів…</string>

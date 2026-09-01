@@ -1200,6 +1200,7 @@
     <string name="settings_content_file_list">รายการไฟล์</string>
     <string name="settings_content_install_directory">ไดเรกทอรีติดตั้ง</string>
     <string name="settings_content_installed_success">ติดตั้งเนื้อหาสำเร็จ!</string>
+    <string name="settings_content_batch_install_all_done">ติดตั้งส่วนประกอบทั้งหมด %1$d รายการแล้ว!</string>
     <string name="settings_content_downloading_title">กำลังดาวน์โหลดเนื้อหา</string>
     <string name="settings_content_installing_title">กำลังติดตั้งเนื้อหา</string>
     <string name="settings_content_install_multiple">กำลังติดตั้ง %1$d ไฟล์…</string>

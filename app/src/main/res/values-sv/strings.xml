@@ -1200,6 +1200,7 @@ T.ex. <b>META</b> för <i>META-tangent</i>, \n
     <string name="settings_content_file_list">Fillista</string>
     <string name="settings_content_install_directory">Installationskatalog</string>
     <string name="settings_content_installed_success">Innehåll installerat!</string>
+    <string name="settings_content_batch_install_all_done">Alla %1$d komponenter installerade!</string>
     <string name="settings_content_downloading_title">Laddar ner innehåll</string>
     <string name="settings_content_installing_title">Installerar innehåll</string>
     <string name="settings_content_install_multiple">Installerar %1$d filer…</string>

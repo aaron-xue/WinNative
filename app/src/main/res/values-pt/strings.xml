@@ -1200,6 +1200,7 @@ Por ex. <b>META</b> para <i>tecla META</i>, \n
     <string name="settings_content_file_list">Lista de Ficheiros</string>
     <string name="settings_content_install_directory">Diretório de Instalação</string>
     <string name="settings_content_installed_success">Conteúdo instalado com sucesso!</string>
+    <string name="settings_content_batch_install_all_done">Todos os %1$d componentes instalados!</string>
     <string name="settings_content_downloading_title">A Transferir Conteúdo</string>
     <string name="settings_content_installing_title">A Instalar Conteúdo</string>
     <string name="settings_content_install_multiple">Instalando %1$d arquivos…</string>

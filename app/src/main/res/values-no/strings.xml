@@ -1200,6 +1200,7 @@ F.eks. <b>META</b> for <i>META-tast</i>, \n
     <string name="settings_content_file_list">Filliste</string>
     <string name="settings_content_install_directory">Installasjonsmappe</string>
     <string name="settings_content_installed_success">Innhold installert.</string>
+    <string name="settings_content_batch_install_all_done">Alle %1$d komponenter installert!</string>
     <string name="settings_content_downloading_title">Laster ned innhold</string>
     <string name="settings_content_installing_title">Installerer innhold</string>
     <string name="settings_content_install_multiple">Installerer %1$d filer…</string>

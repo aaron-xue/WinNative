@@ -350,12 +350,20 @@ class ContentsFragment : Fragment() {
         fun installNext() {
             val path = queue.removeFirstOrNull()
             if (path == null) {
-                // All installs finished: create any deferred containers
-                // sequentially (one at a time, waiting for each to finish).
                 if (pendingContainers.isNotEmpty()) {
-                    createContainersSequentially(pendingContainers)
+                    createContainersSequentially(pendingContainers) {
+                        clearDownloadProgress()
+                        WinToast.show(
+                            requireContext(),
+                            getString(R.string.settings_content_batch_install_all_done, total),
+                        )
+                    }
                 } else {
                     clearDownloadProgress()
+                    WinToast.show(
+                        requireContext(),
+                        getString(R.string.settings_content_batch_install_all_done, total),
+                    )
                 }
                 return
             }
@@ -379,7 +387,10 @@ class ContentsFragment : Fragment() {
         installNext()
     }
 
-    private fun createContainersSequentially(profiles: List<ContentProfile>) {
+    private fun createContainersSequentially(
+        profiles: List<ContentProfile>,
+        onComplete: (() -> Unit) = {},
+    ) {
         val queue = ArrayDeque(profiles)
         val context = requireContext()
         val containerManager = ContainerManager(context)
@@ -387,6 +398,7 @@ class ContentsFragment : Fragment() {
             val profile = queue.removeFirstOrNull()
             if (profile == null) {
                 clearDownloadProgress()
+                onComplete()
                 return
             }
             updateDownloadProgress(
@@ -560,7 +572,6 @@ class ContentsFragment : Fragment() {
                     manager.syncContents()
 
                     runOnMain {
-                        WinToast.show(requireContext(), completionMessage)
                         currentContentType = profile.type
                         publishState()
 
@@ -570,8 +581,6 @@ class ContentsFragment : Fragment() {
                         )
 
                         if (willAutoCreate && !deferAutoCreate) {
-                            // Keep the download/install popup open and swap
-                            // its title — avoids a flash between dialogs.
                             updateDownloadProgress(
                                 title = getString(R.string.containers_list_creating),
                                 message = profile.verName,
@@ -585,6 +594,7 @@ class ContentsFragment : Fragment() {
                                 profile,
                             ) { newContainer ->
                                 clearDownloadProgress()
+                                WinToast.show(requireContext(), completionMessage)
                                 if (newContainer != null) {
                                     WinToast.show(
                                         requireContext(),
@@ -595,7 +605,10 @@ class ContentsFragment : Fragment() {
                             }
                         } else {
                             if (willAutoCreate) onInstalled?.invoke(profile)
-                            clearDownloadProgress()
+                            if (!deferAutoCreate) {
+                                clearDownloadProgress()
+                                WinToast.show(requireContext(), completionMessage)
+                            }
                             onTerminal?.invoke()
                         }
                     }

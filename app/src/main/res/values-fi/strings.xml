@@ -1200,6 +1200,7 @@ E.g. <b>META</b> for <i>META-näppäin</i>, \n
     <string name="settings_content_file_list">Tiedostoluettelo</string>
     <string name="settings_content_install_directory">Asennushakemisto</string>
     <string name="settings_content_installed_success">Sisältö asennettu onnistuneesti!</string>
+    <string name="settings_content_batch_install_all_done">Kaikki %1$d komponenttia asennettu!</string>
     <string name="settings_content_downloading_title">Ladataan sisältöä</string>
     <string name="settings_content_installing_title">Asennetaan sisältöä</string>
     <string name="settings_content_install_multiple">Asennetaan %1$d tiedostoa…</string>
