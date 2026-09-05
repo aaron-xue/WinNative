@@ -176,6 +176,30 @@ public class PreloaderDialog {
     setStepOnUiThread(activity.getString(stepResId, formatArgs));
   }
 
+  public synchronized void showInstallStatus(String text) {
+    if (dialog == null) create();
+    if (dialog == null) return;
+    clearLaunchMetadata();
+    composeState.setText(text);
+    composeState.setIndeterminate(true);
+    composeState.setShowElapsed(true);
+    composeState.setElapsedSeconds(0L);
+    showDialogSafely();
+  }
+
+  public void showInstallStatusOnUiThread(final String text) {
+    uiHandler.post(() -> showInstallStatus(text));
+  }
+
+  public void updateInstallStatusOnUiThread(final String text, final long elapsedSeconds) {
+    uiHandler.post(() -> {
+      if (dialog != null) {
+        composeState.setText(text);
+        composeState.setElapsedSeconds(elapsedSeconds);
+      }
+    });
+  }
+
   public synchronized void close() {
     try {
       if (dialog != null) {

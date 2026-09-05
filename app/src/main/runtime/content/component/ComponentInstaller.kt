@@ -382,12 +382,14 @@ class ComponentInstaller(
         val bootArgs: String
         if (isMsi) {
             bootExe = "C:\\windows\\system32\\msiexec.exe"
-            bootArgs = "/i \"$winPath\" ${arguments.ifBlank { "/passive" }} /norestart".trim()
+            bootArgs = "/i \"$winPath\" ${arguments.ifBlank { "/quiet" }} /norestart".trim()
         } else {
             bootExe = winPath
             bootArgs = arguments
         }
+        DependencyInstallBridge.updateStatus("Running installer: $fileName")
         val code = launchInContainerAndWait(bootExe, bootArgs)
+        DependencyInstallBridge.updateStatus(null)
         // 0 = success, 3010 = success but reboot required (common for redists/MSI).
         // 143 = SIGTERM (128+15): Wine may kill the process after install completes.
         if (code != 0 && code != 3010 && code != 143) throw InstallException("Installer exited with code $code: $fileName")

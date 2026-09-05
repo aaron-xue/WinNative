@@ -17,6 +17,18 @@ object DependencyInstallBridge {
 
     @Volatile private var exitCode: Int = -1
 
+    @Volatile var installStatusText: String? = null
+
+    @JvmStatic
+    fun updateStatus(text: String?) {
+        installStatusText = text
+    }
+
+    @JvmStatic
+    fun getStatus(): String? {
+        return installStatusText
+    }
+
     fun begin() {
         synchronized(lock) {
             latch = CountDownLatch(1)

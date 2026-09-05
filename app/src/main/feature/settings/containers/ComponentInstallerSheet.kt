@@ -62,6 +62,7 @@ import com.winlator.cmod.shared.ui.nav.paneNavItem
 import com.winlator.cmod.runtime.container.Container
 import com.winlator.cmod.runtime.content.Downloader
 import com.winlator.cmod.runtime.content.component.ComponentInstaller
+import com.winlator.cmod.runtime.content.component.DependencyInstallBridge
 import com.winlator.cmod.shared.io.ArchiveExtractor
 import com.winlator.cmod.shared.util.StringUtils
 import kotlinx.coroutines.CancellationException
@@ -307,6 +308,7 @@ fun ComponentInstallerSheet(
                                                             object : ComponentInstaller.Listener {
                                                                 override fun onStatus(text: String) {
                                                                     installStates[item.name] = InstallUi.Running(text)
+                                                                    DependencyInstallBridge.updateStatus(text)
                                                                 }
 
                                                                 override fun onProgress(fraction: Float) {}
@@ -314,11 +316,14 @@ fun ComponentInstallerSheet(
                                                     ).run()
                                                 }
                                                 installStates[item.name] = InstallUi.Done
+                                                DependencyInstallBridge.updateStatus(null)
                                             } catch (e: CancellationException) {
+                                                DependencyInstallBridge.updateStatus(null)
                                                 throw e
                                             } catch (e: Exception) {
                                                 installStates[item.name] =
                                                     InstallUi.Failed(e.message ?: "Install failed.")
+                                                DependencyInstallBridge.updateStatus(null)
                                             }
                                         }
                                     }
@@ -371,6 +376,8 @@ private fun LocalInstallProgressDialog(progress: LocalInstallProgress) {
                     color = SheetTextPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = progress.message,
@@ -801,11 +808,8 @@ private fun installLocalFiles(
                                 object : ComponentInstaller.Listener {
                                     override fun onStatus(text: String) {
                                         installStates[name] = InstallUi.Running(text)
-                                        if (text.startsWith("Running installer:")) {
-                                            onProgress(null)
-                                        } else {
-                                            onProgress(LocalInstallProgress(text, name))
-                                        }
+                                        onProgress(LocalInstallProgress(text, name))
+                                        DependencyInstallBridge.updateStatus(text)
                                     }
 
                                     override fun onProgress(fraction: Float) {}
@@ -815,11 +819,14 @@ private fun installLocalFiles(
                     }
                     installStates[name] = InstallUi.Done
                     onProgress(null)
+                    DependencyInstallBridge.updateStatus(null)
                     WinToast.show(context, "Installed: $name")
                 } catch (e: CancellationException) {
+                    DependencyInstallBridge.updateStatus(null)
                     throw e
                 } catch (e: Exception) {
                     onProgress(null)
+                    DependencyInstallBridge.updateStatus(null)
                     installStates[name] =
                         InstallUi.Failed(e.message ?: "Local install failed.")
                     WinToast.show(context, "Install failed: ${e.message ?: "Local install failed."}")

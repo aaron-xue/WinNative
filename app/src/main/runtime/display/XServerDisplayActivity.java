@@ -3225,6 +3225,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         }
 
         try {
+            stopInstallStatusTimer();
+        } catch (Exception e) {
+            Log.w("XServerLeakCheck", "Failed to stop install status timer during " + trigger, e);
+        }
+
+        try {
             if (timeoutHandler != null && hideControlsRunnable != null) {
                 timeoutHandler.removeCallbacks(hideControlsRunnable);
             }
@@ -4025,6 +4031,38 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 cachedPreloaderSubtitle,
                 Math.max(0, Math.min(100, percent))
         );
+    }
+
+    private Handler installStatusTimerHandler;
+    private Runnable installStatusTimerRunnable;
+    private long installStatusStartTime;
+
+    private void startInstallStatusTimer() {
+        installStatusStartTime = System.currentTimeMillis();
+        installStatusTimerHandler = new Handler(Looper.getMainLooper());
+        installStatusTimerRunnable = new Runnable() {
+            @Override
+            public void run() {
+                String status = com.winlator.cmod.runtime.content.component.DependencyInstallBridge.getStatus();
+                if (status == null || status.isEmpty()) {
+                    stopInstallStatusTimer();
+                    return;
+                }
+                long elapsedMs = System.currentTimeMillis() - installStatusStartTime;
+                long elapsedSeconds = elapsedMs / 1000;
+                preloaderDialog.updateInstallStatusOnUiThread(status, elapsedSeconds);
+                installStatusTimerHandler.postDelayed(this, 1000);
+            }
+        };
+        installStatusTimerHandler.post(installStatusTimerRunnable);
+    }
+
+    private void stopInstallStatusTimer() {
+        if (installStatusTimerHandler != null && installStatusTimerRunnable != null) {
+            installStatusTimerHandler.removeCallbacks(installStatusTimerRunnable);
+            installStatusTimerHandler = null;
+            installStatusTimerRunnable = null;
+        }
     }
 
     private void stopWnLauncherStatusTailer() {
@@ -7099,7 +7137,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 String guestExecutable;
             
             // Launcher resolves Wine vs ARM64EC execution internally.
-            guestExecutable = "wine explorer /desktop=shell," + xServer.screenInfo + " " + wineStartCmd;
+            if (isDependencyInstall) {
+                guestExecutable = "wine " + wineStartCmd;
+            } else {
+                guestExecutable = "wine explorer /desktop=shell," + xServer.screenInfo + " " + wineStartCmd;
+            }
 
             Log.d("XServerDisplayActivity", "=== GAME LAUNCH DEBUG ===");
             Log.d("XServerDisplayActivity", "Wine start command: " + wineStartCmd);
@@ -7872,6 +7914,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         externalDisplayController.start();
 
         AppUtils.observeSoftKeyboardVisibility(displayHostComposeView, renderer::setScreenOffsetYRelativeToCursor);
+
+        if (isDependencyInstall) {
+            preloaderDialog.showInstallStatusOnUiThread(getString(R.string.preloader_initializing));
+            startInstallStatusTimer();
+        }
     }
 
     // Open the system Cast / wireless-display picker; a connected display flows through the swap path.
@@ -9243,7 +9290,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private static String buildGuestProgramArgs(String windowsPath) {
         String lower = windowsPath.toLowerCase(java.util.Locale.ROOT);
         if (lower.endsWith(".msi")) {
-            return "\"C:\\windows\\system32\\msiexec.exe\" /i \"" + windowsPath + "\" /passive /norestart";
+            return "\"C:\\windows\\system32\\msiexec.exe\" /i \"" + windowsPath + "\" /quiet /norestart";
         }
         if (lower.endsWith(".bat") || lower.endsWith(".cmd")) {
             return "\"C:\\windows\\system32\\cmd.exe\" /c \"" + windowsPath + "\"";

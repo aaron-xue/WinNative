@@ -137,6 +137,17 @@ class PreloaderDialogState {
     fun setStableContentLayout(value: Boolean) {
         stableContentLayout.value = value
     }
+
+    val showElapsed = mutableStateOf(false)
+    val elapsedSeconds = mutableStateOf(0L)
+
+    fun setShowElapsed(value: Boolean) {
+        showElapsed.value = value
+    }
+
+    fun setElapsedSeconds(value: Long) {
+        elapsedSeconds.value = value
+    }
 }
 
 private data class Particle(
@@ -195,6 +206,8 @@ fun PreloaderDialogContent(state: PreloaderDialogState) {
     val stableContentLayout by state.stableContentLayout
     val artwork by state.artwork
     val bottomProgressBar by state.bottomProgressBar
+    val showElapsed by state.showElapsed
+    val elapsedSeconds by state.elapsedSeconds
 
     val accentColor = badgeColor(badge)
     val particles =
@@ -438,6 +451,17 @@ fun PreloaderDialogContent(state: PreloaderDialogState) {
                     modifier = Modifier.widthIn(max = 360.dp),
                 )
                 }
+
+                if (showElapsed) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = formatElapsed(elapsedSeconds),
+                        fontSize = 14.sp,
+                        fontFamily = InterFont,
+                        color = TextDim.copy(alpha = contentAlpha),
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
 
@@ -659,6 +683,11 @@ private fun NeonCometRing(
             }
         }
     }
+}
+
+private fun formatElapsed(seconds: Long): String {
+    val minutes = seconds / 60
+    return if (minutes > 0) "${minutes}m ${seconds % 60}s" else "${seconds}s"
 }
 
 // Java bridge - called from PreloaderDialog.java as:
