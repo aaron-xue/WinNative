@@ -53,7 +53,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import android.app.Activity
-import com.winlator.cmod.shared.ui.toast.WinToast
 import com.winlator.cmod.shared.android.DirectoryPickerDialog
 import com.winlator.cmod.shared.ui.nav.DialogPaneNav
 import com.winlator.cmod.shared.ui.nav.LocalPaneNav
@@ -181,6 +180,15 @@ fun ComponentInstallerSheet(
     val scope = rememberCoroutineScope()
     val installStates = remember { mutableStateMapOf<String, InstallUi>() }
     var localInstallProgress by remember { mutableStateOf<LocalInstallProgress?>(null) }
+
+    LaunchedEffect(localInstallProgress) {
+        val p = localInstallProgress
+        if (p is LocalInstallProgress.Success || p is LocalInstallProgress.Failed) {
+            kotlinx.coroutines.delay(2000)
+            localInstallProgress = null
+        }
+    }
+
     var ui by remember { mutableStateOf<CatalogUiState>(CatalogUiState.Loading) }
     var selectedCategory by remember { mutableStateOf(CATEGORY_ORDER.first()) }
     val registry = remember { PaneNavRegistry() }
@@ -263,13 +271,13 @@ fun ComponentInstallerSheet(
                             allowedExtensions = setOf("wcp", "xz", "txz", "tzst"),
                             allowMultiSelect = false,
                             onSelectedAll = { paths ->
-                                localInstallProgress = LocalInstallProgress("Extracting…", paths.first().let { File(it).nameWithoutExtension })
+                                localInstallProgress = LocalInstallProgress.Loading(paths.first().let { File(it).nameWithoutExtension }, "Extracting…")
                                 installLocalFiles(paths, container, context, installStates, scope) { progress ->
                                     localInstallProgress = progress
                                 }
                             },
                         ) { path ->
-                            localInstallProgress = LocalInstallProgress("Extracting…", File(path).nameWithoutExtension)
+                            localInstallProgress = LocalInstallProgress.Loading(File(path).nameWithoutExtension, "Extracting…")
                             installLocalFiles(listOf(path), container, context, installStates, scope) { progress ->
                                 localInstallProgress = progress
                             }
@@ -341,10 +349,11 @@ fun ComponentInstallerSheet(
     }
 }
 
-data class LocalInstallProgress(
-    val title: String,
-    val message: String,
-)
+private sealed interface LocalInstallProgress {
+    data class Loading(val title: String, val message: String) : LocalInstallProgress
+    data class Success(val title: String) : LocalInstallProgress
+    data class Failed(val title: String, val message: String) : LocalInstallProgress
+}
 
 @Composable
 private fun LocalInstallProgressDialog(progress: LocalInstallProgress) {
@@ -366,26 +375,65 @@ private fun LocalInstallProgressDialog(progress: LocalInstallProgress) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(32.dp),
-                    color = SheetAccent,
-                    strokeWidth = 3.dp,
-                )
+                when (progress) {
+                    is LocalInstallProgress.Loading ->
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = SheetAccent,
+                            strokeWidth = 3.dp,
+                        )
+
+                    is LocalInstallProgress.Success ->
+                        Text(
+                            text = "✓",
+                            color = SheetGood,
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+
+                    is LocalInstallProgress.Failed ->
+                        Text(
+                            text = "✕",
+                            color = SheetDanger,
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                }
                 Text(
-                    text = progress.title,
+                    text =
+                        when (progress) {
+                            is LocalInstallProgress.Loading -> progress.title
+                            is LocalInstallProgress.Success -> "Installed: ${progress.title}"
+                            is LocalInstallProgress.Failed -> progress.title
+                        },
                     color = SheetTextPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = progress.message,
-                    color = SheetTextSecondary,
-                    fontSize = 12.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                when (progress) {
+                    is LocalInstallProgress.Loading -> {
+                        Text(
+                            text = progress.message,
+                            color = SheetTextSecondary,
+                            fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+
+                    is LocalInstallProgress.Success -> {}
+                    is LocalInstallProgress.Failed -> {
+                        Text(
+                            text = progress.message,
+                            color = SheetDanger,
+                            fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
     }
@@ -779,7 +827,7 @@ private fun installLocalFiles(
                     val componentDir = File(context.cacheDir, "wn-components/$name")
                     componentDir.mkdirs()
 
-                    onProgress(LocalInstallProgress("Extracting…", name))
+                    onProgress(LocalInstallProgress.Loading(name, "Extracting…"))
                     runInterruptible {
                         ArchiveExtractor.extract(
                             source = archiveFile,
@@ -789,7 +837,7 @@ private fun installLocalFiles(
                         )
                     }
 
-                    onProgress(LocalInstallProgress("Finding manifest…", name))
+                    onProgress(LocalInstallProgress.Loading(name, "Finding manifest…"))
                     val ymlFile =
                         componentDir.walkTopDown().firstOrNull {
                             it.isFile && it.extension.equals("yml", ignoreCase = true)
@@ -808,7 +856,7 @@ private fun installLocalFiles(
                                 object : ComponentInstaller.Listener {
                                     override fun onStatus(text: String) {
                                         installStates[name] = InstallUi.Running(text)
-                                        onProgress(LocalInstallProgress(text, name))
+                                        onProgress(LocalInstallProgress.Loading(name, text))
                                         DependencyInstallBridge.updateStatus(text)
                                     }
 
@@ -818,18 +866,16 @@ private fun installLocalFiles(
                         ).run()
                     }
                     installStates[name] = InstallUi.Done
-                    onProgress(null)
+                    onProgress(LocalInstallProgress.Success(name))
                     DependencyInstallBridge.updateStatus(null)
-                    WinToast.show(context, "Installed: $name")
                 } catch (e: CancellationException) {
                     DependencyInstallBridge.updateStatus(null)
                     throw e
                 } catch (e: Exception) {
-                    onProgress(null)
                     DependencyInstallBridge.updateStatus(null)
                     installStates[name] =
                         InstallUi.Failed(e.message ?: "Local install failed.")
-                    WinToast.show(context, "Install failed: ${e.message ?: "Local install failed."}")
+                    onProgress(LocalInstallProgress.Failed(name, e.message ?: "Local install failed."))
                 }
             }
         }

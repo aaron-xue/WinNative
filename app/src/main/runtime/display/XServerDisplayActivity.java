@@ -3532,6 +3532,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             return;
         }
 
+        stopInstallStatusTimer();
+
         if (shortcutName != null && !shortcutName.isEmpty()) {
             preloaderDialog.showOnUiThread(getString(R.string.preloader_closing, shortcutName));
         } else {
