@@ -229,7 +229,7 @@ wiring the chain into WinNative's compositor and swapchain (`vkr_lsfg.*`).
   ```
   tar -I zstd -cf example.tar.zst ./usr
   //tzst工具
-  tzst a retro-consoles.tzst cores/ data/ bundle-info.json
+  tzst a wine-mono-11.0.0-x86.tzst wine-mono-11.0.0-x86.msi wine-mono-11.0.0-x86.yml
   ```
 - **tzst工具** Download standalone executables from the [Releases](https://github.com/xixu-me/tzst/releases) section.
 

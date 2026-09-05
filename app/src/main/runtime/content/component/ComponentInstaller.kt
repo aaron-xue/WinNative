@@ -32,6 +32,7 @@ class ComponentInstaller(
     private val componentName: String,
     private val manifestYaml: String,
     private val listener: Listener,
+    private val skipDownload: Boolean = false,
 ) {
     interface Listener {
         fun onStatus(text: String)
@@ -65,7 +66,9 @@ class ComponentInstaller(
 
         try {
             checkCancel()
-            download(steps)
+            if (!skipDownload) {
+                download(steps)
+            }
             checkCancel()
             extractArchives(steps)
             checkCancel()
@@ -386,7 +389,8 @@ class ComponentInstaller(
         }
         val code = launchInContainerAndWait(bootExe, bootArgs)
         // 0 = success, 3010 = success but reboot required (common for redists/MSI).
-        if (code != 0 && code != 3010) throw InstallException("Installer exited with code $code: $fileName")
+        // 143 = SIGTERM (128+15): Wine may kill the process after install completes.
+        if (code != 0 && code != 3010 && code != 143) throw InstallException("Installer exited with code $code: $fileName")
     }
 
     @Suppress("UNCHECKED_CAST")

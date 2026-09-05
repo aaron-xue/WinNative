@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,14 +17,13 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -46,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,6 +52,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import android.app.Activity
+import com.winlator.cmod.shared.ui.toast.WinToast
+import com.winlator.cmod.shared.android.DirectoryPickerDialog
 import com.winlator.cmod.shared.ui.nav.DialogPaneNav
 import com.winlator.cmod.shared.ui.nav.LocalPaneNav
 import com.winlator.cmod.shared.ui.nav.PaneNavRegistry
@@ -60,6 +62,7 @@ import com.winlator.cmod.shared.ui.nav.paneNavItem
 import com.winlator.cmod.runtime.container.Container
 import com.winlator.cmod.runtime.content.Downloader
 import com.winlator.cmod.runtime.content.component.ComponentInstaller
+import com.winlator.cmod.shared.io.ArchiveExtractor
 import com.winlator.cmod.shared.util.StringUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +72,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.File
 
 private const val DATASET_BASE = "https://hf-mirror.com/datasets/Xnick417x/WN-Components/resolve/main"
 private const val INDEX_URL = "$DATASET_BASE/index.json"
@@ -152,20 +156,20 @@ private fun parseCatalog(json: String): List<CatalogComponent> {
 private val CATEGORY_ORDER =
     listOf(
         "Wine Mono / Gecko",
-        "Visual C++ / VB",
-        "OS Update",
-        "Graphics",
-        "DirectX",
         ".NET",
-        "Media / Codecs",
+        "Visual C++ / VB",
+        "DirectX",
+        "Data / Text",
+        "Fonts / GDI",
         "System / Web",
+        "Graphics",
+        "Media / Codecs",
+        "OS Update",
+        "Other",
     )
 
 private fun categoryRank(category: String): Int =
-    when {
-        category == "Other" -> Int.MAX_VALUE
-        else -> CATEGORY_ORDER.indexOf(category).let { if (it >= 0) it else CATEGORY_ORDER.size }
-    }
+    CATEGORY_ORDER.indexOf(category).let { if (it >= 0) it else CATEGORY_ORDER.size }
 
 @Composable
 fun ComponentInstallerSheet(
@@ -175,7 +179,9 @@ fun ComponentInstallerSheet(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val installStates = remember { mutableStateMapOf<String, InstallUi>() }
+    var localInstallProgress by remember { mutableStateOf<LocalInstallProgress?>(null) }
     var ui by remember { mutableStateOf<CatalogUiState>(CatalogUiState.Loading) }
+    var selectedCategory by remember { mutableStateOf(CATEGORY_ORDER.first()) }
     val registry = remember { PaneNavRegistry() }
 
     LaunchedEffect(Unit) {
@@ -229,8 +235,13 @@ fun ComponentInstallerSheet(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
             contentAlignment = Alignment.Center,
         ) {
-            val popupWidth = if (maxWidth < 420.dp) maxWidth else 420.dp
-            val popupHeight = if (maxHeight < 500.dp) maxHeight else 500.dp
+            val configuration = LocalConfiguration.current
+            val screenWidthDp = configuration.screenWidthDp.toFloat()
+            val screenHeightDp = configuration.screenHeightDp.toFloat()
+            val widthFraction = (0.90f + 84f / screenWidthDp).coerceIn(0.88f, 0.96f)
+            val heightFraction = (0.90f + 24f / screenWidthDp).coerceIn(0.92f, 0.94f)
+            val popupWidth = (screenWidthDp * widthFraction).dp
+            val popupHeight = (screenHeightDp * heightFraction).dp
             Column(
                 modifier =
                     Modifier
@@ -240,7 +251,34 @@ fun ComponentInstallerSheet(
                         .background(SheetRoot)
                         .border(1.dp, SheetOutline, RoundedCornerShape(18.dp)),
             ) {
-                SheetHeader(containerName = container.name, onClose = onDismiss)
+                SheetHeader(
+                    containerName = container.name,
+                    onClose = onDismiss,
+                    onLocalInstall = {
+                        val activity = context as? Activity ?: return@SheetHeader
+                        DirectoryPickerDialog.showFile(
+                            activity = activity,
+                            title = "Install components",
+                            allowedExtensions = setOf("wcp", "xz", "txz", "tzst"),
+                            allowMultiSelect = false,
+                            onSelectedAll = { paths ->
+                                localInstallProgress = LocalInstallProgress("Extracting…", paths.first().let { File(it).nameWithoutExtension })
+                                installLocalFiles(paths, container, context, installStates, scope) { progress ->
+                                    localInstallProgress = progress
+                                }
+                            },
+                        ) { path ->
+                            localInstallProgress = LocalInstallProgress("Extracting…", File(path).nameWithoutExtension)
+                            installLocalFiles(listOf(path), container, context, installStates, scope) { progress ->
+                                localInstallProgress = progress
+                            }
+                        }
+                    },
+                )
+                CategoryTabs(
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = { selectedCategory = it },
+                )
                 Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     when (val state = ui) {
                         CatalogUiState.Loading -> SheetCentered { Spinner() }
@@ -248,6 +286,7 @@ fun ComponentInstallerSheet(
                         is CatalogUiState.Loaded ->
                             ComponentList(
                                 items = state.items,
+                                selectedCategory = selectedCategory,
                                 installStates = installStates,
                                 onInstall = { item ->
                                     installStates[item.name] = InstallUi.Running("Queued…")
@@ -291,12 +330,65 @@ fun ComponentInstallerSheet(
         }
         }
     }
+
+    if (localInstallProgress != null) {
+        LocalInstallProgressDialog(localInstallProgress!!)
+    }
+}
+
+data class LocalInstallProgress(
+    val title: String,
+    val message: String,
+)
+
+@Composable
+private fun LocalInstallProgressDialog(progress: LocalInstallProgress) {
+    Dialog(
+        onDismissRequest = {},
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .width(280.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(SheetRoot)
+                    .border(1.dp, SheetOutline, RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    color = SheetAccent,
+                    strokeWidth = 3.dp,
+                )
+                Text(
+                    text = progress.title,
+                    color = SheetTextPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = progress.message,
+                    color = SheetTextSecondary,
+                    fontSize = 12.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
 }
 
 @Composable
 private fun SheetHeader(
     containerName: String,
     onClose: () -> Unit,
+    onLocalInstall: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(start = 18.dp, end = 12.dp, top = 14.dp, bottom = 10.dp)) {
         Row(
@@ -318,6 +410,8 @@ private fun SheetHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            LocalInstallButton(onClick = onLocalInstall)
+            Spacer(Modifier.width(8.dp))
             Box(
                 modifier =
                     Modifier
@@ -347,17 +441,119 @@ private fun SheetHeader(
 }
 
 @Composable
+private fun LocalInstallButton(onClick: () -> Unit) {
+    Box(
+        modifier =
+            Modifier
+                .height(30.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(SheetAccent.copy(alpha = 0.14f))
+                .border(1.dp, SheetAccent.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                .paneNavItem(
+                    cornerRadius = 8.dp,
+                    onActivate = onClick,
+                    tapToSelect = true,
+                )
+                .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Outlined.Upload,
+                contentDescription = "Local install",
+                tint = SheetAccent,
+                modifier = Modifier.size(13.dp),
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = "Local install",
+                color = SheetAccent,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryTabs(
+    selectedCategory: String,
+    onCategorySelected: (String) -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CATEGORY_ORDER.forEachIndexed { index, category ->
+            CategoryTabChip(
+                label = category,
+                selected = category == selectedCategory,
+                onClick = { onCategorySelected(category) },
+            )
+            if (index < CATEGORY_ORDER.lastIndex) {
+                Spacer(Modifier.width(8.dp))
+            }
+        }
+    }
+    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(SheetOutline))
+}
+
+@Composable
+private fun CategoryTabChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val background = if (selected) SheetAccent.copy(alpha = 0.18f) else SheetSubcard
+    val borderColor = if (selected) SheetAccent.copy(alpha = 0.45f) else SheetOutline
+    val textColor = if (selected) SheetAccent else SheetTextSecondary
+    Box(
+        modifier =
+            Modifier
+                .height(30.dp)
+                .clip(RoundedCornerShape(15.dp))
+                .background(background)
+                .border(1.dp, borderColor, RoundedCornerShape(15.dp))
+                .paneNavItem(
+                    cornerRadius = 15.dp,
+                    onActivate = onClick,
+                    tapToSelect = true,
+                )
+                .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            color = textColor,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
 private fun ComponentList(
     items: List<CatalogComponent>,
+    selectedCategory: String,
     installStates: Map<String, InstallUi>,
     onInstall: (CatalogComponent) -> Unit,
 ) {
-    val grouped = items.groupBy { it.category }
+    val filtered = items.filter { it.category == selectedCategory }
     val nav = LocalPaneNav.current
     val scrollState = rememberScrollState()
     val density = LocalDensity.current
     var viewportTop by remember { mutableStateOf(0f) }
     var viewportHeight by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(selectedCategory) {
+        scrollState.scrollTo(0)
+    }
     if (nav != null) {
         LaunchedEffect(nav.activeRow, nav.activeCol, viewportHeight) {
             if (!nav.controllerActive || nav.manualSelection) return@LaunchedEffect
@@ -388,29 +584,32 @@ private fun ComponentList(
                     },
                 ),
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            grouped.forEach { (category, group) ->
+        if (filtered.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
-                    text = category.uppercase(),
+                    text = "No components in this category.",
                     color = SheetTextSecondary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.2.sp,
-                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp),
+                    fontSize = 13.sp,
                 )
-                group.forEachIndexed { idx, component ->
+            }
+        } else {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                filtered.forEachIndexed { idx, component ->
                     ComponentRow(
                         item = component,
                         status = installStates[component.name],
                         onInstall = onInstall,
-                        isEntry = category == grouped.keys.first() && idx == 0,
+                        isEntry = idx == 0,
                     )
                 }
             }
@@ -551,6 +750,82 @@ private fun InstallButton(
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
         )
+    }
+}
+
+private fun installLocalFiles(
+    paths: List<String>,
+    container: Container,
+    context: android.content.Context,
+    installStates: MutableMap<String, InstallUi>,
+    scope: kotlinx.coroutines.CoroutineScope,
+    onProgress: (LocalInstallProgress?) -> Unit,
+) {
+    paths.forEach { path ->
+        val archiveFile = File(path)
+        if (!archiveFile.isFile) return@forEach
+        val name = archiveFile.nameWithoutExtension
+        installStates[name] = InstallUi.Running("Extracting…")
+        scope.launch(Dispatchers.IO) {
+            installMutex.withLock {
+                try {
+                    val componentDir = File(context.cacheDir, "wn-components/$name")
+                    componentDir.mkdirs()
+
+                    onProgress(LocalInstallProgress("Extracting…", name))
+                    runInterruptible {
+                        ArchiveExtractor.extract(
+                            source = archiveFile,
+                            destDir = componentDir,
+                            onProgress = {},
+                            isActive = { true },
+                        )
+                    }
+
+                    onProgress(LocalInstallProgress("Finding manifest…", name))
+                    val ymlFile =
+                        componentDir.walkTopDown().firstOrNull {
+                            it.isFile && it.extension.equals("yml", ignoreCase = true)
+                        } ?: throw Exception("No .yml manifest found in archive")
+
+                    val yaml = ymlFile.readText()
+
+                    installStates[name] = InstallUi.Running("Installing…")
+                    runInterruptible {
+                        ComponentInstaller(
+                            context = context,
+                            container = container,
+                            componentName = name,
+                            manifestYaml = yaml,
+                            listener =
+                                object : ComponentInstaller.Listener {
+                                    override fun onStatus(text: String) {
+                                        installStates[name] = InstallUi.Running(text)
+                                        if (text.startsWith("Running installer:")) {
+                                            onProgress(null)
+                                        } else {
+                                            onProgress(LocalInstallProgress(text, name))
+                                        }
+                                    }
+
+                                    override fun onProgress(fraction: Float) {}
+                                },
+                            skipDownload = true,
+                        ).run()
+                    }
+                    installStates[name] = InstallUi.Done
+                    onProgress(null)
+                    WinToast.show(context, "Installed: $name")
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    onProgress(null)
+                    installStates[name] =
+                        InstallUi.Failed(e.message ?: "Local install failed.")
+                    WinToast.show(context, "Install failed: ${e.message ?: "Local install failed."}")
+                }
+            }
+        }
     }
 }
 
