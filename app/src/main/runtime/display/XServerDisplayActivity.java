@@ -555,6 +555,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private long startTime;
     private SharedPreferences playtimePrefs;
     private String shortcutName;
+    private String shortcutKey;
     private String cachedPreloaderTitle = "";
     private String cachedPreloaderBadge = "";
     private String cachedPreloaderSubtitle = "";
@@ -1697,8 +1698,22 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             Log.d("XServerDisplayActivity", "No shortcut path provided, skipping shortcut parsing.");
         }
 
-        if (shortcutName != null) {
-            shortcutName = shortcutName.replaceAll("[^A-Za-z0-9 _-]", "");
+        if (shortcutKey == null || shortcutKey.isEmpty()) {
+            String identity = null;
+            if (resolvedShortcut != null) {
+                String uuid = resolvedShortcut.getExtra("uuid", "");
+                if (!uuid.isEmpty()) {
+                    identity = uuid;
+                }
+            }
+            if (identity == null && shortcutPath != null && !shortcutPath.isEmpty()) {
+                identity = shortcutPath;
+            }
+            if (identity == null) {
+                identity = shortcutName == null ? "unknown" : shortcutName;
+            }
+            int customId = -( (identity.hashCode() & 0x7FFFFFFF) + 1 );
+            shortcutKey = "custom_" + customId;
         }
 
         incrementPlayCount();
@@ -2976,7 +2991,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         }
 
         SharedPreferences.Editor editor = playtimePrefs.edit();
-        String playtimeKey = shortcutName + "_playtime";
+        String playtimeKey = shortcutKey + "_playtime";
 
         long totalPlaytime = playtimePrefs.getLong(playtimeKey, 0) + playtime;
         editor.putLong(playtimeKey, totalPlaytime);
@@ -2992,10 +3007,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
     private void incrementPlayCount() {
         SharedPreferences.Editor editor = playtimePrefs.edit();
-        String playCountKey = shortcutName + "_play_count";
+        String playCountKey = shortcutKey + "_play_count";
         int playCount = playtimePrefs.getInt(playCountKey, 0) + 1;
         editor.putInt(playCountKey, playCount);
-        editor.putLong(shortcutName + "_last_played", System.currentTimeMillis());
+        editor.putLong(shortcutKey + "_last_played", System.currentTimeMillis());
         editor.apply();
     }
 

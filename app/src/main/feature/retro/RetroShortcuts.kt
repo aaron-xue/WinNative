@@ -110,6 +110,7 @@ object RetroShortcuts {
         name: String,
         romPath: String,
         system: RetroSystem,
+        coverArt: java.io.File? = null,
     ): Boolean {
         val container = ContainerManager(context).retroContainer
 
@@ -119,6 +120,20 @@ object RetroShortcuts {
         val safeName = name.replace("/", "_").replace("\\", "_")
         val shortcutFile = File(desktopDir, "$safeName.desktop")
         val shortcutUuid = UUID.randomUUID().toString()
+
+        val iconOutFile = com.winlator.cmod.feature.shortcuts.LibraryShortcutArtwork
+            .buildManagedCustomGameArtworkFile(context, shortcutUuid)
+        val extractedArtworkPath =
+            try {
+                if (coverArt != null && coverArt.isFile) {
+                    coverArt.copyTo(iconOutFile, overwrite = true)
+                    iconOutFile.absolutePath
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
 
         val content =
             buildString {
@@ -134,6 +149,7 @@ object RetroShortcuts {
                 append("$KEY_ROM=$romPath\n")
                 append("$KEY_CORE=${system.coreFileName}\n")
                 append("uuid=$shortcutUuid\n")
+                extractedArtworkPath?.let { append("customCoverArtPath=$it\n") }
                 append("container_id=${container.id}\n")
                 append("use_container_defaults=1\n")
             }
@@ -152,12 +168,12 @@ object RetroShortcuts {
         if (!RetroBundle.requireInstalled(context)) return
 
         if (system != null && system.isExternal) {
-            recordLaunchStats(context, shortcut.getExtra("custom_name", shortcut.name))
+            recordLaunchStats(context, shortcut)
             launchEmbeddedPs2(context, shortcut)
             return
         }
         if (Gen1EmbedLaunch.isEnabled(shortcut)) {
-            recordLaunchStats(context, shortcut.getExtra("custom_name", shortcut.name))
+            recordLaunchStats(context, shortcut)
             kotlin.concurrent.thread(name = "WnEngine3DLaunch") {
                 val intent =
                     Gen1EmbedLaunch.launchIntentIfSupported(context, shortcut)
@@ -172,7 +188,7 @@ object RetroShortcuts {
             return
         }
         if (RetroCoreManager.usesDolphinCore(system) && embeddedDolphinEnabled(context)) {
-            recordLaunchStats(context, shortcut.getExtra("custom_name", shortcut.name))
+            recordLaunchStats(context, shortcut)
             DolphinEmbedLaunch.launch(context, shortcut)
             return
         }
@@ -196,12 +212,16 @@ object RetroShortcuts {
 
     private fun recordLaunchStats(
         context: Context,
-        gameName: String,
+        shortcut: Shortcut,
     ) {
+        val uuid = shortcut.getExtra("uuid", "")
+        val identity = if (uuid.isNotEmpty()) uuid else shortcut.file?.absolutePath ?: shortcut.name
+        val customId = -( (identity.hashCode() and 0x7FFFFFFF) + 1 )
+        val keyBase = "custom_$customId"
         val prefs = context.getSharedPreferences("playtime_stats", Context.MODE_PRIVATE)
         prefs.edit()
-            .putInt("${gameName}_play_count", prefs.getInt("${gameName}_play_count", 0) + 1)
-            .putLong("${gameName}_last_played", System.currentTimeMillis())
+            .putInt("${keyBase}_play_count", prefs.getInt("${keyBase}_play_count", 0) + 1)
+            .putLong("${keyBase}_last_played", System.currentTimeMillis())
             .apply()
     }
 
@@ -324,6 +344,10 @@ object RetroShortcuts {
             putExtra(RetroActivity.EXTRA_GAME_NAME, shortcut.getExtra("custom_name", shortcut.name))
             putExtra(RetroActivity.EXTRA_SHORTCUT_PATH, shortcut.file.absolutePath)
             putExtra(RetroActivity.EXTRA_CONTAINER_ID, shortcut.container.id)
+            val uuid = shortcut.getExtra("uuid", "")
+            val identity = if (uuid.isNotEmpty()) uuid else shortcut.file?.absolutePath ?: shortcut.name
+            val customId = -( (identity.hashCode() and 0x7FFFFFFF) + 1 )
+            putExtra(RetroActivity.EXTRA_CUSTOM_ID, customId)
             putExtra(
                 RetroActivity.EXTRA_SHADER,
                 shortcut.getExtra(KEY_SHADER).ifEmpty { RetroDefaults.shader(context, sysId) },

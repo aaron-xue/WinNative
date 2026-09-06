@@ -63,6 +63,7 @@ import androidx.compose.material.icons.outlined.DriveFolderUpload
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Description
@@ -1506,6 +1507,7 @@ object DirectoryPickerDialog {
         onHighlighted: () -> Unit = {},
     ) {
         val isExe = entry.isSelectableFile && entry.target.name.endsWith(".exe", ignoreCase = true)
+        val isGamePkg = entry.isSelectableFile && entry.target.name.endsWith(".game", ignoreCase = true)
         var peIconBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
         LaunchedEffect(entry.target.absolutePath) {
             if (isExe) {
@@ -1576,11 +1578,16 @@ object DirectoryPickerDialog {
                             imageVector =
                                 when {
                                     entry.isParent -> Icons.Outlined.KeyboardArrowUp
+                                    isGamePkg -> Icons.Outlined.SportsEsports
                                     entry.isSelectableFile -> if (isExe) Icons.Outlined.Terminal else Icons.Outlined.Description
                                     else -> Icons.Outlined.Folder
                                 },
                             contentDescription = null,
-                            tint = Accent,
+                            tint =
+                                when {
+                                    isGamePkg -> Color(0xFFFFB74D)
+                                    else -> Accent
+                                },
                             modifier = Modifier.size(16.dp),
                         )
                     }

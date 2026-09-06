@@ -64,6 +64,7 @@ class RetroActivity : FixedFontScaleAppCompatActivity(), LandscapeOnlyActivity, 
         const val EXTRA_AUDIO = "retro_audio"
         const val EXTRA_HUD = "retro_hud"
         const val EXTRA_VARIABLES = "retro_variables"
+        const val EXTRA_CUSTOM_ID = "retro_custom_id"
 
         const val EXTRA_UPSCALE = "retro_upscale"
         const val EXTRA_SGSR = "retro_sgsr"
@@ -79,6 +80,7 @@ class RetroActivity : FixedFontScaleAppCompatActivity(), LandscapeOnlyActivity, 
     private val menu = RetroMenuController()
     private var retroReady = false
     private var gameName = "game"
+    private var customId = 0
     private var fastForward = false
     private var audioEnabledSetting = true
     private var touchControlsSetting = true
@@ -311,6 +313,7 @@ class RetroActivity : FixedFontScaleAppCompatActivity(), LandscapeOnlyActivity, 
         val romPath = intent.getStringExtra(EXTRA_ROM_PATH)
         val systemId = intent.getStringExtra(EXTRA_SYSTEM_ID)
         gameName = intent.getStringExtra(EXTRA_GAME_NAME) ?: "game"
+        customId = intent.getIntExtra(EXTRA_CUSTOM_ID, 0)
         val resolvedSystem = RetroSystems.fromId(systemId)
         system = resolvedSystem
 
@@ -337,7 +340,7 @@ class RetroActivity : FixedFontScaleAppCompatActivity(), LandscapeOnlyActivity, 
                 sourceFile
             }
 
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 
         netplayArmedThisSession = RetroDefaults.netplayEnabled(this, resolvedSystem.id)
         if (!netplayArmedThisSession && RetroNetplayLobby.isInRoomSession()) {
@@ -855,10 +858,11 @@ class RetroActivity : FixedFontScaleAppCompatActivity(), LandscapeOnlyActivity, 
         val prefs = getSharedPreferences("playtime_stats", MODE_PRIVATE)
         playtimePrefs = prefs
         sessionStart = System.currentTimeMillis()
+        val keyBase = "custom_$customId"
         prefs
             .edit()
-            .putInt("${gameName}_play_count", prefs.getInt("${gameName}_play_count", 0) + 1)
-            .putLong("${gameName}_last_played", sessionStart)
+            .putInt("${keyBase}_play_count", prefs.getInt("${keyBase}_play_count", 0) + 1)
+            .putLong("${keyBase}_last_played", sessionStart)
             .apply()
     }
 
@@ -867,9 +871,10 @@ class RetroActivity : FixedFontScaleAppCompatActivity(), LandscapeOnlyActivity, 
         val now = System.currentTimeMillis()
         val delta = now - sessionStart
         if (delta > 0) {
+            val keyBase = "custom_$customId"
             prefs
                 .edit()
-                .putLong("${gameName}_playtime", prefs.getLong("${gameName}_playtime", 0L) + delta)
+                .putLong("${keyBase}_playtime", prefs.getLong("${keyBase}_playtime", 0L) + delta)
                 .apply()
         }
         sessionStart = now

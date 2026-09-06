@@ -250,8 +250,13 @@ public class ShortcutsFragment extends Fragment {
 
     SharedPreferences playtimePrefs =
         context.getSharedPreferences("playtime_stats", Context.MODE_PRIVATE);
-    String playtimeKey = shortcut.name + "_playtime";
-    String playCountKey = shortcut.name + "_play_count";
+    String uuid = shortcut.getExtra("uuid", "");
+    String identity = !uuid.isEmpty() ? uuid : shortcut.file != null ? shortcut.file.getAbsolutePath() : shortcut.name;
+    int customId = -( (identity.hashCode() & 0x7FFFFFFF) + 1 );
+    String keyBase = "custom_" + customId;
+    String playtimeKey = keyBase + "_playtime";
+    String playCountKey = keyBase + "_play_count";
+    String lastPlayedKey = keyBase + "_last_played";
 
     long totalPlaytime = playtimePrefs.getLong(playtimeKey, 0);
     int playCount = playtimePrefs.getInt(playCountKey, 0);
@@ -271,7 +276,7 @@ public class ShortcutsFragment extends Fragment {
         playCountText,
         playtimeText,
         () -> {
-          playtimePrefs.edit().remove(playtimeKey).remove(playCountKey).apply();
+          playtimePrefs.edit().remove(playtimeKey).remove(playCountKey).remove(lastPlayedKey).apply();
           WinToast.show(getContext(), R.string.shortcuts_properties_properties_reset);
         })) {
       return;

@@ -223,7 +223,7 @@ wiring the chain into WinNative's compositor and swapchain (`vkr_lsfg.*`).
   ```
   tar -I zstd -cf example.tar.zst ./usr
   //tzst工具
-  tzst a MEGA.MAN.X.DiVE.Offline.tzst cover1.jpg manifests.json
+  tzst a 龙珠大冒险.tzst cover1.jpg manifests.json
   ```
 - **tzst工具** Download standalone executables from the [Releases](https://github.com/xixu-me/tzst/releases) section.
 

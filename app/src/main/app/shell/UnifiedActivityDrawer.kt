@@ -811,7 +811,7 @@ internal fun UnifiedActivity.AddCustomGameDialog(onDismiss: () -> Unit) {
             val added =
                 if (chosenRetro != null) {
                     com.winlator.cmod.feature.retro.RetroShortcuts
-                        .create(context, gameName.trim(), selectedExePath!!, chosenRetro)
+                        .create(context, gameName.trim(), selectedExePath!!, chosenRetro, coverArtFile)
                 } else {
                     addCustomGame(context, gameName.trim(), selectedExePath!!, gameFolder!!, coverArtFile)
                     true

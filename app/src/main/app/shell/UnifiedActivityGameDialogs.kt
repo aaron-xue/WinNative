@@ -1977,10 +1977,10 @@ internal fun UnifiedActivity.LibraryGameDetailDialog(
         }
     val searchKey =
         remember(app) {
-            if (app.id >= 2000000000 || app.id < 0) {
-                app.name
-            } else {
-                app.name.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
+            when {
+                app.id < 0 -> "custom_${app.id}"
+                app.id >= 2000000000 -> app.name
+                else -> app.name.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
             }
         }
     val lastPlayed = playtimePrefs.getLong("${searchKey}_last_played", 0L)
