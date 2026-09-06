@@ -806,7 +806,47 @@ internal fun UnifiedActivity.UnifiedHub() {
                         Box(
                             Modifier
                                 .matchParentSize()
-                                .background(BgDark.copy(alpha = 0.5f)),
+                                .background(
+                                    Brush.radialGradient(
+                                        colorStops =
+                                            arrayOf(
+                                                0.0f to Color.Transparent,
+                                                0.55f to Color.Transparent,
+                                                0.82f to BgDark.copy(alpha = 0.35f),
+                                                1.0f to BgDark.copy(alpha = 0.75f),
+                                            ),
+                                    ),
+                                ),
+                        )
+                        Box(
+                            Modifier
+                                .matchParentSize()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colorStops =
+                                            arrayOf(
+                                                0.0f to BgDark.copy(alpha = 0.55f),
+                                                0.28f to Color.Transparent,
+                                                0.72f to Color.Transparent,
+                                                1.0f to BgDark.copy(alpha = 0.55f),
+                                            ),
+                                    ),
+                                ),
+                        )
+                        Box(
+                            Modifier
+                                .matchParentSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colorStops =
+                                            arrayOf(
+                                                0.0f to BgDark.copy(alpha = 0.55f),
+                                                0.28f to Color.Transparent,
+                                                0.72f to Color.Transparent,
+                                                1.0f to BgDark.copy(alpha = 0.85f),
+                                            ),
+                                    ),
+                                ),
                         )
                     }
                 }
