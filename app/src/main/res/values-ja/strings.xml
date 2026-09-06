@@ -2665,4 +2665,56 @@
     <string name="itch_facet_gamepad">ゲームパッド</string>
     <string name="itch_store_update_none">最新です</string>
     <string name="itch_store_update_available">アップデートあり — %1$s</string>
+
+    <!-- Component Installer Sheet -->
+    <string name="component_installer_title">コンポーネントをインストール</string>
+    <string name="component_installer_local">ローカルインストール</string>
+    <string name="component_installer_close_desc">閉じる</string>
+    <string name="component_installer_local_desc">ローカルインストール</string>
+    <string name="component_installer_install">インストール</string>
+    <string name="component_installer_installed">インストール済み</string>
+    <string name="component_installer_retry">再試行</string>
+    <string name="component_installer_badge_installer">インストーラー</string>
+    <string name="component_installer_badge_library">ライブラリ</string>
+    <string name="component_installer_category_empty">このカテゴリにはコンポーネントがありません。</string>
+    <string name="component_installer_loading_extracting">解凍中…</string>
+    <string name="component_installer_loading_queued">待機中…</string>
+    <string name="component_installer_loading_starting">起動中…</string>
+    <string name="component_installer_loading_finding_manifest">マニフェストを探しています…</string>
+    <string name="component_installer_loading_installing">インストール中…</string>
+    <string name="component_installer_success_installed">インストール完了：%1$s</string>
+    <string name="component_installer_error_fetch_manifest">マニフェストの取得に失敗しました。</string>
+    <string name="component_installer_error_install_failed">インストールに失敗しました。</string>
+    <string name="component_installer_error_local_failed">ローカルインストールに失敗しました。</string>
+    <string name="component_installer_error_no_manifest">アーカイブ内に .yml マニフェストが見つかりません</string>
+    <string name="component_installer_error_catalog_unreachable">コンポーネントカタログに接続できません。</string>
+    <string name="component_installer_error_catalog_malformed">コンポーネントカタログの形式が正しくありません。</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">コンテナがまだ設定されていません — 最初に一度起動してください。</string>
+    <string name="comp_install_error_empty_manifest">空のマニフェスト</string>
+    <string name="comp_install_error_no_steps">マニフェストにステップがありません</string>
+    <string name="comp_install_error_cancelled">キャンセルされました</string>
+    <string name="comp_install_status_downloading">%1$s をダウンロード中（%2$d/%3$d）</string>
+    <string name="comp_install_error_download_failed">ダウンロード失敗：%1$s</string>
+    <string name="comp_install_error_checksum_mismatch">チェックサム不一致：%1$s</string>
+    <string name="comp_install_status_extracting">%1$s を解凍中</string>
+    <string name="comp_install_error_extract_failed">解凍失敗：%1$s</string>
+    <string name="comp_install_error_unsupported_format">未対応のアーカイブ形式：%1$s</string>
+    <string name="comp_install_status_extracting_cab">CAB から抽出中</string>
+    <string name="comp_install_error_cab_not_found">CAB が見つかりません：%1$s</string>
+    <string name="comp_install_error_cabextract_missing">システムイメージに cabextract がありません。</string>
+    <string name="comp_install_error_cab_extract_failed">CAB 抽出失敗（終了コード %1$d）：%2$s</string>
+    <string name="comp_install_error_cabextract_run">cabextract を実行できません：%1$s</string>
+    <string name="comp_install_status_installing_into">%1$s にインストール中</string>
+    <string name="comp_install_error_source_not_found">ソースが見つかりません：%1$s</string>
+    <string name="comp_install_error_copy_failed">コピー失敗：%1$s</string>
+    <string name="comp_install_error_missing_file">ファイルが見つかりません：%1$s</string>
+    <string name="comp_install_error_installer_not_found">インストーラーが見つかりません：%1$s</string>
+    <string name="comp_install_error_stage_installer">インストーラーをステージングできません：%1$s</string>
+    <string name="comp_install_status_running_installer">インストーラーを実行中：%1$s</string>
+    <string name="comp_install_error_installer_exit_code">インストーラーがコード %1$d で終了：%2$s</string>
+    <string name="comp_install_status_registering_dlls">%1$d 個の DLL を登録中</string>
+    <string name="comp_install_error_session_active">セッションが実行中です — コンポーネントをインストールする前に閉じてください。</string>
+    <string name="comp_install_error_timeout">インストーラーがタイムアウトしたか、セッションが閉じられました。</string>
 </resources>

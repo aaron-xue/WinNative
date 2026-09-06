@@ -102,7 +102,7 @@
     <string name="common_ui_cannot_write_folder">Kan ikke skrive til den valgte mappen</string>
     <string name="common_ui_failed_create_directory">Kunne ikke opprette standardmappe</string>
     <string name="common_ui_device_not_supported">Beklager, enheten din støttes kanskje ikke</string>
-    <string name="common_ui_please_wait">Vent litt\u2026</string>
+    <string name="common_ui_please_wait">Vent litt…</string>
     <string name="common_ui_done">Ferdig</string>
     <string name="common_ui_open">Åpne</string>
     <string name="common_ui_connected">Tilkoblet</string>
@@ -181,7 +181,7 @@
     <string name="library_games_game_removed">%1$s fjernet.</string>
     <string name="library_games_failed_to_uninstall">Avinstallering mislyktes.</string>
     <string name="library_games_failed_to_uninstall_reason">Avinstallering mislyktes: %1$s</string>
-    <string name="library_games_loading">Laster bibliotek\u2026</string>
+    <string name="library_games_loading">Laster bibliotek…</string>
     <string name="library_games_no_games_installed">Ingen spill installert. Bruk en Butikk-fane eller +-knappen for å legge til spill.</string>
     <string name="library_games_times_played_label">Antall ganger spilt: </string>
     <string name="library_games_playtime_label">Spilletid: </string>
@@ -2665,4 +2665,55 @@ Installert bane:
     <string name="itch_facet_gamepad">Spillkontroller</string>
     <string name="itch_store_update_none">Oppdatert</string>
     <string name="itch_store_update_available">Oppdatering tilgjengelig — %1$s</string>
+
+    <string name="component_installer_badge_installer">INSTALLATØR</string>
+    <string name="component_installer_badge_library">BIBLIOTEK</string>
+    <string name="component_installer_category_empty">Ingen komponenter i denne kategorien.</string>
+    <string name="component_installer_close_desc">Lukk</string>
+    <string name="component_installer_error_catalog_malformed">Komponentkatalogen er ugyldig.</string>
+    <string name="component_installer_error_catalog_unreachable">Kunne ikke nå komponentkatalogen.</string>
+    <string name="component_installer_error_fetch_manifest">Kunne ikke hente manifestet.</string>
+    <string name="component_installer_error_install_failed">Installasjonen mislyktes.</string>
+    <string name="component_installer_error_local_failed">Lokal installasjon mislyktes.</string>
+    <string name="component_installer_error_no_manifest">Ingen .yml-manifest funnet i arkivet</string>
+    <string name="component_installer_install">Installer</string>
+    <string name="component_installer_installed">Installert</string>
+    <string name="component_installer_loading_extracting">Pakk ut…</string>
+    <string name="component_installer_loading_finding_manifest">Søker etter manifest…</string>
+    <string name="component_installer_loading_installing">Installerer…</string>
+    <string name="component_installer_loading_queued">I kø…</string>
+    <string name="component_installer_loading_starting">Starter…</string>
+    <string name="component_installer_local">Lokal installasjon</string>
+    <string name="component_installer_local_desc">Lokal installasjon</string>
+    <string name="component_installer_retry">Prøv igjen</string>
+    <string name="component_installer_success_installed">Installert: %1$s</string>
+    <string name="component_installer_title">Installer komponenter</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">Beholderen er ikke satt opp ennå — start den én gang først.</string>
+    <string name="comp_install_error_empty_manifest">Tomt manifest</string>
+    <string name="comp_install_error_no_steps">Manifestet har ingen trinn</string>
+    <string name="comp_install_error_cancelled">Avbrutt</string>
+    <string name="comp_install_status_downloading">Laster ned %1$s (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">Nedlasting mislyktes: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">Sjekksum stemmer ikke: %1$s</string>
+    <string name="comp_install_status_extracting">Pakker ut %1$s</string>
+    <string name="comp_install_error_extract_failed">Utpakking mislyktes: %1$s</string>
+    <string name="comp_install_error_unsupported_format">Arkivformatet støttes ikke: %1$s</string>
+    <string name="comp_install_status_extracting_cab">Pakker ut fra CAB</string>
+    <string name="comp_install_error_cab_not_found">CAB ikke funnet: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract mangler i systembildet.</string>
+    <string name="comp_install_error_cab_extract_failed">CAB-utpakking mislyktes (kode %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">Kunne ikke kjøre cabextract: %1$s</string>
+    <string name="comp_install_status_installing_into">Installerer i %1$s</string>
+    <string name="comp_install_error_source_not_found">Kilde ikke funnet: %1$s</string>
+    <string name="comp_install_error_copy_failed">Kopiering mislyktes: %1$s</string>
+    <string name="comp_install_error_missing_file">Manglende fil: %1$s</string>
+    <string name="comp_install_error_installer_not_found">Installasjonsprogram ikke funnet: %1$s</string>
+    <string name="comp_install_error_stage_installer">Kunne ikke klargjøre installasjonsprogram: %1$s</string>
+    <string name="comp_install_status_running_installer">Kjører installasjonsprogram: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">Installasjonsprogrammet avsluttet med kode %1$d: %2$s</string>
+    <string name="comp_install_status_registering_dlls">Registrerer %1$d DLL(er)</string>
+    <string name="comp_install_error_session_active">En økt kjører fortsatt — lukk den før du installerer komponenter.</string>
+    <string name="comp_install_error_timeout">Installasjonsprogrammet fikk tidsavbrudd eller økten ble lukket.</string>
 </resources>

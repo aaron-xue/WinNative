@@ -102,7 +102,7 @@
     <string name="common_ui_cannot_write_folder">Valittuun kansioon ei voi kirjoittaa</string>
     <string name="common_ui_failed_create_directory">Oletushakemiston luonti epäonnistui</string>
     <string name="common_ui_device_not_supported">Valitettavasti laitettasi ei ehkä tueta</string>
-    <string name="common_ui_please_wait">Odota\u2026</string>
+    <string name="common_ui_please_wait">Odota…</string>
     <string name="common_ui_done">Valmis</string>
     <string name="common_ui_open">Avaa</string>
     <string name="common_ui_connected">Yhdistetty</string>
@@ -181,7 +181,7 @@
     <string name="library_games_game_removed">%1$s poistettu.</string>
     <string name="library_games_failed_to_uninstall">Asennuksen poisto epäonnistui.</string>
     <string name="library_games_failed_to_uninstall_reason">Asennuksen poisto epäonnistui: %1$s</string>
-    <string name="library_games_loading">Ladataan kirjastoa\u2026</string>
+    <string name="library_games_loading">Ladataan kirjastoa…</string>
     <string name="library_games_no_games_installed">Ei asennettuja pelejä. Lisää pelejä Kauppa-välilehden tai +-painikkeen avulla.</string>
     <string name="library_games_times_played_label">Pelikertojen määrä: </string>
     <string name="library_games_playtime_label">Peliaika: </string>
@@ -2665,4 +2665,55 @@ Asennuspolku:
     <string name="itch_facet_gamepad">Peliohjain</string>
     <string name="itch_store_update_none">Ajan tasalla</string>
     <string name="itch_store_update_available">Päivitys saatavilla — %1$s</string>
+
+    <string name="component_installer_badge_installer">ASENNUSOHJELMA</string>
+    <string name="component_installer_badge_library">KIRJASTO</string>
+    <string name="component_installer_category_empty">Tässä kategoriassa ei ole komponentteja.</string>
+    <string name="component_installer_close_desc">Sulje</string>
+    <string name="component_installer_error_catalog_malformed">Komponenttiluettelo on virheellinen.</string>
+    <string name="component_installer_error_catalog_unreachable">Komponenttiluetteloa ei tavoitettu.</string>
+    <string name="component_installer_error_fetch_manifest">Manifestia ei voitu noutaa.</string>
+    <string name="component_installer_error_install_failed">Asennus epäonnistui.</string>
+    <string name="component_installer_error_local_failed">Paikallinen asennus epäonnistui.</string>
+    <string name="component_installer_error_no_manifest">Arkistosta ei löydetty .yml-manifestia</string>
+    <string name="component_installer_install">Asenna</string>
+    <string name="component_installer_installed">Asennettu</string>
+    <string name="component_installer_loading_extracting">Purketaan…</string>
+    <string name="component_installer_loading_finding_manifest">Etsitään manifestia…</string>
+    <string name="component_installer_loading_installing">Asennetaan…</string>
+    <string name="component_installer_loading_queued">Jonossa…</string>
+    <string name="component_installer_loading_starting">Käynnistetään…</string>
+    <string name="component_installer_local">Paikallinen asennus</string>
+    <string name="component_installer_local_desc">Paikallinen asennus</string>
+    <string name="component_installer_retry">Yritä uudelleen</string>
+    <string name="component_installer_success_installed">Asennettu: %1$s</string>
+    <string name="component_installer_title">Asenna komponentteja</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">Säiliötä ei ole vielä määritetty — käynnistä se ensin kerran.</string>
+    <string name="comp_install_error_empty_manifest">Tyhjä manifesti</string>
+    <string name="comp_install_error_no_steps">Manifestissa ei ole vaiheita</string>
+    <string name="comp_install_error_cancelled">Peruutettu</string>
+    <string name="comp_install_status_downloading">Ladataan %1$s (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">Lataus epäonnistui: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">Tarkistussumma ei täsmää: %1$s</string>
+    <string name="comp_install_status_extracting">Puretaan %1$s</string>
+    <string name="comp_install_error_extract_failed">Purku epäonnistui: %1$s</string>
+    <string name="comp_install_error_unsupported_format">Ei-tuettu arkistomuoto: %1$s</string>
+    <string name="comp_install_status_extracting_cab">Puretaan CAB-tiedostosta</string>
+    <string name="comp_install_error_cab_not_found">CAB-tiedostoa ei löydy: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract puuttuu järjestelmäkuvasta.</string>
+    <string name="comp_install_error_cab_extract_failed">CAB-purku epäonnistui (koodi %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">cabextract-ohjelmaa ei voitu suorittaa: %1$s</string>
+    <string name="comp_install_status_installing_into">Asennetaan kohteeseen %1$s</string>
+    <string name="comp_install_error_source_not_found">Lähdettä ei löydy: %1$s</string>
+    <string name="comp_install_error_copy_failed">Kopiointi epäonnistui: %1$s</string>
+    <string name="comp_install_error_missing_file">Tiedosto puuttuu: %1$s</string>
+    <string name="comp_install_error_installer_not_found">Asennusohjelmaa ei löydy: %1$s</string>
+    <string name="comp_install_error_stage_installer">Asennusohjelmaa ei voitu valmistella: %1$s</string>
+    <string name="comp_install_status_running_installer">Suoritetaan asennusohjelmaa: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">Asennusohjelma päättyi koodilla %1$d: %2$s</string>
+    <string name="comp_install_status_registering_dlls">Rekisteröidään %1$d DLL:ää</string>
+    <string name="comp_install_error_session_active">Istunto on edelleen käynnissä — sulje se ennen komponenttien asennusta.</string>
+    <string name="comp_install_error_timeout">Asennusohjelma aikakatkaistiin tai istunto suljettiin.</string>
 </resources>

@@ -117,7 +117,7 @@
     <string name="common_ui_cannot_write_folder">चुने गए फ़ोल्डर में लिखा नहीं जा सकता</string>
     <string name="common_ui_failed_create_directory">डिफ़ॉल्ट डायरेक्टरी बनाने में विफल</string>
     <string name="common_ui_device_not_supported">क्षमा करें, आपका डिवाइस समर्थित नहीं हो सकता</string>
-    <string name="common_ui_please_wait">कृपया प्रतीक्षा करें\u2026</string>
+    <string name="common_ui_please_wait">कृपया प्रतीक्षा करें…</string>
     <string name="common_ui_done">पूर्ण</string>
     <string name="common_ui_open">खोलें</string>
     <string name="common_ui_connected">कनेक्टेड</string>
@@ -194,7 +194,7 @@
     <string name="library_games_game_removed">%1$s हटा दिया गया.</string>
     <string name="library_games_failed_to_uninstall">अनइंस्टॉल करने में विफल.</string>
     <string name="library_games_failed_to_uninstall_reason">अनइंस्टॉल करने में विफल: %1$s</string>
-    <string name="library_games_loading">लाइब्रेरी लोड हो रही है\u2026</string>
+    <string name="library_games_loading">लाइब्रेरी लोड हो रही है…</string>
     <string name="library_games_no_games_installed">कोई गेम इंस्टॉल नहीं है. गेम जोड़ने के लिए स्टोर टैब या + बटन का उपयोग करें।</string>
     <string name="library_games_times_played_label">खेले गए समय की संख्या:</string>
     <string name="library_games_playtime_label">खेलने का समय: </string>
@@ -1003,7 +1003,7 @@
     <string name="settings_other_section_integration">इंटीग्रेशन</string>
     <string name="settings_other_setup_wizard_title">सेटअप विज़ार्ड</string>
     <string name="settings_other_setup_wizard_summary">अनुमतियों, सिस्टम फ़ाइलों और डिफ़ॉल्ट कंटेनरों की समीक्षा करने के लिए सेटअप विज़ार्ड को फिर से खोलें।</string>
-    <string name="settings_other_checking_for_updates">अपडेट की जाँच हो रही है\u2026</string>
+    <string name="settings_other_checking_for_updates">अपडेट की जाँच हो रही है…</string>
     <string name="settings_other_update_check_cooldown">दोबारा जाँच करने से पहले कृपया %1$ds प्रतीक्षा करें</string>
     <string name="settings_other_persistable_permission_failed">स्थायी अनुमतियाँ लेने में असमर्थ: %1$s</string>
     <string name="settings_other_keep_app_open">कृपया यह समाप्त होने तक ऐप को खुला रखें।</string>
@@ -1044,14 +1044,14 @@
     <string name="settings_content_already_installed_title">घटक पहले से इंस्टॉल है</string>
     <string name="settings_content_already_installed_message">
         यह घटक पहले से इंस्टॉल है। इसे दोबारा डाउनलोड करने से पहले इंस्टॉल की गई कॉपी हटाएँ।
-        
+
         इंस्टॉल पथ:
         %1$s
     </string>
     <string name="settings_content_conflicting_title">विरोधी कंटेंट इंस्टॉल है</string>
     <string name="settings_content_conflicting_message">
         कृपया इस पैकेज को डाउनलोड करने से पहले विरोधी कंटेंट को अनइंस्टॉल करें।
-        
+
         इंस्टॉल पथ:
         %1$s
     </string>
@@ -1093,7 +1093,7 @@
     <string name="setup_wizard_recommended_x86_64">अनुशंसित x86-64</string>
     <string name="setup_wizard_recommended_arm64ec">अनुशंसित ARM64EC</string>
     <string name="setup_wizard_choose_components_description">चुनें कि कौन से घटक इंस्टॉल करने हैं। Wine/Proton अपने-आप कंटेनर बनाएगा।</string>
-    <string name="setup_wizard_loading_components">घटक लोड हो रहे हैं\u2026</string>
+    <string name="setup_wizard_loading_components">घटक लोड हो रहे हैं…</string>
     <string name="setup_wizard_no_components_available">इस श्रेणी के लिए कोई घटक उपलब्ध नहीं है.</string>
     <string name="setup_wizard_default_settings">डिफ़ॉल्ट सेटिंग्स</string>
     <string name="setup_wizard_containers">कंटेनर सेटअप</string>
@@ -1126,7 +1126,7 @@
     <string name="setup_wizard_recommended_label">अनुशंसित</string>
     <string name="setup_wizard_install_all_recommended">सभी अनुशंसित इंस्टॉल करें</string>
     <string name="setup_wizard_create_container">कंटेनर बनाएँ</string>
-    <string name="setup_wizard_creating_container">बनाया जा रहा है\u2026</string>
+    <string name="setup_wizard_creating_container">बनाया जा रहा है…</string>
     <string name="input_controls_tap_to_click">टैप करके क्लिक करें</string>
     <string name="input_controls_reverse_binding_order">बाइंडिंग क्रम उलटें</string>
     <string name="steam_login_auth_webview_title">प्राधिकरण</string>
@@ -1139,7 +1139,7 @@
     <string name="steam_login_open_steam_app_qr_hint">Steam ऐप खोलें → QR आइकन पर टैप करें</string>
     <string name="steam_login_failed_to_load_qr_code">QR कोड लोड करने में विफल</string>
     <string name="steam_login_retry">पुनः प्रयास करें</string>
-    <string name="steam_login_generating_code">कोड बनाया जा रहा है\u2026</string>
+    <string name="steam_login_generating_code">कोड बनाया जा रहा है…</string>
     <string name="steam_login_two_factor_auth">दो-कारक प्रमाणीकरण</string>
     <string name="steam_login_approve_login_steam_app">\nअपने Steam मोबाइल ऐप से इस लॉगिन को स्वीकृत करें</string>
     <string name="steam_login_enter_code_sent_to">\n%1$s पर भेजा गया कोड दर्ज करें</string>
@@ -1156,11 +1156,11 @@
     <string name="google_cloud_status_syncing">सिंक हो रहा है</string>
     <string name="google_cloud_status_connected">कनेक्टेड</string>
     <string name="google_cloud_status_not_signed_in">साइन इन नहीं</string>
-    <string name="google_cloud_working">काम हो रहा है\u2026</string>
+    <string name="google_cloud_working">काम हो रहा है…</string>
     <string name="google_cloud_sign_in">साइन इन करें</string>
     <string name="google_cloud_disable_sync">सिंक अक्षम करें</string>
     <string name="google_cloud_store_logins">स्टोर लॉगिन</string>
-    <string name="google_cloud_store_login_sync_busy">आपके स्टोर लॉगिन सिंक पर काम हो रहा है\u2026</string>
+    <string name="google_cloud_store_login_sync_busy">आपके स्टोर लॉगिन सिंक पर काम हो रहा है…</string>
     <string name="google_cloud_saved_games_unavailable">Google Saved Games अनुपलब्ध है</string>
     <string name="google_cloud_snapshot_ready">क्लाउड स्नैपशॉट तैयार</string>
     <string name="google_cloud_waiting_first_backup">पहले बैकअप की प्रतीक्षा है</string>
@@ -1209,11 +1209,11 @@
     <string name="cloud_sync_disabled_summary">क्लाउड सेव डाउनलोड या एग्जिट सिंक के बिना लॉन्च करें।</string>
     <string name="cloud_saves_offline_mode">क्लाउड सिंक अक्षम करें</string>
     <string name="cloud_saves_offline_mode_summary">इस गेम के लिए सभी स्वचालित क्लाउड गतिविधि बंद कर देता है।</string>
-    <string name="cloud_saves_backing_up">क्लाउड सेव का बैकअप लिया जा रहा है\u2026</string>
-    <string name="cloud_saves_restoring">क्लाउड सेव रीस्टोर हो रहा है\u2026</string>
+    <string name="cloud_saves_backing_up">क्लाउड सेव का बैकअप लिया जा रहा है…</string>
+    <string name="cloud_saves_restoring">क्लाउड सेव रीस्टोर हो रहा है…</string>
     <string name="cloud_saves_sync_from_provider">%1$s क्लाउड से सिंक करें</string>
     <string name="cloud_saves_sync_from_provider_generic">क्लाउड से सिंक करें</string>
-    <string name="cloud_saves_syncing_from_provider">%1$s से सेव डाउनलोड हो रहा है\u2026</string>
+    <string name="cloud_saves_syncing_from_provider">%1$s से सेव डाउनलोड हो रहा है…</string>
     <string name="cloud_saves_sync_from_provider_success">%1$s क्लाउड सेव डाउनलोड किया गया।</string>
     <string name="cloud_saves_sync_from_provider_failed">%1$s से सेव डाउनलोड नहीं किया जा सका.</string>
     <string name="cloud_saves_gog_manage_label">GOG क्लाउड सेव प्रबंधित करें</string>
@@ -1229,7 +1229,7 @@
     <string name="cloud_saves_history_download_success">फ़ाइल डाउनलोड हो गई।</string>
     <string name="cloud_saves_history_download_failed">डाउनलोड विफल रहा।</string>
     <string name="cloud_saves_history_empty">अभी तक किसी पिछली सेव का बैकअप नहीं है। बदली गई सेव और मैन्युअल बैकअप यहाँ 30 दिनों तक दिखेंगे।</string>
-    <string name="cloud_saves_history_loading">सेव इतिहास लोड हो रहा है\u2026</string>
+    <string name="cloud_saves_history_loading">सेव इतिहास लोड हो रहा है…</string>
     <string name="cloud_saves_history_sign_in">अपना सेव इतिहास देखने के लिए Google में साइन इन करें।</string>
     <string name="cloud_saves_history_origin_local">स्थानीय</string>
     <string name="cloud_saves_history_origin_cloud">क्लाउड</string>
@@ -2621,4 +2621,55 @@
     <string name="itch_facet_gamepad">गेमपैड</string>
     <string name="itch_store_update_none">अद्यतित</string>
     <string name="itch_store_update_available">अपडेट उपलब्ध — %1$s</string>
+
+    <string name="component_installer_badge_installer">इंस्टॉलर</string>
+    <string name="component_installer_badge_library">लाइब्रेरी</string>
+    <string name="component_installer_category_empty">इस श्रेणी में कोई कंपोनेंट नहीं है।</string>
+    <string name="component_installer_close_desc">बंद करें</string>
+    <string name="component_installer_error_catalog_malformed">कंपोनेंट कैटलॉग गलत फ़ॉर्मेट में है।</string>
+    <string name="component_installer_error_catalog_unreachable">कंपोनेंट कैटलॉग तक नहीं पहुंचा जा सका।</string>
+    <string name="component_installer_error_fetch_manifest">मैनिफेस्ट प्राप्त नहीं किया जा सका।</string>
+    <string name="component_installer_error_install_failed">इंस्टॉल विफल रहा।</string>
+    <string name="component_installer_error_local_failed">स्थानीय इंस्टॉल विफल रहा।</string>
+    <string name="component_installer_error_no_manifest">आर्काइव में कोई .yml मैनिफेस्ट नहीं मिला</string>
+    <string name="component_installer_install">इंस्टॉल करें</string>
+    <string name="component_installer_installed">इंस्टॉल किया गया</string>
+    <string name="component_installer_loading_extracting">एक्सट्रैक्ट हो रहा है…</string>
+    <string name="component_installer_loading_finding_manifest">मैनिफेस्ट खोजा जा रहा है…</string>
+    <string name="component_installer_loading_installing">इंस्टॉल हो रहा है…</string>
+    <string name="component_installer_loading_queued">कतार में…</string>
+    <string name="component_installer_loading_starting">शुरू हो रहा है…</string>
+    <string name="component_installer_local">स्थानीय इंस्टॉल</string>
+    <string name="component_installer_local_desc">स्थानीय इंस्टॉल</string>
+    <string name="component_installer_retry">पुनः प्रयास करें</string>
+    <string name="component_installer_success_installed">इंस्टॉल किया गया: %1$s</string>
+    <string name="component_installer_title">कंपोनेंट इंस्टॉल करें</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">कंटेनर अभी तक सेट नहीं हुआ है — पहले एक बार बूट करें।</string>
+    <string name="comp_install_error_empty_manifest">खाली मैनिफ़ेस्ट</string>
+    <string name="comp_install_error_no_steps">मैनिफ़ेस्ट में कोई चरण नहीं हैं</string>
+    <string name="comp_install_error_cancelled">रद्द किया गया</string>
+    <string name="comp_install_status_downloading">%1$s डाउनलोड हो रहा है (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">डाउनलोड विफल: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">चेकसम मेल नहीं खाता: %1$s</string>
+    <string name="comp_install_status_extracting">%1$s निकाला जा रहा है</string>
+    <string name="comp_install_error_extract_failed">निकालना विफल: %1$s</string>
+    <string name="comp_install_error_unsupported_format">असमर्थित संग्रह प्रारूप: %1$s</string>
+    <string name="comp_install_status_extracting_cab">CAB से निकाला जा रहा है</string>
+    <string name="comp_install_error_cab_not_found">CAB नहीं मिला: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract सिस्टम इमेज में अनुपस्थित है।</string>
+    <string name="comp_install_error_cab_extract_failed">CAB निकालना विफल (कोड %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">cabextract नहीं चल सका: %1$s</string>
+    <string name="comp_install_status_installing_into">%1$s में स्थापित हो रहा है</string>
+    <string name="comp_install_error_source_not_found">स्रोत नहीं मिला: %1$s</string>
+    <string name="comp_install_error_copy_failed">कॉपी विफल: %1$s</string>
+    <string name="comp_install_error_missing_file">फ़ाइल गुम: %1$s</string>
+    <string name="comp_install_error_installer_not_found">इंस्टॉलर नहीं मिला: %1$s</string>
+    <string name="comp_install_error_stage_installer">इंस्टॉलर तैयार नहीं कर सके: %1$s</string>
+    <string name="comp_install_status_running_installer">इंस्टॉलर चल रहा है: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">इंस्टॉलर कोड %1$d के साथ बाहर निकला: %2$s</string>
+    <string name="comp_install_status_registering_dlls">%1$d DLL पंजीकृत हो रही हैं</string>
+    <string name="comp_install_error_session_active">एक सत्र अभी भी चल रहा है — घटक स्थापित करने से पहले इसे बंद करें।</string>
+    <string name="comp_install_error_timeout">इंस्टॉलर का समय समाप्त हो गया या सत्र बंद हो गया।</string>
 </resources>

@@ -117,7 +117,7 @@
     <string name="common_ui_cannot_write_folder">Невозможно записать в выбранную папку</string>
     <string name="common_ui_failed_create_directory">Не удалось создать каталог по умолчанию</string>
     <string name="common_ui_device_not_supported">К сожалению, ваше устройство может не поддерживаться</string>
-    <string name="common_ui_please_wait">Пожалуйста, подождите\u2026</string>
+    <string name="common_ui_please_wait">Пожалуйста, подождите…</string>
     <string name="common_ui_done">Готово</string>
     <string name="common_ui_open">Открыть</string>
     <string name="common_ui_connected">Подключено</string>
@@ -199,7 +199,7 @@
     <string name="library_games_game_removed">%1$s удалена из библиотеки.</string>
     <string name="library_games_failed_to_uninstall">Не удалось удалить.</string>
     <string name="library_games_failed_to_uninstall_reason">Не удалось удалить: %1$s</string>
-    <string name="library_games_loading">Загрузка библиотеки\u2026</string>
+    <string name="library_games_loading">Загрузка библиотеки…</string>
     <string name="library_games_no_games_installed">Игры не установлены. Используйте вкладку «Магазин» или кнопку «+», чтобы добавить игры.</string>
     <string name="library_games_times_played_label">Количество запусков: </string>
     <string name="library_games_playtime_label">Время в игре: </string>
@@ -964,7 +964,7 @@
     <string name="settings_other_section_integration">Интеграция</string>
     <string name="settings_other_setup_wizard_title">Мастер установки</string>
     <string name="settings_other_setup_wizard_summary">Снова откройте мастер установки, чтобы просмотреть разрешения, системные файлы и контейнеры по умолчанию.</string>
-    <string name="settings_other_checking_for_updates">Проверка обновлений\u2026</string>
+    <string name="settings_other_checking_for_updates">Проверка обновлений…</string>
     <string name="settings_other_update_check_cooldown">Подождите %1$d перед повторной проверкой.</string>
     <string name="settings_other_persistable_permission_failed">Не удалось получить постоянные разрешения: %1$s</string>
     <string name="settings_other_keep_app_open">Пожалуйста, оставьте приложение открытым, пока это закончится.</string>
@@ -1053,7 +1053,7 @@
     <string name="setup_wizard_recommended_x86_64">Рекомендуемый x86-64</string>
     <string name="setup_wizard_recommended_arm64ec">Рекомендуемый ARM64EC</string>
     <string name="setup_wizard_choose_components_description">Выберите компоненты для установки. Wine/Proton автоматически создаст контейнер.</string>
-    <string name="setup_wizard_loading_components">Загрузка компонентов\u2026</string>
+    <string name="setup_wizard_loading_components">Загрузка компонентов…</string>
     <string name="setup_wizard_no_components_available">В этой категории нет доступных компонентов.</string>
     <string name="setup_wizard_default_settings">Настройки по умолчанию</string>
     <string name="setup_wizard_containers">Настройка контейнера</string>
@@ -1086,7 +1086,7 @@
     <string name="setup_wizard_recommended_label">Рекомендуется</string>
     <string name="setup_wizard_install_all_recommended">Установить все рекомендуемые</string>
     <string name="setup_wizard_create_container">Создать контейнер</string>
-    <string name="setup_wizard_creating_container">Создание\u2026</string>
+    <string name="setup_wizard_creating_container">Создание…</string>
     <string name="input_controls_tap_to_click">Касание для клика</string>
     <string name="input_controls_reverse_binding_order">Обратный порядок привязок</string>
     <!-- Steam > Login -->
@@ -1100,7 +1100,7 @@
     <string name="steam_login_open_steam_app_qr_hint">Откройте приложение Steam → нажмите значок QR</string>
     <string name="steam_login_failed_to_load_qr_code">Не удалось загрузить QR-код.</string>
     <string name="steam_login_retry">Повторить</string>
-    <string name="steam_login_generating_code">Генерация кода\u2026</string>
+    <string name="steam_login_generating_code">Генерация кода…</string>
     <string name="steam_login_two_factor_auth">Двухфакторная аутентификация</string>
     <string name="steam_login_approve_login_steam_app">Подтвердите этот вход\nв мобильном приложении Steam</string>
     <string name="steam_login_enter_code_sent_to">Введите код, отправленный на\n%1$s</string>
@@ -1118,11 +1118,11 @@
     <string name="google_cloud_status_syncing">Синхронизация</string>
     <string name="google_cloud_status_connected">Подключено</string>
     <string name="google_cloud_status_not_signed_in">Вход не выполнен</string>
-    <string name="google_cloud_working">Выполняется\u2026</string>
+    <string name="google_cloud_working">Выполняется…</string>
     <string name="google_cloud_sign_in">Войти</string>
     <string name="google_cloud_disable_sync">Отключить синхронизацию</string>
     <string name="google_cloud_store_logins">Данные входа в магазины</string>
-    <string name="google_cloud_store_login_sync_busy">Синхронизация данных входа в магазины\u2026</string>
+    <string name="google_cloud_store_login_sync_busy">Синхронизация данных входа в магазины…</string>
     <string name="google_cloud_saved_games_unavailable">Google Saved Games недоступны</string>
     <string name="google_cloud_snapshot_ready">Облачный снимок готов</string>
     <string name="google_cloud_waiting_first_backup">Ожидание первой резервной копии</string>
@@ -1171,8 +1171,8 @@
     <string name="cloud_sync_disabled_summary">Запускать без скачивания облачных сохранений и синхронизации при выходе.</string>
     <string name="cloud_saves_offline_mode">Отключить облачную синхронизацию</string>
     <string name="cloud_saves_offline_mode_summary">Останавливает всю автоматическую облачную активность для этой игры.</string>
-    <string name="cloud_saves_backing_up">Резервное копирование облачного сохранения\u2026</string>
-    <string name="cloud_saves_restoring">Восстановление облачного сохранения\u2026</string>
+    <string name="cloud_saves_backing_up">Резервное копирование облачного сохранения…</string>
+    <string name="cloud_saves_restoring">Восстановление облачного сохранения…</string>
     <!-- Cloud Saves > Provider sync & backup history -->
     <string name="cloud_saves_sync_from_provider">Синхронизировать из облака %1$s</string>
     <string name="cloud_saves_sync_from_provider_generic">Синхронизировать из облака</string>
@@ -1192,7 +1192,7 @@
     <string name="cloud_saves_history_download_success">Файл скачан.</string>
     <string name="cloud_saves_history_download_failed">Не удалось скачать.</string>
     <string name="cloud_saves_history_empty">Предыдущие сохранения еще не сохранены. Замененные сохранения и ручные резервные копии будут появляться здесь в течение 30 дней.</string>
-    <string name="cloud_saves_history_loading">Загрузка истории сохранений\u2026</string>
+    <string name="cloud_saves_history_loading">Загрузка истории сохранений…</string>
     <string name="cloud_saves_history_sign_in">Войдите в Google, чтобы просмотреть историю сохранений.</string>
     <string name="cloud_saves_history_origin_local">локально</string>
     <string name="cloud_saves_history_origin_cloud">облако</string>
@@ -2591,4 +2591,55 @@
     <string name="itch_facet_gamepad">Геймпад</string>
     <string name="itch_store_update_none">Актуальная версия</string>
     <string name="itch_store_update_available">Доступно обновление — %1$s</string>
+
+    <string name="component_installer_badge_installer">УСТАНОВЩИК</string>
+    <string name="component_installer_badge_library">БИБЛИОТЕКА</string>
+    <string name="component_installer_category_empty">В этой категории нет компонентов.</string>
+    <string name="component_installer_close_desc">Закрыть</string>
+    <string name="component_installer_error_catalog_malformed">Каталог компонентов повреждён.</string>
+    <string name="component_installer_error_catalog_unreachable">Не удалось подключиться к каталогу компонентов.</string>
+    <string name="component_installer_error_fetch_manifest">Не удалось получить манифест.</string>
+    <string name="component_installer_error_install_failed">Установка не удалась.</string>
+    <string name="component_installer_error_local_failed">Локальная установка не удалась.</string>
+    <string name="component_installer_error_no_manifest">В архиве не найден .yml-манифест</string>
+    <string name="component_installer_install">Установить</string>
+    <string name="component_installer_installed">Установлено</string>
+    <string name="component_installer_loading_extracting">Распаковка…</string>
+    <string name="component_installer_loading_finding_manifest">Поиск манифеста…</string>
+    <string name="component_installer_loading_installing">Установка…</string>
+    <string name="component_installer_loading_queued">В очереди…</string>
+    <string name="component_installer_loading_starting">Запуск…</string>
+    <string name="component_installer_local">Локальная установка</string>
+    <string name="component_installer_local_desc">Локальная установка</string>
+    <string name="component_installer_retry">Повторить</string>
+    <string name="component_installer_success_installed">Установлено: %1$s</string>
+    <string name="component_installer_title">Установка компонентов</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">Контейнер ещё не настроен — сначала запустите его один раз.</string>
+    <string name="comp_install_error_empty_manifest">Пустой манифест</string>
+    <string name="comp_install_error_no_steps">В манифесте нет шагов</string>
+    <string name="comp_install_error_cancelled">Отменено</string>
+    <string name="comp_install_status_downloading">Загрузка %1$s (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">Ошибка загрузки: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">Контрольная сумма не совпадает: %1$s</string>
+    <string name="comp_install_status_extracting">Распаковка %1$s</string>
+    <string name="comp_install_error_extract_failed">Ошибка распаковки: %1$s</string>
+    <string name="comp_install_error_unsupported_format">Неподдерживаемый формат архива: %1$s</string>
+    <string name="comp_install_status_extracting_cab">Извлечение из CAB</string>
+    <string name="comp_install_error_cab_not_found">CAB не найден: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract отсутствует в образе системы.</string>
+    <string name="comp_install_error_cab_extract_failed">Ошибка извлечения CAB (код %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">Не удалось запустить cabextract: %1$s</string>
+    <string name="comp_install_status_installing_into">Установка в %1$s</string>
+    <string name="comp_install_error_source_not_found">Источник не найден: %1$s</string>
+    <string name="comp_install_error_copy_failed">Ошибка копирования: %1$s</string>
+    <string name="comp_install_error_missing_file">Файл отсутствует: %1$s</string>
+    <string name="comp_install_error_installer_not_found">Установщик не найден: %1$s</string>
+    <string name="comp_install_error_stage_installer">Не удалось подготовить установщик: %1$s</string>
+    <string name="comp_install_status_running_installer">Запуск установщика: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">Установщик завершился с кодом %1$d: %2$s</string>
+    <string name="comp_install_status_registering_dlls">Регистрация %1$d DLL</string>
+    <string name="comp_install_error_session_active">Сеанс всё ещё запущен — закройте его перед установкой компонентов.</string>
+    <string name="comp_install_error_timeout">Время ожидания установщика истекло или сеанс был закрыт.</string>
 </resources>

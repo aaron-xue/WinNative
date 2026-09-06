@@ -114,7 +114,7 @@
     <string name="common_ui_cannot_write_folder">Impossible d\'écrire dans le dossier sélectionné</string>
     <string name="common_ui_failed_create_directory">Échec de la création du répertoire par défaut</string>
     <string name="common_ui_device_not_supported">Désolé, votre appareil n\'est peut-être pas pris en charge</string>
-    <string name="common_ui_please_wait">Veuillez patienter\u2026</string>
+    <string name="common_ui_please_wait">Veuillez patienter…</string>
     <string name="common_ui_done">Terminé</string>
     <string name="common_ui_open">Ouvrir</string>
     <string name="common_ui_connected">Connecté</string>
@@ -196,7 +196,7 @@
     <string name="library_games_game_removed">%1$s retiré.</string>
     <string name="library_games_failed_to_uninstall">Échec de la désinstallation.</string>
     <string name="library_games_failed_to_uninstall_reason">Échec de la désinstallation : %1$s</string>
-    <string name="library_games_loading">Chargement de la bibliothèque\u2026</string>
+    <string name="library_games_loading">Chargement de la bibliothèque…</string>
     <string name="library_games_no_games_installed">Aucun jeu installé. Utilisez un onglet Boutique ou le bouton + pour ajouter des jeux.</string>
     <string name="library_games_times_played_label">Nombre de parties : </string>
     <string name="library_games_playtime_label">Temps de jeu : </string>
@@ -670,7 +670,6 @@ Par ex. <b>META</b> pour la <i>touche META</i>, \n
         <item quantity="other">%d cœurs</item>
     </plurals>
 
-
     <!-- Session > Display -->
     <string name="session_display_orientation">Orientation</string>
     <string name="session_display_horizontal">Horizontal</string>
@@ -892,7 +891,7 @@ Par ex. <b>META</b> pour la <i>touche META</i>, \n
     <string name="settings_other_language_system_default">Paramètre système</string>
 
     <string name="settings_other_section_integration">Intégration</string>
-    <string name="settings_other_checking_for_updates">Recherche de mises à jour\u2026</string>
+    <string name="settings_other_checking_for_updates">Recherche de mises à jour…</string>
     <string name="settings_other_update_check_cooldown">Veuillez patienter %1$ds avant de vérifier à nouveau</string>
     <string name="settings_other_persistable_permission_failed">Impossible d\'obtenir des autorisations persistantes : %1$s</string>
     <string name="settings_other_keep_app_open">Veuillez garder l\'application ouverte jusqu\'à la fin de l\'opération.</string>
@@ -984,7 +983,7 @@ Chemin installé :
     <string name="setup_wizard_recommended_x86_64">Recommandé x86-64</string>
     <string name="setup_wizard_recommended_arm64ec">Recommandé ARM64EC</string>
     <string name="setup_wizard_choose_components_description">Choisissez les composants à installer. Wine/Proton créera automatiquement un conteneur.</string>
-    <string name="setup_wizard_loading_components">Chargement des composants\u2026</string>
+    <string name="setup_wizard_loading_components">Chargement des composants…</string>
     <string name="setup_wizard_no_components_available">Aucun composant disponible pour cette catégorie.</string>
     <string name="setup_wizard_default_settings">Paramètres par défaut</string>
     <string name="setup_wizard_containers_description">Ouvrez chaque conteneur et définissez les valeurs par défaut que vous souhaitez transmettre à chaque nouveau jeu. Les nouveaux jeux cibleront le conteneur x86-64 par défaut.</string>
@@ -1016,7 +1015,7 @@ Chemin installé :
     <string name="setup_wizard_recommended_label">Recommandé</string>
     <string name="setup_wizard_install_all_recommended">Installer tous les recommandés</string>
     <string name="setup_wizard_create_container">Créer un conteneur</string>
-    <string name="setup_wizard_creating_container">Création\u2026</string>
+    <string name="setup_wizard_creating_container">Création…</string>
 
     <!-- Steam > Login -->
     <string name="steam_login_auth_webview_title">Autorisation</string>
@@ -1029,7 +1028,7 @@ Chemin installé :
     <string name="steam_login_open_steam_app_qr_hint">Ouvrez l\'application Steam → appuyez sur l\'icône QR</string>
     <string name="steam_login_failed_to_load_qr_code">Échec du chargement du code QR</string>
     <string name="steam_login_retry">Réessayer</string>
-    <string name="steam_login_generating_code">Génération du code\u2026</string>
+    <string name="steam_login_generating_code">Génération du code…</string>
     <string name="steam_login_two_factor_auth">Authentification à deux facteurs</string>
     <string name="steam_login_approve_login_steam_app">Approuvez cette connexion depuis\nvotre application mobile Steam</string>
     <string name="steam_login_enter_code_sent_to">Entrez le code envoyé à\n%1$s</string>
@@ -1048,11 +1047,11 @@ Chemin installé :
     <string name="google_cloud_status_syncing">Synchronisation</string>
     <string name="google_cloud_status_connected">Connecté</string>
     <string name="google_cloud_status_not_signed_in">Non connecté</string>
-    <string name="google_cloud_working">En cours\u2026</string>
+    <string name="google_cloud_working">En cours…</string>
     <string name="google_cloud_sign_in">Se connecter</string>
     <string name="google_cloud_disable_sync">Désactiver la synchronisation</string>
     <string name="google_cloud_store_logins">Identifiants de boutique</string>
-    <string name="google_cloud_store_login_sync_busy">Synchronisation de vos identifiants de boutique en cours\u2026</string>
+    <string name="google_cloud_store_login_sync_busy">Synchronisation de vos identifiants de boutique en cours…</string>
     <string name="google_cloud_saved_games_unavailable">Google Saved Games non disponible</string>
     <string name="google_cloud_snapshot_ready">Instantané cloud prêt</string>
     <string name="google_cloud_waiting_first_backup">En attente de la première sauvegarde</string>
@@ -1223,7 +1222,7 @@ Chemin installé :
     <string name="fexcore_env_var_help__strictinprocesssplitlocks">Uses a strict process-wide lock for split unaligned atomic accesses.</string>
     <!-- Translated batch (110 strings) -->
     <string name="cloud_saves_history_empty">Aucune sauvegarde précédente pour l\'instant. Les sauvegardes remplacées et les sauvegardes manuelles apparaîtront ici pendant 30 jours.</string>
-    <string name="cloud_saves_history_loading">Chargement de l\'historique des sauvegardes\u2026</string>
+    <string name="cloud_saves_history_loading">Chargement de l\'historique des sauvegardes…</string>
     <string name="cloud_saves_history_origin_auto">auto</string>
     <string name="cloud_saves_history_storage_steam">Steam</string>
     <string name="cloud_saves_history_storage_google">Google</string>
@@ -1267,7 +1266,7 @@ Chemin installé :
     <string name="cloud_saves_gog_zip_empty">Aucun fichier de sauvegarde cloud GOG trouvé.</string>
     <string name="cloud_saves_sync_from_provider_generic">Synchroniser depuis le Cloud</string>
     <string name="cloud_saves_sync_from_provider_success">Sauvegarde cloud %1$s téléchargée.</string>
-    <string name="cloud_saves_syncing_from_provider">Téléchargement de la sauvegarde depuis %1$s\u2026</string>
+    <string name="cloud_saves_syncing_from_provider">Téléchargement de la sauvegarde depuis %1$s…</string>
     <string name="cloud_saves_sync_summary">Récupère la version actuelle de %1$s.</string>
     <string name="cloud_saves_sync_summary_generic">Récupère la version cloud actuelle.</string>
     <string name="common_ui_exit_app_confirm">Quitter WinNative ?</string>
@@ -2685,5 +2684,56 @@ Chemin installé :
     <string name="itch_facet_gamepad">Manette</string>
     <string name="itch_store_update_none">À jour</string>
     <string name="itch_store_update_available">Mise à jour disponible — %1$s</string>
-</resources>
 
+    <!-- Component Installer Sheet -->
+    <string name="component_installer_title">Installer des composants</string>
+    <string name="component_installer_local">Installation locale</string>
+    <string name="component_installer_close_desc">Fermer</string>
+    <string name="component_installer_local_desc">Installation locale</string>
+    <string name="component_installer_install">Installer</string>
+    <string name="component_installer_installed">Installé</string>
+    <string name="component_installer_retry">Réessayer</string>
+    <string name="component_installer_badge_installer">INSTALLATEUR</string>
+    <string name="component_installer_badge_library">BIBLIOTHÈQUE</string>
+    <string name="component_installer_category_empty">Aucun composant dans cette catégorie.</string>
+    <string name="component_installer_loading_extracting">Extraction…</string>
+    <string name="component_installer_loading_queued">En file d\'attente…</string>
+    <string name="component_installer_loading_starting">Démarrage…</string>
+    <string name="component_installer_loading_finding_manifest">Recherche du manifeste…</string>
+    <string name="component_installer_loading_installing">Installation…</string>
+    <string name="component_installer_success_installed">Installé : %1$s</string>
+    <string name="component_installer_error_fetch_manifest">Impossible de récupérer le manifeste.</string>
+    <string name="component_installer_error_install_failed">Échec de l\'installation.</string>
+    <string name="component_installer_error_local_failed">Échec de l\'installation locale.</string>
+    <string name="component_installer_error_no_manifest">Aucun manifeste .yml trouvé dans l\'archive</string>
+    <string name="component_installer_error_catalog_unreachable">Impossible d\'accéder au catalogue des composants.</string>
+    <string name="component_installer_error_catalog_malformed">Le catalogue des composants est mal formé.</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">Le conteneur n\'est pas encore configuré — démarrez-le d\'abord une fois.</string>
+    <string name="comp_install_error_empty_manifest">Manifeste vide</string>
+    <string name="comp_install_error_no_steps">Le manifeste n\'a pas d\'étapes</string>
+    <string name="comp_install_error_cancelled">Annulé</string>
+    <string name="comp_install_status_downloading">Téléchargement de %1$s (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">Échec du téléchargement : %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">Somme de contrôle incorrecte : %1$s</string>
+    <string name="comp_install_status_extracting">Extraction de %1$s</string>
+    <string name="comp_install_error_extract_failed">Échec de l\'extraction : %1$s</string>
+    <string name="comp_install_error_unsupported_format">Format d\'archive non pris en charge : %1$s</string>
+    <string name="comp_install_status_extracting_cab">Extraction depuis CAB</string>
+    <string name="comp_install_error_cab_not_found">CAB introuvable : %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract est absent de l\'image système.</string>
+    <string name="comp_install_error_cab_extract_failed">Échec de l\'extraction CAB (code %1$d) : %2$s</string>
+    <string name="comp_install_error_cabextract_run">Impossible d\'exécuter cabextract : %1$s</string>
+    <string name="comp_install_status_installing_into">Installation dans %1$s</string>
+    <string name="comp_install_error_source_not_found">Source introuvable : %1$s</string>
+    <string name="comp_install_error_copy_failed">Échec de la copie : %1$s</string>
+    <string name="comp_install_error_missing_file">Fichier manquant : %1$s</string>
+    <string name="comp_install_error_installer_not_found">Programme d\'installation introuvable : %1$s</string>
+    <string name="comp_install_error_stage_installer">Impossible de préparer l\'installateur : %1$s</string>
+    <string name="comp_install_status_running_installer">Exécution de l\'installateur : %1$s</string>
+    <string name="comp_install_error_installer_exit_code">L\'installateur a quitté avec le code %1$d : %2$s</string>
+    <string name="comp_install_status_registering_dlls">Enregistrement de %1$d DLL(s)</string>
+    <string name="comp_install_error_session_active">Une session est en cours — fermez-la avant d\'installer des composants.</string>
+    <string name="comp_install_error_timeout">L\'installateur a expiré ou la session a été fermée.</string>
+</resources>

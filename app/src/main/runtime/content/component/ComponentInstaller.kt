@@ -3,6 +3,7 @@ package com.winlator.cmod.runtime.content.component
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.winlator.cmod.R
 import com.winlator.cmod.runtime.container.Container
 import com.winlator.cmod.runtime.content.Downloader
 import com.winlator.cmod.runtime.display.XServerDisplayActivity
@@ -54,15 +55,15 @@ class ComponentInstaller(
     @Suppress("UNCHECKED_CAST")
     fun run() {
         if (!driveC.isDirectory) {
-            throw InstallException("Container isn't set up yet — boot it once first.")
+            throw InstallException(context.getString(R.string.comp_install_error_container_not_setup))
         }
         componentDir.mkdirs()
         workingDir.mkdirs()
 
         val doc = Yaml().load<Map<String, Any?>>(manifestYaml)
-            ?: throw InstallException("Empty manifest")
+            ?: throw InstallException(context.getString(R.string.comp_install_error_empty_manifest))
         val steps = (doc["Steps"] as? List<Map<String, Any?>>)
-            ?: throw InstallException("Manifest has no steps")
+            ?: throw InstallException(context.getString(R.string.comp_install_error_no_steps))
 
         try {
             checkCancel()
@@ -81,7 +82,7 @@ class ComponentInstaller(
 
     // Abort if the worker thread was interrupted (the install sheet was closed).
     private fun checkCancel() {
-        if (Thread.currentThread().isInterrupted) throw InstallException("Cancelled")
+        if (Thread.currentThread().isInterrupted) throw InstallException(context.getString(R.string.comp_install_error_cancelled))
     }
 
     private fun markInstalled() {
@@ -107,15 +108,15 @@ class ComponentInstaller(
             if (dst.isFile && dst.length() > 0 && (checksum == null || md5(dst) == checksum)) {
                 return@forEachIndexed // already cached + verified
             }
-            listener.onStatus("Downloading $name (${i + 1}/${toDownload.size})")
+            listener.onStatus(context.getString(R.string.comp_install_status_downloading, name, i + 1, toDownload.size))
             listener.onProgress(0f)
             val ok =
                 Downloader.downloadFile(url, dst) { done, total ->
                     if (total > 0) listener.onProgress(done.toFloat() / total)
                 }
-            if (!ok) throw InstallException("Download failed: $name")
+            if (!ok) throw InstallException(context.getString(R.string.comp_install_error_download_failed, name))
             if (checksum != null && md5(dst) != checksum) {
-                throw InstallException("Checksum mismatch: $name")
+                throw InstallException(context.getString(R.string.comp_install_error_checksum_mismatch, name))
             }
         }
     }
@@ -130,26 +131,26 @@ class ComponentInstaller(
                     val src = File(componentDir, name)
                     val outDir = File(workingDir, name.substringBeforeLast("."))
                     outDir.mkdirs()
-                    listener.onStatus("Extracting $name")
+                    listener.onStatus(context.getString(R.string.comp_install_status_extracting, name))
                     listener.onProgress(-1f)
                     when {
                         name.endsWith(".zip") -> extractZip(src, outDir)
                         name.endsWith(".tar.xz") || name.endsWith(".xz") ->
                             if (!TarCompressorUtils.extract(TarCompressorUtils.Type.XZ, src, outDir)) {
-                                throw InstallException("Extract failed: $name")
+                                throw InstallException(context.getString(R.string.comp_install_error_extract_failed, name))
                             }
                         name.endsWith(".tar.zst") || name.endsWith(".zst") || name.endsWith(".tzst") ->
                             if (!TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, src, outDir)) {
-                                throw InstallException("Extract failed: $name")
+                                throw InstallException(context.getString(R.string.comp_install_error_extract_failed, name))
                             }
-                        else -> throw InstallException("Unsupported archive format: $name")
+                        else -> throw InstallException(context.getString(R.string.comp_install_error_unsupported_format, name))
                     }
                 }
 
                 "cab_extract" -> {
                     val name = (step["rename"] as? String) ?: (step["file_name"] as String)
                     val dest = resolveDest(step["dest"] as? String ?: "temp/")
-                    listener.onStatus("Extracting $name")
+                    listener.onStatus(context.getString(R.string.comp_install_status_extracting, name))
                     listener.onProgress(-1f)
                     extractCab(resolveSource(name), dest, null)
                 }
@@ -158,7 +159,7 @@ class ComponentInstaller(
                     val source = step["source"] as? String ?: continue
                     val pattern = step["file_name"] as? String
                     val dest = resolveDest(step["dest"] as? String ?: "temp/")
-                    listener.onStatus("Extracting from CAB")
+                    listener.onStatus(context.getString(R.string.comp_install_status_extracting_cab))
                     listener.onProgress(-1f)
                     for (cab in resolveCabSources(source)) extractCab(cab, dest, pattern)
                 }
@@ -192,11 +193,11 @@ class ComponentInstaller(
         destDir: File,
         pattern: String?,
     ) {
-        if (!cab.isFile) throw InstallException("CAB not found: ${cab.name}")
+        if (!cab.isFile) throw InstallException(context.getString(R.string.comp_install_error_cab_not_found, cab.name))
         destDir.mkdirs()
         val rootDir = ImageFs.find(context).rootDir
         val cabextract = File(rootDir, "usr/bin/cabextract")
-        if (!cabextract.isFile) throw InstallException("cabextract is missing from the system image.")
+        if (!cabextract.isFile) throw InstallException(context.getString(R.string.comp_install_error_cabextract_missing))
         FileUtils.chmod(cabextract, "755".toInt(8))
 
         val args = ArrayList<String>()
@@ -217,12 +218,12 @@ class ComponentInstaller(
         val proc = pb.start()
         try {
             val exit = proc.waitFor()
-            if (exit != 0) throw InstallException("CAB extract failed (exit $exit): ${cab.name}")
+            if (exit != 0) throw InstallException(context.getString(R.string.comp_install_error_cab_extract_failed, exit, cab.name))
         } catch (e: InterruptedException) {
             proc.destroy()
-            throw InstallException("Cancelled")
+            throw InstallException(context.getString(R.string.comp_install_error_cancelled))
         } catch (e: java.io.IOException) {
-            throw InstallException("Couldn't run cabextract: ${e.message}")
+            throw InstallException(context.getString(R.string.comp_install_error_cabextract_run, e.message))
         }
     }
 
@@ -237,7 +238,7 @@ class ComponentInstaller(
 
     // ---- phase 3: apply the install steps ----
     private fun runSteps(steps: List<Map<String, Any?>>) {
-        listener.onStatus("Installing into ${container.name}")
+        listener.onStatus(context.getString(R.string.comp_install_status_installing_into, container.name))
         listener.onProgress(-1f)
         for (step in steps) {
             checkCancel()
@@ -269,19 +270,19 @@ class ComponentInstaller(
         dstDir.mkdirs()
         if (name.contains("*")) {
             val regex = globToRegex(name)
-            val files = srcDir.listFiles() ?: throw InstallException("Source not found: $srcDir")
+            val files = srcDir.listFiles() ?: throw InstallException(context.getString(R.string.comp_install_error_source_not_found, srcDir))
             var copied = 0
             for (f in files) {
                 if (f.isFile && regex.matches(f.name)) {
-                    if (!FileUtils.copy(f, File(dstDir, f.name))) throw InstallException("Copy failed: ${f.name}")
+                    if (!FileUtils.copy(f, File(dstDir, f.name))) throw InstallException(context.getString(R.string.comp_install_error_copy_failed, f.name))
                     copied++
                 }
             }
             if (copied == 0) Log.w(TAG, "copy: no files matched '$name' in $srcDir")
         } else {
             val src = File(srcDir, name)
-            if (!src.exists()) throw InstallException("Missing file: $name")
-            if (!FileUtils.copy(src, File(dstDir, name))) throw InstallException("Copy failed: $name")
+            if (!src.exists()) throw InstallException(context.getString(R.string.comp_install_error_missing_file, name))
+            if (!FileUtils.copy(src, File(dstDir, name))) throw InstallException(context.getString(R.string.comp_install_error_copy_failed, name))
         }
     }
 
@@ -367,15 +368,15 @@ class ComponentInstaller(
     ) {
         val fileName = (step["rename"] as? String) ?: (step["file_name"] as String)
         val src = File(componentDir, fileName)
-        if (!src.isFile) throw InstallException("Installer not found: $fileName")
+        if (!src.isFile) throw InstallException(context.getString(R.string.comp_install_error_installer_not_found, fileName))
         val stageDir = File(driveC, "wn-install")
         stageDir.mkdirs()
         val staged = File(stageDir, fileName)
-        if (!FileUtils.copy(src, staged)) throw InstallException("Couldn't stage installer: $fileName")
+        if (!FileUtils.copy(src, staged)) throw InstallException(context.getString(R.string.comp_install_error_stage_installer, fileName))
 
         val winPath = "C:\\wn-install\\$fileName"
         val arguments = (step["arguments"] as? String).orEmpty()
-        listener.onStatus("Running installer: $fileName")
+        listener.onStatus(context.getString(R.string.comp_install_status_running_installer, fileName))
         listener.onProgress(-1f)
 
         val bootExe: String
@@ -387,19 +388,17 @@ class ComponentInstaller(
             bootExe = winPath
             bootArgs = arguments
         }
-        DependencyInstallBridge.updateStatus("Running installer: $fileName")
+        DependencyInstallBridge.updateStatus(context.getString(R.string.comp_install_status_running_installer, fileName))
         val code = launchInContainerAndWait(bootExe, bootArgs)
         DependencyInstallBridge.updateStatus(null)
-        // 0 = success, 3010 = success but reboot required (common for redists/MSI).
-        // 143 = SIGTERM (128+15): Wine may kill the process after install completes.
-        if (code != 0 && code != 3010 && code != 143) throw InstallException("Installer exited with code $code: $fileName")
+        if (code != 0 && code != 3010 && code != 143) throw InstallException(context.getString(R.string.comp_install_error_installer_exit_code, code, fileName))
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun registerDlls(step: Map<String, Any?>) {
         val dlls = (step["dlls"] as? List<String>)?.filter { it.isNotBlank() } ?: return
         if (dlls.isEmpty()) return
-        listener.onStatus("Registering ${dlls.size} DLL(s)")
+        listener.onStatus(context.getString(R.string.comp_install_status_registering_dlls, dlls.size))
         listener.onProgress(-1f)
         val batch = dlls.joinToString(" & ") { "regsvr32 /s $it" }
         val code = launchInContainerAndWait("C:\\windows\\system32\\cmd.exe", "/c \"$batch\"")
@@ -413,7 +412,7 @@ class ComponentInstaller(
         bootArgs: String,
     ): Int {
         if (SessionKeepAliveService.isSessionActive() && SessionKeepAliveService.getActiveEnvironment() != null) {
-            throw InstallException("A session is still running — close it before installing components.")
+            throw InstallException(context.getString(R.string.comp_install_error_session_active))
         }
         DependencyInstallBridge.begin()
         val intent =
@@ -426,7 +425,7 @@ class ComponentInstaller(
             }
         context.startActivity(intent)
         return DependencyInstallBridge.await(INSTALL_TIMEOUT_MS)
-            ?: throw InstallException("Installer timed out or the session was closed.")
+            ?: throw InstallException(context.getString(R.string.comp_install_error_timeout))
     }
 
     // ---- path templates ----

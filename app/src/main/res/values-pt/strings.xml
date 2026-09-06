@@ -102,7 +102,7 @@
     <string name="common_ui_cannot_write_folder">Não é possível escrever na pasta selecionada</string>
     <string name="common_ui_failed_create_directory">Falha ao criar a pasta predefinida</string>
     <string name="common_ui_device_not_supported">Lamentamos, o seu dispositivo pode não ser suportado</string>
-    <string name="common_ui_please_wait">Aguarde\u2026</string>
+    <string name="common_ui_please_wait">Aguarde…</string>
     <string name="common_ui_done">Concluído</string>
     <string name="common_ui_open">Abrir</string>
     <string name="common_ui_connected">Ligado</string>
@@ -181,7 +181,7 @@
     <string name="library_games_game_removed">%1$s removido.</string>
     <string name="library_games_failed_to_uninstall">Falha ao desinstalar.</string>
     <string name="library_games_failed_to_uninstall_reason">Falha ao desinstalar: %1$s</string>
-    <string name="library_games_loading">A carregar biblioteca\u2026</string>
+    <string name="library_games_loading">A carregar biblioteca…</string>
     <string name="library_games_no_games_installed">Nenhum jogo instalado. Use um separador de Loja ou o botão + para adicionar jogos.</string>
     <string name="library_games_times_played_label">Número de vezes jogado: </string>
     <string name="library_games_playtime_label">Tempo de jogo: </string>
@@ -2665,4 +2665,55 @@ Caminho instalado:
     <string name="itch_facet_gamepad">Comando</string>
     <string name="itch_store_update_none">Atualizado</string>
     <string name="itch_store_update_available">Atualização disponível — %1$s</string>
+
+    <string name="component_installer_badge_installer">INSTALADOR</string>
+    <string name="component_installer_badge_library">BIBLIOTECA</string>
+    <string name="component_installer_category_empty">Nenhum componente nesta categoria.</string>
+    <string name="component_installer_close_desc">Fechar</string>
+    <string name="component_installer_error_catalog_malformed">O catálogo de componentes está malformado.</string>
+    <string name="component_installer_error_catalog_unreachable">Não foi possível aceder ao catálogo de componentes.</string>
+    <string name="component_installer_error_fetch_manifest">Não foi possível obter o manifesto.</string>
+    <string name="component_installer_error_install_failed">A instalação falhou.</string>
+    <string name="component_installer_error_local_failed">A instalação local falhou.</string>
+    <string name="component_installer_error_no_manifest">Nenhum manifesto .yml encontrado no arquivo</string>
+    <string name="component_installer_install">Instalar</string>
+    <string name="component_installer_installed">Instalado</string>
+    <string name="component_installer_loading_extracting">Extraindo…</string>
+    <string name="component_installer_loading_finding_manifest">A procurar manifesto…</string>
+    <string name="component_installer_loading_installing">A instalar…</string>
+    <string name="component_installer_loading_queued">Em fila…</string>
+    <string name="component_installer_loading_starting">A iniciar…</string>
+    <string name="component_installer_local">Instalação local</string>
+    <string name="component_installer_local_desc">Instalação local</string>
+    <string name="component_installer_retry">Tentar novamente</string>
+    <string name="component_installer_success_installed">Instalado: %1$s</string>
+    <string name="component_installer_title">Instalar componentes</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">O contêiner ainda não está configurado — inicie-o uma vez primeiro.</string>
+    <string name="comp_install_error_empty_manifest">Manifesto vazio</string>
+    <string name="comp_install_error_no_steps">O manifesto não tem etapas</string>
+    <string name="comp_install_error_cancelled">Cancelado</string>
+    <string name="comp_install_status_downloading">A descarregar %1$s (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">Falha no download: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">Soma de verificação incorreta: %1$s</string>
+    <string name="comp_install_status_extracting">A extrair %1$s</string>
+    <string name="comp_install_error_extract_failed">Extração falhou: %1$s</string>
+    <string name="comp_install_error_unsupported_format">Formato de arquivo não suportado: %1$s</string>
+    <string name="comp_install_status_extracting_cab">A extrair de CAB</string>
+    <string name="comp_install_error_cab_not_found">CAB não encontrado: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract está em falta na imagem do sistema.</string>
+    <string name="comp_install_error_cab_extract_failed">Extração de CAB falhou (código %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">Não foi possível executar o cabextract: %1$s</string>
+    <string name="comp_install_status_installing_into">A instalar em %1$s</string>
+    <string name="comp_install_error_source_not_found">Origem não encontrada: %1$s</string>
+    <string name="comp_install_error_copy_failed">Cópia falhou: %1$s</string>
+    <string name="comp_install_error_missing_file">Ficheiro em falta: %1$s</string>
+    <string name="comp_install_error_installer_not_found">Instalador não encontrado: %1$s</string>
+    <string name="comp_install_error_stage_installer">Não foi possível preparar o instalador: %1$s</string>
+    <string name="comp_install_status_running_installer">A executar instalador: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">O instalador terminou com código %1$d: %2$s</string>
+    <string name="comp_install_status_registering_dlls">A registar %1$d DLL(s)</string>
+    <string name="comp_install_error_session_active">Há uma sessão em execução — feche-a antes de instalar componentes.</string>
+    <string name="comp_install_error_timeout">O instalador expirou ou a sessão foi fechada.</string>
 </resources>

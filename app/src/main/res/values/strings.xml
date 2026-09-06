@@ -119,7 +119,7 @@
     <string name="common_ui_cannot_write_folder">Cannot write to the selected folder</string>
     <string name="common_ui_failed_create_directory">Failed to create default directory</string>
     <string name="common_ui_device_not_supported">Sorry, your device may not be supported</string>
-    <string name="common_ui_please_wait">Please wait\u2026</string>
+    <string name="common_ui_please_wait">Please wait…</string>
     <string name="common_ui_done">Done</string>
     <string name="common_ui_open">Open</string>
     <string name="common_ui_connected">Connected</string>
@@ -203,7 +203,7 @@
     <string name="library_games_game_removed">%1$s removed.</string>
     <string name="library_games_failed_to_uninstall">Failed to uninstall.</string>
     <string name="library_games_failed_to_uninstall_reason">Failed to uninstall: %1$s</string>
-    <string name="library_games_loading">Loading library\u2026</string>
+    <string name="library_games_loading">Loading library…</string>
     <string name="library_games_no_games_installed">No games installed. Use a Store tab or the + button to add games.</string>
     <string name="library_games_times_played_label">Number of times played: </string>
     <string name="library_games_playtime_label">Playtime: </string>
@@ -1340,7 +1340,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="settings_other_section_integration">Integration</string>
     <string name="settings_other_setup_wizard_title">Setup Wizard</string>
     <string name="settings_other_setup_wizard_summary">Open the setup wizard again to review permissions, system files, and default containers.</string>
-    <string name="settings_other_checking_for_updates">Checking for updates\u2026</string>
+    <string name="settings_other_checking_for_updates">Checking for updates…</string>
     <string name="settings_other_update_check_cooldown">Please wait %1$ds before checking again</string>
     <string name="settings_other_persistable_permission_failed">Unable to take persistable permissions: %1$s</string>
     <string name="settings_other_keep_app_open">Please keep the app open while this finishes.</string>
@@ -1432,7 +1432,7 @@ Installed path:
     <string name="setup_wizard_recommended_x86_64">Recommended x86-64</string>
     <string name="setup_wizard_recommended_arm64ec">Recommended ARM64EC</string>
     <string name="setup_wizard_choose_components_description">Choose which components to install. Wine/Proton will auto-create a container.</string>
-    <string name="setup_wizard_loading_components">Loading components\u2026</string>
+    <string name="setup_wizard_loading_components">Loading components…</string>
     <string name="setup_wizard_no_components_available">No components available for this category.</string>
     <string name="setup_wizard_default_settings">Default Settings</string>
     <string name="setup_wizard_containers">Container Setup</string>
@@ -1465,7 +1465,7 @@ Installed path:
     <string name="setup_wizard_recommended_label">Recommended</string>
     <string name="setup_wizard_install_all_recommended">Install All Recommended</string>
     <string name="setup_wizard_create_container">Create Container</string>
-    <string name="setup_wizard_creating_container">Creating\u2026</string>
+    <string name="setup_wizard_creating_container">Creating…</string>
 
     <string name="input_controls_tap_to_click">Tap to Click</string>
     <string name="input_controls_reverse_binding_order">Reverse order bindings</string>
@@ -1480,7 +1480,7 @@ Installed path:
     <string name="steam_login_open_steam_app_qr_hint">Open Steam app → tap the QR icon</string>
     <string name="steam_login_failed_to_load_qr_code">Failed to load QR code</string>
     <string name="steam_login_retry">Retry</string>
-    <string name="steam_login_generating_code">Generating code\u2026</string>
+    <string name="steam_login_generating_code">Generating code…</string>
     <string name="steam_login_two_factor_auth">Two-Factor Auth</string>
     <string name="steam_login_approve_login_steam_app">Approve this login from\nyour Steam mobile app</string>
     <string name="steam_login_enter_code_sent_to">Enter the code sent to\n%1$s</string>
@@ -1499,11 +1499,11 @@ Installed path:
     <string name="google_cloud_status_syncing">Syncing</string>
     <string name="google_cloud_status_connected">Connected</string>
     <string name="google_cloud_status_not_signed_in">Not Signed In</string>
-    <string name="google_cloud_working">Working\u2026</string>
+    <string name="google_cloud_working">Working…</string>
     <string name="google_cloud_sign_in">Sign In</string>
     <string name="google_cloud_disable_sync">Disable Sync</string>
     <string name="google_cloud_store_logins">Store Logins</string>
-    <string name="google_cloud_store_login_sync_busy">Working on your store login sync\u2026</string>
+    <string name="google_cloud_store_login_sync_busy">Working on your store login sync…</string>
     <string name="google_cloud_saved_games_unavailable">Google Saved Games unavailable</string>
     <string name="google_cloud_snapshot_ready">Cloud snapshot ready</string>
     <string name="google_cloud_waiting_first_backup">Waiting for first backup</string>
@@ -1559,13 +1559,13 @@ Installed path:
     <string name="cloud_sync_disabled_summary">Launch without cloud save download or exit sync.</string>
     <string name="cloud_saves_offline_mode">Disable Cloud Sync</string>
     <string name="cloud_saves_offline_mode_summary">Stops all automatic cloud activity for this game.</string>
-    <string name="cloud_saves_backing_up">Backing up cloud save\u2026</string>
-    <string name="cloud_saves_restoring">Restoring cloud save\u2026</string>
+    <string name="cloud_saves_backing_up">Backing up cloud save…</string>
+    <string name="cloud_saves_restoring">Restoring cloud save…</string>
 
     <!-- Cloud Saves > Provider sync & backup history -->
     <string name="cloud_saves_sync_from_provider">Sync from %1$s Cloud</string>
     <string name="cloud_saves_sync_from_provider_generic">Sync from Cloud</string>
-    <string name="cloud_saves_syncing_from_provider">Downloading save from %1$s\u2026</string>
+    <string name="cloud_saves_syncing_from_provider">Downloading save from %1$s…</string>
     <string name="cloud_saves_sync_from_provider_success">%1$s cloud save downloaded.</string>
     <string name="cloud_saves_sync_from_provider_failed">Could not download save from %1$s.</string>
     <string name="cloud_saves_gog_manage_label">Manage GOG Cloud Saves</string>
@@ -1581,7 +1581,7 @@ Installed path:
     <string name="cloud_saves_google_backup_no_save">No save files found to back up.</string>
     <string name="cloud_saves_history_title">Save History</string>
     <string name="cloud_saves_history_empty">No previous saves backed up yet. Replaced saves and manual backups will appear here for 30 days.</string>
-    <string name="cloud_saves_history_loading">Loading save history\u2026</string>
+    <string name="cloud_saves_history_loading">Loading save history…</string>
     <string name="cloud_saves_history_sign_in">Sign in to Google to view your save history.</string>
     <string name="cloud_saves_history_origin_local">local</string>
     <string name="cloud_saves_history_origin_cloud">cloud</string>
@@ -2716,4 +2716,56 @@ Installed path:
     <string name="settings_general_update_channel_summary">Official ships tested releases. Development ships early builds.</string>
     <string name="update_channel_official">Official</string>
     <string name="update_channel_development">Development</string>
+
+    <!-- Component Installer Sheet -->
+    <string name="component_installer_title">Install components</string>
+    <string name="component_installer_local">Local install</string>
+    <string name="component_installer_local_desc">Local install</string>
+    <string name="component_installer_close_desc">Close</string>
+    <string name="component_installer_install">Install</string>
+    <string name="component_installer_installed">Installed</string>
+    <string name="component_installer_retry">Retry</string>
+    <string name="component_installer_badge_installer">INSTALLER</string>
+    <string name="component_installer_badge_library">LIBRARY</string>
+    <string name="component_installer_category_empty">No components in this category.</string>
+    <string name="component_installer_loading_extracting">Extracting…</string>
+    <string name="component_installer_loading_finding_manifest">Finding manifest…</string>
+    <string name="component_installer_loading_installing">Installing…</string>
+    <string name="component_installer_loading_queued">Queued…</string>
+    <string name="component_installer_loading_starting">Starting…</string>
+    <string name="component_installer_success_installed">Installed: %1$s</string>
+    <string name="component_installer_error_fetch_manifest">Couldn\'t fetch the manifest.</string>
+    <string name="component_installer_error_install_failed">Install failed.</string>
+    <string name="component_installer_error_local_failed">Local install failed.</string>
+    <string name="component_installer_error_no_manifest">No .yml manifest found in archive</string>
+    <string name="component_installer_error_catalog_unreachable">Couldn\'t reach the component catalog.</string>
+    <string name="component_installer_error_catalog_malformed">The component catalog is malformed.</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">Container isn\'t set up yet — boot it once first.</string>
+    <string name="comp_install_error_empty_manifest">Empty manifest</string>
+    <string name="comp_install_error_no_steps">Manifest has no steps</string>
+    <string name="comp_install_error_cancelled">Cancelled</string>
+    <string name="comp_install_status_downloading">Downloading %1$s (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">Download failed: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">Checksum mismatch: %1$s</string>
+    <string name="comp_install_status_extracting">Extracting %1$s</string>
+    <string name="comp_install_error_extract_failed">Extract failed: %1$s</string>
+    <string name="comp_install_error_unsupported_format">Unsupported archive format: %1$s</string>
+    <string name="comp_install_status_extracting_cab">Extracting from CAB</string>
+    <string name="comp_install_error_cab_not_found">CAB not found: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract is missing from the system image.</string>
+    <string name="comp_install_error_cab_extract_failed">CAB extract failed (exit %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">Couldn\'t run cabextract: %1$s</string>
+    <string name="comp_install_status_installing_into">Installing into %1$s</string>
+    <string name="comp_install_error_source_not_found">Source not found: %1$s</string>
+    <string name="comp_install_error_copy_failed">Copy failed: %1$s</string>
+    <string name="comp_install_error_missing_file">Missing file: %1$s</string>
+    <string name="comp_install_error_installer_not_found">Installer not found: %1$s</string>
+    <string name="comp_install_error_stage_installer">Couldn\'t stage installer: %1$s</string>
+    <string name="comp_install_status_running_installer">Running installer: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">Installer exited with code %1$d: %2$s</string>
+    <string name="comp_install_status_registering_dlls">Registering %1$d DLL(s)</string>
+    <string name="comp_install_error_session_active">A session is still running — close it before installing components.</string>
+    <string name="comp_install_error_timeout">Installer timed out or the session was closed.</string>
 </resources>

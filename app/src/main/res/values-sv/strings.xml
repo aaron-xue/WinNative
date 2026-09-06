@@ -102,7 +102,7 @@
     <string name="common_ui_cannot_write_folder">Kan inte skriva till den valda mappen</string>
     <string name="common_ui_failed_create_directory">Det gick inte att skapa standardkatalogen</string>
     <string name="common_ui_device_not_supported">Tyvärr, din enhet kanske inte stöds</string>
-    <string name="common_ui_please_wait">Vänta\u2026</string>
+    <string name="common_ui_please_wait">Vänta…</string>
     <string name="common_ui_done">Klar</string>
     <string name="common_ui_open">Öppna</string>
     <string name="common_ui_connected">Ansluten</string>
@@ -181,7 +181,7 @@
     <string name="library_games_game_removed">%1$s borttagen.</string>
     <string name="library_games_failed_to_uninstall">Det gick inte att avinstallera.</string>
     <string name="library_games_failed_to_uninstall_reason">Det gick inte att avinstallera: %1$s</string>
-    <string name="library_games_loading">Läser in bibliotek\u2026</string>
+    <string name="library_games_loading">Läser in bibliotek…</string>
     <string name="library_games_no_games_installed">Inga spel installerade. Använd en butiksflik eller +-knappen för att lägga till spel.</string>
     <string name="library_games_times_played_label">Antal gånger spelad: </string>
     <string name="library_games_playtime_label">Speltid: </string>
@@ -2665,4 +2665,55 @@ Installerad sökväg:
     <string name="itch_facet_gamepad">Handkontroll</string>
     <string name="itch_store_update_none">Uppdaterad</string>
     <string name="itch_store_update_available">Uppdatering tillgänglig — %1$s</string>
+
+    <string name="component_installer_badge_installer">INSTALLATÖR</string>
+    <string name="component_installer_badge_library">BIBLIOTEK</string>
+    <string name="component_installer_category_empty">Inga komponenter i denna kategori.</string>
+    <string name="component_installer_close_desc">Stäng</string>
+    <string name="component_installer_error_catalog_malformed">Komponentkatalogen är ogiltig.</string>
+    <string name="component_installer_error_catalog_unreachable">Kunde inte nå komponentkatalogen.</string>
+    <string name="component_installer_error_fetch_manifest">Kunde inte hämta manifestet.</string>
+    <string name="component_installer_error_install_failed">Installationen misslyckades.</string>
+    <string name="component_installer_error_local_failed">Lokal installation misslyckades.</string>
+    <string name="component_installer_error_no_manifest">Ingen .yml-manifest hittades i arkivet</string>
+    <string name="component_installer_install">Installera</string>
+    <string name="component_installer_installed">Installerad</string>
+    <string name="component_installer_loading_extracting">Packar upp…</string>
+    <string name="component_installer_loading_finding_manifest">Söker efter manifest…</string>
+    <string name="component_installer_loading_installing">Installerar…</string>
+    <string name="component_installer_loading_queued">I kö…</string>
+    <string name="component_installer_loading_starting">Startar…</string>
+    <string name="component_installer_local">Lokal installation</string>
+    <string name="component_installer_local_desc">Lokal installation</string>
+    <string name="component_installer_retry">Försök igen</string>
+    <string name="component_installer_success_installed">Installerad: %1$s</string>
+    <string name="component_installer_title">Installera komponenter</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">Behållaren är inte konfigurerad än — starta den en gång först.</string>
+    <string name="comp_install_error_empty_manifest">Tomt manifest</string>
+    <string name="comp_install_error_no_steps">Manifestet har inga steg</string>
+    <string name="comp_install_error_cancelled">Avbruten</string>
+    <string name="comp_install_status_downloading">Laddar ner %1$s (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">Nedladdning misslyckades: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">Kontrollsumma stämmer inte: %1$s</string>
+    <string name="comp_install_status_extracting">Extraherar %1$s</string>
+    <string name="comp_install_error_extract_failed">Extrahering misslyckades: %1$s</string>
+    <string name="comp_install_error_unsupported_format">Arkivformatet stöds inte: %1$s</string>
+    <string name="comp_install_status_extracting_cab">Extraherar från CAB</string>
+    <string name="comp_install_error_cab_not_found">CAB hittades inte: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract saknas i systemavbilden.</string>
+    <string name="comp_install_error_cab_extract_failed">CAB-extrahering misslyckades (kod %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">Kunde inte köra cabextract: %1$s</string>
+    <string name="comp_install_status_installing_into">Installerar i %1$s</string>
+    <string name="comp_install_error_source_not_found">Källan hittades inte: %1$s</string>
+    <string name="comp_install_error_copy_failed">Kopiering misslyckades: %1$s</string>
+    <string name="comp_install_error_missing_file">Saknad fil: %1$s</string>
+    <string name="comp_install_error_installer_not_found">Installationsprogrammet hittades inte: %1$s</string>
+    <string name="comp_install_error_stage_installer">Kunde inte förbereda installationsprogrammet: %1$s</string>
+    <string name="comp_install_status_running_installer">Kör installationsprogram: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">Installationsprogrammet avslutade med kod %1$d: %2$s</string>
+    <string name="comp_install_status_registering_dlls">Registrerar %1$d DLL(er)</string>
+    <string name="comp_install_error_session_active">En session körs fortfarande — stäng den innan du installerar komponenter.</string>
+    <string name="comp_install_error_timeout">Installationsprogrammet fick timeout eller sessionen stängdes.</string>
 </resources>

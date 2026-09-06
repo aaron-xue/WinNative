@@ -114,7 +114,7 @@
     <string name="common_ui_cannot_write_folder">Kan ikke skrive til den valgte mappe</string>
     <string name="common_ui_failed_create_directory">Kunne ikke oprette standardmappe</string>
     <string name="common_ui_device_not_supported">Beklager, din enhed understøttes muligvis ikke</string>
-    <string name="common_ui_please_wait">Vent venligst\u2026</string>
+    <string name="common_ui_please_wait">Vent venligst…</string>
     <string name="common_ui_done">Færdig</string>
     <string name="common_ui_open">Åbn</string>
     <string name="common_ui_connected">Forbundet</string>
@@ -196,7 +196,7 @@
     <string name="library_games_game_removed">%1$s fjernet.</string>
     <string name="library_games_failed_to_uninstall">Kunne ikke afinstallere.</string>
     <string name="library_games_failed_to_uninstall_reason">Kunne ikke afinstallere: %1$s</string>
-    <string name="library_games_loading">Indlæser bibliotek\u2026</string>
+    <string name="library_games_loading">Indlæser bibliotek…</string>
     <string name="library_games_no_games_installed">Ingen spil installeret. Brug en Butik-fane eller + knappen for at tilføje spil.</string>
     <string name="library_games_times_played_label">Antal gange spillet: </string>
     <string name="library_games_playtime_label">Spilletid: </string>
@@ -670,7 +670,6 @@ F.eks. <b>META</b> for <i>META-tast</i>, \n
         <item quantity="other">%d kerner</item>
     </plurals>
 
-
     <!-- Session > Display -->
     <string name="session_display_orientation">Orientering</string>
     <string name="session_display_horizontal">Vandret</string>
@@ -891,7 +890,7 @@ F.eks. <b>META</b> for <i>META-tast</i>, \n
     <string name="settings_other_language_system_default">Systemstandard</string>
 
     <string name="settings_other_section_integration">Integration</string>
-    <string name="settings_other_checking_for_updates">Tjekker for opdateringer\u2026</string>
+    <string name="settings_other_checking_for_updates">Tjekker for opdateringer…</string>
     <string name="settings_other_update_check_cooldown">Vent venligst %1$ds før du tjekker igen</string>
     <string name="settings_other_persistable_permission_failed">Kan ikke tage vedvarende tilladelser: %1$s</string>
     <string name="settings_other_keep_app_open">Hold venligst appen åben mens dette færdiggøres.</string>
@@ -983,7 +982,7 @@ Installeret sti:
     <string name="setup_wizard_recommended_x86_64">Anbefalet x86-64</string>
     <string name="setup_wizard_recommended_arm64ec">Anbefalet ARM64EC</string>
     <string name="setup_wizard_choose_components_description">Vælg hvilke komponenter der skal installeres. Wine/Proton opretter automatisk en container.</string>
-    <string name="setup_wizard_loading_components">Indlæser komponenter\u2026</string>
+    <string name="setup_wizard_loading_components">Indlæser komponenter…</string>
     <string name="setup_wizard_no_components_available">Ingen komponenter tilgængelige for denne kategori.</string>
     <string name="setup_wizard_default_settings">Standardindstillinger</string>
     <string name="setup_wizard_containers_description">Åbn hver container og indstil de standarder du ønsker at alle nye spil skal arve. Nye spil vil som standard bruge x86-64-containeren.</string>
@@ -1015,7 +1014,7 @@ Installeret sti:
     <string name="setup_wizard_recommended_label">Anbefalet</string>
     <string name="setup_wizard_install_all_recommended">Installer alle anbefalede</string>
     <string name="setup_wizard_create_container">Opret container</string>
-    <string name="setup_wizard_creating_container">Opretter\u2026</string>
+    <string name="setup_wizard_creating_container">Opretter…</string>
 
     <!-- Steam > Login -->
     <string name="steam_login_auth_webview_title">Godkendelse</string>
@@ -1028,7 +1027,7 @@ Installeret sti:
     <string name="steam_login_open_steam_app_qr_hint">Åbn Steam-appen → tryk på QR-ikonet</string>
     <string name="steam_login_failed_to_load_qr_code">Kunne ikke indlæse QR-kode</string>
     <string name="steam_login_retry">Prøv igen</string>
-    <string name="steam_login_generating_code">Genererer kode\u2026</string>
+    <string name="steam_login_generating_code">Genererer kode…</string>
     <string name="steam_login_two_factor_auth">Tofaktor-godkendelse</string>
     <string name="steam_login_approve_login_steam_app">Godkend dette login fra\ndin Steam-mobilapp</string>
     <string name="steam_login_enter_code_sent_to">Indtast koden sendt til\n%1$s</string>
@@ -1047,11 +1046,11 @@ Installeret sti:
     <string name="google_cloud_status_syncing">Synkroniserer</string>
     <string name="google_cloud_status_connected">Forbundet</string>
     <string name="google_cloud_status_not_signed_in">Ikke logget ind</string>
-    <string name="google_cloud_working">Arbejder\u2026</string>
+    <string name="google_cloud_working">Arbejder…</string>
     <string name="google_cloud_sign_in">Log ind</string>
     <string name="google_cloud_disable_sync">Deaktiver synkronisering</string>
     <string name="google_cloud_store_logins">Butikslogins</string>
-    <string name="google_cloud_store_login_sync_busy">Arbejder på din butikslogin-synkronisering\u2026</string>
+    <string name="google_cloud_store_login_sync_busy">Arbejder på din butikslogin-synkronisering…</string>
     <string name="google_cloud_saved_games_unavailable">Google Gemte Spil ikke tilgængelig</string>
     <string name="google_cloud_snapshot_ready">Sky-snapshot klar</string>
     <string name="google_cloud_waiting_first_backup">Venter på første backup</string>
@@ -1222,7 +1221,7 @@ Installeret sti:
     <string name="fexcore_env_var_help__strictinprocesssplitlocks">Uses a strict process-wide lock for split unaligned atomic accesses.</string>
     <!-- Translated batch: cloud saves, downloads queue, session drawer, HUD position, artwork picker, runtime patcher (110 strings) -->
     <string name="cloud_saves_history_empty">Ingen tidligere saves er sikkerhedskopieret endnu. Erstattede saves og manuelle sikkerhedskopier vises her i 30 dage.</string>
-    <string name="cloud_saves_history_loading">Indlæser save-historik\u2026</string>
+    <string name="cloud_saves_history_loading">Indlæser save-historik…</string>
     <string name="cloud_saves_history_origin_auto">auto</string>
     <string name="cloud_saves_history_storage_steam">Steam</string>
     <string name="cloud_saves_history_storage_google">Google</string>
@@ -1266,7 +1265,7 @@ Installeret sti:
     <string name="cloud_saves_gog_zip_empty">Ingen GOG-cloudlagringsfiler fundet.</string>
     <string name="cloud_saves_sync_from_provider_generic">Synkroniser fra Cloud</string>
     <string name="cloud_saves_sync_from_provider_success">%1$s cloud-save downloadet.</string>
-    <string name="cloud_saves_syncing_from_provider">Downloader save fra %1$s\u2026</string>
+    <string name="cloud_saves_syncing_from_provider">Downloader save fra %1$s…</string>
     <string name="cloud_saves_sync_summary">Hent den version %1$s har lige nu.</string>
     <string name="cloud_saves_sync_summary_generic">Hent den nuværende cloud-version.</string>
     <string name="common_ui_exit_app_confirm">Afslut WinNative?</string>
@@ -2684,4 +2683,55 @@ Installeret sti:
     <string name="itch_facet_gamepad">Gamepad</string>
     <string name="itch_store_update_none">Opdateret</string>
     <string name="itch_store_update_available">Opdatering tilgængelig — %1$s</string>
+
+    <string name="component_installer_badge_installer">INSTALLATØR</string>
+    <string name="component_installer_badge_library">BIBLIOTEK</string>
+    <string name="component_installer_category_empty">Ingen komponenter i denne kategori.</string>
+    <string name="component_installer_close_desc">Luk</string>
+    <string name="component_installer_error_catalog_malformed">Komponentkataloget er ugyldigt.</string>
+    <string name="component_installer_error_catalog_unreachable">Kunne ikke nå komponentkataloget.</string>
+    <string name="component_installer_error_fetch_manifest">Kunne ikke hente manifestet.</string>
+    <string name="component_installer_error_install_failed">Installation mislykkedes.</string>
+    <string name="component_installer_error_local_failed">Lokal installation mislykkedes.</string>
+    <string name="component_installer_error_no_manifest">Ingen .yml-manifest fundet i arkivet</string>
+    <string name="component_installer_install">Installer</string>
+    <string name="component_installer_installed">Installeret</string>
+    <string name="component_installer_loading_extracting">Udpakker…</string>
+    <string name="component_installer_loading_finding_manifest">Søger manifest…</string>
+    <string name="component_installer_loading_installing">Installerer…</string>
+    <string name="component_installer_loading_queued">I kø…</string>
+    <string name="component_installer_loading_starting">Starter…</string>
+    <string name="component_installer_local">Lokal installation</string>
+    <string name="component_installer_local_desc">Lokal installation</string>
+    <string name="component_installer_retry">Prøv igen</string>
+    <string name="component_installer_success_installed">Installeret: %1$s</string>
+    <string name="component_installer_title">Installer komponenter</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">Containeren er endnu ikke sat op — start den først én gang.</string>
+    <string name="comp_install_error_empty_manifest">Tomt manifest</string>
+    <string name="comp_install_error_no_steps">Manifestet har ingen trin</string>
+    <string name="comp_install_error_cancelled">Annulleret</string>
+    <string name="comp_install_status_downloading">Downloader %1$s (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">Download mislykkedes: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">Kontrolsum stemmer ikke: %1$s</string>
+    <string name="comp_install_status_extracting">Udpakker %1$s</string>
+    <string name="comp_install_error_extract_failed">Udpakning mislykkedes: %1$s</string>
+    <string name="comp_install_error_unsupported_format">Ikke-understøttet arkivformat: %1$s</string>
+    <string name="comp_install_status_extracting_cab">Udpakker fra CAB</string>
+    <string name="comp_install_error_cab_not_found">CAB ikke fundet: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract mangler i systembilledet.</string>
+    <string name="comp_install_error_cab_extract_failed">CAB-udpakning mislykkedes (kode %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">Kunne ikke køre cabextract: %1$s</string>
+    <string name="comp_install_status_installing_into">Installerer i %1$s</string>
+    <string name="comp_install_error_source_not_found">Kilde ikke fundet: %1$s</string>
+    <string name="comp_install_error_copy_failed">Kopiering mislykkedes: %1$s</string>
+    <string name="comp_install_error_missing_file">Manglende fil: %1$s</string>
+    <string name="comp_install_error_installer_not_found">Installationsprogram ikke fundet: %1$s</string>
+    <string name="comp_install_error_stage_installer">Kunne ikke klargøre installationsprogram: %1$s</string>
+    <string name="comp_install_status_running_installer">Kører installationsprogram: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">Installationsprogram afsluttede med kode %1$d: %2$s</string>
+    <string name="comp_install_status_registering_dlls">Registrerer %1$d DLL(er)</string>
+    <string name="comp_install_error_session_active">En session kører stadig — luk den før du installerer komponenter.</string>
+    <string name="comp_install_error_timeout">Installationsprogrammet fik timeout eller sessionen blev lukket.</string>
 </resources>

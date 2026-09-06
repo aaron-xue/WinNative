@@ -114,7 +114,7 @@
     <string name="common_ui_cannot_write_folder">선택한 폴더에 쓸 수 없습니다</string>
     <string name="common_ui_failed_create_directory">기본 디렉터리를 생성하지 못했습니다</string>
     <string name="common_ui_device_not_supported">죄송합니다, 기기가 지원되지 않을 수 있습니다</string>
-    <string name="common_ui_please_wait">잠시 기다려 주세요\u2026</string>
+    <string name="common_ui_please_wait">잠시 기다려 주세요…</string>
     <string name="common_ui_done">완료</string>
     <string name="common_ui_open">열기</string>
     <string name="common_ui_connected">연결됨</string>
@@ -196,7 +196,7 @@
     <string name="library_games_game_removed">%1$s이(가) 삭제되었습니다.</string>
     <string name="library_games_failed_to_uninstall">제거에 실패했습니다.</string>
     <string name="library_games_failed_to_uninstall_reason">제거 실패: %1$s</string>
-    <string name="library_games_loading">라이브러리 로딩 중\u2026</string>
+    <string name="library_games_loading">라이브러리 로딩 중…</string>
     <string name="library_games_no_games_installed">설치된 게임이 없습니다. 스토어 탭이나 + 버튼을 사용하여 게임을 추가하세요.</string>
     <string name="library_games_times_played_label">플레이 횟수: </string>
     <string name="library_games_playtime_label">플레이 시간: </string>
@@ -670,7 +670,6 @@
         <item quantity="other">코어 %d개</item>
     </plurals>
 
-
     <!-- Session > Display -->
     <string name="session_display_orientation">화면 방향</string>
     <string name="session_display_horizontal">가로</string>
@@ -892,7 +891,7 @@
     <string name="settings_other_language_system_default">시스템 기본값</string>
 
     <string name="settings_other_section_integration">통합</string>
-    <string name="settings_other_checking_for_updates">업데이트 확인 중\u2026</string>
+    <string name="settings_other_checking_for_updates">업데이트 확인 중…</string>
     <string name="settings_other_update_check_cooldown">%1$d초 후에 다시 확인해 주세요</string>
     <string name="settings_other_persistable_permission_failed">영구 권한을 가져올 수 없습니다: %1$s</string>
     <string name="settings_other_keep_app_open">완료될 때까지 앱을 열어 두세요.</string>
@@ -984,7 +983,7 @@
     <string name="setup_wizard_recommended_x86_64">권장 x86-64</string>
     <string name="setup_wizard_recommended_arm64ec">권장 ARM64EC</string>
     <string name="setup_wizard_choose_components_description">설치할 구성 요소를 선택하세요. Wine/Proton은 자동으로 컨테이너를 생성합니다.</string>
-    <string name="setup_wizard_loading_components">구성 요소 로딩 중\u2026</string>
+    <string name="setup_wizard_loading_components">구성 요소 로딩 중…</string>
     <string name="setup_wizard_no_components_available">이 카테고리에 사용 가능한 구성 요소가 없습니다.</string>
     <string name="setup_wizard_default_settings">기본 설정</string>
     <string name="setup_wizard_containers_description">각 컨테이너를 열고 모든 새 게임에 상속될 기본값을 설정하세요. 새 게임은 기본적으로 x86-64 컨테이너를 대상으로 합니다.</string>
@@ -1016,7 +1015,7 @@
     <string name="setup_wizard_recommended_label">추천</string>
     <string name="setup_wizard_install_all_recommended">추천 항목 모두 설치</string>
     <string name="setup_wizard_create_container">컨테이너 생성</string>
-    <string name="setup_wizard_creating_container">생성 중\u2026</string>
+    <string name="setup_wizard_creating_container">생성 중…</string>
 
     <!-- Steam > Login -->
     <string name="steam_login_auth_webview_title">인증</string>
@@ -1029,7 +1028,7 @@
     <string name="steam_login_open_steam_app_qr_hint">Steam 앱 열기 → QR 아이콘 탭</string>
     <string name="steam_login_failed_to_load_qr_code">QR 코드를 불러오지 못했습니다</string>
     <string name="steam_login_retry">재시도</string>
-    <string name="steam_login_generating_code">코드 생성 중\u2026</string>
+    <string name="steam_login_generating_code">코드 생성 중…</string>
     <string name="steam_login_two_factor_auth">2단계 인증</string>
     <string name="steam_login_approve_login_steam_app">Steam 모바일 앱에서\n이 로그인을 승인하세요</string>
     <string name="steam_login_enter_code_sent_to">다음으로 전송된 코드를 입력하세요\n%1$s</string>
@@ -1048,11 +1047,11 @@
     <string name="google_cloud_status_syncing">동기화 중</string>
     <string name="google_cloud_status_connected">연결됨</string>
     <string name="google_cloud_status_not_signed_in">로그인되지 않음</string>
-    <string name="google_cloud_working">처리 중\u2026</string>
+    <string name="google_cloud_working">처리 중…</string>
     <string name="google_cloud_sign_in">로그인</string>
     <string name="google_cloud_disable_sync">동기화 비활성화</string>
     <string name="google_cloud_store_logins">스토어 로그인</string>
-    <string name="google_cloud_store_login_sync_busy">스토어 로그인 동기화 작업 중\u2026</string>
+    <string name="google_cloud_store_login_sync_busy">스토어 로그인 동기화 작업 중…</string>
     <string name="google_cloud_saved_games_unavailable">Google 저장된 게임을 사용할 수 없습니다</string>
     <string name="google_cloud_snapshot_ready">클라우드 스냅샷 준비 완료</string>
     <string name="google_cloud_waiting_first_backup">첫 번째 백업 대기 중</string>
@@ -1224,7 +1223,7 @@
 
     <!-- Translated batch (110 strings) -->
     <string name="cloud_saves_history_empty">아직 백업된 이전 저장 파일이 없습니다. 교체된 저장 파일과 수동 백업이 30일 동안 여기에 표시됩니다.</string>
-    <string name="cloud_saves_history_loading">저장 기록 불러오는 중\u2026</string>
+    <string name="cloud_saves_history_loading">저장 기록 불러오는 중…</string>
     <string name="cloud_saves_history_origin_auto">자동</string>
     <string name="cloud_saves_history_storage_steam">Steam</string>
     <string name="cloud_saves_history_storage_google">Google</string>
@@ -1268,7 +1267,7 @@
     <string name="cloud_saves_gog_zip_empty">GOG 클라우드 저장 파일을 찾을 수 없습니다.</string>
     <string name="cloud_saves_sync_from_provider_generic">클라우드에서 동기화</string>
     <string name="cloud_saves_sync_from_provider_success">%1$s 클라우드 저장 파일을 다운로드했습니다.</string>
-    <string name="cloud_saves_syncing_from_provider">%1$s에서 저장 파일 다운로드 중\u2026</string>
+    <string name="cloud_saves_syncing_from_provider">%1$s에서 저장 파일 다운로드 중…</string>
     <string name="cloud_saves_sync_summary">%1$s에 현재 있는 버전을 가져옵니다.</string>
     <string name="cloud_saves_sync_summary_generic">현재 클라우드 버전을 가져옵니다.</string>
     <string name="common_ui_exit_app_confirm">WinNative를 종료하시겠습니까?</string>
@@ -2686,5 +2685,56 @@
     <string name="itch_facet_gamepad">게임패드</string>
     <string name="itch_store_update_none">최신 상태</string>
     <string name="itch_store_update_available">업데이트 있음 — %1$s</string>
-</resources>
 
+    <!-- Component Installer Sheet -->
+    <string name="component_installer_title">구성 요소 설치</string>
+    <string name="component_installer_local">로컬 설치</string>
+    <string name="component_installer_close_desc">닫기</string>
+    <string name="component_installer_local_desc">로컬 설치</string>
+    <string name="component_installer_install">설치</string>
+    <string name="component_installer_installed">설치됨</string>
+    <string name="component_installer_retry">다시 시도</string>
+    <string name="component_installer_badge_installer">설치 프로그램</string>
+    <string name="component_installer_badge_library">라이브러리</string>
+    <string name="component_installer_category_empty">이 카테고리에 구성 요소가 없습니다.</string>
+    <string name="component_installer_loading_extracting">압축 해제 중…</string>
+    <string name="component_installer_loading_queued">대기 중…</string>
+    <string name="component_installer_loading_starting">시작 중…</string>
+    <string name="component_installer_loading_finding_manifest">매니페스트 찾는 중…</string>
+    <string name="component_installer_loading_installing">설치 중…</string>
+    <string name="component_installer_success_installed">설치 완료: %1$s</string>
+    <string name="component_installer_error_fetch_manifest">매니페스트를 가져올 수 없습니다.</string>
+    <string name="component_installer_error_install_failed">설치 실패.</string>
+    <string name="component_installer_error_local_failed">로컬 설치 실패.</string>
+    <string name="component_installer_error_no_manifest">아카이브에서 .yml 매니페스트를 찾을 수 없습니다</string>
+    <string name="component_installer_error_catalog_unreachable">구성 요소 카탈로그에 연결할 수 없습니다.</string>
+    <string name="component_installer_error_catalog_malformed">구성 요소 카탈로그 형식이 잘못되었습니다.</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">컨테이너가 아직 설정되지 않았습니다 — 먼저 한 번 부팅하세요.</string>
+    <string name="comp_install_error_empty_manifest">빈 매니페스트</string>
+    <string name="comp_install_error_no_steps">매니페스트에 단계가 없습니다</string>
+    <string name="comp_install_error_cancelled">취소됨</string>
+    <string name="comp_install_status_downloading">%1$s 다운로드 중 (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">다운로드 실패: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">체크섬 불일치: %1$s</string>
+    <string name="comp_install_status_extracting">%1$s 압축 해제 중</string>
+    <string name="comp_install_error_extract_failed">압축 해제 실패: %1$s</string>
+    <string name="comp_install_error_unsupported_format">지원되지 않는 압축 형식: %1$s</string>
+    <string name="comp_install_status_extracting_cab">CAB에서 추출 중</string>
+    <string name="comp_install_error_cab_not_found">CAB을 찾을 수 없음: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">시스템 이미지에 cabextract가 없습니다.</string>
+    <string name="comp_install_error_cab_extract_failed">CAB 추출 실패 (종료 코드 %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">cabextract를 실행할 수 없음: %1$s</string>
+    <string name="comp_install_status_installing_into">%1$s에 설치 중</string>
+    <string name="comp_install_error_source_not_found">소스를 찾을 수 없음: %1$s</string>
+    <string name="comp_install_error_copy_failed">복사 실패: %1$s</string>
+    <string name="comp_install_error_missing_file">파일 누락: %1$s</string>
+    <string name="comp_install_error_installer_not_found">설치 프로그램을 찾을 수 없음: %1$s</string>
+    <string name="comp_install_error_stage_installer">설치 프로그램을 스테이징할 수 없음: %1$s</string>
+    <string name="comp_install_status_running_installer">설치 프로그램 실행 중: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">설치 프로그램이 코드 %1$d로 종료됨: %2$s</string>
+    <string name="comp_install_status_registering_dlls">%1$d개 DLL 등록 중</string>
+    <string name="comp_install_error_session_active">세션이 실행 중입니다 — 구성 요소를 설치하기 전에 닫아주세요.</string>
+    <string name="comp_install_error_timeout">설치 프로그램 시간 초과 또는 세션이 닫혔습니다.</string>
+</resources>

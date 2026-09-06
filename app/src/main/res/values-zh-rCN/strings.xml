@@ -114,7 +114,7 @@
     <string name="common_ui_cannot_write_folder">无法写入所选文件夹</string>
     <string name="common_ui_failed_create_directory">无法创建默认目录</string>
     <string name="common_ui_device_not_supported">抱歉，您的设备可能不受支持</string>
-    <string name="common_ui_please_wait">请稍候\u2026</string>
+    <string name="common_ui_please_wait">请稍候…</string>
     <string name="common_ui_done">完成</string>
     <string name="common_ui_open">打开</string>
     <string name="common_ui_connected">已连接</string>
@@ -196,7 +196,7 @@
     <string name="library_games_game_removed">%1$s 已移除。</string>
     <string name="library_games_failed_to_uninstall">卸载失败。</string>
     <string name="library_games_failed_to_uninstall_reason">卸载失败：%1$s</string>
-    <string name="library_games_loading">正在加载游戏库\u2026</string>
+    <string name="library_games_loading">正在加载游戏库…</string>
     <string name="library_games_no_games_installed">未安装任何游戏。请使用商店标签页或 + 按钮添加游戏。</string>
     <string name="library_games_times_played_label">游玩次数：</string>
     <string name="library_games_playtime_label">游玩时长：</string>
@@ -671,7 +671,6 @@
         <item quantity="other">%d 个核心</item>
     </plurals>
 
-
     <!-- Session > Display -->
     <string name="session_display_orientation">方向</string>
     <string name="session_display_horizontal">横向</string>
@@ -893,7 +892,7 @@
     <string name="settings_other_language_system_default">系统默认</string>
 
     <string name="settings_other_section_integration">集成</string>
-    <string name="settings_other_checking_for_updates">正在检查更新\u2026</string>
+    <string name="settings_other_checking_for_updates">正在检查更新…</string>
     <string name="settings_other_update_check_cooldown">请等待 %1$d 秒后再次检查</string>
     <string name="settings_other_persistable_permission_failed">无法获取持久化权限：%1$s</string>
     <string name="settings_other_keep_app_open">请在此操作完成前保持应用打开。</string>
@@ -985,7 +984,7 @@
     <string name="setup_wizard_recommended_x86_64">推荐 x86-64</string>
     <string name="setup_wizard_recommended_arm64ec">推荐 ARM64EC</string>
     <string name="setup_wizard_choose_components_description">选择要安装的组件。Wine/Proton 将自动创建容器。</string>
-    <string name="setup_wizard_loading_components">正在加载组件\u2026</string>
+    <string name="setup_wizard_loading_components">正在加载组件…</string>
     <string name="setup_wizard_no_components_available">此类别没有可用的组件。</string>
     <string name="setup_wizard_default_settings">默认设置</string>
     <string name="setup_wizard_containers_description">打开每个容器并设置您希望每个新游戏继承的默认值。新游戏将默认使用 x86-64 容器。</string>
@@ -1017,7 +1016,7 @@
     <string name="setup_wizard_recommended_label">推荐</string>
     <string name="setup_wizard_install_all_recommended">安装所有推荐</string>
     <string name="setup_wizard_create_container">创建容器</string>
-    <string name="setup_wizard_creating_container">正在创建\u2026</string>
+    <string name="setup_wizard_creating_container">正在创建…</string>
 
     <!-- Steam > Login -->
     <string name="steam_login_auth_webview_title">授权</string>
@@ -1030,7 +1029,7 @@
     <string name="steam_login_open_steam_app_qr_hint">打开 Steam 应用 → 点击二维码图标</string>
     <string name="steam_login_failed_to_load_qr_code">加载二维码失败</string>
     <string name="steam_login_retry">重试</string>
-    <string name="steam_login_generating_code">正在生成验证码\u2026</string>
+    <string name="steam_login_generating_code">正在生成验证码…</string>
     <string name="steam_login_two_factor_auth">两步验证</string>
     <string name="steam_login_approve_login_steam_app">请在您的 Steam 手机应用\n中批准此次登录</string>
     <string name="steam_login_enter_code_sent_to">请输入发送到\n%1$s 的验证码</string>
@@ -1049,11 +1048,11 @@
     <string name="google_cloud_status_syncing">同步中</string>
     <string name="google_cloud_status_connected">已连接</string>
     <string name="google_cloud_status_not_signed_in">未登录</string>
-    <string name="google_cloud_working">处理中\u2026</string>
+    <string name="google_cloud_working">处理中…</string>
     <string name="google_cloud_sign_in">登录</string>
     <string name="google_cloud_disable_sync">禁用同步</string>
     <string name="google_cloud_store_logins">商店登录信息</string>
-    <string name="google_cloud_store_login_sync_busy">正在同步您的商店登录信息\u2026</string>
+    <string name="google_cloud_store_login_sync_busy">正在同步您的商店登录信息…</string>
     <string name="google_cloud_saved_games_unavailable">Google 云存档不可用</string>
     <string name="google_cloud_snapshot_ready">云快照已就绪</string>
     <string name="google_cloud_waiting_first_backup">等待首次备份</string>
@@ -1227,7 +1226,7 @@
     <string name="fexcore_env_var_help__strictinprocesssplitlocks">Uses a strict process-wide lock for split unaligned atomic accesses.</string>
     <!-- Translated batch (110 strings) -->
     <string name="cloud_saves_history_empty">暂无已备份的历史存档。被替换的存档和手动备份将在此处保留 30 天。</string>
-    <string name="cloud_saves_history_loading">正在加载存档历史\u2026</string>
+    <string name="cloud_saves_history_loading">正在加载存档历史…</string>
     <string name="cloud_saves_history_origin_auto">自动</string>
     <string name="cloud_saves_history_storage_steam">Steam</string>
     <string name="cloud_saves_history_storage_google">Google</string>
@@ -1271,7 +1270,7 @@
     <string name="cloud_saves_gog_zip_empty">未找到 GOG 云存档文件。</string>
     <string name="cloud_saves_sync_from_provider_generic">从云端同步</string>
     <string name="cloud_saves_sync_from_provider_success">%1$s 云端存档已下载。</string>
-    <string name="cloud_saves_syncing_from_provider">正在从 %1$s 下载存档\u2026</string>
+    <string name="cloud_saves_syncing_from_provider">正在从 %1$s 下载存档…</string>
     <string name="cloud_saves_sync_summary">拉取 %1$s 当前的版本。</string>
     <string name="cloud_saves_sync_summary_generic">拉取当前云端版本。</string>
     <string name="common_ui_exit_app_confirm">退出 WinNative？</string>
@@ -2689,4 +2688,56 @@
     <string name="system_info_gpu_information">GPU 信息</string>
     <string name="system_info_memory_info">内存信息</string>
     <string name="system_info_total_memory">总内存</string>
+
+    <!-- Component Installer Sheet -->
+    <string name="component_installer_title">安装组件</string>
+    <string name="component_installer_local">本地安装</string>
+    <string name="component_installer_close_desc">关闭</string>
+    <string name="component_installer_local_desc">本地安装</string>
+    <string name="component_installer_install">安装</string>
+    <string name="component_installer_installed">已安装</string>
+    <string name="component_installer_retry">重试</string>
+    <string name="component_installer_badge_installer">安装包</string>
+    <string name="component_installer_badge_library">运行库</string>
+    <string name="component_installer_category_empty">此分类下暂无组件。</string>
+    <string name="component_installer_loading_extracting">正在解压…</string>
+    <string name="component_installer_loading_queued">排队中…</string>
+    <string name="component_installer_loading_starting">正在启动…</string>
+    <string name="component_installer_loading_finding_manifest">正在查找清单文件…</string>
+    <string name="component_installer_loading_installing">正在安装…</string>
+    <string name="component_installer_success_installed">已安装：%1$s</string>
+    <string name="component_installer_error_fetch_manifest">无法获取清单文件。</string>
+    <string name="component_installer_error_install_failed">安装失败。</string>
+    <string name="component_installer_error_local_failed">本地安装失败。</string>
+    <string name="component_installer_error_no_manifest">压缩包中未找到 .yml 清单文件</string>
+    <string name="component_installer_error_catalog_unreachable">无法访问组件目录。</string>
+    <string name="component_installer_error_catalog_malformed">组件目录格式有误。</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">容器尚未设置 — 请先启动一次。</string>
+    <string name="comp_install_error_empty_manifest">空清单</string>
+    <string name="comp_install_error_no_steps">清单没有步骤</string>
+    <string name="comp_install_error_cancelled">已取消</string>
+    <string name="comp_install_status_downloading">正在下载 %1$s（%2$d/%3$d）</string>
+    <string name="comp_install_error_download_failed">下载失败：%1$s</string>
+    <string name="comp_install_error_checksum_mismatch">校验和不匹配：%1$s</string>
+    <string name="comp_install_status_extracting">正在解压 %1$s</string>
+    <string name="comp_install_error_extract_failed">解压失败：%1$s</string>
+    <string name="comp_install_error_unsupported_format">不支持的压缩格式：%1$s</string>
+    <string name="comp_install_status_extracting_cab">正在从 CAB 解压</string>
+    <string name="comp_install_error_cab_not_found">未找到 CAB：%1$s</string>
+    <string name="comp_install_error_cabextract_missing">系统镜像中缺少 cabextract。</string>
+    <string name="comp_install_error_cab_extract_failed">CAB 解压失败（退出码 %1$d）：%2$s</string>
+    <string name="comp_install_error_cabextract_run">无法运行 cabextract：%1$s</string>
+    <string name="comp_install_status_installing_into">正在安装到 %1$s</string>
+    <string name="comp_install_error_source_not_found">未找到源：%1$s</string>
+    <string name="comp_install_error_copy_failed">复制失败：%1$s</string>
+    <string name="comp_install_error_missing_file">缺少文件：%1$s</string>
+    <string name="comp_install_error_installer_not_found">未找到安装程序：%1$s</string>
+    <string name="comp_install_error_stage_installer">无法暂存安装程序：%1$s</string>
+    <string name="comp_install_status_running_installer">正在运行安装程序：%1$s</string>
+    <string name="comp_install_error_installer_exit_code">安装程序退出码 %1$d：%2$s</string>
+    <string name="comp_install_status_registering_dlls">正在注册 %1$d 个 DLL</string>
+    <string name="comp_install_error_session_active">会话仍在运行 — 请在安装组件前关闭它。</string>
+    <string name="comp_install_error_timeout">安装程序超时或会话已关闭。</string>
 </resources>

@@ -84,46 +84,40 @@ in-game **Online** tab).
 
 **How to use:** In the Library, tap **Add Custom Game** and select a ROM instead of an `.exe`. WinNative detects the console and adds the game to your Library. Tap **Play** to launch it with on-screen touch controls and physical gamepad support; the in-game menu (Back button or on-screen **MENU**) offers save/load state, reset, and fast-forward. PlayStation and PlayStation 2 BIOS files can be imported from **Settings → Retro**.
 ### Frame Generation
-WinNative can interpolate extra frames between the ones your game actually renders,
-using the
-Lossless Scaling frame generation shaders. Interpolation runs **on the Android side**,
-inside
+
+WinNative can interpolate extra frames between the ones your game actually renders, using the
+Lossless Scaling frame generation shaders. Interpolation runs **on the Android side**, inside
 WinNative's own Vulkan compositor rather than inside the Wine container, so it works with any
-graphics API Wine can drive — DXVK,
-WineD3D or native Vulkan alike.
-**You must own [
-  Lossless Scaling](https://store.steampowered.com/) on Steam.** Its shaders are
-                    not redistributable,
-                    so nothing ships with the APK. WinNative reads them out of your own copy of
-                    `Lossless.dll`,
-                    translates them from DXBC to SPIR-V once,
-                    and caches the result in app storage.
-                    The DLL is parsed as data and never executed.
-                    **Setup:** sign in to Steam,
-                    install Lossless Scaling,
-                    then open **Container Settings → Frame
-                    Generation**. WinNative finds the DLL automatically from your Steam library; if it can't, use
-                    **Select Lossless.dll…** to point at it. The in-game **FG** tab stays disabled until the shaders
-                    import successfully.
-                    **In-game controls** live in the **FG** tab of the session drawer,
-                    between HUD and Gyro:
-                    | Control | What it does |
-                    | --- | --- |
-                    | Generate Frames | Master toggle |
-                    | Adaptive Target | Aim for a specific output rate (60/90/120/144/165) instead of a fixed multiplier |
+graphics API Wine can drive — DXVK, WineD3D or native Vulkan alike.
+
+**You must own [Lossless Scaling](https://store.steampowered.com/) on Steam.** Its shaders are
+not redistributable, so nothing ships with the APK. WinNative reads them out of your own copy of
+`Lossless.dll`, translates them from DXBC to SPIR-V once, and caches the result in app storage.
+The DLL is parsed as data and never executed.
+
+**Setup:** sign in to Steam, install Lossless Scaling, then open **Container Settings → Frame
+Generation**. WinNative finds the DLL automatically from your Steam library; if it can't, use
+**Select Lossless.dll…** to point at it. The in-game **FG** tab stays disabled until the shaders
+import successfully.
+
+**In-game controls** live in the **FG** tab of the session drawer, between HUD and Gyro:
+
+| Control | What it does |
+| --- | --- |
+| Generate Frames | Master toggle |
+| Adaptive Target | Aim for a specific output rate (60/90/120/144/165) instead of a fixed multiplier |
 | Multiplier | 2× / 3× / 4× — generated frames per rendered frame |
-| Flow Scale | 25–100%,
-resolution of the optical-flow pyramid; lower is cheaper and softer |
+| Flow Scale | 25–100%, resolution of the optical-flow pyramid; lower is cheaper and softer |
 | FPS Limiter | Caps the game's own frame rate, from 15 fps upward |
+
 **What to expect.** Frame generation costs **one extra frame of input latency** — interpolating
 between two frames means holding the newer one back. It also needs spare display refresh:
-generated frames occupy vblanks,
-so WinNative sizes the multiplier against your panel's refresh
+generated frames occupy vblanks, so WinNative sizes the multiplier against your panel's refresh
 rate and the game's actual frame rate, and will hand back generated frames rather than take real
 ones from the game. A game already running near your panel's refresh rate has nothing to gain.
 Pairing a multiplier with an FPS limiter that divides the refresh rate evenly (120 Hz with a
-                                                                               60 fps cap at 2×,
-                                                                               or 40 at 3×) gives the most even pacing.
+60 fps cap at 2×, or 40 at 3×) gives the most even pacing.
+
 ---
 
 ### Contributing

@@ -114,7 +114,7 @@
     <string name="common_ui_cannot_write_folder">Nu se poate scrie in folderul selectat</string>
     <string name="common_ui_failed_create_directory">Nu s-a putut crea directorul implicit</string>
     <string name="common_ui_device_not_supported">Ne pare rau, este posibil ca dispozitivul tau sa nu fie compatibil</string>
-    <string name="common_ui_please_wait">Te rugam asteapta\u2026</string>
+    <string name="common_ui_please_wait">Te rugam asteapta…</string>
     <string name="common_ui_done">Gata</string>
     <string name="common_ui_open">Deschide</string>
     <string name="common_ui_connected">Conectat</string>
@@ -196,7 +196,7 @@
     <string name="library_games_game_removed">%1$s a fost eliminat.</string>
     <string name="library_games_failed_to_uninstall">Dezinstalarea a esuat.</string>
     <string name="library_games_failed_to_uninstall_reason">Dezinstalarea a esuat: %1$s</string>
-    <string name="library_games_loading">Se incarca biblioteca\u2026</string>
+    <string name="library_games_loading">Se incarca biblioteca…</string>
     <string name="library_games_no_games_installed">Niciun joc instalat. Foloseste un tab Magazin sau butonul + pentru a adauga jocuri.</string>
     <string name="library_games_times_played_label">Numar de sesiuni: </string>
     <string name="library_games_playtime_label">Timp de joc: </string>
@@ -670,7 +670,6 @@ De ex. <b>META</b> pentru <i>tasta META</i>, \n
         <item quantity="other">%d nuclee</item>
     </plurals>
 
-
     <!-- Session > Display -->
     <string name="session_display_orientation">Orientare</string>
     <string name="session_display_horizontal">Orizontal</string>
@@ -892,7 +891,7 @@ De ex. <b>META</b> pentru <i>tasta META</i>, \n
     <string name="settings_other_language_system_default">Implicit sistem</string>
 
     <string name="settings_other_section_integration">Integrare</string>
-    <string name="settings_other_checking_for_updates">Se verifică actualizările\u2026</string>
+    <string name="settings_other_checking_for_updates">Se verifică actualizările…</string>
     <string name="settings_other_update_check_cooldown">Așteaptă %1$ds înainte de a verifica din nou</string>
     <string name="settings_other_persistable_permission_failed">Nu se pot obține permisiuni persistente: %1$s</string>
     <string name="settings_other_keep_app_open">Te rugăm să păstrezi aplicația deschisă până se termină.</string>
@@ -984,7 +983,7 @@ Cale instalata:
     <string name="setup_wizard_recommended_x86_64">Recomandat x86-64</string>
     <string name="setup_wizard_recommended_arm64ec">Recomandat ARM64EC</string>
     <string name="setup_wizard_choose_components_description">Alege ce componente sa instalezi. Wine/Proton va crea automat un container.</string>
-    <string name="setup_wizard_loading_components">Se incarca componentele\u2026</string>
+    <string name="setup_wizard_loading_components">Se incarca componentele…</string>
     <string name="setup_wizard_no_components_available">Nicio componenta disponibila pentru aceasta categorie.</string>
     <string name="setup_wizard_default_settings">Setari implicite</string>
     <string name="setup_wizard_containers_description">Deschide fiecare container si seteaza valorile implicite pe care doresti ca fiecare joc nou sa le mosteneasca. Jocurile noi vor tinti containerul x86-64 in mod implicit.</string>
@@ -1016,7 +1015,7 @@ Cale instalata:
     <string name="setup_wizard_recommended_label">Recomandat</string>
     <string name="setup_wizard_install_all_recommended">Instalează toate recomandate</string>
     <string name="setup_wizard_create_container">Creează container</string>
-    <string name="setup_wizard_creating_container">Se creează\u2026</string>
+    <string name="setup_wizard_creating_container">Se creează…</string>
 
     <!-- Steam > Login -->
     <string name="steam_login_auth_webview_title">Autorizare</string>
@@ -1029,7 +1028,7 @@ Cale instalata:
     <string name="steam_login_open_steam_app_qr_hint">Deschide aplicatia Steam → apasa pictograma QR</string>
     <string name="steam_login_failed_to_load_qr_code">Nu s-a putut incarca codul QR</string>
     <string name="steam_login_retry">Reincearca</string>
-    <string name="steam_login_generating_code">Se genereaza codul\u2026</string>
+    <string name="steam_login_generating_code">Se genereaza codul…</string>
     <string name="steam_login_two_factor_auth">Autentificare in doi pasi</string>
     <string name="steam_login_approve_login_steam_app">Aproba aceasta autentificare din\naplicatia mobila Steam</string>
     <string name="steam_login_enter_code_sent_to">Introdu codul trimis la\n%1$s</string>
@@ -1048,11 +1047,11 @@ Cale instalata:
     <string name="google_cloud_status_syncing">Se sincronizeaza</string>
     <string name="google_cloud_status_connected">Conectat</string>
     <string name="google_cloud_status_not_signed_in">Neautentificat</string>
-    <string name="google_cloud_working">Se lucreaza\u2026</string>
+    <string name="google_cloud_working">Se lucreaza…</string>
     <string name="google_cloud_sign_in">Autentificare</string>
     <string name="google_cloud_disable_sync">Dezactiveaza sincronizarea</string>
     <string name="google_cloud_store_logins">Autentificari magazin</string>
-    <string name="google_cloud_store_login_sync_busy">Se lucreaza la sincronizarea autentificarii magazinului\u2026</string>
+    <string name="google_cloud_store_login_sync_busy">Se lucreaza la sincronizarea autentificarii magazinului…</string>
     <string name="google_cloud_saved_games_unavailable">Google Saved Games indisponibil</string>
     <string name="google_cloud_snapshot_ready">Instantaneu cloud pregatit</string>
     <string name="google_cloud_waiting_first_backup">Se asteapta prima copie de siguranta</string>
@@ -1223,7 +1222,7 @@ Cale instalata:
     <string name="fexcore_env_var_help__strictinprocesssplitlocks">Uses a strict process-wide lock for split unaligned atomic accesses.</string>
     <!-- Translated batch (110 strings) -->
     <string name="cloud_saves_history_empty">Nicio salvare anterioară arhivată încă. Salvările înlocuite și copiile de siguranță manuale vor apărea aici timp de 30 de zile.</string>
-    <string name="cloud_saves_history_loading">Se încarcă istoricul salvărilor\u2026</string>
+    <string name="cloud_saves_history_loading">Se încarcă istoricul salvărilor…</string>
     <string name="cloud_saves_history_origin_auto">auto</string>
     <string name="cloud_saves_history_storage_steam">Steam</string>
     <string name="cloud_saves_history_storage_google">Google</string>
@@ -1267,7 +1266,7 @@ Cale instalata:
     <string name="cloud_saves_gog_zip_empty">Nu s-au găsit fișiere de salvare în cloud GOG.</string>
     <string name="cloud_saves_sync_from_provider_generic">Sincronizare din cloud</string>
     <string name="cloud_saves_sync_from_provider_success">Salvare cloud %1$s descărcată.</string>
-    <string name="cloud_saves_syncing_from_provider">Se descarcă salvarea de la %1$s\u2026</string>
+    <string name="cloud_saves_syncing_from_provider">Se descarcă salvarea de la %1$s…</string>
     <string name="cloud_saves_sync_summary">Preia versiunea pe care o are %1$s acum.</string>
     <string name="cloud_saves_sync_summary_generic">Preia versiunea cloud curentă.</string>
     <string name="common_ui_exit_app_confirm">Ieși din WinNative?</string>
@@ -2684,5 +2683,55 @@ Cale instalata:
     <string name="itch_facet_gamepad">Gamepad</string>
     <string name="itch_store_update_none">La zi</string>
     <string name="itch_store_update_available">Actualizare disponibilă — %1$s</string>
-</resources>
 
+    <string name="component_installer_badge_installer">INSTALATOR</string>
+    <string name="component_installer_badge_library">BIBLIOTECĂ</string>
+    <string name="component_installer_category_empty">Niciun component în această categorie.</string>
+    <string name="component_installer_close_desc">Închide</string>
+    <string name="component_installer_error_catalog_malformed">Catalogul de componente este corupt.</string>
+    <string name="component_installer_error_catalog_unreachable">Nu se poate ajunge la catalogul de componente.</string>
+    <string name="component_installer_error_fetch_manifest">Nu se poate prelua manifestul.</string>
+    <string name="component_installer_error_install_failed">Instalarea a eșuat.</string>
+    <string name="component_installer_error_local_failed">Instalarea locală a eșuat.</string>
+    <string name="component_installer_error_no_manifest">Niciun manifest .yml găsit în arhivă</string>
+    <string name="component_installer_install">Instalează</string>
+    <string name="component_installer_installed">Instalat</string>
+    <string name="component_installer_loading_extracting">Se extrage…</string>
+    <string name="component_installer_loading_finding_manifest">Se caută manifest…</string>
+    <string name="component_installer_loading_installing">Se instalează…</string>
+    <string name="component_installer_loading_queued">În coadă…</string>
+    <string name="component_installer_loading_starting">Se pornește…</string>
+    <string name="component_installer_local">Instalare locală</string>
+    <string name="component_installer_local_desc">Instalare locală</string>
+    <string name="component_installer_retry">Încearcă din nou</string>
+    <string name="component_installer_success_installed">Instalat: %1$s</string>
+    <string name="component_installer_title">Instalare componente</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">Containerul nu este încă configurat — porniți-l mai întâi o dată.</string>
+    <string name="comp_install_error_empty_manifest">Manifest gol</string>
+    <string name="comp_install_error_no_steps">Manifestul nu are pași</string>
+    <string name="comp_install_error_cancelled">Anulat</string>
+    <string name="comp_install_status_downloading">Se descarcă %1$s (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">Descărcare eșuată: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">Suma de control nu corespunde: %1$s</string>
+    <string name="comp_install_status_extracting">Se extrage %1$s</string>
+    <string name="comp_install_error_extract_failed">Extragere eșuată: %1$s</string>
+    <string name="comp_install_error_unsupported_format">Format de arhivă neacceptat: %1$s</string>
+    <string name="comp_install_status_extracting_cab">Se extrage din CAB</string>
+    <string name="comp_install_error_cab_not_found">CAB negăsit: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract lipsește din imaginea sistemului.</string>
+    <string name="comp_install_error_cab_extract_failed">Extragerea CAB a eșuat (cod %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">Nu s-a putut executa cabextract: %1$s</string>
+    <string name="comp_install_status_installing_into">Se instalează în %1$s</string>
+    <string name="comp_install_error_source_not_found">Sursă negăsită: %1$s</string>
+    <string name="comp_install_error_copy_failed">Copiere eșuată: %1$s</string>
+    <string name="comp_install_error_missing_file">Fișier lipsă: %1$s</string>
+    <string name="comp_install_error_installer_not_found">Program de instalare negăsit: %1$s</string>
+    <string name="comp_install_error_stage_installer">Nu s-a putut pregăti programul de instalare: %1$s</string>
+    <string name="comp_install_status_running_installer">Se rulează programul de instalare: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">Programul de instalare a ieșit cu codul %1$d: %2$s</string>
+    <string name="comp_install_status_registering_dlls">Se înregistrează %1$d DLL(uri)</string>
+    <string name="comp_install_error_session_active">O sesiune este încă activă — închideți-o înainte de a instala componente.</string>
+    <string name="comp_install_error_timeout">Programul de instalare a expirat sau sesiunea a fost închisă.</string>
+</resources>

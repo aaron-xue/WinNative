@@ -31,7 +31,7 @@
     <string name="common_ui_icon">圖示</string>
     <string name="common_ui_duplicate">複製</string>
     <string name="common_ui_credits_and_third_party_apps">致謝與第三方應用程式</string>
-    <string name="common_ui_loading">載入中\u2026</string>
+    <string name="common_ui_loading">載入中…</string>
     <string name="common_ui_exporting">正在匯出</string>
     <string name="common_ui_enable">啟用</string>
     <string name="common_ui_disable">停用</string>
@@ -114,7 +114,7 @@
     <string name="common_ui_cannot_write_folder">無法寫入所選資料夾</string>
     <string name="common_ui_failed_create_directory">無法建立預設目錄</string>
     <string name="common_ui_device_not_supported">抱歉，您的裝置可能不受支援</string>
-    <string name="common_ui_please_wait">請稍候\u2026</string>
+    <string name="common_ui_please_wait">請稍候…</string>
     <string name="common_ui_done">完成</string>
     <string name="common_ui_open">開啟</string>
     <string name="common_ui_connected">已連線</string>
@@ -196,7 +196,7 @@
     <string name="library_games_game_removed">%1$s 已移除。</string>
     <string name="library_games_failed_to_uninstall">解除安裝失敗。</string>
     <string name="library_games_failed_to_uninstall_reason">解除安裝失敗：%1$s</string>
-    <string name="library_games_loading">正在載入遊戲庫\u2026</string>
+    <string name="library_games_loading">正在載入遊戲庫…</string>
     <string name="library_games_no_games_installed">尚未安裝任何遊戲。請使用商店分頁或 + 按鈕來新增遊戲。</string>
     <string name="library_games_times_played_label">遊玩次數：</string>
     <string name="library_games_playtime_label">遊玩時間：</string>
@@ -284,9 +284,9 @@
     <!-- Containers > List -->
     <string name="containers_list_new">新建容器</string>
     <string name="containers_list_edit">編輯容器</string>
-    <string name="containers_list_creating">正在建立容器\u2026</string>
-    <string name="containers_list_removing">正在移除容器\u2026</string>
-    <string name="containers_list_duplicating">正在複製容器\u2026</string>
+    <string name="containers_list_creating">正在建立容器…</string>
+    <string name="containers_list_removing">正在移除容器…</string>
+    <string name="containers_list_duplicating">正在複製容器…</string>
     <string name="containers_list_remove_title">移除容器</string>
     <string name="containers_list_duplicate_title">複製容器</string>
     <string name="containers_list_confirm_remove">您要移除此容器嗎？</string>
@@ -671,7 +671,6 @@
         <item quantity="other">%d 個核心</item>
     </plurals>
 
-
     <!-- Session > Display -->
     <string name="session_display_orientation">方向</string>
     <string name="session_display_horizontal">水平</string>
@@ -833,7 +832,7 @@
     <string name="settings_audio_sound_font_installed_failed">SoundFont 安裝失敗！</string>
     <string name="settings_audio_sound_font_already_exist">您要安裝的 SoundFont 已存在。</string>
     <string name="settings_audio_unable_to_install_soundfont">無法安裝 SoundFont</string>
-    <string name="settings_audio_installing_soundfont">正在安裝 SoundFont\u2026</string>
+    <string name="settings_audio_installing_soundfont">正在安裝 SoundFont…</string>
     <string name="settings_audio_sound_font_bad_format">SoundFont 格式錯誤。</string>
     <string name="settings_audio_cannot_remove_default">無法移除預設 SoundFont</string>
     <string name="settings_audio_summary">安裝、移除和選擇用於 MIDI 播放的 SoundFont。</string>
@@ -893,7 +892,7 @@
     <string name="settings_other_language_system_default">系統預設</string>
 
     <string name="settings_other_section_integration">整合</string>
-    <string name="settings_other_checking_for_updates">正在檢查更新\u2026</string>
+    <string name="settings_other_checking_for_updates">正在檢查更新…</string>
     <string name="settings_other_update_check_cooldown">請等待 %1$d 秒後再次檢查</string>
     <string name="settings_other_persistable_permission_failed">無法取得持續性權限：%1$s</string>
     <string name="settings_other_keep_app_open">請在此操作完成前保持應用程式開啟。</string>
@@ -930,8 +929,8 @@
     <string name="settings_content_install_multiple">正在安裝 %1$d 個檔案…</string>
     <string name="settings_content_install_progress">正在安裝 %1$d/%2$d</string>
     <string name="settings_content_extracting_title">正在解壓內容</string>
-    <string name="settings_content_extracting_detail">正在解壓\u2026（%1$d 個檔案）</string>
-    <string name="settings_content_preparing_package">正在準備套件\u2026</string>
+    <string name="settings_content_extracting_detail">正在解壓…（%1$d 個檔案）</string>
+    <string name="settings_content_preparing_package">正在準備套件…</string>
     <string name="settings_content_download_complete">下載完成</string>
     <string name="settings_content_already_installed_title">元件已安裝</string>
     <string name="settings_content_already_installed_message">此元件已安裝。再次下載前請先移除已安裝的副本。
@@ -963,7 +962,7 @@
     <string name="settings_drivers_remove_repo_title">移除儲存庫？</string>
     <string name="settings_drivers_remove_repo_message">%1$s 將從您的儲存庫清單中移除。</string>
     <string name="settings_drivers_repo_tap_to_load">點擊以載入版本</string>
-    <string name="settings_drivers_repo_loading_releases">正在載入版本\u2026</string>
+    <string name="settings_drivers_repo_loading_releases">正在載入版本…</string>
     <string name="settings_drivers_repo_release_count">已載入 %1$d 個版本</string>
     <string name="settings_drivers_repo_no_release_assets">在取得的版本中找不到可下載的 ZIP 資源。</string>
     <string name="settings_drivers_repo_fetch_failed">無法載入 GitHub 版本。</string>
@@ -973,7 +972,7 @@
     <string name="settings_drivers_manager">驅動程式管理員</string>
 
     <!-- Setup > Wizard -->
-    <string name="setup_wizard_installing_system_files">正在安裝系統檔案\u2026</string>
+    <string name="setup_wizard_installing_system_files">正在安裝系統檔案…</string>
     <string name="setup_wizard_unable_to_install_system_files">無法安裝系統檔案</string>
     <string name="setup_wizard_system_image_not_installed">系統映像未安裝。請先安裝元件。</string>
     <string name="setup_wizard_recommended_components">推薦元件</string>
@@ -985,7 +984,7 @@
     <string name="setup_wizard_recommended_x86_64">推薦 x86-64</string>
     <string name="setup_wizard_recommended_arm64ec">推薦 ARM64EC</string>
     <string name="setup_wizard_choose_components_description">選擇要安裝的元件。Wine/Proton 將自動建立容器。</string>
-    <string name="setup_wizard_loading_components">正在載入元件\u2026</string>
+    <string name="setup_wizard_loading_components">正在載入元件…</string>
     <string name="setup_wizard_no_components_available">此類別沒有可用的元件。</string>
     <string name="setup_wizard_default_settings">預設設定</string>
     <string name="setup_wizard_containers_description">開啟每個容器並設定您希望每個新遊戲繼承的預設值。新遊戲預設將以 x86-64 容器為目標。</string>
@@ -1017,7 +1016,7 @@
     <string name="setup_wizard_recommended_label">推薦</string>
     <string name="setup_wizard_install_all_recommended">安裝所有推薦</string>
     <string name="setup_wizard_create_container">建立容器</string>
-    <string name="setup_wizard_creating_container">正在建立\u2026</string>
+    <string name="setup_wizard_creating_container">正在建立…</string>
 
     <!-- Steam > Login -->
     <string name="steam_login_auth_webview_title">授權</string>
@@ -1030,7 +1029,7 @@
     <string name="steam_login_open_steam_app_qr_hint">開啟 Steam 應用程式 → 點擊 QR 圖示</string>
     <string name="steam_login_failed_to_load_qr_code">無法載入 QR 碼</string>
     <string name="steam_login_retry">重試</string>
-    <string name="steam_login_generating_code">正在產生代碼\u2026</string>
+    <string name="steam_login_generating_code">正在產生代碼…</string>
     <string name="steam_login_two_factor_auth">兩步驟驗證</string>
     <string name="steam_login_approve_login_steam_app">請從您的 Steam 行動應用程式\n核准此登入</string>
     <string name="steam_login_enter_code_sent_to">輸入傳送至\n%1$s 的代碼</string>
@@ -1049,11 +1048,11 @@
     <string name="google_cloud_status_syncing">同步中</string>
     <string name="google_cloud_status_connected">已連線</string>
     <string name="google_cloud_status_not_signed_in">尚未登入</string>
-    <string name="google_cloud_working">處理中\u2026</string>
+    <string name="google_cloud_working">處理中…</string>
     <string name="google_cloud_sign_in">登入</string>
     <string name="google_cloud_disable_sync">停用同步</string>
     <string name="google_cloud_store_logins">商店登入</string>
-    <string name="google_cloud_store_login_sync_busy">正在處理您的商店登入同步\u2026</string>
+    <string name="google_cloud_store_login_sync_busy">正在處理您的商店登入同步…</string>
     <string name="google_cloud_saved_games_unavailable">Google 雲端存檔不可用</string>
     <string name="google_cloud_snapshot_ready">雲端快照已就緒</string>
     <string name="google_cloud_waiting_first_backup">等待第一次備份</string>
@@ -1224,7 +1223,7 @@
     <string name="fexcore_env_var_help__strictinprocesssplitlocks">Uses a strict process-wide lock for split unaligned atomic accesses.</string>
     <!-- Translated batch (110 strings) -->
     <string name="cloud_saves_history_empty">尚無先前的存檔備份。被取代的存檔和手動備份將在此顯示 30 天。</string>
-    <string name="cloud_saves_history_loading">正在載入存檔歷史紀錄\u2026</string>
+    <string name="cloud_saves_history_loading">正在載入存檔歷史紀錄…</string>
     <string name="cloud_saves_history_origin_auto">自動</string>
     <string name="cloud_saves_history_storage_steam">Steam</string>
     <string name="cloud_saves_history_storage_google">Google</string>
@@ -1268,7 +1267,7 @@
     <string name="cloud_saves_gog_zip_empty">找不到 GOG 雲端存檔檔案。</string>
     <string name="cloud_saves_sync_from_provider_generic">從雲端同步</string>
     <string name="cloud_saves_sync_from_provider_success">%1$s 雲端存檔已下載。</string>
-    <string name="cloud_saves_syncing_from_provider">正在從 %1$s 下載存檔\u2026</string>
+    <string name="cloud_saves_syncing_from_provider">正在從 %1$s 下載存檔…</string>
     <string name="cloud_saves_sync_summary">取得 %1$s 目前擁有的版本。</string>
     <string name="cloud_saves_sync_summary_generic">取得目前的雲端版本。</string>
     <string name="common_ui_exit_app_confirm">結束 WinNative？</string>
@@ -2685,5 +2684,56 @@
     <string name="itch_facet_gamepad">手把</string>
     <string name="itch_store_update_none">已是最新</string>
     <string name="itch_store_update_available">有可用更新 — %1$s</string>
-</resources>
 
+    <!-- Component Installer Sheet -->
+    <string name="component_installer_title">安裝元件</string>
+    <string name="component_installer_local">本機安裝</string>
+    <string name="component_installer_close_desc">關閉</string>
+    <string name="component_installer_local_desc">本機安裝</string>
+    <string name="component_installer_install">安裝</string>
+    <string name="component_installer_installed">已安裝</string>
+    <string name="component_installer_retry">重試</string>
+    <string name="component_installer_badge_installer">安裝包</string>
+    <string name="component_installer_badge_library">執行庫</string>
+    <string name="component_installer_category_empty">此分類下暫無元件。</string>
+    <string name="component_installer_loading_extracting">正在解壓…</string>
+    <string name="component_installer_loading_queued">佇列中…</string>
+    <string name="component_installer_loading_starting">正在啟動…</string>
+    <string name="component_installer_loading_finding_manifest">正在尋找清單檔案…</string>
+    <string name="component_installer_loading_installing">正在安裝…</string>
+    <string name="component_installer_success_installed">已安裝：%1$s</string>
+    <string name="component_installer_error_fetch_manifest">無法取得清單檔案。</string>
+    <string name="component_installer_error_install_failed">安裝失敗。</string>
+    <string name="component_installer_error_local_failed">本機安裝失敗。</string>
+    <string name="component_installer_error_no_manifest">壓縮包中未找到 .yml 清單檔案</string>
+    <string name="component_installer_error_catalog_unreachable">無法存取元件目錄。</string>
+    <string name="component_installer_error_catalog_malformed">元件目錄格式有誤。</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">容器尚未設定 — 請先啟動一次。</string>
+    <string name="comp_install_error_empty_manifest">空清單</string>
+    <string name="comp_install_error_no_steps">清單沒有步驟</string>
+    <string name="comp_install_error_cancelled">已取消</string>
+    <string name="comp_install_status_downloading">正在下載 %1$s（%2$d/%3$d）</string>
+    <string name="comp_install_error_download_failed">下載失敗：%1$s</string>
+    <string name="comp_install_error_checksum_mismatch">校驗和不匹配：%1$s</string>
+    <string name="comp_install_status_extracting">正在解壓 %1$s</string>
+    <string name="comp_install_error_extract_failed">解壓失敗：%1$s</string>
+    <string name="comp_install_error_unsupported_format">不支援的壓縮格式：%1$s</string>
+    <string name="comp_install_status_extracting_cab">正在從 CAB 解壓</string>
+    <string name="comp_install_error_cab_not_found">未找到 CAB：%1$s</string>
+    <string name="comp_install_error_cabextract_missing">系統映像中缺少 cabextract。</string>
+    <string name="comp_install_error_cab_extract_failed">CAB 解壓失敗（退出碼 %1$d）：%2$s</string>
+    <string name="comp_install_error_cabextract_run">無法執行 cabextract：%1$s</string>
+    <string name="comp_install_status_installing_into">正在安裝到 %1$s</string>
+    <string name="comp_install_error_source_not_found">未找到來源：%1$s</string>
+    <string name="comp_install_error_copy_failed">複製失敗：%1$s</string>
+    <string name="comp_install_error_missing_file">缺少檔案：%1$s</string>
+    <string name="comp_install_error_installer_not_found">未找到安裝程式：%1$s</string>
+    <string name="comp_install_error_stage_installer">無法暫存安裝程式：%1$s</string>
+    <string name="comp_install_status_running_installer">正在執行安裝程式：%1$s</string>
+    <string name="comp_install_error_installer_exit_code">安裝程式退出碼 %1$d：%2$s</string>
+    <string name="comp_install_status_registering_dlls">正在註冊 %1$d 個 DLL</string>
+    <string name="comp_install_error_session_active">工作階段仍在執行 — 請在安裝元件前關閉它。</string>
+    <string name="comp_install_error_timeout">安裝程式逾時或工作階段已關閉。</string>
+</resources>

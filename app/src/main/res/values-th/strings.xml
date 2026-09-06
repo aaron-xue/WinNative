@@ -2665,4 +2665,55 @@
     <string name="itch_facet_gamepad">เกมแพด</string>
     <string name="itch_store_update_none">เป็นเวอร์ชันล่าสุด</string>
     <string name="itch_store_update_available">มีอัปเดต — %1$s</string>
+
+    <string name="component_installer_badge_installer">ติดตั้งโปรแกรม</string>
+    <string name="component_installer_badge_library">ไลบรารี</string>
+    <string name="component_installer_category_empty">ไม่มีคอมโพเนนต์ในหมวดหมู่นี้</string>
+    <string name="component_installer_close_desc">ปิด</string>
+    <string name="component_installer_error_catalog_malformed">แคตตาล็อกคอมโพเนนต์มีรูปแบบไม่ถูกต้อง</string>
+    <string name="component_installer_error_catalog_unreachable">ไม่สามารถเข้าถึงแคตตาล็อกคอมโพเนนต์ได้</string>
+    <string name="component_installer_error_fetch_manifest">ไม่สามารถดึงแมนิเฟสต์ได้</string>
+    <string name="component_installer_error_install_failed">ติดตั้งล้มเหลว</string>
+    <string name="component_installer_error_local_failed">ติดตั้งในเครื่องล้มเหลว</string>
+    <string name="component_installer_error_no_manifest">ไม่พบแมนิเฟสต์ .yml ในไฟล์เก็บถาวร</string>
+    <string name="component_installer_install">ติดตั้ง</string>
+    <string name="component_installer_installed">ติดตั้งแล้ว</string>
+    <string name="component_installer_loading_extracting">กำลังแยกไฟล์…</string>
+    <string name="component_installer_loading_finding_manifest">กำลังค้นหาแมนิเฟสต์…</string>
+    <string name="component_installer_loading_installing">กำลังติดตั้ง…</string>
+    <string name="component_installer_loading_queued">อยู่ในคิว…</string>
+    <string name="component_installer_loading_starting">กำลังเริ่มต้น…</string>
+    <string name="component_installer_local">ติดตั้งในเครื่อง</string>
+    <string name="component_installer_local_desc">ติดตั้งในเครื่อง</string>
+    <string name="component_installer_retry">ลองอีกครั้ง</string>
+    <string name="component_installer_success_installed">ติดตั้งแล้ว: %1$s</string>
+    <string name="component_installer_title">ติดตั้งคอมโพเนนต์</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">คอนเทนเนอร์ยังไม่ได้ตั้งค่า — เริ่มต้นการทำงานก่อนหนึ่งครั้ง</string>
+    <string name="comp_install_error_empty_manifest">รายการว่างเปล่า</string>
+    <string name="comp_install_error_no_steps">รายการไม่มีขั้นตอน</string>
+    <string name="comp_install_error_cancelled">ยกเลิกแล้ว</string>
+    <string name="comp_install_status_downloading">กำลังดาวน์โหลด %1$s (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">การดาวน์โหลดล้มเหลว: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">ค่าแฮชไม่ตรงกัน: %1$s</string>
+    <string name="comp_install_status_extracting">กำลังแยก %1$s</string>
+    <string name="comp_install_error_extract_failed">การแยกไฟล์ล้มเหลว: %1$s</string>
+    <string name="comp_install_error_unsupported_format">รูปแบบไฟล์เก็บถาวรไม่รองรับ: %1$s</string>
+    <string name="comp_install_status_extracting_cab">กำลังแยกจาก CAB</string>
+    <string name="comp_install_error_cab_not_found">ไม่พบ CAB: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract หายไปจากอิมเมจระบบ</string>
+    <string name="comp_install_error_cab_extract_failed">การแยก CAB ล้มเหลว (รหัส %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">ไม่สามารถเรียกใช้ cabextract: %1$s</string>
+    <string name="comp_install_status_installing_into">กำลังติดตั้งไปยัง %1$s</string>
+    <string name="comp_install_error_source_not_found">ไม่พบแหล่งที่มา: %1$s</string>
+    <string name="comp_install_error_copy_failed">การคัดลอกล้มเหลว: %1$s</string>
+    <string name="comp_install_error_missing_file">ไฟล์หายไป: %1$s</string>
+    <string name="comp_install_error_installer_not_found">ไม่พบตัวติดตั้ง: %1$s</string>
+    <string name="comp_install_error_stage_installer">ไม่สามารถเตรียมตัวติดตั้ง: %1$s</string>
+    <string name="comp_install_status_running_installer">กำลังเรียกใช้ตัวติดตั้ง: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">ตัวติดตั้งจบด้วยรหัส %1$d: %2$s</string>
+    <string name="comp_install_status_registering_dlls">กำลังลงทะเบียน %1$d DLL</string>
+    <string name="comp_install_error_session_active">เซสชันยังทำงานอยู่ — ปิดก่อนติดตั้งส่วนประกอบ</string>
+    <string name="comp_install_error_timeout">ตัวติดตั้งหมดเวลาหรือเซสชันถูกปิด</string>
 </resources>

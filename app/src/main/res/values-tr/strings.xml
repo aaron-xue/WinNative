@@ -2665,4 +2665,55 @@ Yüklü konum:
     <string name="itch_facet_gamepad">Gamepad</string>
     <string name="itch_store_update_none">Güncel</string>
     <string name="itch_store_update_available">Güncelleme mevcut — %1$s</string>
+
+    <string name="component_installer_badge_installer">YÜKLEYİCİ</string>
+    <string name="component_installer_badge_library">KÜTÜPHANE</string>
+    <string name="component_installer_category_empty">Bu kategoride bileşen yok.</string>
+    <string name="component_installer_close_desc">Kapat</string>
+    <string name="component_installer_error_catalog_malformed">Bileşen kataloğu bozuk.</string>
+    <string name="component_installer_error_catalog_unreachable">Bileşen kataloğuna erişilemedi.</string>
+    <string name="component_installer_error_fetch_manifest">Manifest alınamadı.</string>
+    <string name="component_installer_error_install_failed">Yükleme başarısız.</string>
+    <string name="component_installer_error_local_failed">Yerel yükleme başarısız.</string>
+    <string name="component_installer_error_no_manifest">Arşivde .yml manifest bulunamadı</string>
+    <string name="component_installer_install">Yükle</string>
+    <string name="component_installer_installed">Yüklendi</string>
+    <string name="component_installer_loading_extracting">Ayıklanıyor…</string>
+    <string name="component_installer_loading_finding_manifest">Manifest aranıyor…</string>
+    <string name="component_installer_loading_installing">Yükleniyor…</string>
+    <string name="component_installer_loading_queued">Kuyrukta…</string>
+    <string name="component_installer_loading_starting">Başlatılıyor…</string>
+    <string name="component_installer_local">Yerel yükleme</string>
+    <string name="component_installer_local_desc">Yerel yükleme</string>
+    <string name="component_installer_retry">Tekrar dene</string>
+    <string name="component_installer_success_installed">Yüklendi: %1$s</string>
+    <string name="component_installer_title">Bileşenleri Yükle</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">Konteyner henüz kurulmadı — önce bir kez başlatın.</string>
+    <string name="comp_install_error_empty_manifest">Boş manifest</string>
+    <string name="comp_install_error_no_steps">Manifestte adım yok</string>
+    <string name="comp_install_error_cancelled">İptal edildi</string>
+    <string name="comp_install_status_downloading">%1$s indiriliyor (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">İndirme başarısız: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">Sağlama toplamı eşleşmiyor: %1$s</string>
+    <string name="comp_install_status_extracting">%1$s çıkarılıyor</string>
+    <string name="comp_install_error_extract_failed">Çıkarma başarısız: %1$s</string>
+    <string name="comp_install_error_unsupported_format">Desteklenmeyen arşiv formatı: %1$s</string>
+    <string name="comp_install_status_extracting_cab">CAB\'den çıkarılıyor</string>
+    <string name="comp_install_error_cab_not_found">CAB bulunamadı: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract sistem görüntüsünde eksik.</string>
+    <string name="comp_install_error_cab_extract_failed">CAB çıkarma başarısız (kod %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">cabextract çalıştırılamadı: %1$s</string>
+    <string name="comp_install_status_installing_into">%1$s konumuna yükleniyor</string>
+    <string name="comp_install_error_source_not_found">Kaynak bulunamadı: %1$s</string>
+    <string name="comp_install_error_copy_failed">Kopyalama başarısız: %1$s</string>
+    <string name="comp_install_error_missing_file">Eksik dosya: %1$s</string>
+    <string name="comp_install_error_installer_not_found">Yükleyici bulunamadı: %1$s</string>
+    <string name="comp_install_error_stage_installer">Yükleyici hazırlanamadı: %1$s</string>
+    <string name="comp_install_status_running_installer">Yükleyici çalıştırılıyor: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">Yükleyici %1$d koduyla çıktı: %2$s</string>
+    <string name="comp_install_status_registering_dlls">%1$d DLL kaydediliyor</string>
+    <string name="comp_install_error_session_active">Bir oturum hâlâ çalışıyor — bileşenleri yüklemeden önce kapatın.</string>
+    <string name="comp_install_error_timeout">Yükleyici zaman aşımına uğradı veya oturum kapatıldı.</string>
 </resources>

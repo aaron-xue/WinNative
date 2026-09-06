@@ -46,6 +46,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,6 +55,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import android.app.Activity
 import com.winlator.cmod.shared.android.DirectoryPickerDialog
+import com.winlator.cmod.R
 import com.winlator.cmod.shared.ui.nav.DialogPaneNav
 import com.winlator.cmod.shared.ui.nav.LocalPaneNav
 import com.winlator.cmod.shared.ui.nav.PaneNavRegistry
@@ -194,11 +196,13 @@ fun ComponentInstallerSheet(
     val registry = remember { PaneNavRegistry() }
 
     LaunchedEffect(Unit) {
+        val catalogUnreachableMsg = context.getString(R.string.component_installer_error_catalog_unreachable)
+        val catalogMalformedMsg = context.getString(R.string.component_installer_error_catalog_malformed)
         ui =
             withContext(Dispatchers.IO) {
                 val json = Downloader.downloadString(INDEX_URL)
                 if (json == null) {
-                    CatalogUiState.Error("Couldn't reach the component catalog.")
+                    CatalogUiState.Error(catalogUnreachableMsg)
                 } else {
                     try {
                         CatalogUiState.Loaded(
@@ -212,7 +216,7 @@ fun ComponentInstallerSheet(
                                 ),
                         )
                     } catch (e: Exception) {
-                        CatalogUiState.Error("The component catalog is malformed.")
+                        CatalogUiState.Error(catalogMalformedMsg)
                     }
                 }
             }
@@ -265,19 +269,21 @@ fun ComponentInstallerSheet(
                     onClose = onDismiss,
                     onLocalInstall = {
                         val activity = context as? Activity ?: return@SheetHeader
+                        val installTitle = context.getString(R.string.component_installer_title)
+                        val extractingMsg = context.getString(R.string.component_installer_loading_extracting)
                         DirectoryPickerDialog.showFile(
                             activity = activity,
-                            title = "Install components",
+                            title = installTitle,
                             allowedExtensions = setOf("wcp", "xz", "txz", "tzst"),
                             allowMultiSelect = false,
                             onSelectedAll = { paths ->
-                                localInstallProgress = LocalInstallProgress.Loading(paths.first().let { File(it).nameWithoutExtension }, "Extracting…")
+                                localInstallProgress = LocalInstallProgress.Loading(paths.first().let { File(it).nameWithoutExtension }, extractingMsg)
                                 installLocalFiles(paths, container, context, installStates, scope) { progress ->
                                     localInstallProgress = progress
                                 }
                             },
                         ) { path ->
-                            localInstallProgress = LocalInstallProgress.Loading(File(path).nameWithoutExtension, "Extracting…")
+                            localInstallProgress = LocalInstallProgress.Loading(File(path).nameWithoutExtension, extractingMsg)
                             installLocalFiles(listOf(path), container, context, installStates, scope) { progress ->
                                 localInstallProgress = progress
                             }
@@ -298,15 +304,19 @@ fun ComponentInstallerSheet(
                                 selectedCategory = selectedCategory,
                                 installStates = installStates,
                                 onInstall = { item ->
-                                    installStates[item.name] = InstallUi.Running("Queued…")
+                                    val queuedMsg = context.getString(R.string.component_installer_loading_queued)
+                                    val startingMsg = context.getString(R.string.component_installer_loading_starting)
+                                    val fetchManifestError = context.getString(R.string.component_installer_error_fetch_manifest)
+                                    val installFailedError = context.getString(R.string.component_installer_error_install_failed)
+                                    installStates[item.name] = InstallUi.Running(queuedMsg)
                                     scope.launch(Dispatchers.IO) {
                                         installMutex.withLock {
                                             try {
-                                                installStates[item.name] = InstallUi.Running("Starting…")
+                                                installStates[item.name] = InstallUi.Running(startingMsg)
                                                 runInterruptible {
                                                     val yaml =
                                                         Downloader.downloadString("$DATASET_BASE/${item.manifest}")
-                                                            ?: throw Exception("Couldn't fetch the manifest.")
+                                                            ?: throw Exception(fetchManifestError)
                                                     ComponentInstaller(
                                                         context = context,
                                                         container = container,
@@ -330,7 +340,7 @@ fun ComponentInstallerSheet(
                                                 throw e
                                             } catch (e: Exception) {
                                                 installStates[item.name] =
-                                                    InstallUi.Failed(e.message ?: "Install failed.")
+                                                    InstallUi.Failed(e.message ?: installFailedError)
                                                 DependencyInstallBridge.updateStatus(null)
                                             }
                                         }
@@ -403,7 +413,7 @@ private fun LocalInstallProgressDialog(progress: LocalInstallProgress) {
                     text =
                         when (progress) {
                             is LocalInstallProgress.Loading -> progress.title
-                            is LocalInstallProgress.Success -> "Installed: ${progress.title}"
+                            is LocalInstallProgress.Success -> stringResource(R.string.component_installer_success_installed, progress.title)
                             is LocalInstallProgress.Failed -> progress.title
                         },
                     color = SheetTextPrimary,
@@ -452,7 +462,7 @@ private fun SheetHeader(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Install components",
+                    text = stringResource(R.string.component_installer_title),
                     color = SheetTextPrimary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
@@ -484,7 +494,7 @@ private fun SheetHeader(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(R.string.component_installer_close_desc),
                     tint = SheetTextSecondary,
                     modifier = Modifier.size(18.dp),
                 )
@@ -515,13 +525,13 @@ private fun LocalInstallButton(onClick: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Outlined.Upload,
-                contentDescription = "Local install",
+                contentDescription = stringResource(R.string.component_installer_local_desc),
                 tint = SheetAccent,
                 modifier = Modifier.size(13.dp),
             )
             Spacer(Modifier.width(4.dp))
             Text(
-                text = "Local install",
+                text = stringResource(R.string.component_installer_local),
                 color = SheetAccent,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -645,7 +655,7 @@ private fun ComponentList(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "No components in this category.",
+                    text = stringResource(R.string.component_installer_category_empty),
                     color = SheetTextSecondary,
                     fontSize = 13.sp,
                 )
@@ -737,7 +747,7 @@ private fun ComponentRow(
                         )
                         Spacer(Modifier.height(5.dp))
                     }
-                    InstallButton(label = "Install", onClick = { onInstall(item) })
+                    InstallButton(label = stringResource(R.string.component_installer_install), onClick = { onInstall(item) })
                 }
 
                 is InstallUi.Running ->
@@ -749,13 +759,13 @@ private fun ComponentRow(
 
                 InstallUi.Done ->
                     Text(
-                        text = "Installed",
+                        text = stringResource(R.string.component_installer_installed),
                         color = SheetGood,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                     )
 
-                is InstallUi.Failed -> InstallButton(label = "Retry", onClick = { onInstall(item) })
+                is InstallUi.Failed -> InstallButton(label = stringResource(R.string.component_installer_retry), onClick = { onInstall(item) })
             }
         }
     }
@@ -763,7 +773,7 @@ private fun ComponentRow(
 
 @Composable
 private fun SpeciesBadge(species: String) {
-    val label = if (species == "installer") "INSTALLER" else "LIBRARY"
+    val label = if (species == "installer") stringResource(R.string.component_installer_badge_installer) else stringResource(R.string.component_installer_badge_library)
     val color = if (species == "installer") SheetAccent else SheetTextSecondary
     Box(
         modifier =
@@ -785,7 +795,7 @@ private fun SpeciesBadge(species: String) {
 
 @Composable
 private fun InstallButton(
-    label: String = "Install",
+    label: String = stringResource(R.string.component_installer_install),
     onClick: () -> Unit,
 ) {
     Box(
@@ -820,14 +830,19 @@ private fun installLocalFiles(
         val archiveFile = File(path)
         if (!archiveFile.isFile) return@forEach
         val name = archiveFile.nameWithoutExtension
-        installStates[name] = InstallUi.Running("Extracting…")
+        val extractingMsg = context.getString(R.string.component_installer_loading_extracting)
+        val findingManifestMsg = context.getString(R.string.component_installer_loading_finding_manifest)
+        val noManifestError = context.getString(R.string.component_installer_error_no_manifest)
+        val installingMsg = context.getString(R.string.component_installer_loading_installing)
+        val localFailedError = context.getString(R.string.component_installer_error_local_failed)
+        installStates[name] = InstallUi.Running(extractingMsg)
         scope.launch(Dispatchers.IO) {
             installMutex.withLock {
                 try {
                     val componentDir = File(context.cacheDir, "wn-components/$name")
                     componentDir.mkdirs()
 
-                    onProgress(LocalInstallProgress.Loading(name, "Extracting…"))
+                    onProgress(LocalInstallProgress.Loading(name, extractingMsg))
                     runInterruptible {
                         ArchiveExtractor.extract(
                             source = archiveFile,
@@ -837,15 +852,15 @@ private fun installLocalFiles(
                         )
                     }
 
-                    onProgress(LocalInstallProgress.Loading(name, "Finding manifest…"))
+                    onProgress(LocalInstallProgress.Loading(name, findingManifestMsg))
                     val ymlFile =
                         componentDir.walkTopDown().firstOrNull {
                             it.isFile && it.extension.equals("yml", ignoreCase = true)
-                        } ?: throw Exception("No .yml manifest found in archive")
+                        } ?: throw Exception(noManifestError)
 
                     val yaml = ymlFile.readText()
 
-                    installStates[name] = InstallUi.Running("Installing…")
+                    installStates[name] = InstallUi.Running(installingMsg)
                     runInterruptible {
                         ComponentInstaller(
                             context = context,
@@ -874,8 +889,8 @@ private fun installLocalFiles(
                 } catch (e: Exception) {
                     DependencyInstallBridge.updateStatus(null)
                     installStates[name] =
-                        InstallUi.Failed(e.message ?: "Local install failed.")
-                    onProgress(LocalInstallProgress.Failed(name, e.message ?: "Local install failed."))
+                        InstallUi.Failed(e.message ?: localFailedError)
+                    onProgress(LocalInstallProgress.Failed(name, e.message ?: localFailedError))
                 }
             }
         }

@@ -114,7 +114,7 @@
     <string name="common_ui_cannot_write_folder">Неможливо записати до обраної папки</string>
     <string name="common_ui_failed_create_directory">Не вдалося створити типову теку</string>
     <string name="common_ui_device_not_supported">На жаль, ваш пристрій може не підтримуватися</string>
-    <string name="common_ui_please_wait">Будь ласка, зачекайте\u2026</string>
+    <string name="common_ui_please_wait">Будь ласка, зачекайте…</string>
     <string name="common_ui_done">Готово</string>
     <string name="common_ui_open">Відкрити</string>
     <string name="common_ui_connected">Підключено</string>
@@ -200,7 +200,7 @@
     <string name="library_games_game_removed">%1$s прибрано.</string>
     <string name="library_games_failed_to_uninstall">Не вдалося видалити.</string>
     <string name="library_games_failed_to_uninstall_reason">Не вдалося видалити: %1$s</string>
-    <string name="library_games_loading">Завантаження бібліотеки\u2026</string>
+    <string name="library_games_loading">Завантаження бібліотеки…</string>
     <string name="library_games_no_games_installed">Ігор не встановлено. Використайте вкладку Магазин або кнопку + для додавання ігор.</string>
     <string name="library_games_times_played_label">Кількість запусків: </string>
     <string name="library_games_playtime_label">Час у грі: </string>
@@ -676,7 +676,6 @@
         <item quantity="other">%d ядра</item>
     </plurals>
 
-
     <!-- Session > Display -->
     <string name="session_display_orientation">Орієнтація</string>
     <string name="session_display_horizontal">Горизонтальна</string>
@@ -898,7 +897,7 @@
     <string name="settings_other_language_system_default">За замовчуванням системи</string>
 
     <string name="settings_other_section_integration">Інтеграція</string>
-    <string name="settings_other_checking_for_updates">Перевірка оновлень\u2026</string>
+    <string name="settings_other_checking_for_updates">Перевірка оновлень…</string>
     <string name="settings_other_update_check_cooldown">Зачекайте %1$d с перед повторною перевіркою</string>
     <string name="settings_other_persistable_permission_failed">Не вдалося отримати постійні дозволи: %1$s</string>
     <string name="settings_other_keep_app_open">Будь ласка, тримайте програму відкритою до завершення операції.</string>
@@ -990,7 +989,7 @@
     <string name="setup_wizard_recommended_x86_64">Рекомендовано x86-64</string>
     <string name="setup_wizard_recommended_arm64ec">Рекомендовано ARM64EC</string>
     <string name="setup_wizard_choose_components_description">Виберіть компоненти для встановлення. Wine/Proton автоматично створить контейнер.</string>
-    <string name="setup_wizard_loading_components">Завантаження компонентів\u2026</string>
+    <string name="setup_wizard_loading_components">Завантаження компонентів…</string>
     <string name="setup_wizard_no_components_available">Немає доступних компонентів для цієї категорії.</string>
     <string name="setup_wizard_default_settings">Типові налаштування</string>
     <string name="setup_wizard_containers_description">Відкрийте кожен контейнер та встановіть типові значення, які будуть успадковувати всі нові ігри. Нові ігри за замовчуванням використовуватимуть контейнер x86-64.</string>
@@ -1022,7 +1021,7 @@
     <string name="setup_wizard_recommended_label">Рекомендовано</string>
     <string name="setup_wizard_install_all_recommended">Встановити всі рекомендовані</string>
     <string name="setup_wizard_create_container">Створити контейнер</string>
-    <string name="setup_wizard_creating_container">Створення\u2026</string>
+    <string name="setup_wizard_creating_container">Створення…</string>
 
     <!-- Steam > Login -->
     <string name="steam_login_auth_webview_title">Авторизація</string>
@@ -1035,7 +1034,7 @@
     <string name="steam_login_open_steam_app_qr_hint">Відкрийте додаток Steam → натисніть іконку QR</string>
     <string name="steam_login_failed_to_load_qr_code">Не вдалося завантажити QR-код</string>
     <string name="steam_login_retry">Повторити</string>
-    <string name="steam_login_generating_code">Генерація коду\u2026</string>
+    <string name="steam_login_generating_code">Генерація коду…</string>
     <string name="steam_login_two_factor_auth">Двофакторна автентифікація</string>
     <string name="steam_login_approve_login_steam_app">Підтвердіть вхід з\nвашого мобільного додатку Steam</string>
     <string name="steam_login_enter_code_sent_to">Введіть код, надісланий на\n%1$s</string>
@@ -1054,11 +1053,11 @@
     <string name="google_cloud_status_syncing">Синхронізація</string>
     <string name="google_cloud_status_connected">Підключено</string>
     <string name="google_cloud_status_not_signed_in">Не авторизовано</string>
-    <string name="google_cloud_working">Обробка\u2026</string>
+    <string name="google_cloud_working">Обробка…</string>
     <string name="google_cloud_sign_in">Увійти</string>
     <string name="google_cloud_disable_sync">Вимкнути синхронізацію</string>
     <string name="google_cloud_store_logins">Входи до магазинів</string>
-    <string name="google_cloud_store_login_sync_busy">Обробка синхронізації входів до магазинів\u2026</string>
+    <string name="google_cloud_store_login_sync_busy">Обробка синхронізації входів до магазинів…</string>
     <string name="google_cloud_saved_games_unavailable">Збережені ігри Google недоступні</string>
     <string name="google_cloud_snapshot_ready">Хмарний знімок готовий</string>
     <string name="google_cloud_waiting_first_backup">Очікування першого резервного копіювання</string>
@@ -1229,7 +1228,7 @@
     <string name="fexcore_env_var_help__strictinprocesssplitlocks">Uses a strict process-wide lock for split unaligned atomic accesses.</string>
     <!-- Translated batch (110 strings) -->
     <string name="cloud_saves_history_empty">Попередніх збережень ще немає. Замінені збереження та ручні резервні копії з\'являтимуться тут протягом 30 днів.</string>
-    <string name="cloud_saves_history_loading">Завантаження історії збережень\u2026</string>
+    <string name="cloud_saves_history_loading">Завантаження історії збережень…</string>
     <string name="cloud_saves_history_origin_auto">авто</string>
     <string name="cloud_saves_history_storage_steam">Steam</string>
     <string name="cloud_saves_history_storage_google">Google</string>
@@ -1273,7 +1272,7 @@
     <string name="cloud_saves_gog_zip_empty">Файли хмарних збережень GOG не знайдено.</string>
     <string name="cloud_saves_sync_from_provider_generic">Синхронізувати з хмари</string>
     <string name="cloud_saves_sync_from_provider_success">Хмарне збереження %1$s завантажено.</string>
-    <string name="cloud_saves_syncing_from_provider">Завантаження збереження від %1$s\u2026</string>
+    <string name="cloud_saves_syncing_from_provider">Завантаження збереження від %1$s…</string>
     <string name="cloud_saves_sync_summary">Отримати версію, яка зараз є у %1$s.</string>
     <string name="cloud_saves_sync_summary_generic">Отримати поточну хмарну версію.</string>
     <string name="common_ui_exit_app_confirm">Вийти з WinNative?</string>
@@ -2691,5 +2690,55 @@
     <string name="itch_facet_gamepad">Геймпад</string>
     <string name="itch_store_update_none">Актуальна версія</string>
     <string name="itch_store_update_available">Доступне оновлення — %1$s</string>
-</resources>
 
+    <string name="component_installer_badge_installer">ВСТАНОВНИК</string>
+    <string name="component_installer_badge_library">БІБЛІОТЕКА</string>
+    <string name="component_installer_category_empty">У цій категорії немає компонентів.</string>
+    <string name="component_installer_close_desc">Закрити</string>
+    <string name="component_installer_error_catalog_malformed">Каталог компонентів пошкоджено.</string>
+    <string name="component_installer_error_catalog_unreachable">Не вдалося підключитися до каталогу компонентів.</string>
+    <string name="component_installer_error_fetch_manifest">Не вдалося отримати маніфест.</string>
+    <string name="component_installer_error_install_failed">Встановлення не вдалося.</string>
+    <string name="component_installer_error_local_failed">Локальне встановлення не вдалося.</string>
+    <string name="component_installer_error_no_manifest">У архіві не знайдено .yml-маніфесту</string>
+    <string name="component_installer_install">Встановити</string>
+    <string name="component_installer_installed">Встановлено</string>
+    <string name="component_installer_loading_extracting">Розпакування…</string>
+    <string name="component_installer_loading_finding_manifest">Пошук маніфесту…</string>
+    <string name="component_installer_loading_installing">Встановлення…</string>
+    <string name="component_installer_loading_queued">У черзі…</string>
+    <string name="component_installer_loading_starting">Запуск…</string>
+    <string name="component_installer_local">Локальне встановлення</string>
+    <string name="component_installer_local_desc">Локальне встановлення</string>
+    <string name="component_installer_retry">Спробувати знову</string>
+    <string name="component_installer_success_installed">Встановлено: %1$s</string>
+    <string name="component_installer_title">Встановити компоненти</string>
+
+    <!-- Component Installer (runtime) -->
+    <string name="comp_install_error_container_not_setup">Контейнер ще не налаштовано — спочатку запустіть його один раз.</string>
+    <string name="comp_install_error_empty_manifest">Порожній маніфест</string>
+    <string name="comp_install_error_no_steps">Маніфест не містить кроків</string>
+    <string name="comp_install_error_cancelled">Скасовано</string>
+    <string name="comp_install_status_downloading">Завантаження %1$s (%2$d/%3$d)</string>
+    <string name="comp_install_error_download_failed">Помилка завантаження: %1$s</string>
+    <string name="comp_install_error_checksum_mismatch">Контрольна сума не збігається: %1$s</string>
+    <string name="comp_install_status_extracting">Розпакування %1$s</string>
+    <string name="comp_install_error_extract_failed">Помилка розпакування: %1$s</string>
+    <string name="comp_install_error_unsupported_format">Непідтримуваний формат архіву: %1$s</string>
+    <string name="comp_install_status_extracting_cab">Витягування з CAB</string>
+    <string name="comp_install_error_cab_not_found">CAB не знайдено: %1$s</string>
+    <string name="comp_install_error_cabextract_missing">cabextract відсутній у образі системи.</string>
+    <string name="comp_install_error_cab_extract_failed">Помилка витягування CAB (код %1$d): %2$s</string>
+    <string name="comp_install_error_cabextract_run">Не вдалося запустити cabextract: %1$s</string>
+    <string name="comp_install_status_installing_into">Встановлення в %1$s</string>
+    <string name="comp_install_error_source_not_found">Джерело не знайдено: %1$s</string>
+    <string name="comp_install_error_copy_failed">Помилка копіювання: %1$s</string>
+    <string name="comp_install_error_missing_file">Файл відсутній: %1$s</string>
+    <string name="comp_install_error_installer_not_found">Інсталятор не знайдено: %1$s</string>
+    <string name="comp_install_error_stage_installer">Не вдалося підготувати інсталятор: %1$s</string>
+    <string name="comp_install_status_running_installer">Запуск інсталятора: %1$s</string>
+    <string name="comp_install_error_installer_exit_code">Інсталятор завершився з кодом %1$d: %2$s</string>
+    <string name="comp_install_status_registering_dlls">Реєстрація %1$d DLL</string>
+    <string name="comp_install_error_session_active">Сеанс все ще запущено — закрийте його перед встановленням компонентів.</string>
+    <string name="comp_install_error_timeout">Час очікування інсталятора минув або сеанс було закрито.</string>
+</resources>
