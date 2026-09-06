@@ -2588,6 +2588,11 @@ internal fun UnifiedActivity.LibraryCarousel(
                     ?.takeIf { it.isNotBlank() }
                     ?.let { java.io.File(it) }
                     ?.takeIf { it.isFile }
+                    ?: shortcut
+                        ?.getExtra("customCoverArtPath")
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { java.io.File(it) }
+                        ?.takeIf { it.isFile }
             }
 
         activity?.immersiveBackgroundRef?.value =
