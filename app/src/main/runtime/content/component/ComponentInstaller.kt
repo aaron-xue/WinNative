@@ -77,6 +77,7 @@ class ComponentInstaller(
             markInstalled()
         } finally {
             File(driveC, "wn-install").deleteRecursively()
+            workingDir.deleteRecursively()
         }
     }
 

@@ -838,8 +838,8 @@ private fun installLocalFiles(
         installStates[name] = InstallUi.Running(extractingMsg)
         scope.launch(Dispatchers.IO) {
             installMutex.withLock {
+                val componentDir = File(context.cacheDir, "wn-components/$name")
                 try {
-                    val componentDir = File(context.cacheDir, "wn-components/$name")
                     componentDir.mkdirs()
 
                     onProgress(LocalInstallProgress.Loading(name, extractingMsg))
@@ -891,6 +891,8 @@ private fun installLocalFiles(
                     installStates[name] =
                         InstallUi.Failed(e.message ?: localFailedError)
                     onProgress(LocalInstallProgress.Failed(name, e.message ?: localFailedError))
+                } finally {
+                    componentDir.deleteRecursively()
                 }
             }
         }
