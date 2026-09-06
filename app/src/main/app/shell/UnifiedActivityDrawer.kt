@@ -791,6 +791,7 @@ internal fun UnifiedActivity.AddCustomGameDialog(onDismiss: () -> Unit) {
     var retroSystem by remember { mutableStateOf<com.winlator.cmod.feature.retro.RetroSystem?>(null) }
     var isAdding by remember { mutableStateOf(false) }
     var nameEditing by remember { mutableStateOf(false) }
+    var coverArtFile by remember { mutableStateOf<java.io.File?>(null) }
     val nameFocus = remember { FocusRequester() }
     val nameKeyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(nameEditing) {
@@ -812,7 +813,7 @@ internal fun UnifiedActivity.AddCustomGameDialog(onDismiss: () -> Unit) {
                     com.winlator.cmod.feature.retro.RetroShortcuts
                         .create(context, gameName.trim(), selectedExePath!!, chosenRetro)
                 } else {
-                    addCustomGame(context, gameName.trim(), selectedExePath!!, gameFolder!!)
+                    addCustomGame(context, gameName.trim(), selectedExePath!!, gameFolder!!, coverArtFile)
                     true
                 }
             withContext(Dispatchers.Main) {
@@ -836,9 +837,41 @@ internal fun UnifiedActivity.AddCustomGameDialog(onDismiss: () -> Unit) {
     }
 
     fun selectExecutable(path: String) {
-        val detectedRetro = com.winlator.cmod.feature.retro.RetroSystems.detectForFile(path)
         val file = java.io.File(path)
-        val launchable = file.extension.lowercase() in DirectoryPickerDialog.ExecutableExtensions
+        val ext = file.extension.lowercase()
+        if (ext == "game") {
+            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                val result = runCatching {
+                    val artworkDir = java.io.File(context.filesDir, "artwork").apply { mkdirs() }
+                    com.winlator.cmod.feature.shortcuts.GamePackageImporter.resolve(file, artworkDir)
+                }
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    result.onSuccess { parsed ->
+                        selectedExePath = parsed.exeFile.absolutePath
+                        val detectedRetro = com.winlator.cmod.feature.retro.RetroSystems.detectForFile(parsed.exeFile.absolutePath)
+                        retroSystem = detectedRetro
+                        gameFolder =
+                            if (detectedRetro != null) {
+                                parsed.exeFile.parent
+                            } else {
+                                LibraryShortcutUtils.detectCustomGameFolder(parsed.exeFile.absolutePath)
+                            }
+                        gameName = parsed.name
+                        coverArtFile = parsed.coverFile
+                    }.onFailure { e ->
+                        com.winlator.cmod.shared.ui.toast.WinToast.show(
+                            context,
+                            e.message ?: "导入失败",
+                            android.widget.Toast.LENGTH_SHORT,
+                        )
+                    }
+                }
+            }
+            return
+        }
+
+        val detectedRetro = com.winlator.cmod.feature.retro.RetroSystems.detectForFile(path)
+        val launchable = ext in DirectoryPickerDialog.ExecutableExtensions
         if (!file.isFile || (!launchable && detectedRetro == null)) {
             com.winlator.cmod.shared.ui.toast.WinToast.show(
                 context,
