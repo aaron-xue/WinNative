@@ -2529,11 +2529,23 @@ internal fun UnifiedActivity.LibraryCarousel(
         currentLibraryLayoutMode = layoutMode
     }
 
-    // Keep activity's item count in sync
-    LaunchedEffect(displayedApps.size) {
+    // Track the last focused app ID so we can recover the correct index after list reordering.
+    var lastFocusedAppId by remember { mutableStateOf<Int?>(null) }
+
+    // Keep activity's item count in sync and recover focus index after list changes (e.g. reorder after play).
+    LaunchedEffect(displayedApps) {
         activity?.libraryItemCount = displayedApps.size
+        if (displayedApps.isEmpty()) return@LaunchedEffect
+
         val lastIndex = (displayedApps.size - 1).coerceAtLeast(0)
-        if (activity != null && displayedApps.isNotEmpty() && activity.libraryFocusIndex.value > lastIndex) {
+
+        // Try to find the previously focused app by ID in the new list.
+        val recoveredIdx = lastFocusedAppId?.let { id ->
+            displayedApps.indexOfFirst { it.id == id }.takeIf { it >= 0 }
+        }
+        if (recoveredIdx != null && activity != null) {
+            activity.libraryFocusIndex.value = recoveredIdx
+        } else if (activity != null && activity.libraryFocusIndex.value > lastIndex) {
             activity.libraryFocusIndex.value = lastIndex
         }
     }
@@ -2565,6 +2577,7 @@ internal fun UnifiedActivity.LibraryCarousel(
         val app = displayedApps.getOrNull(focusIndex) ?: displayedApps.firstOrNull()
         selectedSteamAppId = app?.id ?: 0
         selectedSteamAppName = app?.name ?: ""
+        lastFocusedAppId = app?.id
         val gogGame = app?.let { visibleGogByPseudoId[it.id] }
         selectedLibrarySource =
             when {
