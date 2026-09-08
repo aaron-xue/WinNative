@@ -425,7 +425,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private final java.util.concurrent.atomic.AtomicBoolean wnLauncherDrivesDismiss =
             new java.util.concurrent.atomic.AtomicBoolean(false);
     private Runnable configChangedCallback = null;
-    private boolean isPaused = false;
+    private volatile boolean isPaused = false;
     private boolean reusingSession = false;
     private boolean isRelativeMouseMovement = false;
     private boolean isRefactorSizeEnabled = false;
@@ -1313,7 +1313,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         com.winlator.cmod.runtime.display.xserver.XKeycode kc;
         try {
             kc = com.winlator.cmod.runtime.display.xserver.XKeycode
-                    .valueOf("KEY_" + key.toUpperCase());
+                    .valueOf("KEY_" + key.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             Log.w("XServerDisplayActivity", "DEBUG_INJECT_KEY: unknown key " + key);
             return;
@@ -5576,7 +5576,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
                     @Override
                     public void onInputControlsShowOverlayChanged(boolean enabled) {
-                        preferences.edit().putBoolean("show_touchscreen_controls_enabled", enabled).commit();
+                        preferences.edit().putBoolean("show_touchscreen_controls_enabled", enabled).apply();
                         // Manual re-enable while a controller is connected wins over auto-hide.
                         if (enabled && isAnyGameControllerConnected()) {
                             userOverrodeAutoHide = true;
@@ -5590,26 +5590,26 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                     public void onInputControlsTapToClickChanged(boolean enabled) {
                         isTapToClickEnabled = enabled;
                         if (touchpadView != null) touchpadView.setTapToClickEnabled(enabled);
-                        preferences.edit().putBoolean("tap_to_click_enabled", enabled).commit();
+                        preferences.edit().putBoolean("tap_to_click_enabled", enabled).apply();
                         renderDrawerMenu();
                     }
 
                     @Override
                     public void onInputControlsOverlayOpacityChanged(float opacity) {
                         if (inputControlsView != null) inputControlsView.setOverlayOpacity(opacity);
-                        preferences.edit().putFloat("overlay_opacity", opacity).commit();
+                        preferences.edit().putFloat("overlay_opacity", opacity).apply();
                         renderDrawerMenu();
                     }
 
                     @Override
                     public void onInputControlsTouchscreenHapticsChanged(boolean enabled) {
-                        preferences.edit().putBoolean("touchscreen_haptics_enabled", enabled).commit();
+                        preferences.edit().putBoolean("touchscreen_haptics_enabled", enabled).apply();
                         renderDrawerMenu();
                     }
 
                     @Override
                     public void onInputControlsGamepadVibrationChanged(boolean enabled) {
-                        preferences.edit().putBoolean(ControllerManager.PREF_VIBRATION_GLOBAL, enabled).commit();
+                        preferences.edit().putBoolean(ControllerManager.PREF_VIBRATION_GLOBAL, enabled).apply();
                         if (winHandler != null) winHandler.setGlobalVibrationEnabled(enabled);
                         renderDrawerMenu();
                     }
@@ -5638,14 +5638,14 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                             .putString(
                                 com.winlator.cmod.runtime.input.rumble.GcmRumbleMode.PREF_KEY,
                                 gcmMode.toPrefValue())
-                            .commit();
+                            .apply();
                         if (winHandler != null) winHandler.setGcmRumbleMode(gcmMode);
                         renderDrawerMenu();
                     }
 
                     @Override
                     public void onInputControlsReverseBindingOrderChanged(boolean enabled) {
-                        preferences.edit().putBoolean("reverse_binding_order", enabled).commit();
+                        preferences.edit().putBoolean("reverse_binding_order", enabled).apply();
                         if (inputControlsView != null) inputControlsView.setReverseBindingOrder(enabled);
                         renderDrawerMenu();
                     }
@@ -8499,7 +8499,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (shortcut == null || container == null) return;
         String gamePath = shortcut.path;
         if (gamePath == null || gamePath.isEmpty()) return;
-        if (!gamePath.toLowerCase().endsWith(".exe")) return;
+        if (!gamePath.toLowerCase(Locale.ROOT).endsWith(".exe")) return;
 
         String localeName = LocaleEnv.toBcp47(lc_all);
         try {
@@ -10081,7 +10081,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             if (file.isDirectory() && !file.getName().equals("steam_settings")) {
                 generateSteamInterfacesForGame(file);
             } else if (file.isFile()) {
-                String name = file.getName().toLowerCase();
+                String name = file.getName().toLowerCase(Locale.ROOT);
                 if (name.equals("steam_api.dll") || name.equals("steam_api64.dll")) {
                     generateSteamInterfacesFromDll(file.getParentFile(), file);
                 }
@@ -10530,10 +10530,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 File[] rootFiles = gameDir.listFiles();
                 if (rootFiles != null) {
                     for (File f : rootFiles) {
-                        if (f.isFile() && f.getName().toLowerCase().endsWith(".exe")
-                                && !f.getName().toLowerCase().contains("crash")
-                                && !f.getName().toLowerCase().contains("unins")
-                                && !f.getName().toLowerCase().contains("redist")) {
+                        if (f.isFile() && f.getName().toLowerCase(Locale.ROOT).endsWith(".exe")
+                                && !f.getName().toLowerCase(Locale.ROOT).contains("crash")
+                                && !f.getName().toLowerCase(Locale.ROOT).contains("unins")
+                                && !f.getName().toLowerCase(Locale.ROOT).contains("redist")) {
                             gameExe = f;
                             break;
                         }
@@ -10662,7 +10662,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             if (file.isDirectory()) {
                 if (!file.getName().equals("steam_settings") && hasSteamApiDllInTree(file)) return true;
             } else {
-                String name = file.getName().toLowerCase();
+                String name = file.getName().toLowerCase(Locale.ROOT);
                 if (name.equals("steam_api.dll") || name.equals("steam_api64.dll")) return true;
             }
         }
@@ -10693,7 +10693,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         boolean hasSteamDll = false;
         for (File file : files) {
             if (file.isDirectory()) continue;
-            String name = file.getName().toLowerCase();
+            String name = file.getName().toLowerCase(Locale.ROOT);
             if (!name.equals("steam_api.dll") && !name.equals("steam_api64.dll")) continue;
 
             hasSteamDll = true;
@@ -10772,7 +10772,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         boolean hasSteamDll = false;
         for (File file : files) {
             if (!file.isDirectory()) {
-                String name = file.getName().toLowerCase();
+                String name = file.getName().toLowerCase(Locale.ROOT);
                 if (name.equals("steam_api.dll") || name.equals("steam_api64.dll")) {
                     hasSteamDll = true;
                 }
@@ -10801,7 +10801,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 if (!file.getName().equals("steam_settings")) copySteamclientStubs(file);
                 continue;
             }
-            String name = file.getName().toLowerCase();
+            String name = file.getName().toLowerCase(Locale.ROOT);
             if (!name.equals("steam_api.dll") && !name.equals("steam_api64.dll")) continue;
 
             String stubAsset = name.equals("steam_api64.dll")
@@ -10836,7 +10836,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                     restoreSteamApiDlls(file);
                 }
             } else {
-                String name = file.getName().toLowerCase();
+                String name = file.getName().toLowerCase(Locale.ROOT);
                 if (name.equals("steam_api.dll.orig") || name.equals("steam_api64.dll.orig")) {
                     try {
                         String originalName = file.getName().substring(0, file.getName().length() - ".orig".length());
@@ -11192,11 +11192,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                     for (File versionDir : versions) {
                         if (!versionDir.isDirectory()) continue;
                         File[] exes = versionDir.listFiles((dir, name) ->
-                                name.toLowerCase().endsWith(".exe"));
+                                name.toLowerCase(Locale.ROOT).endsWith(".exe"));
                         if (exes == null || exes.length == 0) continue;
 
                         for (File exe : exes) {
-                            String exeName = exe.getName().toLowerCase();
+                            String exeName = exe.getName().toLowerCase(Locale.ROOT);
                             if (exeName.startsWith("unins") || exeName.equals("detect.exe")) continue;
 
                             String winPath = WineUtils.getWindowsPath(container, exe.getAbsolutePath());
@@ -11314,7 +11314,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             Log.d("XServerDisplayActivity", "Steamless CLI output: " + slOutput);
 
             boolean steamlessSuccess = slOutput != null
-                    && slOutput.toLowerCase().contains("successfully unpacked");
+                    && slOutput.toLowerCase(Locale.ROOT).contains("successfully unpacked");
 
             String unixPath = executablePath.replace('\\', '/');
             File exe = new File(gameInstallPath, unixPath);
@@ -11344,7 +11344,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             } else if (!steamlessSuccess && !unpackedExe.exists()) {
                 // Stop retrying only when Steamless confirms no unpacker applies.
                 boolean allUnpackersFailed = slOutput != null
-                        && slOutput.toLowerCase().contains("all unpackers failed");
+                        && slOutput.toLowerCase(Locale.ROOT).contains("all unpackers failed");
 
                 if (allUnpackersFailed) {
                     Log.w("XServerDisplayActivity",
@@ -12326,7 +12326,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             File[] steamChildren = steamDirSrc.listFiles();
             if (steamChildren != null) {
                 for (File child : steamChildren) {
-                    String name = child.getName().toLowerCase();
+                    String name = child.getName().toLowerCase(Locale.ROOT);
                     if (name.equals("dumps") || name.equals("steamapps") || name.equals("userdata")) continue;
 
                     File targetChild = new File(gameSteamDir, child.getName());
@@ -12625,7 +12625,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 if (isApp) score += 100000000;
                 if (isMapped) score += 10000000;
 
-                String rName = prop.toString().toLowerCase();
+                String rName = prop.toString().toLowerCase(Locale.ROOT);
                 if (rName.contains("vkd3d")) {
                     score += 6000000;
                 } else if (rName.contains("dxvk")) {
@@ -12691,7 +12691,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             if (w.id == xServer.windowManager.rootWindow.id) continue;
             if (!w.isApplicationWindow()) continue;
             String cls = w.getClassName();
-            if (cls == null || !cls.toLowerCase().contains("explorer")) return true;
+            if (cls == null || !cls.toLowerCase(Locale.ROOT).contains("explorer")) return true;
         }
         return false;
     }
@@ -12699,7 +12699,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     /** Engine label for the Mango HUD: renderer name plus the DXVK version when running DXVK. */
     private String mangoEngineLabel() {
         String name = lastRendererName != null ? lastRendererName : "Vulkan";
-        if (name.toLowerCase().contains("dxvk") && dxwrapperConfig != null) {
+        if (name.toLowerCase(Locale.ROOT).contains("dxvk") && dxwrapperConfig != null) {
             String version = dxwrapperConfig.get("version");
             if (version != null && !version.isEmpty()) return "DXVK " + version;
         }
@@ -12771,8 +12771,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 for (File f : children) {
                     if (f.isDirectory()) {
                         nextDirs.add(f);
-                    } else if (f.getName().toLowerCase().endsWith(".exe")) {
-                        String name = f.getName().toLowerCase();
+                    } else if (f.getName().toLowerCase(Locale.ROOT).endsWith(".exe")) {
+                        String name = f.getName().toLowerCase(Locale.ROOT);
                         boolean excluded = false;
                         for (String exclusion : exclusions) {
                             if (name.contains(exclusion)) {
@@ -12786,8 +12786,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             }
 
             for (File cand : candidates) {
-                if (cand.getName().toLowerCase().contains("64") || 
-                    (cand.getParentFile() != null && cand.getParentFile().getName().toLowerCase().contains("64"))) {
+                if (cand.getName().toLowerCase(Locale.ROOT).contains("64") || 
+                    (cand.getParentFile() != null && cand.getParentFile().getName().toLowerCase(Locale.ROOT).contains("64"))) {
                     return cand;
                 }
             }
