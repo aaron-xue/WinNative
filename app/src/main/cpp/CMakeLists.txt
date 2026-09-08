@@ -165,6 +165,8 @@ add_library(winlator SHARED
         winlator/vk/lsfg/vkr_lsfg.cpp
         winlator/vk/lsfg/lsfg_probe.c
         winlator/vk/lsfg/lsfg_jni.c
+        winlator/vk/framegen/fg_present.c
+        winlator/vk/framegen/fg_jni.c
 )
 
 add_dependencies(winlator winlator_shaders)
@@ -184,6 +186,7 @@ target_compile_features(winlator PRIVATE cxx_std_17)
 target_link_libraries(winlator
         log
         android
+        mediandk
         jnigraphics
         vulkan
         adrenotools
