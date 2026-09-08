@@ -22,6 +22,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
@@ -772,37 +773,37 @@ internal fun UnifiedActivity.UnifiedHub() {
             }
             if (immersiveMode && currentTabKeyForImmersive == "library") {
                 val immersiveModel by immersiveBackgroundRef.collectAsState()
-                val immersiveRequest =
-                    remember(immersiveModel, immersiveBlur, context) {
-                        val builder = ImageRequest.Builder(context).data(immersiveModel)
-                        (immersiveModel as? java.io.File)?.takeIf { it.isFile }?.let { file ->
-                            // Custom uploads can be overwritten in place.
-                            val key = "library_immersive_bg:${file.absolutePath}:${file.lastModified()}"
-                            builder.memoryCacheKey(if (immersiveBlur) "$key:blur" else key).diskCacheKey(key)
-                        }
-                        if (immersiveBlur) {
-                            // Blur baked into the bitmap at decode (quarter-res + radius 2 ≈ 8px on screen), so drawing costs the same as a plain image.
-                            val dm = context.resources.displayMetrics
-                            builder
-                                .size(dm.widthPixels / 4, dm.heightPixels / 4)
-                                .scale(coil.size.Scale.FILL)
-                                .transformations(BoxBlurTransformation(radius = 2))
-                        }
-                        builder.crossfade(400).build()
-                    }
-                AnimatedVisibility(
-                    visible = immersiveModel != null,
-                    enter = fadeIn(tween(400)),
-                    exit = fadeOut(tween(400)),
+                AnimatedContent(
+                    targetState = immersiveModel,
+                    transitionSpec = {
+                        fadeIn(tween(400)) togetherWith fadeOut(tween(400))
+                    },
                     modifier = Modifier.matchParentSize(),
-                ) {
+                ) { model ->
                     Box(Modifier.matchParentSize()) {
-                        AsyncImage(
-                            model = immersiveRequest,
-                            contentDescription = null,
-                            modifier = Modifier.matchParentSize(),
-                            contentScale = ContentScale.Crop,
-                        )
+                        if (model != null) {
+                            val request = remember(model, immersiveBlur, context) {
+                                val builder = ImageRequest.Builder(context).data(model)
+                                (model as? java.io.File)?.takeIf { it.isFile }?.let { file ->
+                                    val key = "library_immersive_bg:${file.absolutePath}:${file.lastModified()}"
+                                    builder.memoryCacheKey(if (immersiveBlur) "$key:blur" else key).diskCacheKey(key)
+                                }
+                                if (immersiveBlur) {
+                                    val dm = context.resources.displayMetrics
+                                    builder
+                                        .size(dm.widthPixels / 4, dm.heightPixels / 4)
+                                        .scale(coil.size.Scale.FILL)
+                                        .transformations(BoxBlurTransformation(radius = 2))
+                                }
+                                builder.crossfade(400).build()
+                            }
+                            AsyncImage(
+                                model = request,
+                                contentDescription = null,
+                                modifier = Modifier.matchParentSize(),
+                                contentScale = ContentScale.Crop,
+                            )
+                        }
                         Box(
                             Modifier
                                 .matchParentSize()
@@ -2626,7 +2627,7 @@ internal fun UnifiedActivity.LibraryCarousel(
             return@LaunchedEffect
         }
         // Debounce so scrubbing the grid doesn't decode every intermediate hero.
-        delay(200)
+        delay(50)
         val gogGame = visibleGogByPseudoId[app.id]
         val epicGame = visibleEpicByPseudoId[app.id]
         val isCustom = app.id < 0
@@ -2776,6 +2777,7 @@ internal fun UnifiedActivity.LibraryCarousel(
                                     customCarouselPath = visibleCustomCarouselPathByAppId[app.id],
                                     customHeroPath = visibleCustomHeroPathByAppId[app.id],
                                     onClick = {
+                                        activity?.libraryFocusIndex?.value = index
                                         detailGogGame = visibleGogByPseudoId[app.id]
                                         detailApp = app
                                     },

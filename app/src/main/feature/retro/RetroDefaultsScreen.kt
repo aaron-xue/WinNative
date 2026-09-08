@@ -976,7 +976,7 @@ private fun RetroConsoleBundleGroup(
     }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        check(selectedTag)
+        // check(selectedTag)
         val list = withContext(Dispatchers.IO) { RetroBundle.releases() }
         releases = list.getOrDefault(emptyList())
         releasesFailed = list.isFailure
