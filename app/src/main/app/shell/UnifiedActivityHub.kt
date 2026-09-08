@@ -2492,6 +2492,11 @@ internal fun UnifiedActivity.LibraryCarousel(
                 SteamService.hasStoredCredentials(context) ||
                 EpicService.hasStoredCredentials(context) ||
                 GOGAuthManager.isLoggedIn(context)
+
+        LaunchedEffect(Unit) {
+            (context as? UnifiedActivity)?.immersiveBackgroundRef?.value = null
+        }
+
         if (!anyLoggedIn && !hasAnyCredentials) {
             LoginRequiredScreen("Library") {
                 navigateToSettings(SettingsNavItem.STORES)
