@@ -1693,8 +1693,15 @@ internal fun UnifiedActivity.TopBar(
                         androidx.compose.material3.LocalRippleConfiguration provides
                             androidx.compose.material3.RippleConfiguration(color = Accent),
                     ) {
+                        val ctx = LocalContext.current
                         IconButton(onClick = {
-                            navigateToSettings(SettingsNavItem.STORES)
+                            val intent = android.content.Intent(
+                                ctx,
+                                com.winlator.cmod.feature.settings.nav.SettingsActivity::class.java
+                            ).apply {
+                                putExtra("startItem", SettingsNavItem.STORES)
+                            }
+                            ctx.startActivity(intent)
                         }, modifier = Modifier.size(44.dp), enabled = true) {
                             Icon(Icons.Outlined.Settings, contentDescription = "Menu", tint = Accent, modifier = Modifier.size(24.dp))
                         }

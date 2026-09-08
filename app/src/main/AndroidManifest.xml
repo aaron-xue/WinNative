@@ -66,6 +66,14 @@
             android:exported="false"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation" />
 
+        <!-- Settings Activity -->
+        <activity
+            android:name="com.winlator.cmod.feature.settings.nav.SettingsActivity"
+            android:theme="@style/AppThemeFullscreenDarkNoAnimation"
+            android:screenOrientation="sensorLandscape"
+            android:exported="false"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation" />
+         
         <!-- Unified Activity -->
         <activity
             android:name="com.winlator.cmod.app.shell.UnifiedActivity"

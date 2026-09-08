@@ -57,8 +57,10 @@ import com.winlator.cmod.feature.stores.steam.utils.SteamUtils;
 
 import androidx.preference.PreferenceManager;
 import com.winlator.cmod.R;
-import com.winlator.cmod.app.config.SettingsConfig;
 import com.winlator.cmod.app.shell.UnifiedActivity;
+import com.winlator.cmod.app.config.SettingsConfig;
+import com.winlator.cmod.feature.settings.nav.SettingsActivity;
+import com.winlator.cmod.feature.settings.SettingsNavItem;
 import com.winlator.cmod.app.update.UpdateService;
 import com.winlator.cmod.feature.settings.DebugFragment;
 import com.winlator.cmod.feature.setup.SetupWizardActivity;
@@ -5651,10 +5653,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                     @Override
                     public void onInputControlsEditClick() {
                         ControlsProfile activeProfile = inputControlsView != null ? inputControlsView.getProfile() : null;
-                        Intent intent = new Intent(XServerDisplayActivity.this, UnifiedActivity.class);
-                        intent.putExtra("edit_input_controls", true);
-                        intent.putExtra("selected_profile_id", activeProfile != null ? activeProfile.id : 0);
-                        intent.putExtra("return_to_game_on_back", true);
+                        Intent intent = new Intent(XServerDisplayActivity.this, SettingsActivity.class);
+                        intent.putExtra("startItem", SettingsNavItem.INPUT_CONTROLS);
+                        intent.putExtra("profileId", activeProfile != null ? activeProfile.id : 0);
                         final ControlsProfile editingProfile = activeProfile;
                         editInputControlsCallback = () -> {
                             boolean wasShowingTouch = preferences.getBoolean("show_touchscreen_controls_enabled", false);
@@ -5723,11 +5724,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                     @Override
                     public void onRtsGesturesEditClick() {
                         ControlsProfile activeProfile = inputControlsView != null ? inputControlsView.getProfile() : null;
-                        Intent intent = new Intent(XServerDisplayActivity.this, UnifiedActivity.class);
-                        intent.putExtra("edit_input_controls", true);
-                        intent.putExtra("selected_profile_id", activeProfile != null ? activeProfile.id : 0);
+                        Intent intent = new Intent(XServerDisplayActivity.this, SettingsActivity.class);
+                        intent.putExtra("startItem", SettingsNavItem.INPUT_CONTROLS);
+                        intent.putExtra("profileId", activeProfile != null ? activeProfile.id : 0);
                         intent.putExtra("gesture_profile_id", selectedGestureProfileId());
-                        intent.putExtra("return_to_game_on_back", true);
                         final ControlsProfile editingProfile = activeProfile;
                         editInputControlsCallback = () -> {
                             gestureProfileManager.loadProfiles();

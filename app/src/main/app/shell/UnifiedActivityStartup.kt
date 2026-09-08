@@ -289,12 +289,6 @@ internal fun UnifiedActivity.extractSettingsNavigation(intent: Intent?): Pending
         return PendingNavigation(SettingsNavItem.CONTAINERS, 0, editContainerId)
     }
 
-    if (intent.getBooleanExtra("edit_input_controls", false)) {
-        val profileId = intent.getIntExtra("selected_profile_id", 0)
-        val returnToGameOnBack = intent.getBooleanExtra("return_to_game_on_back", false)
-        return PendingNavigation(SettingsNavItem.INPUT_CONTROLS, profileId, 0, returnToGameOnBack)
-    }
-
     val selectedMenuItemId = intent.getIntExtra("selected_menu_item_id", 0)
     if (selectedMenuItemId > 0) {
         val target = SettingsNavItem.fromMenuId(selectedMenuItemId) ?: SettingsNavItem.CONTAINERS
@@ -307,10 +301,7 @@ internal fun UnifiedActivity.extractSettingsNavigation(intent: Intent?): Pending
 internal fun UnifiedActivity.consumeSettingsIntent(intent: Intent?) {
     intent ?: return
     intent.removeExtra("edit_container_id")
-    intent.removeExtra("edit_input_controls")
-    intent.removeExtra("selected_profile_id")
     intent.removeExtra("selected_menu_item_id")
-    intent.removeExtra("return_to_game_on_back")
 }
 
 internal fun UnifiedActivity.handleSettingsIntent(intent: Intent?) {
