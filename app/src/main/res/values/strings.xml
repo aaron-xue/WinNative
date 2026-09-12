@@ -2601,6 +2601,264 @@ Installed path:
     <string name="help_env_wine_new_mediasource">Uses the new Media Source implementation. Enables Wine\'s video/audio decoders for more format support.</string>
     <string name="help_env_wine_large_address_aware">Enables Large Address Aware. Allows 32-bit Windows programs to access more than 2GB of memory (up to 4GB), helpful for memory-intensive games.</string>
     <string name="help_env_winedlloverrides">Wine DLL override settings. Specifies which DLLs use builtin or native versions. Format: dllname1,dllname2=n,b;…\n\nExample: msvcp140,concrt140=n,b means use native, fall back to builtin.</string>
+    <string name="settings_help_box64_env_vars_title">Box64 Environment Variables Reference</string>
+    <string name="help_env_box64_cat_dynarec">Dynarec Core Settings</string>
+    <string name="help_env_box64_cat_cache">Dynarec Cache</string>
+    <string name="help_env_box64_cat_isa">Instruction Set / CPU Features</string>
+    <string name="help_env_box64_cat_cpu">CPU Type &amp; Core Count</string>
+    <string name="help_env_box64_cat_engine">Engine Compatibility</string>
+    <string name="help_env_box64_cat_mem">Memory Management</string>
+    <string name="help_env_box64_dynarec">Enable or disable the Box64 dynamic recompiler (Dynarec). 0 = interpreter mode (very slow), 1 = Dynarec enabled (normal).</string>
+    <string name="help_env_box64_dynarec_safeflags">Controls the safety level of CPU flags handling in Dynarec. 0 = no safety checks (fastest, may crash), 1 = basic checks (recommended), 2 = strict checks (highest compatibility).</string>
+    <string name="help_env_box64_dynarec_fastnan">Enable fast NaN (Not a Number) handling. Arm64 and x86_64 handle NaN differently. Enabling speeds up floating-point operations but may affect edge cases.</string>
+    <string name="help_env_box64_dynarec_fastround">Controls the precision of floating-point rounding mode emulation. 0 = precise x86 rounding (slow), 1 = fast rounding (recommended), 2 = fastest (may be imprecise).</string>
+    <string name="help_env_box64_dynarec_x87double">Controls how x87 FPU instructions are emulated. 0 = float type (default), 1 = double type (higher precision, slower), 2 = mixed.</string>
+    <string name="help_env_box64_dynarec_bigblock">Controls the size of code blocks built by Dynarec. 0 = minimal (best compat, slowest), 1 = medium, 2 = large (recommended), 3 = maximum (fastest, lower compat).</string>
+    <string name="help_env_box64_dynarec_strongmem">Controls memory model strong consistency level. x86 uses TSO while ARM is weak-ordered. 0 = no barriers (fastest, may break multi-threaded), 1–4 = progressively stronger barriers.</string>
+    <string name="help_env_box64_dynarec_forward">Sets the max instruction count for Dynarec forward jumps. Beyond this range the jump ends the current code block.</string>
+    <string name="help_env_box64_dynarec_callret">Controls function call/return instruction optimization. 0 = no optimization, 1 = basic, 2 = aggressive.</string>
+    <string name="help_env_box64_dynarec_sep">Controls code/data segment separation strategy. Affects how Dynarec handles self-modifying code.</string>
+    <string name="help_env_box64_dynarec_wait">Enables Wait instruction emulation in Dynarec. Some older games using x87 FPU need this to work correctly.</string>
+    <string name="help_env_box64_dynarec_weakbarrier">Controls the level of weak memory barriers used. Works together with STRONGMEM to affect memory operation reordering.</string>
+    <string name="help_env_box64_dynarec_aligned_atomics">Force atomic operations to use aligned memory addresses. Improves compatibility for programs that depend on aligned atomics, with a small performance cost.</string>
+    <string name="help_env_box64_dynarec_df">Controls whether to emulate the x86 Direction Flag. Needed for correct emulation of string operations (movs, stos, etc.).</string>
+    <string name="help_env_box64_dynarec_dirty">Controls Dynarec\'s handling of dirty (modified) registers. 0 = no cleanup (default), 1 = partial cleanup, 2 = full cleanup (safest, slowest).</string>
+    <string name="help_env_box64_dynarec_nativeflags">Use native ARM64 CPU flags to emulate x86 flags. Greatly improves performance when enabled, but may cause issues in some edge cases.</string>
+    <string name="help_env_box64_dynarec_pause">Controls PAUSE instruction emulation in Dynarec (used for spinlock optimization). 0 = no emulation, 1–3 = increasing pause duration.</string>
+    <string name="help_env_box64_dynarec_noarch">Disables specific ARM architecture extensions in Dynarec. 0 = allow all extensions (default), 1 = partially restrict, 2 = strictly restrict.</string>
+    <string name="help_env_box64_dynarec_volatile_metadata">Enable volatile metadata processing. Affects how Dynarec tracks register state across function calls — enabling can improve performance.</string>
+    <string name="help_env_box64_dynacache">Controls Dynarec code cache size. 0 = default, 1 = expanded, 2 = maximum (for large programs).</string>
+    <string name="help_env_box64_avx">Controls AVX (Advanced Vector Extensions) emulation level. 0 = no AVX (default, most compatible), 1 = AVX supported, 2 = AVX2 supported. ⚠️ AVX adds significant CPU overhead.</string>
+    <string name="help_env_box64_aes">Enable AES-NI instruction emulation for encryption/decryption acceleration.</string>
+    <string name="help_env_box64_pclmulqdq">Enable PCLMULQDQ instruction emulation for carry-less multiplication (used in crypto and hashing).</string>
+    <string name="help_env_box64_shaext">Enable SHA extension instruction emulation for SHA-1/SHA-256 hash acceleration.</string>
+    <string name="help_env_box64_sse42">Enable SSE4.2 instruction set emulation. Many modern programs/games require SSE4.2.</string>
+    <string name="help_env_box64_sse_flushto0">Enable flush-to-zero mode for denormal floating-point numbers. Forces tiny floats to zero, improving FP performance in some programs.</string>
+    <string name="help_env_box64_x87_no80bits">Disable x87 FPU 80-bit extended precision. x87 uses 80-bit internally while ARM64 only supports 64-bit. Enabling uses 64-bit emulation (lower precision, faster).</string>
+    <string name="help_env_box64_cputype">Controls the CPU type reported to applications. 0 = ARM-compatible, 1 = x86-compatible.</string>
+    <string name="help_env_box64_maxcpu">Limits the CPU core count reported to Windows programs. 0 = use real core count, 4–64 = report that many cores. Lower values may fix compatibility in older games.</string>
+    <string name="help_env_box64_unityplayer">UnityPlayer compatibility mode. Fixes specific issues with Unity engine games running under Box64.</string>
+    <string name="help_env_box64_unity">General Unity engine compatibility mode. Works with BOX64_UNITYPLAYER for broader Unity game coverage.</string>
+    <string name="help_env_box64_mmap32">Enable 32-bit memory mapping. Allows memory mapping in the low 4GB address space — critical for some 64-bit programs that need 32-bit pointers.</string>
+    <string name="help_opt_enable">Enable</string>
+    <string name="help_opt_disable">Disable</string>
+    <string name="help_opt_zink_auto">Auto-select the best strategy</string>
+    <string name="help_opt_zink_lazy">Lazy descriptor allocation</string>
+    <string name="help_opt_zink_cached">Cache descriptors to reduce reallocation</string>
+    <string name="help_opt_zink_notemplates">Disable descriptor templates</string>
+    <string name="help_opt_zink_debug_nir">Debug NIR (Intermediate Representation) code</string>
+    <string name="help_opt_zink_debug_spirv">Debug SPIR-V shaders</string>
+    <string name="help_opt_zink_debug_tgsi">Debug TGSI (legacy shader IR)</string>
+    <string name="help_opt_zink_debug_validation">Enable Vulkan validation layers</string>
+    <string name="help_opt_zink_debug_sync">Debug synchronization issues</string>
+    <string name="help_opt_zink_debug_compact">Compact mode</string>
+    <string name="help_opt_zink_debug_noreorder">Disable instruction reordering</string>
+    <string name="help_opt_mesa_cache_true">Enable shader cache</string>
+    <string name="help_opt_mesa_cache_false">Disable shader cache</string>
+    <string name="help_opt_gallium_hud_simple">Show basic performance information</string>
+    <string name="help_opt_gallium_hud_fps">Show frame rate (FPS)</string>
+    <string name="help_opt_gallium_hud_frametime">Show frame time</string>
+    <string name="help_opt_dxvk_hud_scale50">HUD scale 50%</string>
+    <string name="help_opt_dxvk_hud_scale70">HUD scale 70%</string>
+    <string name="help_opt_dxvk_hud_opacity50">HUD opacity 50%</string>
+    <string name="help_opt_dxvk_hud_opacity70">HUD opacity 70%</string>
+    <string name="help_opt_dxvk_hud_devinfo">Show device information (GPU name, driver version, etc.)</string>
+    <string name="help_opt_dxvk_hud_fps">Show frame rate</string>
+    <string name="help_opt_dxvk_hud_frametimes">Show frame time graph</string>
+    <string name="help_opt_dxvk_hud_submissions">Show submission count</string>
+    <string name="help_opt_dxvk_hud_drawcalls">Show draw call count</string>
+    <string name="help_opt_dxvk_hud_pipelines">Show graphics pipeline statistics</string>
+    <string name="help_opt_dxvk_hud_descriptors">Show descriptor statistics</string>
+    <string name="help_opt_dxvk_hud_memory">Show VRAM usage</string>
+    <string name="help_opt_dxvk_hud_gpuload">Show GPU load</string>
+    <string name="help_opt_dxvk_hud_version">Show DXVK version</string>
+    <string name="help_opt_dxvk_hud_api">Show API in use</string>
+    <string name="help_opt_dxvk_hud_cs">Show compute shader information</string>
+    <string name="help_opt_dxvk_hud_compiler">Show shader compilation information</string>
+    <string name="help_opt_dxvk_hud_samplers">Show sampler statistics</string>
+    <string name="help_opt_dxvk_timeline_enable">Enable timeline semaphores</string>
+    <string name="help_opt_dxvk_timeline_disable">Disable timeline semaphores</string>
+    <string name="help_opt_vkd3d_sm_6_9">Shader Model 6.9 (latest)</string>
+    <string name="help_opt_vkd3d_sm_6_6">Shader Model 6.6</string>
+    <string name="help_opt_vkd3d_sm_6_0">Shader Model 6.0</string>
+    <string name="help_opt_vkd3d_sm_5_0">Shader Model 5.0 (older)</string>
+    <string name="help_opt_tu_debug_forcecb">Force constant buffer usage</string>
+    <string name="help_opt_tu_debug_nocb">Disable constant buffers</string>
+    <string name="help_opt_tu_debug_startup">Show startup debug information</string>
+    <string name="help_opt_tu_debug_deck_emu">Steam Deck emulation mode</string>
+    <string name="help_opt_tu_debug_nir">Debug NIR code</string>
+    <string name="help_opt_tu_debug_nobin">Disable binary shaders</string>
+    <string name="help_opt_tu_debug_sysmem">Use system memory mode</string>
+    <string name="help_opt_tu_debug_gmem">Use GMEM (on-chip memory) mode</string>
+    <string name="help_opt_tu_debug_forcebin">Force binning mode</string>
+    <string name="help_opt_tu_debug_layout">Show pipeline layout information</string>
+    <string name="help_opt_tu_debug_noubwc">Disable UBWC compression</string>
+    <string name="help_opt_tu_debug_nomultipos">Disable multi-position output</string>
+    <string name="help_opt_tu_debug_nolrz">Disable LRZ</string>
+    <string name="help_opt_tu_debug_nolrzfc">Disable LRZ fast clear</string>
+    <string name="help_opt_tu_debug_perf">Performance debug information</string>
+    <string name="help_opt_tu_debug_perfc">Compact performance debug information</string>
+    <string name="help_opt_tu_debug_flushall">Force flush all operations</string>
+    <string name="help_opt_tu_debug_syncdraw">Synchronize draw operations</string>
+    <string name="help_opt_tu_debug_push_consts">Use push constants per stage</string>
+    <string name="help_opt_tu_debug_rast_order">Force rasterization order</string>
+    <string name="help_opt_tu_debug_unaligned">Allow unaligned stores</string>
+    <string name="help_opt_tu_debug_log_skip_gmem">Log skipped GMEM operations</string>
+    <string name="help_opt_tu_debug_dynamic">Dynamic mode</string>
+    <string name="help_opt_tu_debug_bos">Debug buffer objects</string>
+    <string name="help_opt_tu_debug_3d_load">Debug 3D loads</string>
+    <string name="help_opt_tu_debug_fdm">Debug FDM</string>
+    <string name="help_opt_tu_debug_noconform">Disable conformance checks</string>
+    <string name="help_opt_tu_debug_rd">Debug render targets</string>
+    <string name="help_opt_fd_features_ubwc">Enable UBWC compression flag hint, improves bandwidth utilization</string>
+    <string name="help_opt_fd_features_8bit">Enable 8-bit storage support</string>
+    <string name="help_opt_ir3_nouboopt">Disable UBO (Uniform Buffer Object) optimization</string>
+    <string name="help_opt_ir3_nopreamble">Disable shader preamble</string>
+    <string name="help_opt_ir3_noearlypreamble">Disable early preamble</string>
+    <string name="help_opt_alsa_low_latency">Low latency mode, suitable for games</string>
+    <string name="help_opt_alsa_none">Default mode</string>
+    <string name="help_opt_alsa_power_saving">Power saving mode, reduces power but may increase latency</string>
+    <string name="help_opt_allow_create">Allow creation</string>
+    <string name="help_opt_prohibit_create">Prohibit creation</string>
+    <string name="help_opt_box64_safeflags_2">Strict checks (highest compatibility)</string>
+    <string name="help_opt_box64_safeflags_1">Basic checks (recommended)</string>
+    <string name="help_opt_box64_safeflags_0">No checks (fastest, may crash)</string>
+    <string name="help_opt_box64_fastround_2">Fastest rounding (may be imprecise)</string>
+    <string name="help_opt_box64_fastround_1">Fast rounding (recommended)</string>
+    <string name="help_opt_box64_fastround_0">Precise emulation (slower)</string>
+    <string name="help_opt_box64_x87double_2">Mixed mode</string>
+    <string name="help_opt_box64_x87double_1">Double type (higher precision, slower)</string>
+    <string name="help_opt_box64_x87double_0">Float type (default)</string>
+    <string name="help_opt_box64_bigblock_3">Maximum block (highest performance)</string>
+    <string name="help_opt_box64_bigblock_2">Large block (recommended)</string>
+    <string name="help_opt_box64_bigblock_1">Medium size</string>
+    <string name="help_opt_box64_bigblock_0">Minimal block (best compatibility, slowest)</string>
+    <string name="help_opt_box64_strongmem_4">Strongest memory barrier</string>
+    <string name="help_opt_box64_strongmem_3">Strong barrier</string>
+    <string name="help_opt_box64_strongmem_2">Medium barrier</string>
+    <string name="help_opt_box64_strongmem_1">Light barrier</string>
+    <string name="help_opt_box64_strongmem_0">No barriers (fastest)</string>
+    <string name="help_opt_box64_forward_1024">1024 instructions</string>
+    <string name="help_opt_box64_forward_512">512 instructions</string>
+    <string name="help_opt_box64_forward_256">256 instructions</string>
+    <string name="help_opt_box64_forward_128">128 instructions (default)</string>
+    <string name="help_opt_box64_forward_0">Unlimited</string>
+    <string name="help_opt_box64_callret_2">Aggressive optimization</string>
+    <string name="help_opt_box64_callret_1">Basic optimization</string>
+    <string name="help_opt_box64_callret_0">No optimization (default)</string>
+    <string name="help_opt_box64_sep_2">Strict separation</string>
+    <string name="help_opt_box64_sep_1">Normal separation (default)</string>
+    <string name="help_opt_box64_sep_0">No separation</string>
+    <string name="help_opt_box64_weakbarrier_2">Weakest barrier</string>
+    <string name="help_opt_box64_weakbarrier_1">Weak barrier (default)</string>
+    <string name="help_opt_box64_weakbarrier_0">No weak barriers</string>
+    <string name="help_opt_box64_dirty_2">Full cleanup (safest, slowest)</string>
+    <string name="help_opt_box64_dirty_1">Partial cleanup</string>
+    <string name="help_opt_box64_dirty_0">No cleanup (default)</string>
+    <string name="help_opt_box64_pause_3">Longest pause</string>
+    <string name="help_opt_box64_pause_2">Longer pause</string>
+    <string name="help_opt_box64_pause_1">Light pause</string>
+    <string name="help_opt_box64_pause_0">No emulation (default)</string>
+    <string name="help_opt_box64_noarch_2">Strictly restrict</string>
+    <string name="help_opt_box64_noarch_1">Partially restrict</string>
+    <string name="help_opt_box64_noarch_0">Allow all extensions (default)</string>
+    <string name="help_opt_box64_dynacache_2">Maximum cache (large programs)</string>
+    <string name="help_opt_box64_dynacache_1">Expanded cache</string>
+    <string name="help_opt_box64_dynacache_0">Default size</string>
+    <string name="help_opt_box64_avx_2">Support AVX2</string>
+    <string name="help_opt_box64_avx_1">Support AVX</string>
+    <string name="help_opt_box64_avx_0">Not supported (default, most compatible)</string>
+    <string name="help_opt_box64_cputype_1">x86 compatible CPU</string>
+    <string name="help_opt_box64_cputype_0">ARM compatible CPU (default)</string>
+    <string name="help_opt_box64_maxcpu_0">Use actual core count</string>
+    <string name="help_opt_box64_maxcpu_4">4 cores</string>
+    <string name="help_opt_box64_maxcpu_8">8 cores</string>
+    <string name="help_opt_box64_maxcpu_16">16 cores</string>
+    <string name="help_opt_box64_maxcpu_32">32 cores</string>
+    <string name="help_opt_box64_maxcpu_64">64 cores</string>
+    <!-- FEX Core Environment Variables -->
+    <string name="settings_help_fexcore_env_vars_title">FEX Core Environment Variables</string>
+
+    <!-- FEX Core Categories -->
+    <string name="help_env_fexcore_cat_tso">Memory Ordering / TSO</string>
+    <string name="help_env_fexcore_cat_cpu">CPU Performance &amp; Code Generation</string>
+    <string name="help_env_fexcore_cat_compat">Compatibility &amp; Timing</string>
+    <string name="help_env_fexcore_cat_cachemeta">Code Cache &amp; Metadata</string>
+    <string name="help_env_fexcore_cat_cpucache">CPU Cache Configuration</string>
+
+    <!-- FEX Core Variable Descriptions -->
+    <string name="help_env_fexcore_tsoenabled">Enable full memory TSO (Total Store Order) emulation. x86 uses strong memory ordering while ARM uses weak ordering. Enabling this simulates x86 TSO behavior.</string>
+    <string name="help_env_fexcore_vectortsoenabled">Enable TSO memory ordering simulation for vector instructions. When only TSOENABLED is set, vector operations may still use weak ordering.</string>
+    <string name="help_env_fexcore_halfbarriertsoenabled">Enable half-barrier TSO emulation. A compromise between TSO compatibility and performance.</string>
+    <string name="help_env_fexcore_memcpysetsoenabled">Apply TSO memory ordering constraints to memcpy/memset operations. These functions have implicit ordering guarantees on x86.</string>
+    <string name="help_env_fexcore_strictinprocesssplitlocks">Strictly check in-process split locks. Split locks cross cache line boundaries and are allowed on x86 but not on ARM.</string>
+    <string name="help_env_fexcore_kernelunalignedatomicbackpatching">Enable kernel-level backpatching for unaligned atomic operations. When ARM hardware does not support unaligned atomics, this simulates x86 behavior via backpatching.</string>
+    <string name="help_env_fexcore_x87reducedprecision">Enable reduced precision mode for x87 FPU. x87 uses 80-bit extended precision while ARM only supports 64-bit double. Enabling this speeds up x87 instruction emulation.</string>
+    <string name="help_env_fexcore_multiblock">Enable multiblock compilation. Merges multiple basic blocks into larger compilation units for more aggressive optimization.</string>
+    <string name="help_env_fexcore_maxinst">Maximum number of instructions per code block. Instructions beyond this count end the current block. Default 5000 suits most scenarios.</string>
+    <string name="help_env_fexcore_hostfeatures">Control which host CPU features are exposed to FEX. Precisely control which ARM CPU extension features are enabled or disabled.</string>
+    <string name="help_env_fexcore_smalltscscale">Use a smaller TSC (Timestamp Counter) scaling factor. Affects the precision and performance of time-related instructions in the emulated environment.</string>
+    <string name="help_env_fexcore_hidehybrid">Hide the host CPU hybrid architecture information. Some applications change behavior when detecting hybrid CPUs (e.g. ARM big.LITTLE).</string>
+    <string name="help_env_fexcore_smcchecks">Control the self-modifying code (SMC) detection mechanism.</string>
+    <string name="help_env_fexcore_monohacks">Enable .NET/Mono runtime compatibility patches. Required by some Mono-based games (e.g. Unity games) to run properly.</string>
+    <string name="help_env_fexcore_hidehypervisorbit">Hide the CPU hypervisor bit. Some anti-cheat/anti-tamper software detects this bit to check if running in a virtualized environment.</string>
+    <string name="help_env_fexcore_volatilemetadata">Enable volatile handling of code cache metadata. Controls whether compiled code block metadata can be discarded under memory pressure.</string>
+    <string name="help_env_fexcore_disablel2cache">Disable FEX internal L2 emulation code cache. The code cache stores compiled code blocks for improved repeated execution efficiency.</string>
+    <string name="help_env_fexcore_dynamicl1cache">Enable dynamic L1 code cache. Automatically adjusts code cache size based on runtime hit rates.</string>
+    <string name="help_env_fexcore_dynamicl1cacheincreasecountheuristic">Dynamic L1 cache growth trigger threshold. When a code block hit count reaches this value, the L1 cache is expanded. Only effective when DYNAMICL1CACHE=1.</string>
+    <string name="help_env_fexcore_dynamicl1cachedecreasecountheuristic">Dynamic L1 cache shrink trigger threshold. When cache hit rate falls below this value, the L1 cache is shrunk. Only effective when DYNAMICL1CACHE=1.</string>
+
+    <!-- FEX Core Option Descriptions: Host Features -->
+    <string name="help_opt_fexcore_hostfeat_off">Default settings (no changes)</string>
+    <string name="help_opt_fexcore_hostfeat_enablesve">Enable SVE (Scalable Vector Extension)</string>
+    <string name="help_opt_fexcore_hostfeat_disablesve">Disable SVE</string>
+    <string name="help_opt_fexcore_hostfeat_enableavx">Enable AVX instruction emulation</string>
+    <string name="help_opt_fexcore_hostfeat_disableavx">Disable AVX instruction emulation</string>
+    <string name="help_opt_fexcore_hostfeat_enableafp">Enable AFP (Alternate Floating Point)</string>
+    <string name="help_opt_fexcore_hostfeat_disableafp">Disable AFP</string>
+    <string name="help_opt_fexcore_hostfeat_enablelrcpc">Enable LRCPC</string>
+    <string name="help_opt_fexcore_hostfeat_disablelrcpc">Disable LRCPC</string>
+    <string name="help_opt_fexcore_hostfeat_enablelrcpc2">Enable LRCPC2</string>
+    <string name="help_opt_fexcore_hostfeat_disablelrcpc2">Disable LRCPC2</string>
+    <string name="help_opt_fexcore_hostfeat_enablecssc">Enable CSSC</string>
+    <string name="help_opt_fexcore_hostfeat_disablecssc">Disable CSSC</string>
+    <string name="help_opt_fexcore_hostfeat_enablepmull128">Enable PMULL 128-bit multiply</string>
+    <string name="help_opt_fexcore_hostfeat_disablepmull128">Disable PMULL 128-bit multiply</string>
+    <string name="help_opt_fexcore_hostfeat_enablerng">Enable RNG (Random Number Generator)</string>
+    <string name="help_opt_fexcore_hostfeat_disablerng">Disable RNG</string>
+    <string name="help_opt_fexcore_hostfeat_enableclzero">Enable CLZERO (Cache Line Zero)</string>
+    <string name="help_opt_fexcore_hostfeat_disableclzero">Disable CLZERO</string>
+    <string name="help_opt_fexcore_hostfeat_enableatomics">Enable atomic operation extensions</string>
+    <string name="help_opt_fexcore_hostfeat_disableatomics">Disable atomic operation extensions</string>
+    <string name="help_opt_fexcore_hostfeat_enablefcma">Enable FCMA (Floating-point Complex Multiply-Add)</string>
+    <string name="help_opt_fexcore_hostfeat_disablefcma">Disable FCMA</string>
+    <string name="help_opt_fexcore_hostfeat_enableflagm">Enable FlagM (Flag manipulation)</string>
+    <string name="help_opt_fexcore_hostfeat_disableflagm">Disable FlagM</string>
+    <string name="help_opt_fexcore_hostfeat_enableflagm2">Enable FlagM2</string>
+    <string name="help_opt_fexcore_hostfeat_disableflagm2">Disable FlagM2</string>
+    <string name="help_opt_fexcore_hostfeat_enablefrintts">Enable FRINTTS (Float Round to Signed Integer)</string>
+    <string name="help_opt_fexcore_hostfeat_disablefrintts">Disable FRINTTS</string>
+    <string name="help_opt_fexcore_hostfeat_enablecrypto">Enable Crypto extensions</string>
+    <string name="help_opt_fexcore_hostfeat_disablecrypto">Disable Crypto extensions</string>
+    <string name="help_opt_fexcore_hostfeat_enablerpres">Enable RPRES</string>
+    <string name="help_opt_fexcore_hostfeat_disablerpres">Disable RPRES</string>
+    <string name="help_opt_fexcore_hostfeat_enablesvebitperm">Enable SVE bit permute</string>
+    <string name="help_opt_fexcore_hostfeat_disablesvebitperm">Disable SVE bit permute</string>
+    <string name="help_opt_fexcore_hostfeat_enablepreserveallabi">Enable PreserveAll ABI</string>
+    <string name="help_opt_fexcore_hostfeat_disablepreserveallabi">Disable PreserveAll ABI</string>
+    <string name="help_opt_fexcore_hostfeat_enablewfxt">Enable WFXT</string>
+    <string name="help_opt_fexcore_hostfeat_disablewfxt">Disable WFXT</string>
+    <string name="help_opt_fexcore_hostfeat_enable3dnow">Enable 3DNow! instruction emulation</string>
+    <string name="help_opt_fexcore_hostfeat_disable3dnow">Disable 3DNow! instruction emulation</string>
+    <string name="help_opt_fexcore_hostfeat_enablesse4a">Enable SSE4a instruction emulation</string>
+    <string name="help_opt_fexcore_hostfeat_disablesse4a">Disable SSE4a instruction emulation</string>
+    <string name="help_opt_fexcore_hostfeat_enablemops">Enable MOPS (Memory Operations)</string>
+    <string name="help_opt_fexcore_hostfeat_disablemops">Disable MOPS</string>
+
+    <!-- FEX Core Option Descriptions: SMC Checks -->
+    <string name="help_opt_fexcore_smc_none">No SMC detection (fastest)</string>
+    <string name="help_opt_fexcore_smc_mtrack">Memory tracking detection</string>
+    <string name="help_opt_fexcore_smc_full">Full detection (safest)</string>
     <string name="retro_scr_enable_hardcore_title">Enable Hardcore mode?</string>
     <string name="retro_scr_enable_hardcore_body">Hardcore mode resets the game now and disables loading save states, fast forward, and cheats. Any unsaved progress will be lost. Continue?</string>
     <string name="retro_scr_cancel">Cancel</string>

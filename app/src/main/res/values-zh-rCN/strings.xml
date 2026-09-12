@@ -2343,6 +2343,264 @@
     <string name="help_env_wine_new_mediasource">使用新版 Media Source 实现。启用 Wine 的视频/音频解码器，支持更多格式。</string>
     <string name="help_env_wine_large_address_aware">启用大地址感知（Large Address Aware）。允许 32 位 Windows 程序访问超过 2GB 的内存空间（最多 4GB），对某些内存需求大的游戏有帮助。</string>
     <string name="help_env_winedlloverrides">Wine DLL 覆盖设置。用于指定哪些 DLL 使用 Wine 内置版本（builtin）或 Windows 原生版本（native），格式为 dllname1,dllname2=n,b;…。\n\n示例：msvcp140,concrt140=n,b 表示使用原生版本，如果没有则回退到内置版本。</string>
+    <string name="settings_help_box64_env_vars_title">Box64 环境变量说明</string>
+    <string name="help_env_box64_cat_dynarec">Dynarec 核心设置</string>
+    <string name="help_env_box64_cat_cache">Dynarec 缓存</string>
+    <string name="help_env_box64_cat_isa">指令集 / CPU 特性模拟</string>
+    <string name="help_env_box64_cat_cpu">CPU 类型与核心数</string>
+    <string name="help_env_box64_cat_engine">特定引擎兼容性</string>
+    <string name="help_env_box64_cat_mem">内存管理</string>
+    <string name="help_env_box64_dynarec">启用或禁用 Box64 的动态重编译器（Dynarec）。0 = 解释器模式（极慢），1 = 启用 Dynarec（正常运行）。</string>
+    <string name="help_env_box64_dynarec_safeflags">控制 Dynarec 对 CPU 标志位的安全处理级别。0 = 不检查（最快，可能崩溃），1 = 基本检查（推荐），2 = 严格检查（兼容性最高）。</string>
+    <string name="help_env_box64_dynarec_fastnan">启用快速 NaN 处理。Arm64 和 x86_64 对 NaN 的处理方式不同，启用后可加速浮点运算，但可能影响某些边缘情况。</string>
+    <string name="help_env_box64_dynarec_fastround">控制浮点舍入模式的模拟精度。0 = 精确模拟 x86 舍入（较慢），1 = 快速舍入（推荐），2 = 最快（可能不精确）。</string>
+    <string name="help_env_box64_dynarec_x87double">控制 x87 FPU 指令的模拟方式。0 = float 类型（默认），1 = double 类型（更高精度但较慢），2 = 混合模式。</string>
+    <string name="help_env_box64_dynarec_bigblock">控制 Dynarec 构建的代码块大小。0 = 最小块（兼容性最高，性能最低），1 = 中等，2 = 较大块（推荐），3 = 最大块（最高性能，可能降低兼容性）。</string>
+    <string name="help_env_box64_dynarec_strongmem">控制内存模型的强一致性级别。x86 为 TSO 强内存序，ARM 为弱内存序。0 = 不添加内存屏障（最快，多线程可能出问题），1–4 = 逐级加强内存屏障。</string>
+    <string name="help_env_box64_dynarec_forward">设置 Dynarec 前向跳转的最大指令数。超出此范围的跳转将结束当前代码块。</string>
+    <string name="help_env_box64_dynarec_callret">控制函数调用/返回指令的处理优化。0 = 不优化，1 = 基本优化，2 = 激进优化。</string>
+    <string name="help_env_box64_dynarec_sep">控制代码段与数据段的分离策略。影响 Dynarec 如何处理自修改代码。</string>
+    <string name="help_env_box64_dynarec_wait">在 Dynarec 中启用 Wait 指令的模拟。某些使用 x87 FPU 的老游戏需要此选项。</string>
+    <string name="help_env_box64_dynarec_weakbarrier">控制弱内存屏障的使用级别。与 STRONGMEM 配合使用，影响内存操作的重排序。</string>
+    <string name="help_env_box64_dynarec_aligned_atomics">强制原子操作使用对齐的内存地址。启用后可提高依赖对齐原子操作的程序的兼容性，略微降低性能。</string>
+    <string name="help_env_box64_dynarec_df">控制是否模拟 x86 方向标志位。涉及字符串操作指令（movs、stos 等）的正确模拟。</string>
+    <string name="help_env_box64_dynarec_dirty">控制 Dynarec 对脏寄存器的处理策略。0 = 不清洗（默认），1 = 部分清洗，2 = 完全清洗（最安全但最慢）。</string>
+    <string name="help_env_box64_dynarec_nativeflags">使用原生 ARM64 CPU 标志位来模拟 x86 标志位。启用后可大幅提升性能，但某些边缘情况下可能导致不兼容。</string>
+    <string name="help_env_box64_dynarec_pause">控制 Dynarec 中 PAUSE 指令的模拟行为（用于自旋锁优化）。0 = 不模拟，1–3 = 逐级增加暂停时间。</string>
+    <string name="help_env_box64_dynarec_noarch">禁用特定 ARM 架构扩展在 Dynarec 中的使用。0 = 允许所有（默认），1 = 部分限制，2 = 严格限制。</string>
+    <string name="help_env_box64_dynarec_volatile_metadata">启用易失性元数据处理。影响 Dynarec 如何追踪函数调用间的寄存器状态，启用后可提升性能。</string>
+    <string name="help_env_box64_dynacache">控制 Dynarec 代码缓存大小。0 = 默认大小，1 = 扩大缓存，2 = 最大缓存（适合大型程序）。</string>
+    <string name="help_env_box64_avx">控制 AVX（高级矢量扩展）指令集的模拟级别。0 = 不支持（默认，兼容性最高），1 = 支持 AVX，2 = 支持 AVX2。⚠️ 启用 AVX 会显著增加 CPU 开销。</string>
+    <string name="help_env_box64_aes">启用 AES-NI 指令集模拟，用于加密/解密加速。</string>
+    <string name="help_env_box64_pclmulqdq">启用 PCLMULQDQ 指令模拟，用于无进位乘法（常见于加密和哈希计算）。</string>
+    <string name="help_env_box64_shaext">启用 SHA 扩展指令模拟，用于 SHA-1/SHA-256 哈希加速。</string>
+    <string name="help_env_box64_sse42">启用 SSE4.2 指令集模拟。许多现代程序/游戏需要 SSE4.2 支持。</string>
+    <string name="help_env_box64_sse_flushto0">启用非规格化浮点数清零模式。将极小的浮点数强制清零，可提升某些程序的浮点运算性能。</string>
+    <string name="help_env_box64_x87_no80bits">禁用 x87 FPU 的 80 位扩展精度。x87 内部使用 80 位而 ARM64 仅支持 64 位。启用后使用 64 位模拟（精度略低，速度更快）。</string>
+    <string name="help_env_box64_cputype">控制向应用程序报告的 CPU 类型。0 = ARM 兼容 CPU，1 = x86 兼容 CPU。</string>
+    <string name="help_env_box64_maxcpu">限制向 Windows 程序报告的 CPU 核心数。0 = 使用实际核心数，4–64 = 报告指定数量。降低此值可能解决老旧游戏的兼容性问题。</string>
+    <string name="help_env_box64_unityplayer">UnityPlayer 兼容模式。修复 Unity 引擎游戏在 Box64 下的特定问题。</string>
+    <string name="help_env_box64_unity">通用 Unity 引擎兼容模式。与 BOX64_UNITYPLAYER 配合使用，覆盖更广泛的 Unity 游戏。</string>
+    <string name="help_env_box64_mmap32">启用 32 位内存映射。允许在低 4GB 地址空间进行内存映射，对于需要 32 位指针的 64 位程序至关重要。</string>
+    <string name="help_opt_enable">启用</string>
+    <string name="help_opt_disable">禁用</string>
+    <string name="help_opt_zink_auto">自动选择最佳策略</string>
+    <string name="help_opt_zink_lazy">延迟分配描述符</string>
+    <string name="help_opt_zink_cached">缓存描述符以减少重复分配</string>
+    <string name="help_opt_zink_notemplates">禁用描述符模板</string>
+    <string name="help_opt_zink_debug_nir">调试 NIR（中间表示）代码</string>
+    <string name="help_opt_zink_debug_spirv">调试 SPIR-V 着色器</string>
+    <string name="help_opt_zink_debug_tgsi">调试 TGSI（旧版着色器中间表示）</string>
+    <string name="help_opt_zink_debug_validation">启用 Vulkan 验证层</string>
+    <string name="help_opt_zink_debug_sync">调试同步问题</string>
+    <string name="help_opt_zink_debug_compact">紧凑模式</string>
+    <string name="help_opt_zink_debug_noreorder">禁用指令重排序</string>
+    <string name="help_opt_mesa_cache_true">启用着色器缓存</string>
+    <string name="help_opt_mesa_cache_false">禁用着色器缓存</string>
+    <string name="help_opt_gallium_hud_simple">显示简单的性能信息</string>
+    <string name="help_opt_gallium_hud_fps">显示帧率 (FPS)</string>
+    <string name="help_opt_gallium_hud_frametime">显示帧时间</string>
+    <string name="help_opt_dxvk_hud_scale50">HUD 缩放 50%</string>
+    <string name="help_opt_dxvk_hud_scale70">HUD 缩放 70%</string>
+    <string name="help_opt_dxvk_hud_opacity50">HUD 透明度 50%</string>
+    <string name="help_opt_dxvk_hud_opacity70">HUD 透明度 70%</string>
+    <string name="help_opt_dxvk_hud_devinfo">显示设备信息（GPU 名称、驱动版本等）</string>
+    <string name="help_opt_dxvk_hud_fps">显示帧率</string>
+    <string name="help_opt_dxvk_hud_frametimes">显示帧时间图</string>
+    <string name="help_opt_dxvk_hud_submissions">显示提交数量</string>
+    <string name="help_opt_dxvk_hud_drawcalls">显示绘制调用次数</string>
+    <string name="help_opt_dxvk_hud_pipelines">显示图形管线统计</string>
+    <string name="help_opt_dxvk_hud_descriptors">显示描述符统计</string>
+    <string name="help_opt_dxvk_hud_memory">显示显存使用情况</string>
+    <string name="help_opt_dxvk_hud_gpuload">显示 GPU 负载</string>
+    <string name="help_opt_dxvk_hud_version">显示 DXVK 版本</string>
+    <string name="help_opt_dxvk_hud_api">显示使用的 API</string>
+    <string name="help_opt_dxvk_hud_cs">显示计算着色器信息</string>
+    <string name="help_opt_dxvk_hud_compiler">显示着色器编译信息</string>
+    <string name="help_opt_dxvk_hud_samplers">显示采样器统计</string>
+    <string name="help_opt_dxvk_timeline_enable">启用时间线信号量</string>
+    <string name="help_opt_dxvk_timeline_disable">禁用时间线信号量</string>
+    <string name="help_opt_vkd3d_sm_6_9">Shader Model 6.9（最新）</string>
+    <string name="help_opt_vkd3d_sm_6_6">Shader Model 6.6</string>
+    <string name="help_opt_vkd3d_sm_6_0">Shader Model 6.0</string>
+    <string name="help_opt_vkd3d_sm_5_0">Shader Model 5.0（较老）</string>
+    <string name="help_opt_tu_debug_forcecb">强制使用常量缓冲区</string>
+    <string name="help_opt_tu_debug_nocb">禁用常量缓冲区</string>
+    <string name="help_opt_tu_debug_startup">显示启动调试信息</string>
+    <string name="help_opt_tu_debug_deck_emu">Steam Deck 模拟模式</string>
+    <string name="help_opt_tu_debug_nir">调试 NIR 代码</string>
+    <string name="help_opt_tu_debug_nobin">禁用二进制着色器</string>
+    <string name="help_opt_tu_debug_sysmem">使用系统内存模式</string>
+    <string name="help_opt_tu_debug_gmem">使用 GMEM（片上内存）模式</string>
+    <string name="help_opt_tu_debug_forcebin">强制分箱（Binning）模式</string>
+    <string name="help_opt_tu_debug_layout">显示管线布局信息</string>
+    <string name="help_opt_tu_debug_noubwc">禁用 UBWC 压缩</string>
+    <string name="help_opt_tu_debug_nomultipos">禁用多位置输出</string>
+    <string name="help_opt_tu_debug_nolrz">禁用 LRZ</string>
+    <string name="help_opt_tu_debug_nolrzfc">禁用 LRZ 快速清除</string>
+    <string name="help_opt_tu_debug_perf">性能调试信息</string>
+    <string name="help_opt_tu_debug_perfc">精简性能调试信息</string>
+    <string name="help_opt_tu_debug_flushall">强制刷新所有操作</string>
+    <string name="help_opt_tu_debug_syncdraw">同步绘制操作</string>
+    <string name="help_opt_tu_debug_push_consts">每个阶段使用推送常量</string>
+    <string name="help_opt_tu_debug_rast_order">强制光栅化顺序</string>
+    <string name="help_opt_tu_debug_unaligned">允许非对齐存储</string>
+    <string name="help_opt_tu_debug_log_skip_gmem">记录跳过的 GMEM 操作</string>
+    <string name="help_opt_tu_debug_dynamic">动态模式</string>
+    <string name="help_opt_tu_debug_bos">调试缓冲对象</string>
+    <string name="help_opt_tu_debug_3d_load">调试 3D 加载</string>
+    <string name="help_opt_tu_debug_fdm">调试 FDM</string>
+    <string name="help_opt_tu_debug_noconform">禁用一致性检查</string>
+    <string name="help_opt_tu_debug_rd">调试渲染目标</string>
+    <string name="help_opt_fd_features_ubwc">启用 UBWC 压缩标志提示，可提升带宽利用率</string>
+    <string name="help_opt_fd_features_8bit">启用 8 位存储支持</string>
+    <string name="help_opt_ir3_nouboopt">禁用 UBO（Uniform Buffer Object）优化</string>
+    <string name="help_opt_ir3_nopreamble">禁用着色器前导码</string>
+    <string name="help_opt_ir3_noearlypreamble">禁用提前前导码</string>
+    <string name="help_opt_alsa_low_latency">低延迟模式，适合游戏</string>
+    <string name="help_opt_alsa_none">默认模式</string>
+    <string name="help_opt_alsa_power_saving">省电模式，降低功耗但可能增加延迟</string>
+    <string name="help_opt_allow_create">允许创建</string>
+    <string name="help_opt_prohibit_create">禁止创建</string>
+    <string name="help_opt_box64_safeflags_2">严格检查（兼容性最高）</string>
+    <string name="help_opt_box64_safeflags_1">基本检查（推荐）</string>
+    <string name="help_opt_box64_safeflags_0">不检查（最快，可能崩溃）</string>
+    <string name="help_opt_box64_fastround_2">最快舍入（可能不精确）</string>
+    <string name="help_opt_box64_fastround_1">快速舍入（推荐）</string>
+    <string name="help_opt_box64_fastround_0">精确模拟（较慢）</string>
+    <string name="help_opt_box64_x87double_2">混合模式</string>
+    <string name="help_opt_box64_x87double_1">double 类型（更高精度但慢）</string>
+    <string name="help_opt_box64_x87double_0">float 类型（默认）</string>
+    <string name="help_opt_box64_bigblock_3">最大块（最高性能）</string>
+    <string name="help_opt_box64_bigblock_2">较大块（推荐）</string>
+    <string name="help_opt_box64_bigblock_1">中等大小</string>
+    <string name="help_opt_box64_bigblock_0">最小块（兼容性最高，最慢）</string>
+    <string name="help_opt_box64_strongmem_4">最强内存屏障</string>
+    <string name="help_opt_box64_strongmem_3">加强屏障</string>
+    <string name="help_opt_box64_strongmem_2">中等屏障</string>
+    <string name="help_opt_box64_strongmem_1">轻度屏障</string>
+    <string name="help_opt_box64_strongmem_0">不添加屏障（最快）</string>
+    <string name="help_opt_box64_forward_1024">1024 条指令</string>
+    <string name="help_opt_box64_forward_512">512 条指令</string>
+    <string name="help_opt_box64_forward_256">256 条指令</string>
+    <string name="help_opt_box64_forward_128">128 条指令（默认）</string>
+    <string name="help_opt_box64_forward_0">不限制</string>
+    <string name="help_opt_box64_callret_2">激进优化</string>
+    <string name="help_opt_box64_callret_1">基本优化</string>
+    <string name="help_opt_box64_callret_0">不优化（默认）</string>
+    <string name="help_opt_box64_sep_2">严格分离</string>
+    <string name="help_opt_box64_sep_1">正常分离（默认）</string>
+    <string name="help_opt_box64_sep_0">不分离</string>
+    <string name="help_opt_box64_weakbarrier_2">最弱屏障</string>
+    <string name="help_opt_box64_weakbarrier_1">弱屏障（默认）</string>
+    <string name="help_opt_box64_weakbarrier_0">不使用弱屏障</string>
+    <string name="help_opt_box64_dirty_2">完全清洗（最安全最慢）</string>
+    <string name="help_opt_box64_dirty_1">部分清洗</string>
+    <string name="help_opt_box64_dirty_0">不清洗（默认）</string>
+    <string name="help_opt_box64_pause_3">最长暂停</string>
+    <string name="help_opt_box64_pause_2">较长暂停</string>
+    <string name="help_opt_box64_pause_1">轻度暂停</string>
+    <string name="help_opt_box64_pause_0">不模拟（默认）</string>
+    <string name="help_opt_box64_noarch_2">严格限制</string>
+    <string name="help_opt_box64_noarch_1">部分限制</string>
+    <string name="help_opt_box64_noarch_0">允许所有扩展（默认）</string>
+    <string name="help_opt_box64_dynacache_2">最大缓存（大型程序）</string>
+    <string name="help_opt_box64_dynacache_1">扩大缓存</string>
+    <string name="help_opt_box64_dynacache_0">默认大小</string>
+    <string name="help_opt_box64_avx_2">支持 AVX2</string>
+    <string name="help_opt_box64_avx_1">支持 AVX</string>
+    <string name="help_opt_box64_avx_0">不支持（默认，兼容性最高）</string>
+    <string name="help_opt_box64_cputype_1">x86 兼容 CPU</string>
+    <string name="help_opt_box64_cputype_0">ARM 兼容 CPU（默认）</string>
+    <string name="help_opt_box64_maxcpu_0">使用实际核心数</string>
+    <string name="help_opt_box64_maxcpu_4">4 核心</string>
+    <string name="help_opt_box64_maxcpu_8">8 核心</string>
+    <string name="help_opt_box64_maxcpu_16">16 核心</string>
+    <string name="help_opt_box64_maxcpu_32">32 核心</string>
+    <string name="help_opt_box64_maxcpu_64">64 核心</string>
+    <!-- FEX Core Environment Variables -->
+    <string name="settings_help_fexcore_env_vars_title">FEX Core 环境变量说明</string>
+
+    <!-- FEX Core Categories -->
+    <string name="help_env_fexcore_cat_tso">内存序 / TSO 设置</string>
+    <string name="help_env_fexcore_cat_cpu">CPU 性能与代码生成</string>
+    <string name="help_env_fexcore_cat_compat">兼容性与时间</string>
+    <string name="help_env_fexcore_cat_cachemeta">代码缓存与元数据</string>
+    <string name="help_env_fexcore_cat_cpucache">CPU 缓存配置</string>
+
+    <!-- FEX Core Variable Descriptions -->
+    <string name="help_env_fexcore_tsoenabled">启用完整的内存 TSO（Total Store Order，全序存储）模拟。x86 架构使用强内存序模型，而 ARM 使用弱内存序模型。启用此选项可以模拟 x86 的 TSO 行为。</string>
+    <string name="help_env_fexcore_vectortsoenabled">启用向量（Vector）指令的 TSO 内存序模拟。当只启用 TSOENABLED 时，向量操作可能仍使用弱内存序。</string>
+    <string name="help_env_fexcore_halfbarriertsoenabled">启用半屏障（Half-Barrier）TSO 模拟。一种折中方案，在 TSO 兼容性与性能之间取得平衡。</string>
+    <string name="help_env_fexcore_memcpysetsoenabled">对 memcpy/memset 等内存操作函数施加 TSO 内存序约束。这些函数在 x86 上具有隐式的内存序保证。</string>
+    <string name="help_env_fexcore_strictinprocesssplitlocks">对进程内的分离锁（Split Locks）进行严格检查。分离锁指跨越缓存行边界的原子操作，在 x86 上允许但 ARM 上不支持。</string>
+    <string name="help_env_fexcore_kernelunalignedatomicbackpatching">启用内核级非对齐原子操作的反向修补（Backpatching）。当 ARM 硬件不支持非对齐原子操作时，通过反向修补来模拟 x86 的非对齐原子行为。</string>
+    <string name="help_env_fexcore_x87reducedprecision">启用 x87 FPU 的降低精度模式。x87 使用 80 位扩展精度，而 ARM 仅支持 64 位双精度。启用此选项可加速 x87 指令模拟。</string>
+    <string name="help_env_fexcore_multiblock">启用多代码块（Multiblock）编译。将多个基本块合并为一个更大的编译单元，以便进行更积极的优化。</string>
+    <string name="help_env_fexcore_maxinst">设置每个代码块的最大指令数。超过此数量的指令将结束当前代码块。默认值 5000 适用于大多数场景。</string>
+    <string name="help_env_fexcore_hostfeatures">控制主机（Host）CPU 特性的启用/禁用。通过此变量可以精确控制哪些 ARM CPU 扩展特性暴露给 FEX 模拟器。</string>
+    <string name="help_env_fexcore_smalltscscale">使用较小的 TSC（时间戳计数器）缩放因子。影响模拟环境中时间相关指令的精度和性能。</string>
+    <string name="help_env_fexcore_hidehybrid">隐藏宿主 CPU 的异构（hybrid）架构信息。某些应用程序会在检测到 hybrid CPU（如 ARM big.LITTLE）时改变行为。</string>
+    <string name="help_env_fexcore_smcchecks">控制自修改代码（Self-Modifying Code, SMC）的检测机制。</string>
+    <string name="help_env_fexcore_monohacks">启用 .NET/Mono 运行时相关的兼容性补丁。某些使用 Mono 框架的游戏（如 Unity 游戏）需要此选项才能正常运行。</string>
+    <string name="help_env_fexcore_hidehypervisorbit">隐藏 CPU 的虚拟机监控程序位（Hypervisor Bit）。某些反作弊/反篡改软件会检测此位来判断是否在虚拟化环境中运行。</string>
+    <string name="help_env_fexcore_volatilemetadata">启用代码缓存中元数据的易失性（Volatile）处理。控制编译后的代码块元数据是否可以在内存压力下被丢弃。</string>
+    <string name="help_env_fexcore_disablel2cache">禁用 FEX 内部的 L2 模拟代码缓存。代码缓存用于存储编译后的代码块，提高重复执行效率。</string>
+    <string name="help_env_fexcore_dynamicl1cache">启用动态 L1 代码缓存。根据运行时的命中率自动调整代码缓存大小。</string>
+    <string name="help_env_fexcore_dynamicl1cacheincreasecountheuristic">动态 L1 缓存增大触发阈值。当代码块的命中次数达到此值时，扩大 L1 缓存。仅在 DYNAMICL1CACHE=1 时生效。</string>
+    <string name="help_env_fexcore_dynamicl1cachedecreasecountheuristic">动态 L1 缓存缩小触发阈值。当缓存命中率低于此值时，缩小 L1 缓存。仅在 DYNAMICL1CACHE=1 时生效。</string>
+
+    <!-- FEX Core Option Descriptions: Host Features -->
+    <string name="help_opt_fexcore_hostfeat_off">使用默认设置（不修改任何特性）</string>
+    <string name="help_opt_fexcore_hostfeat_enablesve">启用 SVE（可伸缩向量扩展）</string>
+    <string name="help_opt_fexcore_hostfeat_disablesve">禁用 SVE</string>
+    <string name="help_opt_fexcore_hostfeat_enableavx">启用 AVX 指令模拟支持</string>
+    <string name="help_opt_fexcore_hostfeat_disableavx">禁用 AVX 指令模拟支持</string>
+    <string name="help_opt_fexcore_hostfeat_enableafp">启用 AFP（替代浮点）</string>
+    <string name="help_opt_fexcore_hostfeat_disableafp">禁用 AFP</string>
+    <string name="help_opt_fexcore_hostfeat_enablelrcpc">启用 LRCPC（释放一致性处理器一致）</string>
+    <string name="help_opt_fexcore_hostfeat_disablelrcpc">禁用 LRCPC</string>
+    <string name="help_opt_fexcore_hostfeat_enablelrcpc2">启用 LRCPC2</string>
+    <string name="help_opt_fexcore_hostfeat_disablelrcpc2">禁用 LRCPC2</string>
+    <string name="help_opt_fexcore_hostfeat_enablecssc">启用 CSSC</string>
+    <string name="help_opt_fexcore_hostfeat_disablecssc">禁用 CSSC</string>
+    <string name="help_opt_fexcore_hostfeat_enablepmull128">启用 PMULL 128 位乘法</string>
+    <string name="help_opt_fexcore_hostfeat_disablepmull128">禁用 PMULL 128 位乘法</string>
+    <string name="help_opt_fexcore_hostfeat_enablerng">启用 RNG（随机数生成器）</string>
+    <string name="help_opt_fexcore_hostfeat_disablerng">禁用 RNG</string>
+    <string name="help_opt_fexcore_hostfeat_enableclzero">启用 CLZERO（缓存行清零）</string>
+    <string name="help_opt_fexcore_hostfeat_disableclzero">禁用 CLZERO</string>
+    <string name="help_opt_fexcore_hostfeat_enableatomics">启用原子操作扩展</string>
+    <string name="help_opt_fexcore_hostfeat_disableatomics">禁用原子操作扩展</string>
+    <string name="help_opt_fexcore_hostfeat_enablefcma">启用 FCMA（浮点复数乘加）</string>
+    <string name="help_opt_fexcore_hostfeat_disablefcma">禁用 FCMA</string>
+    <string name="help_opt_fexcore_hostfeat_enableflagm">启用 FlagM（标志操作）</string>
+    <string name="help_opt_fexcore_hostfeat_disableflagm">禁用 FlagM</string>
+    <string name="help_opt_fexcore_hostfeat_enableflagm2">启用 FlagM2</string>
+    <string name="help_opt_fexcore_hostfeat_disableflagm2">禁用 FlagM2</string>
+    <string name="help_opt_fexcore_hostfeat_enablefrintts">启用 FRINTTS（浮点取整到有符号整数）</string>
+    <string name="help_opt_fexcore_hostfeat_disablefrintts">禁用 FRINTTS</string>
+    <string name="help_opt_fexcore_hostfeat_enablecrypto">启用加密扩展</string>
+    <string name="help_opt_fexcore_hostfeat_disablecrypto">禁用加密扩展</string>
+    <string name="help_opt_fexcore_hostfeat_enablerpres">启用 RPRES（指令预取保留）</string>
+    <string name="help_opt_fexcore_hostfeat_disablerpres">禁用 RPRES</string>
+    <string name="help_opt_fexcore_hostfeat_enablesvebitperm">启用 SVE 位排列</string>
+    <string name="help_opt_fexcore_hostfeat_disablesvebitperm">禁用 SVE 位排列</string>
+    <string name="help_opt_fexcore_hostfeat_enablepreserveallabi">启用 PreserveAll ABI</string>
+    <string name="help_opt_fexcore_hostfeat_disablepreserveallabi">禁用 PreserveAll ABI</string>
+    <string name="help_opt_fexcore_hostfeat_enablewfxt">启用 WFXT</string>
+    <string name="help_opt_fexcore_hostfeat_disablewfxt">禁用 WFXT</string>
+    <string name="help_opt_fexcore_hostfeat_enable3dnow">启用 3DNow! 指令模拟</string>
+    <string name="help_opt_fexcore_hostfeat_disable3dnow">禁用 3DNow! 指令模拟</string>
+    <string name="help_opt_fexcore_hostfeat_enablesse4a">启用 SSE4a 指令模拟</string>
+    <string name="help_opt_fexcore_hostfeat_disablesse4a">禁用 SSE4a 指令模拟</string>
+    <string name="help_opt_fexcore_hostfeat_enablemops">启用 MOPS（内存操作）</string>
+    <string name="help_opt_fexcore_hostfeat_disablemops">禁用 MOPS</string>
+
+    <!-- FEX Core Option Descriptions: SMC Checks -->
+    <string name="help_opt_fexcore_smc_none">不检测 SMC（最快）</string>
+    <string name="help_opt_fexcore_smc_mtrack">内存跟踪检测</string>
+    <string name="help_opt_fexcore_smc_full">全面检测（最安全）</string>
     <string name="retro_scr_enable_hardcore_title">启用硬核模式？</string>
     <string name="retro_scr_enable_hardcore_body">硬核模式将立即重置游戏，并禁用加载即时存档、快进和金手指。任何未保存的进度都将丢失。是否继续？</string>
     <string name="retro_scr_cancel">取消</string>

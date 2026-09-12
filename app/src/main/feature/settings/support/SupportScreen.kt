@@ -59,7 +59,7 @@ private val HelpOptionBg = Color(0xFF14141F)
 
 private data class EnvVarOption(
     val value: String,
-    val desc: String,
+    @StringRes val descRes: Int,
 )
 
 private enum class EnvVarType(val label: String) {
@@ -95,10 +95,10 @@ private val envVarCategories = listOf(
                 descriptionRes = R.string.help_env_zink_descriptors,
                 default = "auto",
                 options = listOf(
-                    EnvVarOption("auto", "自动选择最佳策略"),
-                    EnvVarOption("lazy", "延迟分配描述符"),
-                    EnvVarOption("cached", "缓存描述符以减少重复分配"),
-                    EnvVarOption("notemplates", "禁用描述符模板"),
+                    EnvVarOption("auto", R.string.help_opt_zink_auto),
+                    EnvVarOption("lazy", R.string.help_opt_zink_lazy),
+                    EnvVarOption("cached", R.string.help_opt_zink_cached),
+                    EnvVarOption("notemplates", R.string.help_opt_zink_notemplates),
                 ),
             ),
             EnvVarInfo(
@@ -106,13 +106,13 @@ private val envVarCategories = listOf(
                 type = EnvVarType.SELECT_MULTIPLE,
                 descriptionRes = R.string.help_env_zink_debug,
                 options = listOf(
-                    EnvVarOption("nir", "调试 NIR（中间表示）代码"),
-                    EnvVarOption("spirv", "调试 SPIR-V 着色器"),
-                    EnvVarOption("tgsi", "调试 TGSI（旧版着色器中间表示）"),
-                    EnvVarOption("validation", "启用 Vulkan 验证层"),
-                    EnvVarOption("sync", "调试同步问题"),
-                    EnvVarOption("compact", "紧凑模式"),
-                    EnvVarOption("noreorder", "禁用指令重排序"),
+                    EnvVarOption("nir", R.string.help_opt_zink_debug_nir),
+                    EnvVarOption("spirv", R.string.help_opt_zink_debug_spirv),
+                    EnvVarOption("tgsi", R.string.help_opt_zink_debug_tgsi),
+                    EnvVarOption("validation", R.string.help_opt_zink_debug_validation),
+                    EnvVarOption("sync", R.string.help_opt_zink_debug_sync),
+                    EnvVarOption("compact", R.string.help_opt_zink_debug_compact),
+                    EnvVarOption("noreorder", R.string.help_opt_zink_debug_noreorder),
                 ),
             ),
             EnvVarInfo(
@@ -121,8 +121,8 @@ private val envVarCategories = listOf(
                 descriptionRes = R.string.help_env_mesa_shader_cache_disable,
                 default = "false",
                 options = listOf(
-                    EnvVarOption("false", "启用着色器缓存"),
-                    EnvVarOption("true", "禁用着色器缓存"),
+                    EnvVarOption("false", R.string.help_opt_mesa_cache_true),
+                    EnvVarOption("true", R.string.help_opt_mesa_cache_false),
                 ),
             ),
             EnvVarInfo(
@@ -131,8 +131,8 @@ private val envVarCategories = listOf(
                 descriptionRes = R.string.help_env_mesa_glthread,
                 default = "false",
                 options = listOf(
-                    EnvVarOption("false", "禁用"),
-                    EnvVarOption("true", "启用"),
+                    EnvVarOption("false", R.string.help_opt_disable),
+                    EnvVarOption("true", R.string.help_opt_enable),
                 ),
             ),
             EnvVarInfo(
@@ -150,9 +150,9 @@ private val envVarCategories = listOf(
                 type = EnvVarType.SELECT_MULTIPLE,
                 descriptionRes = R.string.help_env_gallium_hud,
                 options = listOf(
-                    EnvVarOption("simple", "显示简单的性能信息"),
-                    EnvVarOption("fps", "显示帧率 (FPS)"),
-                    EnvVarOption("frametime", "显示帧时间"),
+                    EnvVarOption("simple", R.string.help_opt_gallium_hud_simple),
+                    EnvVarOption("fps", R.string.help_opt_gallium_hud_fps),
+                    EnvVarOption("frametime", R.string.help_opt_gallium_hud_frametime),
                 ),
             ),
         ),
@@ -165,24 +165,24 @@ private val envVarCategories = listOf(
                 type = EnvVarType.SELECT_MULTIPLE,
                 descriptionRes = R.string.help_env_dxvk_hud,
                 options = listOf(
-                    EnvVarOption("scale=0.5", "HUD 缩放 50%"),
-                    EnvVarOption("scale=0.7", "HUD 缩放 70%"),
-                    EnvVarOption("opacity=0.5", "HUD 透明度 50%"),
-                    EnvVarOption("opacity=0.7", "HUD 透明度 70%"),
-                    EnvVarOption("devinfo", "显示设备信息（GPU 名称、驱动版本等）"),
-                    EnvVarOption("fps", "显示帧率"),
-                    EnvVarOption("frametimes", "显示帧时间图"),
-                    EnvVarOption("submissions", "显示提交数量"),
-                    EnvVarOption("drawcalls", "显示绘制调用次数"),
-                    EnvVarOption("pipelines", "显示图形管线统计"),
-                    EnvVarOption("descriptors", "显示描述符统计"),
-                    EnvVarOption("memory", "显示显存使用情况"),
-                    EnvVarOption("gpuload", "显示 GPU 负载"),
-                    EnvVarOption("version", "显示 DXVK 版本"),
-                    EnvVarOption("api", "显示使用的 API"),
-                    EnvVarOption("cs", "显示计算着色器信息"),
-                    EnvVarOption("compiler", "显示着色器编译信息"),
-                    EnvVarOption("samplers", "显示采样器统计"),
+                    EnvVarOption("scale=0.5", R.string.help_opt_dxvk_hud_scale50),
+                    EnvVarOption("scale=0.7", R.string.help_opt_dxvk_hud_scale70),
+                    EnvVarOption("opacity=0.5", R.string.help_opt_dxvk_hud_opacity50),
+                    EnvVarOption("opacity=0.7", R.string.help_opt_dxvk_hud_opacity70),
+                    EnvVarOption("devinfo", R.string.help_opt_dxvk_hud_devinfo),
+                    EnvVarOption("fps", R.string.help_opt_dxvk_hud_fps),
+                    EnvVarOption("frametimes", R.string.help_opt_dxvk_hud_frametimes),
+                    EnvVarOption("submissions", R.string.help_opt_dxvk_hud_submissions),
+                    EnvVarOption("drawcalls", R.string.help_opt_dxvk_hud_drawcalls),
+                    EnvVarOption("pipelines", R.string.help_opt_dxvk_hud_pipelines),
+                    EnvVarOption("descriptors", R.string.help_opt_dxvk_hud_descriptors),
+                    EnvVarOption("memory", R.string.help_opt_dxvk_hud_memory),
+                    EnvVarOption("gpuload", R.string.help_opt_dxvk_hud_gpuload),
+                    EnvVarOption("version", R.string.help_opt_dxvk_hud_version),
+                    EnvVarOption("api", R.string.help_opt_dxvk_hud_api),
+                    EnvVarOption("cs", R.string.help_opt_dxvk_hud_cs),
+                    EnvVarOption("compiler", R.string.help_opt_dxvk_hud_compiler),
+                    EnvVarOption("samplers", R.string.help_opt_dxvk_hud_samplers),
                 ),
             ),
             EnvVarInfo(
@@ -191,8 +191,8 @@ private val envVarCategories = listOf(
                 descriptionRes = R.string.help_env_dxvk_disable_timeline_semaphores,
                 default = "0",
                 options = listOf(
-                    EnvVarOption("0", "启用时间线信号量"),
-                    EnvVarOption("1", "禁用时间线信号量"),
+                    EnvVarOption("0", R.string.help_opt_dxvk_timeline_enable),
+                    EnvVarOption("1", R.string.help_opt_dxvk_timeline_disable),
                 ),
             ),
             EnvVarInfo(
@@ -200,10 +200,10 @@ private val envVarCategories = listOf(
                 type = EnvVarType.SELECT_CUSTOM,
                 descriptionRes = R.string.help_env_vkd3d_shader_model,
                 options = listOf(
-                    EnvVarOption("6_9", "Shader Model 6.9（最新）"),
-                    EnvVarOption("6_6", "Shader Model 6.6"),
-                    EnvVarOption("6_0", "Shader Model 6.0"),
-                    EnvVarOption("5_0", "Shader Model 5.0（较老）"),
+                    EnvVarOption("6_9", R.string.help_opt_vkd3d_sm_6_9),
+                    EnvVarOption("6_6", R.string.help_opt_vkd3d_sm_6_6),
+                    EnvVarOption("6_0", R.string.help_opt_vkd3d_sm_6_0),
+                    EnvVarOption("5_0", R.string.help_opt_vkd3d_sm_5_0),
                 ),
             ),
         ),
@@ -217,8 +217,8 @@ private val envVarCategories = listOf(
                 descriptionRes = R.string.help_env_wineesync,
                 default = "0",
                 options = listOf(
-                    EnvVarOption("0", "禁用"),
-                    EnvVarOption("1", "启用"),
+                    EnvVarOption("0", R.string.help_opt_disable),
+                    EnvVarOption("1", R.string.help_opt_enable),
                 ),
             ),
             EnvVarInfo(
@@ -227,8 +227,8 @@ private val envVarCategories = listOf(
                 descriptionRes = R.string.help_env_winentsync,
                 default = "0",
                 options = listOf(
-                    EnvVarOption("0", "禁用"),
-                    EnvVarOption("1", "启用"),
+                    EnvVarOption("0", R.string.help_opt_disable),
+                    EnvVarOption("1", R.string.help_opt_enable),
                 ),
             ),
             EnvVarInfo(
@@ -247,34 +247,34 @@ private val envVarCategories = listOf(
                 type = EnvVarType.SELECT_MULTIPLE,
                 descriptionRes = R.string.help_env_tu_debug,
                 options = listOf(
-                    EnvVarOption("forcecb", "强制使用常量缓冲区"),
-                    EnvVarOption("nocb", "禁用常量缓冲区"),
-                    EnvVarOption("startup", "显示启动调试信息"),
-                    EnvVarOption("deck_emu", "Steam Deck 模拟模式"),
-                    EnvVarOption("nir", "调试 NIR 代码"),
-                    EnvVarOption("nobin", "禁用二进制着色器"),
-                    EnvVarOption("sysmem", "使用系统内存模式"),
-                    EnvVarOption("gmem", "使用 GMEM（片上内存）模式"),
-                    EnvVarOption("forcebin", "强制分箱（Binning）模式"),
-                    EnvVarOption("layout", "显示管线布局信息"),
-                    EnvVarOption("noubwc", "禁用 UBWC 压缩"),
-                    EnvVarOption("nomultipos", "禁用多位置输出"),
-                    EnvVarOption("nolrz", "禁用 LRZ"),
-                    EnvVarOption("nolrzfc", "禁用 LRZ 快速清除"),
-                    EnvVarOption("perf", "性能调试信息"),
-                    EnvVarOption("perfc", "精简性能调试信息"),
-                    EnvVarOption("flushall", "强制刷新所有操作"),
-                    EnvVarOption("syncdraw", "同步绘制操作"),
-                    EnvVarOption("push_consts_per_stage", "每个阶段使用推送常量"),
-                    EnvVarOption("rast_order", "强制光栅化顺序"),
-                    EnvVarOption("unaligned_store", "允许非对齐存储"),
-                    EnvVarOption("log_skip_gmem_ops", "记录跳过的 GMEM 操作"),
-                    EnvVarOption("dynamic", "动态模式"),
-                    EnvVarOption("bos", "调试缓冲对象"),
-                    EnvVarOption("3d_load", "调试 3D 加载"),
-                    EnvVarOption("fdm", "调试 FDM"),
-                    EnvVarOption("noconform", "禁用一致性检查"),
-                    EnvVarOption("rd", "调试渲染目标"),
+                    EnvVarOption("forcecb", R.string.help_opt_tu_debug_forcecb),
+                    EnvVarOption("nocb", R.string.help_opt_tu_debug_nocb),
+                    EnvVarOption("startup", R.string.help_opt_tu_debug_startup),
+                    EnvVarOption("deck_emu", R.string.help_opt_tu_debug_deck_emu),
+                    EnvVarOption("nir", R.string.help_opt_tu_debug_nir),
+                    EnvVarOption("nobin", R.string.help_opt_tu_debug_nobin),
+                    EnvVarOption("sysmem", R.string.help_opt_tu_debug_sysmem),
+                    EnvVarOption("gmem", R.string.help_opt_tu_debug_gmem),
+                    EnvVarOption("forcebin", R.string.help_opt_tu_debug_forcebin),
+                    EnvVarOption("layout", R.string.help_opt_tu_debug_layout),
+                    EnvVarOption("noubwc", R.string.help_opt_tu_debug_noubwc),
+                    EnvVarOption("nomultipos", R.string.help_opt_tu_debug_nomultipos),
+                    EnvVarOption("nolrz", R.string.help_opt_tu_debug_nolrz),
+                    EnvVarOption("nolrzfc", R.string.help_opt_tu_debug_nolrzfc),
+                    EnvVarOption("perf", R.string.help_opt_tu_debug_perf),
+                    EnvVarOption("perfc", R.string.help_opt_tu_debug_perfc),
+                    EnvVarOption("flushall", R.string.help_opt_tu_debug_flushall),
+                    EnvVarOption("syncdraw", R.string.help_opt_tu_debug_syncdraw),
+                    EnvVarOption("push_consts_per_stage", R.string.help_opt_tu_debug_push_consts),
+                    EnvVarOption("rast_order", R.string.help_opt_tu_debug_rast_order),
+                    EnvVarOption("unaligned_store", R.string.help_opt_tu_debug_unaligned),
+                    EnvVarOption("log_skip_gmem_ops", R.string.help_opt_tu_debug_log_skip_gmem),
+                    EnvVarOption("dynamic", R.string.help_opt_tu_debug_dynamic),
+                    EnvVarOption("bos", R.string.help_opt_tu_debug_bos),
+                    EnvVarOption("3d_load", R.string.help_opt_tu_debug_3d_load),
+                    EnvVarOption("fdm", R.string.help_opt_tu_debug_fdm),
+                    EnvVarOption("noconform", R.string.help_opt_tu_debug_noconform),
+                    EnvVarOption("rd", R.string.help_opt_tu_debug_rd),
                 ),
             ),
             EnvVarInfo(
@@ -282,8 +282,8 @@ private val envVarCategories = listOf(
                 type = EnvVarType.SELECT_MULTIPLE,
                 descriptionRes = R.string.help_env_fd_dev_features,
                 options = listOf(
-                    EnvVarOption("enable_tp_ubwc_flag_hint=1", "启用 UBWC 压缩标志提示，可提升带宽利用率"),
-                    EnvVarOption("storage_8bit=1", "启用 8 位存储支持"),
+                    EnvVarOption("enable_tp_ubwc_flag_hint=1", R.string.help_opt_fd_features_ubwc),
+                    EnvVarOption("storage_8bit=1", R.string.help_opt_fd_features_8bit),
                 ),
             ),
             EnvVarInfo(
@@ -291,9 +291,9 @@ private val envVarCategories = listOf(
                 type = EnvVarType.SELECT_MULTIPLE,
                 descriptionRes = R.string.help_env_ir3_shader_debug,
                 options = listOf(
-                    EnvVarOption("nouboopt", "禁用 UBO（Uniform Buffer Object）优化"),
-                    EnvVarOption("nopreamble", "禁用着色器前导码"),
-                    EnvVarOption("noearlypreamble", "禁用提前前导码"),
+                    EnvVarOption("nouboopt", R.string.help_opt_ir3_nouboopt),
+                    EnvVarOption("nopreamble", R.string.help_opt_ir3_nopreamble),
+                    EnvVarOption("noearlypreamble", R.string.help_opt_ir3_noearlypreamble),
                 ),
             ),
             EnvVarInfo(
@@ -307,8 +307,8 @@ private val envVarCategories = listOf(
                 descriptionRes = R.string.help_env_wrapper_dmaheap_cached,
                 default = "0",
                 options = listOf(
-                    EnvVarOption("0", "禁用"),
-                    EnvVarOption("1", "启用"),
+                    EnvVarOption("0", R.string.help_opt_disable),
+                    EnvVarOption("1", R.string.help_opt_enable),
                 ),
             ),
         ),
@@ -341,9 +341,9 @@ private val envVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_alsa_performance_mode,
                 options = listOf(
-                    EnvVarOption("low_latency", "低延迟模式，适合游戏"),
-                    EnvVarOption("none", "默认模式"),
-                    EnvVarOption("power_saving", "省电模式，降低功耗但可能增加延迟"),
+                    EnvVarOption("low_latency", R.string.help_opt_alsa_low_latency),
+                    EnvVarOption("none", R.string.help_opt_alsa_none),
+                    EnvVarOption("power_saving", R.string.help_opt_alsa_power_saving),
                 ),
             ),
         ),
@@ -357,8 +357,8 @@ private val envVarCategories = listOf(
                 descriptionRes = R.string.help_env_wine_desktop_capture,
                 default = "0",
                 options = listOf(
-                    EnvVarOption("0", "禁用"),
-                    EnvVarOption("1", "启用"),
+                    EnvVarOption("0", R.string.help_opt_disable),
+                    EnvVarOption("1", R.string.help_opt_enable),
                 ),
             ),
             EnvVarInfo(
@@ -367,8 +367,8 @@ private val envVarCategories = listOf(
                 descriptionRes = R.string.help_env_wine_do_not_create_dxgi_device_manager,
                 default = "0",
                 options = listOf(
-                    EnvVarOption("0", "允许创建"),
-                    EnvVarOption("1", "禁止创建"),
+                    EnvVarOption("0", R.string.help_opt_allow_create),
+                    EnvVarOption("1", R.string.help_opt_prohibit_create),
                 ),
             ),
             EnvVarInfo(
@@ -377,8 +377,8 @@ private val envVarCategories = listOf(
                 descriptionRes = R.string.help_env_wine_new_mediasource,
                 default = "0",
                 options = listOf(
-                    EnvVarOption("0", "禁用"),
-                    EnvVarOption("1", "启用"),
+                    EnvVarOption("0", R.string.help_opt_disable),
+                    EnvVarOption("1", R.string.help_opt_enable),
                 ),
             ),
             EnvVarInfo(
@@ -387,14 +387,572 @@ private val envVarCategories = listOf(
                 descriptionRes = R.string.help_env_wine_large_address_aware,
                 default = "0",
                 options = listOf(
-                    EnvVarOption("0", "禁用"),
-                    EnvVarOption("1", "启用"),
+                    EnvVarOption("0", R.string.help_opt_disable),
+                    EnvVarOption("1", R.string.help_opt_enable),
                 ),
             ),
             EnvVarInfo(
                 name = "WINEDLLOVERRIDES",
                 type = EnvVarType.TEXT,
                 descriptionRes = R.string.help_env_winedlloverrides,
+            ),
+        ),
+    ),
+)
+
+private val box64OnOffOptions = listOf(
+    EnvVarOption("1", R.string.help_opt_enable),
+    EnvVarOption("0", R.string.help_opt_disable),
+)
+
+private val box64EnvVarCategories = listOf(
+    EnvVarCategory(
+        titleRes = R.string.help_env_box64_cat_dynarec,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "BOX64_DYNAREC",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_dynarec,
+                default = "1",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_SAFEFLAGS",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_safeflags,
+                default = "1",
+                options = listOf(
+                    EnvVarOption("2", R.string.help_opt_box64_safeflags_2),
+                    EnvVarOption("1", R.string.help_opt_box64_safeflags_1),
+                    EnvVarOption("0", R.string.help_opt_box64_safeflags_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_FASTNAN",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_dynarec_fastnan,
+                default = "1",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_FASTROUND",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_fastround,
+                default = "1",
+                options = listOf(
+                    EnvVarOption("2", R.string.help_opt_box64_fastround_2),
+                    EnvVarOption("1", R.string.help_opt_box64_fastround_1),
+                    EnvVarOption("0", R.string.help_opt_box64_fastround_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_X87DOUBLE",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_x87double,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("2", R.string.help_opt_box64_x87double_2),
+                    EnvVarOption("1", R.string.help_opt_box64_x87double_1),
+                    EnvVarOption("0", R.string.help_opt_box64_x87double_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_BIGBLOCK",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_bigblock,
+                default = "2",
+                options = listOf(
+                    EnvVarOption("3", R.string.help_opt_box64_bigblock_3),
+                    EnvVarOption("2", R.string.help_opt_box64_bigblock_2),
+                    EnvVarOption("1", R.string.help_opt_box64_bigblock_1),
+                    EnvVarOption("0", R.string.help_opt_box64_bigblock_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_STRONGMEM",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_strongmem,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("4", R.string.help_opt_box64_strongmem_4),
+                    EnvVarOption("3", R.string.help_opt_box64_strongmem_3),
+                    EnvVarOption("2", R.string.help_opt_box64_strongmem_2),
+                    EnvVarOption("1", R.string.help_opt_box64_strongmem_1),
+                    EnvVarOption("0", R.string.help_opt_box64_strongmem_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_FORWARD",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_forward,
+                default = "128",
+                options = listOf(
+                    EnvVarOption("1024", R.string.help_opt_box64_forward_1024),
+                    EnvVarOption("512", R.string.help_opt_box64_forward_512),
+                    EnvVarOption("256", R.string.help_opt_box64_forward_256),
+                    EnvVarOption("128", R.string.help_opt_box64_forward_128),
+                    EnvVarOption("0", R.string.help_opt_box64_forward_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_CALLRET",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_callret,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("2", R.string.help_opt_box64_callret_2),
+                    EnvVarOption("1", R.string.help_opt_box64_callret_1),
+                    EnvVarOption("0", R.string.help_opt_box64_callret_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_SEP",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_sep,
+                default = "1",
+                options = listOf(
+                    EnvVarOption("2", R.string.help_opt_box64_sep_2),
+                    EnvVarOption("1", R.string.help_opt_box64_sep_1),
+                    EnvVarOption("0", R.string.help_opt_box64_sep_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_WAIT",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_dynarec_wait,
+                default = "1",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_WEAKBARRIER",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_weakbarrier,
+                default = "1",
+                options = listOf(
+                    EnvVarOption("2", R.string.help_opt_box64_weakbarrier_2),
+                    EnvVarOption("1", R.string.help_opt_box64_weakbarrier_1),
+                    EnvVarOption("0", R.string.help_opt_box64_weakbarrier_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_ALIGNED_ATOMICS",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_dynarec_aligned_atomics,
+                default = "0",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_DF",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_dynarec_df,
+                default = "1",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_DIRTY",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_dirty,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("2", R.string.help_opt_box64_dirty_2),
+                    EnvVarOption("1", R.string.help_opt_box64_dirty_1),
+                    EnvVarOption("0", R.string.help_opt_box64_dirty_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_NATIVEFLAGS",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_dynarec_nativeflags,
+                default = "1",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_PAUSE",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_pause,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("3", R.string.help_opt_box64_pause_3),
+                    EnvVarOption("2", R.string.help_opt_box64_pause_2),
+                    EnvVarOption("1", R.string.help_opt_box64_pause_1),
+                    EnvVarOption("0", R.string.help_opt_box64_pause_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_NOARCH",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynarec_noarch,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("2", R.string.help_opt_box64_noarch_2),
+                    EnvVarOption("1", R.string.help_opt_box64_noarch_1),
+                    EnvVarOption("0", R.string.help_opt_box64_noarch_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_DYNAREC_VOLATILE_METADATA",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_dynarec_volatile_metadata,
+                default = "1",
+                options = box64OnOffOptions,
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_env_box64_cat_cache,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "BOX64_DYNACACHE",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_dynacache,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("2", R.string.help_opt_box64_dynacache_2),
+                    EnvVarOption("1", R.string.help_opt_box64_dynacache_1),
+                    EnvVarOption("0", R.string.help_opt_box64_dynacache_0),
+                ),
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_env_box64_cat_isa,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "BOX64_AVX",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_avx,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("2", R.string.help_opt_box64_avx_2),
+                    EnvVarOption("1", R.string.help_opt_box64_avx_1),
+                    EnvVarOption("0", R.string.help_opt_box64_avx_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_AES",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_aes,
+                default = "1",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_PCLMULQDQ",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_pclmulqdq,
+                default = "1",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_SHAEXT",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_shaext,
+                default = "1",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_SSE42",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_sse42,
+                default = "1",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_SSE_FLUSHTO0",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_sse_flushto0,
+                default = "0",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_X87_NO80BITS",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_x87_no80bits,
+                default = "0",
+                options = box64OnOffOptions,
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_env_box64_cat_cpu,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "BOX64_CPUTYPE",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_cputype,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("1", R.string.help_opt_box64_cputype_1),
+                    EnvVarOption("0", R.string.help_opt_box64_cputype_0),
+                ),
+            ),
+            EnvVarInfo(
+                name = "BOX64_MAXCPU",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_box64_maxcpu,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("0", R.string.help_opt_box64_maxcpu_0),
+                    EnvVarOption("4", R.string.help_opt_box64_maxcpu_4),
+                    EnvVarOption("8", R.string.help_opt_box64_maxcpu_8),
+                    EnvVarOption("16", R.string.help_opt_box64_maxcpu_16),
+                    EnvVarOption("32", R.string.help_opt_box64_maxcpu_32),
+                    EnvVarOption("64", R.string.help_opt_box64_maxcpu_64),
+                ),
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_env_box64_cat_engine,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "BOX64_UNITYPLAYER",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_unityplayer,
+                default = "0",
+                options = box64OnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "BOX64_UNITY",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_unity,
+                default = "0",
+                options = box64OnOffOptions,
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_env_box64_cat_mem,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "BOX64_MMAP32",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_box64_mmap32,
+                default = "1",
+                options = box64OnOffOptions,
+            ),
+        ),
+    ),
+)
+
+private val fexcoreOnOffOptions = listOf(
+    EnvVarOption("1", R.string.help_opt_enable),
+    EnvVarOption("0", R.string.help_opt_disable),
+)
+
+private val fexcoreHostFeaturesOptions = listOf(
+    EnvVarOption("off", R.string.help_opt_fexcore_hostfeat_off),
+    EnvVarOption("enablesve", R.string.help_opt_fexcore_hostfeat_enablesve),
+    EnvVarOption("disablesve", R.string.help_opt_fexcore_hostfeat_disablesve),
+    EnvVarOption("enableavx", R.string.help_opt_fexcore_hostfeat_enableavx),
+    EnvVarOption("disableavx", R.string.help_opt_fexcore_hostfeat_disableavx),
+    EnvVarOption("enableafp", R.string.help_opt_fexcore_hostfeat_enableafp),
+    EnvVarOption("disableafp", R.string.help_opt_fexcore_hostfeat_disableafp),
+    EnvVarOption("enablelrcpc", R.string.help_opt_fexcore_hostfeat_enablelrcpc),
+    EnvVarOption("disablelrcpc", R.string.help_opt_fexcore_hostfeat_disablelrcpc),
+    EnvVarOption("enablelrcpc2", R.string.help_opt_fexcore_hostfeat_enablelrcpc2),
+    EnvVarOption("disablelrcpc2", R.string.help_opt_fexcore_hostfeat_disablelrcpc2),
+    EnvVarOption("enablecssc", R.string.help_opt_fexcore_hostfeat_enablecssc),
+    EnvVarOption("disablecssc", R.string.help_opt_fexcore_hostfeat_disablecssc),
+    EnvVarOption("enablepmull128", R.string.help_opt_fexcore_hostfeat_enablepmull128),
+    EnvVarOption("disablepmull128", R.string.help_opt_fexcore_hostfeat_disablepmull128),
+    EnvVarOption("enablerng", R.string.help_opt_fexcore_hostfeat_enablerng),
+    EnvVarOption("disablerng", R.string.help_opt_fexcore_hostfeat_disablerng),
+    EnvVarOption("enableclzero", R.string.help_opt_fexcore_hostfeat_enableclzero),
+    EnvVarOption("disableclzero", R.string.help_opt_fexcore_hostfeat_disableclzero),
+    EnvVarOption("enableatomics", R.string.help_opt_fexcore_hostfeat_enableatomics),
+    EnvVarOption("disableatomics", R.string.help_opt_fexcore_hostfeat_disableatomics),
+    EnvVarOption("enablefcma", R.string.help_opt_fexcore_hostfeat_enablefcma),
+    EnvVarOption("disablefcma", R.string.help_opt_fexcore_hostfeat_disablefcma),
+    EnvVarOption("enableflagm", R.string.help_opt_fexcore_hostfeat_enableflagm),
+    EnvVarOption("disableflagm", R.string.help_opt_fexcore_hostfeat_disableflagm),
+    EnvVarOption("enableflagm2", R.string.help_opt_fexcore_hostfeat_enableflagm2),
+    EnvVarOption("disableflagm2", R.string.help_opt_fexcore_hostfeat_disableflagm2),
+    EnvVarOption("enablefrintts", R.string.help_opt_fexcore_hostfeat_enablefrintts),
+    EnvVarOption("disablefrintts", R.string.help_opt_fexcore_hostfeat_disablefrintts),
+    EnvVarOption("enablecrypto", R.string.help_opt_fexcore_hostfeat_enablecrypto),
+    EnvVarOption("disablecrypto", R.string.help_opt_fexcore_hostfeat_disablecrypto),
+    EnvVarOption("enablerpres", R.string.help_opt_fexcore_hostfeat_enablerpres),
+    EnvVarOption("disablerpres", R.string.help_opt_fexcore_hostfeat_disablerpres),
+    EnvVarOption("enablesvebitperm", R.string.help_opt_fexcore_hostfeat_enablesvebitperm),
+    EnvVarOption("disablesvebitperm", R.string.help_opt_fexcore_hostfeat_disablesvebitperm),
+    EnvVarOption("enablepreserveallabi", R.string.help_opt_fexcore_hostfeat_enablepreserveallabi),
+    EnvVarOption("disablepreserveallabi", R.string.help_opt_fexcore_hostfeat_disablepreserveallabi),
+    EnvVarOption("enablewfxt", R.string.help_opt_fexcore_hostfeat_enablewfxt),
+    EnvVarOption("disablewfxt", R.string.help_opt_fexcore_hostfeat_disablewfxt),
+    EnvVarOption("enable3dnow", R.string.help_opt_fexcore_hostfeat_enable3dnow),
+    EnvVarOption("disable3dnow", R.string.help_opt_fexcore_hostfeat_disable3dnow),
+    EnvVarOption("enablesse4a", R.string.help_opt_fexcore_hostfeat_enablesse4a),
+    EnvVarOption("disablesse4a", R.string.help_opt_fexcore_hostfeat_disablesse4a),
+    EnvVarOption("enablemops", R.string.help_opt_fexcore_hostfeat_enablemops),
+    EnvVarOption("disablemops", R.string.help_opt_fexcore_hostfeat_disablemops),
+)
+
+private val fexcoreSmcChecksOptions = listOf(
+    EnvVarOption("none", R.string.help_opt_fexcore_smc_none),
+    EnvVarOption("mtrack", R.string.help_opt_fexcore_smc_mtrack),
+    EnvVarOption("full", R.string.help_opt_fexcore_smc_full),
+)
+
+private val fexcoreEnvVarCategories = listOf(
+    EnvVarCategory(
+        titleRes = R.string.help_env_fexcore_cat_tso,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "FEX_TSOENABLED",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_tsoenabled,
+                default = "0",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_VECTORTSOENABLED",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_vectortsoenabled,
+                default = "0",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_HALFBARRIERTSOENABLED",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_halfbarriertsoenabled,
+                default = "0",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_MEMCPYSETTSOENABLED",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_memcpysetsoenabled,
+                default = "0",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_STRICTINPROCESSSPLITLOCKS",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_strictinprocesssplitlocks,
+                default = "0",
+                options = fexcoreOnOffOptions,
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_env_fexcore_cat_cpu,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "FEX_KERNELUNALIGNEDATOMICBACKPATCHING",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_kernelunalignedatomicbackpatching,
+                default = "1",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_X87REDUCEDPRECISION",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_x87reducedprecision,
+                default = "1",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_MULTIBLOCK",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_multiblock,
+                default = "1",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_MAXINST",
+                type = EnvVarType.NUMBER,
+                descriptionRes = R.string.help_env_fexcore_maxinst,
+                default = "5000",
+            ),
+            EnvVarInfo(
+                name = "FEX_HOSTFEATURES",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_fexcore_hostfeatures,
+                default = "off",
+                options = fexcoreHostFeaturesOptions,
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_env_fexcore_cat_compat,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "FEX_SMALLTSCSCALE",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_smalltscscale,
+                default = "1",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_HIDEHYBRID",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_hidehybrid,
+                default = "1",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_SMCCHECKS",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_fexcore_smcchecks,
+                default = "mtrack",
+                options = fexcoreSmcChecksOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_MONOHACKS",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_monohacks,
+                default = "1",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_HIDEHYPERVISORBIT",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_hidehypervisorbit,
+                default = "0",
+                options = fexcoreOnOffOptions,
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_env_fexcore_cat_cachemeta,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "FEX_VOLATILEMETADATA",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_volatilemetadata,
+                default = "1",
+                options = fexcoreOnOffOptions,
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_env_fexcore_cat_cpucache,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "FEX_DISABLEL2CACHE",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_disablel2cache,
+                default = "0",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_DYNAMICL1CACHE",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_env_fexcore_dynamicl1cache,
+                default = "0",
+                options = fexcoreOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "FEX_DYNAMICL1CACHEINCREASECOUNTHEURISTIC",
+                type = EnvVarType.NUMBER,
+                descriptionRes = R.string.help_env_fexcore_dynamicl1cacheincreasecountheuristic,
+                default = "250",
+            ),
+            EnvVarInfo(
+                name = "FEX_DYNAMICL1CACHEDECREASECOUNTHEURISTIC",
+                type = EnvVarType.NUMBER,
+                descriptionRes = R.string.help_env_fexcore_dynamicl1cachedecreasecountheuristic,
+                default = "50",
             ),
         ),
     ),
@@ -532,7 +1090,7 @@ private fun EnvVarCard(info: EnvVarInfo) {
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                option.desc,
+                                stringResource(option.descRes),
                                 color = HelpSub,
                                 fontSize = 11.sp,
                                 modifier = Modifier.weight(1f),
@@ -600,6 +1158,62 @@ fun SupportScreen(bridge: SettingsNavBridge? = null) {
             }
 
             envVarCategories.forEach { category ->
+                SectionHeader(category.titleRes)
+                category.envVars.forEach { envVar ->
+                    EnvVarCard(envVar)
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 4.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.HelpOutline,
+                    contentDescription = null,
+                    tint = HelpAccent,
+                    modifier = Modifier.size(22.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.settings_help_box64_env_vars_title),
+                    color = HelpText,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            box64EnvVarCategories.forEach { category ->
+                SectionHeader(category.titleRes)
+                category.envVars.forEach { envVar ->
+                    EnvVarCard(envVar)
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 4.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.HelpOutline,
+                    contentDescription = null,
+                    tint = HelpAccent,
+                    modifier = Modifier.size(22.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.settings_help_fexcore_env_vars_title),
+                    color = HelpText,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            fexcoreEnvVarCategories.forEach { category ->
                 SectionHeader(category.titleRes)
                 category.envVars.forEach { envVar ->
                     EnvVarCard(envVar)
