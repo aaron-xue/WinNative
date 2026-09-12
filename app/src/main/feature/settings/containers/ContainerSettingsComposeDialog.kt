@@ -1612,9 +1612,8 @@ class ContainerSettingsComposeDialog @JvmOverloads constructor(
     }
 
     private fun buildDesktopThemeString(): String {
-        val themeEntries = state.desktopThemeEntries.value
         val themeIdx = state.selectedDesktopTheme.intValue
-        val theme = if (themeIdx in themeEntries.indices) themeEntries[themeIdx].uppercase() else "LIGHT"
+        val theme = WineThemeManager.Theme.values().getOrNull(themeIdx)?.name ?: "LIGHT"
 
         val typeIdx = state.selectedDesktopBackgroundType.intValue
         val type = WineThemeManager.BackgroundType.values().getOrNull(typeIdx)?.name ?: "IMAGE"

@@ -36,12 +36,24 @@ public abstract class WineThemeManager {
 
     public ThemeInfo(String value) {
       String[] values = value.split(",");
-      theme = Theme.valueOf(values[0]);
+      Theme parsedTheme;
+      try {
+        parsedTheme = Theme.valueOf(values[0]);
+      } catch (IllegalArgumentException e) {
+        parsedTheme = Theme.LIGHT;
+      }
+      theme = parsedTheme;
       if (values.length < 3) {
         backgroundColor = Color.parseColor(values[1]);
         backgroundType = BackgroundType.IMAGE;
       } else {
-        backgroundType = BackgroundType.valueOf(values[1]);
+        BackgroundType parsedBgType;
+        try {
+          parsedBgType = BackgroundType.valueOf(values[1]);
+        } catch (IllegalArgumentException e) {
+          parsedBgType = BackgroundType.IMAGE;
+        }
+        backgroundType = parsedBgType;
         backgroundColor = Color.parseColor(values[2]);
       }
     }

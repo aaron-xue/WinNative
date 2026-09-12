@@ -216,6 +216,9 @@ class ContainersFragment : Fragment() {
         manager.removeContainerAsync(container) {
             removingPopup.close()
             loadContainersList()
+            // Shortcuts live inside the container's desktop dir, so the library (and its
+            // installed/shortcut caches) is now stale — force a rescan before returning to it.
+            UnifiedActivity.refreshLibrary()
         }
     }
 

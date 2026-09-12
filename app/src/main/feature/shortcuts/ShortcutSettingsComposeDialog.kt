@@ -70,6 +70,7 @@ import com.winlator.cmod.shared.io.AssetPaths
 import com.winlator.cmod.runtime.wine.EnvVars
 import com.winlator.cmod.runtime.wine.LocaleEnv
 import com.winlator.cmod.runtime.wine.WineUtils
+import com.winlator.cmod.runtime.wine.WineThemeManager
 import com.winlator.cmod.shared.io.FileUtils
 import com.winlator.cmod.shared.util.KeyValueSet
 import com.winlator.cmod.shared.android.RefreshRateUtils
@@ -1454,10 +1455,8 @@ class ShortcutSettingsComposeDialog private constructor(
 
             // Desktop Theme — stored as compound "THEME,TYPE,COLOR" string
             if (state.desktopThemeEntries.value.isNotEmpty()) {
-                val desktopThemeEntries = state.desktopThemeEntries.value
                 val dtIdx = state.selectedDesktopTheme.intValue
-                val selectedLabel = if (dtIdx in desktopThemeEntries.indices) desktopThemeEntries[dtIdx] else ""
-                val themeName = selectedLabel.uppercase()
+                val themeName = WineThemeManager.Theme.values().getOrNull(dtIdx)?.name ?: "LIGHT"
                 // Preserve existing compound value, only replace the theme portion
                 val existing = getShortcutSetting("desktopTheme", container.getDesktopTheme())
                 val parts = existing.split(",").toMutableList()
