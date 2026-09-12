@@ -1974,7 +1974,7 @@ class ShortcutSettingsComposeDialog private constructor(
         fallback: String = ""
     ) {
         val normalizedId = StringUtils.parseIdentifier(identifier)
-        val idx =
+        var idx =
             entries.indexOfFirst { StringUtils.parseIdentifier(it) == normalizedId }
         if (idx < 0 && fallback.isNotEmpty()) {
             idx = entries.indexOfFirst { StringUtils.parseIdentifier(it) == fallback }
