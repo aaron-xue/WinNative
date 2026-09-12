@@ -48,6 +48,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.content.FileProvider;
 import androidx.compose.ui.platform.ComposeView;
 import androidx.core.view.WindowInsetsCompat;
+import com.winlator.cmod.app.config.DeviceProfileSettings;
 import com.winlator.cmod.BuildConfig;
 import com.winlator.cmod.feature.leaderboard.SessionRecordingController;
 import com.winlator.cmod.feature.stores.steam.enums.Marker;
@@ -320,6 +321,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private final EnvVars envVars = new EnvVars();
     // True when the chosen launch exe differs from Steam's configured entry: launcher skips Steam LaunchApp and CreateProcess'es the selected exe directly. Recomputed per launch.
     private boolean wnSteamDirectExeOverride = false;
+    private volatile boolean planWWrapperArgsResolved = false;
+    private volatile boolean backgroundSessionEnabled = false;
     private int wnSteamLaunchOption = -1;
     private String wnSteamUserArgs = "";
     private boolean firstTimeBoot = false;
@@ -782,7 +785,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     }
 
     private String containerAdaptiveJoysticks() {
-        return container != null ? container.getExtra(InputControlsView.EXTRA_ADAPTIVE_JOYSTICKS, "0") : "0";
+        String fallback = DeviceProfileSettings.adaptiveJoysticksDefaultExtra(this);
+        return container != null
+                ? container.getExtra(InputControlsView.EXTRA_ADAPTIVE_JOYSTICKS, fallback)
+                : fallback;
     }
 
     private boolean isAdaptiveJoysticksEnabled() {
@@ -840,12 +846,24 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         frameGenFlowScale = clampFrameGenFlowScale(
                 parseSettingInt(getFrameGenSetting("frameGenFlowScale", containerFlowScale), 70));
 
-        if (frameGenEnabled
-                || !com.winlator.cmod.runtime.display.lsfg.LosslessScaling.isInstalled(this)) {
+        if (frameGenEnabled) {
             int result = com.winlator.cmod.feature.library.LosslessAutoImport.INSTANCE.sync(this).getResult();
             if (result != com.winlator.cmod.feature.library.LosslessAutoImport.RESULT_READY) {
                 Log.i("XServerDisplayActivity", "Lossless shader sync at launch: result=" + result);
             }
+        } else if (!com.winlator.cmod.runtime.display.lsfg.LosslessScaling.isInstalled(this)) {
+            new Thread(() -> {
+                int discovery = com.winlator.cmod.feature.library.LosslessAutoImport.INSTANCE
+                        .sync(this).getResult();
+                Log.i("XServerDisplayActivity",
+                        "Lossless shader discovery (frame generation off): result=" + discovery);
+                runOnUiThread(() -> {
+                    if (frameGenCachePath != null || isFinishing() || isDestroyed()) return;
+                    java.io.File found = com.winlator.cmod.runtime.display.lsfg.LosslessScaling
+                            .resolveCacheFile(this, true);
+                    if (found != null) frameGenCachePath = found.getAbsolutePath();
+                });
+            }, "LosslessDiscovery").start();
         }
 
         java.io.File cache = com.winlator.cmod.runtime.display.lsfg.LosslessScaling
@@ -2384,7 +2402,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         showLaunchPreloader(getString(R.string.preloader_initializing));
 
         // Dependency-install sessions must not become background/reattachable sessions.
-        if (!isDependencyInstall && preferences.getBoolean("enable_background_session", false)) {
+        backgroundSessionEnabled = !isDependencyInstall
+                && preferences.getBoolean("enable_background_session", false);
+        if (backgroundSessionEnabled) {
             SessionKeepAliveService.startSession(this);
         }
 
@@ -3887,6 +3907,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 if (environment != null) {
                     environment.stopEnvironmentComponents();
                     environment = null;
+                    SessionKeepAliveService.clearActiveSession();
                 }
             } catch (Exception e) {
                 Log.e("XServerLeakCheck", "Failed to stop environment during forced cleanup", e);
@@ -3948,6 +3969,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                     if (environment != null) {
                         environment.stopEnvironmentComponents();
                         environment = null;
+                        SessionKeepAliveService.clearActiveSession();
                     }
                     LogManager.log(TAG, "Process snapshot after environment stop: "
                             + ProcessHelper.listRunningWineProcessDetails(), this);
@@ -7573,6 +7595,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             String dxvkWrapper = "dxvk-" + currentDXWrapperConfig.get("version");
             String vkd3dWrapper = "vkd3d-" + currentDXWrapperConfig.get("vkd3dVersion");
             String ddrawrapper = currentDXWrapperConfig.get("ddrawrapper");
+            if (ddrawrapper == null || ddrawrapper.isEmpty()) {
+                ddrawrapper = Container.DEFAULT_DDRAWRAPPER;
+            }
             Log.i("XServerDisplayActivity", "Launch DX wrapper files selected: dxvk='" +
                     dxvkWrapper + "' vkd3d='" + vkd3dWrapper + "' ddrawrapper='" +
                     ddrawrapper + "'");
@@ -8523,7 +8548,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                                 return kotlin.Unit.INSTANCE;
                             });
                 wnLauncherStatusTailer.start();
-                wnLauncherDrivesDismiss.set(true);
+                wnLauncherDrivesDismiss.set(planWWrapperArgsResolved);
                 Log.i("XServerDisplayActivity",
                         "Steam Launcher: status tailer attached to " + launcherLog.getPath());
             } catch (Exception e) {
@@ -8597,7 +8622,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 preloaderDialog.setStepOnUiThread(R.string.preloader_starting_wine);
             }
             environment.startEnvironmentComponents();
-            if (!isDependencyInstall) {
+            if (backgroundSessionEnabled) {
                 SessionKeepAliveService.setActiveEnvironment(environment);
                 SessionKeepAliveService.setActiveXServer(xServer);
             }
@@ -8728,7 +8753,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             }
 
             String simTouchScreen = shortcut.getExtra("simTouchScreen");
-            screenTouchMode = Integer.parseInt(shortcut.getExtra("screenTouchMode", simTouchScreen.equals("1") ? "1" : "0"));
+            int touchModeFallback = simTouchScreen.equals("1") ? 1 : 0;
+            screenTouchMode = parseSettingInt(
+                    shortcut.getExtra("screenTouchMode", String.valueOf(touchModeFallback)),
+                    touchModeFallback);
+            if (screenTouchMode < 0 || screenTouchMode > 2) screenTouchMode = touchModeFallback;
             touchpadView.setScreenTouchMode(screenTouchMode);
             if (winHandler != null) winHandler.setScreenTouchStickActive(screenTouchMode == 2);
             rtsGesturesEnabled = shortcut.getExtra("rtsGestures", "0").equals("1");
@@ -10058,9 +10087,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (dxwrapper.contains("dxvk")) {
             Log.d(TAG, "Extracting DXVK wrapper files, version: " + dxwrapper);
 
-            String dxvkWrapper = dxwrapper.split(";")[0];
-            String vkd3dWrapper = dxwrapper.split(";")[1];
-            String ddrawrapper = dxwrapper.split(";")[2];
+            String[] wrapperFields = dxwrapper.split(";", -1);
+            String dxvkWrapper = wrapperFields.length > 0 ? wrapperFields[0] : "";
+            String vkd3dWrapper = wrapperFields.length > 1 ? wrapperFields[1] : "";
+            String ddrawrapper = wrapperFields.length > 2 && !wrapperFields[2].isEmpty()
+                    ? wrapperFields[2] : Container.DEFAULT_DDRAWRAPPER;
             
             if (hasSelectedDxvkWrapper(dxvkWrapper)) {
                 ContentProfile dxvkProfile = contentsManager.getProfileByEntryName(dxvkWrapper);
@@ -10231,6 +10262,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 int appId = Integer.parseInt(shortcut.getExtra("app_id"));
                 // Reset per launch; set below once the launch exe is resolved.
                 wnSteamDirectExeOverride = false;
+                planWWrapperArgsResolved = false;
                 wnSteamLaunchOption = -1;
                 wnSteamUserArgs = "";
                 String steamExtraArgs = appendSteamJoinConnect(
@@ -10344,6 +10376,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                             }
                             args = "\"C:\\Program Files (x86)\\Steam\\" + wrapperExe
                                     + "\" \"" + launchArg + "\"" + steamExtraArgs;
+                            planWWrapperArgsResolved = planW;
                             Log.d("XServerDisplayActivity",
                                     "Bionic Steam launch via " + wrapperExe
                                     + " (planW=" + planW + "): " + steamGameExe
@@ -12133,6 +12166,17 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     }
 
     private void forceHideSteamRegistry(File registryFile, File backupFile, String... keys) {
+        java.util.concurrent.locks.ReentrantLock registryLock =
+                WineRegistryEditor.lockFor(registryFile);
+        registryLock.lock();
+        try {
+            forceHideSteamRegistryLocked(registryFile, backupFile, keys);
+        } finally {
+            registryLock.unlock();
+        }
+    }
+
+    private void forceHideSteamRegistryLocked(File registryFile, File backupFile, String... keys) {
         String rawRegistry = FileUtils.readString(registryFile);
         if (rawRegistry == null) rawRegistry = "";
 
@@ -12175,6 +12219,17 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     }
 
     private void hideRegistrySubtrees(File registryFile, File backupFile, String... keys) {
+        java.util.concurrent.locks.ReentrantLock registryLock =
+                WineRegistryEditor.lockFor(registryFile);
+        registryLock.lock();
+        try {
+            hideRegistrySubtreesLocked(registryFile, backupFile, keys);
+        } finally {
+            registryLock.unlock();
+        }
+    }
+
+    private void hideRegistrySubtreesLocked(File registryFile, File backupFile, String... keys) {
         String rawRegistry = FileUtils.readString(registryFile);
         if (rawRegistry == null) rawRegistry = "";
 
@@ -12194,6 +12249,17 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     }
 
     private void restoreRegistrySubtrees(File registryFile, File backupFile, String... keys) {
+        java.util.concurrent.locks.ReentrantLock registryLock =
+                WineRegistryEditor.lockFor(registryFile);
+        registryLock.lock();
+        try {
+            restoreRegistrySubtreesLocked(registryFile, backupFile, keys);
+        } finally {
+            registryLock.unlock();
+        }
+    }
+
+    private void restoreRegistrySubtreesLocked(File registryFile, File backupFile, String... keys) {
         String rawRegistry = FileUtils.readString(registryFile);
         if (rawRegistry == null) rawRegistry = "";
 
