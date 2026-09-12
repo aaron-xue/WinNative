@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Bundle
 import android.os.Looper
 import android.util.Log
+import com.winlator.cmod.app.config.DeviceProfileSettings
 import com.winlator.cmod.app.db.PluviaDatabase
 import com.winlator.cmod.app.update.UpdateService
 import com.winlator.cmod.feature.stores.gog.service.GOGAuthManager
@@ -70,6 +71,9 @@ class PluviaApp : Application() {
 
         // Cached probe for devices whose native stack still needs system libjpeg preloaded.
         preloadSystemLibraries()
+
+        runCatching { DeviceProfileSettings.seedFromDetection(this) }
+            .onFailure { Log.w("PluviaApp", "device profile detection failed", it) }
 
         registerRefreshRateLifecycleCallbacks()
 
