@@ -991,6 +991,7 @@ class UnifiedActivity :
     override fun onCreate(savedInstanceState: Bundle?) {
         instance = this
         super.onCreate(savedInstanceState)
+
         if (!SetupWizardActivity.isSetupComplete(this) || !ImageFs.find(this).isUpToDate) {
             startActivity(
                 Intent(this, SetupWizardActivity::class.java)

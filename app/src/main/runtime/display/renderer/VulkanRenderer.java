@@ -293,6 +293,12 @@ public class VulkanRenderer
                 if (frameGenerationRequested) {
                     nativeSetFrameGenerationEnabled(nativeHandle, true);
                 }
+                nativeSetDisFrameGenerationScale(nativeHandle, disFrameGenerationScale);
+                nativeSetDisFrameGenerationTargetFps(nativeHandle, disFrameGenerationTargetFps);
+                nativeSetDisDebugFlow(nativeHandle, disFrameGenerationDebugFlow);
+                if (disFrameGenerationRequested) {
+                    nativeSetDisFrameGenerationEnabled(nativeHandle, true);
+                }
                 destroyed.set(false);
                 xServer.windowManager.addOnWindowModificationListener(this);
                 xServer.pointer.addOnPointerMotionListener(this);
@@ -1011,6 +1017,36 @@ public class VulkanRenderer
         }
     }
 
+    private boolean disFrameGenerationRequested = false;
+    private int disFrameGenerationScale = 180;
+    private int disFrameGenerationTargetFps = 0;
+
+    public void setDisFrameGenerationEnabled(boolean enabled) {
+        disFrameGenerationRequested = enabled;
+        if (nativeHandle != 0) nativeSetDisFrameGenerationEnabled(nativeHandle, enabled);
+    }
+
+    public void setDisFrameGenerationScale(int scalePercent) {
+        int want = Math.max(25, Math.min(1080, scalePercent));
+        if (want == disFrameGenerationScale) return;
+        disFrameGenerationScale = want;
+        if (nativeHandle != 0) nativeSetDisFrameGenerationScale(nativeHandle, want);
+    }
+
+    public void setDisFrameGenerationTargetFps(int targetFps) {
+        int want = Math.max(0, targetFps);
+        if (want == disFrameGenerationTargetFps) return;
+        disFrameGenerationTargetFps = want;
+        if (nativeHandle != 0) nativeSetDisFrameGenerationTargetFps(nativeHandle, want);
+    }
+
+    private boolean disFrameGenerationDebugFlow = false;
+
+    public void setDisDebugFlow(boolean debugFlow) {
+        disFrameGenerationDebugFlow = debugFlow;
+        if (nativeHandle != 0) nativeSetDisDebugFlow(nativeHandle, debugFlow);
+    }
+
     public boolean isFrameGenerationRequested() {
         return frameGenerationRequested;
     }
@@ -1088,6 +1124,10 @@ public class VulkanRenderer
     private static native void nativeSetFrameGenerationMode(long handle, int multiplier,
                                                             int targetRate,
                                                             int flowScalePercent);
+    private static native void nativeSetDisFrameGenerationEnabled(long handle, boolean enabled);
+    private static native void nativeSetDisFrameGenerationScale(long handle, int scalePercent);
+    private static native void nativeSetDisFrameGenerationTargetFps(long handle, int targetFps);
+    private static native void nativeSetDisDebugFlow(long handle, boolean debugFlow);
     private static native long nativeGetGeneratedFrameCount(long handle);
     private static native long nativeGetPresentedFrameCount(long handle);
 }

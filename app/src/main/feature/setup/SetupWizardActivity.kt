@@ -140,6 +140,8 @@ import java.io.File
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import androidx.core.content.edit
+import timber.log.Timber
 
 private data class Particle(
     val x: Float,
@@ -534,6 +536,8 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
             fallbackUrl = "https://github.com/nicholasx417/WinNative-Components/releases/download/Proton/Proton-10-arm64ec-coffincolors.wcp",
         )
 
+    private val TAG = "SetupWizardActivity";
+
     private val storageGranted = mutableStateOf(false)
     private val notifGranted = mutableStateOf(false)
     private val notifDenied = mutableStateOf(false)
@@ -594,7 +598,7 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
             notifDenied.value = !granted
             if (granted) {
                 backgroundSessionEnabled.value = true
-                prefs(this).edit().putBoolean("enable_background_session", true).apply()
+                prefs(this).edit { putBoolean("enable_background_session", true) }
             } else if (Build.VERSION.SDK_INT >= 33 &&
                 !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
             ) {
@@ -891,7 +895,24 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
 
         storageGranted.value = hasStoragePermission()
         notifGranted.value = hasNotificationPermissionSilently()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {  // Enable background protection by default on Android 13+.
+            if (!androidx.preference.PreferenceManager.getDefaultSharedPreferences(this).contains("enable_background_session")) {
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+                    .edit { putBoolean("enable_background_session", true) }
+                Timber.d("Android 14+ detected, background session protection enabled")
+            }
+        }
         backgroundSessionEnabled.value = prefs(this).getBoolean("enable_background_session", false)
+        if (Build.VERSION.SDK_INT >= 36) {
+            Timber.d("Android 16+ detected")
+            // If wakeLock preference isn't saved, enable it by default on Android 16+.
+            if (!androidx.preference.PreferenceManager.getDefaultSharedPreferences(this).contains("enable_background_wakelock")) {
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(this).edit {
+                    putBoolean("enable_background_wakelock", true)
+                }
+                Timber.d("Android 16+ wakeLock preference enabled")
+            }
+        }
         refreshWizardState()
         loadAdvancedProfiles()
 
@@ -1010,7 +1031,7 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
     private fun requestNotifications() {
         if (hasNotificationPermissionSilently()) {
             backgroundSessionEnabled.value = true
-            prefs(this).edit().putBoolean("enable_background_session", true).apply()
+            prefs(this).edit { putBoolean("enable_background_session", true) }
             return
         }
 
