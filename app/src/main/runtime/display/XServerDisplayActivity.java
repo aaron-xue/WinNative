@@ -5239,6 +5239,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         List<String> gestureProfileNames = new ArrayList<>();
         int gestureSelectedIndex = 0;
         try {
+            if (gestureProfileManager == null) gestureProfileManager = new GestureProfileManager(this);
             gestureProfileNames = gestureProfileManager.getProfileNames();
             gestureSelectedIndex = Math.max(0, gestureProfileManager.indexOfProfile(selectedGestureProfileId()));
         } catch (Throwable t) {

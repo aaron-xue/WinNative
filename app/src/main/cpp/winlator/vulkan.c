@@ -367,7 +367,7 @@ static VkResult enumerate_physical_devices() {
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_winlator_cmod_runtime_system_GPUInformation_getVulkanVersion(
+Java_com_winlator_cmod_runtime_system_GPUInformation_getVulkanVersionNative(
     JNIEnv *env, jclass obj, jstring driverName, jobject context) {
   VkPhysicalDeviceProperties props = {};
   char *driverVersion;
@@ -403,7 +403,7 @@ Java_com_winlator_cmod_runtime_system_GPUInformation_getVulkanVersion(
 }
 
 JNIEXPORT jint JNICALL
-Java_com_winlator_cmod_runtime_system_GPUInformation_getVendorID(
+Java_com_winlator_cmod_runtime_system_GPUInformation_getVendorIDNative(
     JNIEnv *env, jclass obj, jstring driverName, jobject context) {
   VkPhysicalDeviceProperties props = {};
   uint32_t vendorID;
@@ -432,7 +432,7 @@ Java_com_winlator_cmod_runtime_system_GPUInformation_getVendorID(
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_winlator_cmod_runtime_system_GPUInformation_getRenderer(
+Java_com_winlator_cmod_runtime_system_GPUInformation_getRendererNative(
     JNIEnv *env, jclass obj, jstring driverName, jobject context) {
   VkPhysicalDeviceProperties props = {};
 
@@ -460,7 +460,7 @@ Java_com_winlator_cmod_runtime_system_GPUInformation_getRenderer(
 }
 
 JNIEXPORT jobjectArray JNICALL
-Java_com_winlator_cmod_runtime_system_GPUInformation_enumerateExtensions(
+Java_com_winlator_cmod_runtime_system_GPUInformation_enumerateExtensionsNative(
     JNIEnv *env, jclass obj, jstring driverName, jobject context) {
   jobjectArray extensions;
   VkResult result;
