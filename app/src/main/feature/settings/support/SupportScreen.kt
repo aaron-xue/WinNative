@@ -1126,6 +1126,7 @@ private fun EnvVarCard(info: EnvVarInfo) {
 @Composable
 fun SupportScreen(bridge: SettingsNavBridge? = null) {
     val contentNav = rememberSettingsContentNav(bridge)
+    var expandedSection by remember { mutableStateOf(0) }
 
     CompositionLocalProvider(LocalPaneNav provides contentNav) {
         Column(
@@ -1138,89 +1139,88 @@ fun SupportScreen(bridge: SettingsNavBridge? = null) {
                     .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 4.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.HelpOutline,
-                    contentDescription = null,
-                    tint = HelpAccent,
-                    modifier = Modifier.size(22.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    stringResource(R.string.settings_help_env_vars_title),
-                    color = HelpText,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
+            AccordionSection(
+                titleRes = R.string.settings_help_env_vars_title,
+                categories = envVarCategories,
+                expanded = expandedSection == 1,
+                onToggle = { expandedSection = if (expandedSection == 1) 0 else 1 },
+            )
 
-            envVarCategories.forEach { category ->
-                SectionHeader(category.titleRes)
-                category.envVars.forEach { envVar ->
-                    EnvVarCard(envVar)
-                }
-            }
+            AccordionSection(
+                titleRes = R.string.settings_help_box64_env_vars_title,
+                categories = box64EnvVarCategories,
+                expanded = expandedSection == 2,
+                onToggle = { expandedSection = if (expandedSection == 2) 0 else 2 },
+            )
 
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 4.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.HelpOutline,
-                    contentDescription = null,
-                    tint = HelpAccent,
-                    modifier = Modifier.size(22.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    stringResource(R.string.settings_help_box64_env_vars_title),
-                    color = HelpText,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-
-            box64EnvVarCategories.forEach { category ->
-                SectionHeader(category.titleRes)
-                category.envVars.forEach { envVar ->
-                    EnvVarCard(envVar)
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 4.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.HelpOutline,
-                    contentDescription = null,
-                    tint = HelpAccent,
-                    modifier = Modifier.size(22.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    stringResource(R.string.settings_help_fexcore_env_vars_title),
-                    color = HelpText,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-
-            fexcoreEnvVarCategories.forEach { category ->
-                SectionHeader(category.titleRes)
-                category.envVars.forEach { envVar ->
-                    EnvVarCard(envVar)
-                }
-            }
+            AccordionSection(
+                titleRes = R.string.settings_help_fexcore_env_vars_title,
+                categories = fexcoreEnvVarCategories,
+                expanded = expandedSection == 3,
+                onToggle = { expandedSection = if (expandedSection == 3) 0 else 3 },
+            )
 
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun AccordionSection(
+    @StringRes titleRes: Int,
+    categories: List<EnvVarCategory>,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(HelpCard)
+                .clickable { onToggle() }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.HelpOutline,
+                contentDescription = null,
+                tint = HelpAccent,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                stringResource(titleRes),
+                color = HelpText,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                contentDescription = null,
+                tint = HelpSub,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically(),
+        ) {
+            Column {
+                Spacer(Modifier.height(4.dp))
+                categories.forEach { category ->
+                    SectionHeader(category.titleRes)
+                    category.envVars.forEach { envVar ->
+                        EnvVarCard(envVar)
+                    }
+                }
+            }
         }
     }
 }

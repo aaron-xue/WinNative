@@ -72,7 +72,6 @@ import com.winlator.cmod.shared.io.AssetPaths
 import com.winlator.cmod.runtime.wine.EnvVars
 import com.winlator.cmod.runtime.wine.LocaleEnv
 import com.winlator.cmod.runtime.wine.WineUtils
-import com.winlator.cmod.runtime.wine.WineThemeManager
 import com.winlator.cmod.shared.io.FileUtils
 import com.winlator.cmod.shared.util.KeyValueSet
 import com.winlator.cmod.shared.android.RefreshRateUtils
@@ -1464,7 +1463,7 @@ class ShortcutSettingsComposeDialog private constructor(
             if (state.desktopThemeEntries.value.isNotEmpty()) {
                 val dtIdx = state.selectedDesktopTheme.intValue
                 val themeName =
-                    if (dtIdx in desktopThemeEntries.indices) {
+                    if (dtIdx in state.desktopThemeEntries.value.indices) {
                         WineThemeManager.Theme.values().getOrNull(dtIdx)?.name ?: "LIGHT"
                     } else {
                         "LIGHT"

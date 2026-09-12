@@ -1605,7 +1605,7 @@ class ContainerSettingsComposeDialog @JvmOverloads constructor(
     private fun buildDesktopThemeString(): String {
         val themeIdx = state.selectedDesktopTheme.intValue
         val theme =
-            if (themeIdx in themeEntries.indices) {
+            if (themeIdx in state.desktopThemeEntries.value.indices) {
                 WineThemeManager.Theme.values().getOrNull(themeIdx)?.name ?: "LIGHT"
             } else {
                 "LIGHT"
