@@ -251,7 +251,7 @@ class OtherSettingsFragment : Fragment() {
 
         uiState =
             OtherSettingsState(
-                checkForUpdates = preferences.getBoolean("check_for_updates", true),
+                checkForUpdates = preferences.getBoolean("check_for_updates", false),
                 updateChannelIndex = UpdateChannel.entries.indexOf(UpdateService.channel(ctx)),
                 languageLabels = languageLabels,
                 languageIndex = languageIndex,
@@ -268,8 +268,8 @@ class OtherSettingsFragment : Fragment() {
                 xinputDisabled = preferences.getBoolean("xinput_toggle", false),
                 enableAutoScraping = preferences.getBoolean("enable_auto_scraping", false),
                 enableFileProvider = preferences.getBoolean("enable_file_provider", true),
-                openInBrowser = preferences.getBoolean("open_with_android_browser", false),
-                shareClipboard = preferences.getBoolean("share_android_clipboard", false),
+                openInBrowser = preferences.getBoolean("open_with_android_browser", true),
+                shareClipboard = preferences.getBoolean("share_android_clipboard", true),
                 enableBackgroundSession = preferences.getBoolean("enable_background_session", false),
                 enableAutoPause = preferences.getBoolean("enable_auto_pause_when_background", false),
                 useBackgroundWakelock = preferences.getBoolean("enable_background_wakelock", false),

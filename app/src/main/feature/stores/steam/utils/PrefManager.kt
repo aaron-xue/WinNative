@@ -295,7 +295,7 @@ object PrefManager {
         }
 
     var libraryForceLandscape: Boolean
-        get() = getBoolean("library_force_landscape", false)
+        get() = getBoolean("library_force_landscape", true)
         set(value) {
             setBoolean("library_force_landscape", value)
         }

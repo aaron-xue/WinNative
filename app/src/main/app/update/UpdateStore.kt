@@ -11,7 +11,7 @@ object UpdateStore {
 
     private fun prefs(context: Context) = PreferenceManager.getDefaultSharedPreferences(context)
 
-    fun isEnabled(context: Context): Boolean = prefs(context).getBoolean(PREF_ENABLED, true)
+    fun isEnabled(context: Context): Boolean = prefs(context).getBoolean(PREF_ENABLED, false)
 
     fun channel(context: Context): UpdateChannel = UpdateChannel.fromId(prefs(context).getString(PREF_CHANNEL, null))
 

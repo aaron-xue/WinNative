@@ -119,7 +119,7 @@ private val Error = Color(0xFFFF4444)
 
 // State
 data class OtherSettingsState(
-    val checkForUpdates: Boolean = true,
+    val checkForUpdates: Boolean = false,
     val updateChannelIndex: Int = 0,
     val languageLabels: List<String> = emptyList(),
     val languageIndex: Int = 0,
@@ -132,8 +132,8 @@ data class OtherSettingsState(
     val xinputDisabled: Boolean = false,
     val enableFileProvider: Boolean = true,
     val enableAutoScraping: Boolean = false,
-    val openInBrowser: Boolean = false,
-    val shareClipboard: Boolean = false,
+    val openInBrowser: Boolean = true,
+    val shareClipboard: Boolean = true,
     val enableBackgroundSession: Boolean = false,
     val enableAutoPause: Boolean = false,
     val useBackgroundWakelock: Boolean = false,
