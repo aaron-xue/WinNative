@@ -114,7 +114,8 @@ public class EnvVarsView extends FrameLayout {
     {"VKD3D_SHADER_MODEL", "SELECT_CUSTOM", "6_9", "6_6", "6_0", "5_0"},
     {"WINEDLLOVERRIDES", "TEXT"},
     {"GALLIUM_HUD", "SELECT_MULTIPLE", "simple", "fps", "frametime"},
-    {"WINE_FAST_YIELD", "TEXT", "1"}
+    {"WINE_FAST_YIELD", "TEXT", "1"},
+    {"WINE_PEEK_LIMITER", "SELECT", "1", "2", "4", "8", "16"}
   };
   private final LinearLayout container;
   private final TextView emptyTextView;
