@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,9 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -1129,56 +1130,95 @@ fun SupportScreen(bridge: SettingsNavBridge? = null) {
     var expandedSection by remember { mutableStateOf(0) }
 
     CompositionLocalProvider(LocalPaneNav provides contentNav) {
-        Column(
+        LazyColumn(
             modifier =
                 Modifier
                     .fillMaxSize()
                     .background(HelpBg)
-                    .verticalScroll(rememberScrollState())
                     .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            AccordionSection(
-                titleRes = R.string.settings_help_env_vars_title,
-                categories = envVarCategories,
-                expanded = expandedSection == 1,
-                onToggle = { expandedSection = if (expandedSection == 1) 0 else 1 },
-            )
+            stickyHeader(key = "wine") {
+                AccordionSectionHeader(
+                    titleRes = R.string.settings_help_env_vars_title,
+                    expanded = expandedSection == 1,
+                    onClick = { expandedSection = if (expandedSection == 1) 0 else 1 },
+                )
+            }
 
-            AccordionSection(
-                titleRes = R.string.settings_help_box64_env_vars_title,
-                categories = box64EnvVarCategories,
-                expanded = expandedSection == 2,
-                onToggle = { expandedSection = if (expandedSection == 2) 0 else 2 },
-            )
+            if (expandedSection == 1) {
+                envVarCategories.forEach { category ->
+                    item(key = "wine_cat_${category.titleRes}") {
+                        SectionHeader(category.titleRes)
+                    }
+                    category.envVars.forEach { envVar ->
+                        item(key = "wine_var_${envVar.name}") {
+                            EnvVarCard(envVar)
+                        }
+                    }
+                }
+            }
 
-            AccordionSection(
-                titleRes = R.string.settings_help_fexcore_env_vars_title,
-                categories = fexcoreEnvVarCategories,
-                expanded = expandedSection == 3,
-                onToggle = { expandedSection = if (expandedSection == 3) 0 else 3 },
-            )
+            stickyHeader(key = "box64") {
+                AccordionSectionHeader(
+                    titleRes = R.string.settings_help_box64_env_vars_title,
+                    expanded = expandedSection == 2,
+                    onClick = { expandedSection = if (expandedSection == 2) 0 else 2 },
+                )
+            }
 
-            Spacer(Modifier.height(24.dp))
+            if (expandedSection == 2) {
+                box64EnvVarCategories.forEach { category ->
+                    item(key = "box64_cat_${category.titleRes}") {
+                        SectionHeader(category.titleRes)
+                    }
+                    category.envVars.forEach { envVar ->
+                        item(key = "box64_var_${envVar.name}") {
+                            EnvVarCard(envVar)
+                        }
+                    }
+                }
+            }
+
+            stickyHeader(key = "fexcore") {
+                AccordionSectionHeader(
+                    titleRes = R.string.settings_help_fexcore_env_vars_title,
+                    expanded = expandedSection == 3,
+                    onClick = { expandedSection = if (expandedSection == 3) 0 else 3 },
+                )
+            }
+
+            if (expandedSection == 3) {
+                fexcoreEnvVarCategories.forEach { category ->
+                    item(key = "fexcore_cat_${category.titleRes}") {
+                        SectionHeader(category.titleRes)
+                    }
+                    category.envVars.forEach { envVar ->
+                        item(key = "fexcore_var_${envVar.name}") {
+                            EnvVarCard(envVar)
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun AccordionSection(
+private fun AccordionSectionHeader(
     @StringRes titleRes: Int,
-    categories: List<EnvVarCategory>,
     expanded: Boolean,
-    onToggle: () -> Unit,
+    onClick: () -> Unit,
 ) {
-    Column(
+    Box(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
                 .background(HelpCard)
-                .clickable { onToggle() }
+                .clickable { onClick() }
                 .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
         Row(
@@ -1205,22 +1245,6 @@ private fun AccordionSection(
                 tint = HelpSub,
                 modifier = Modifier.size(20.dp),
             )
-        }
-
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(),
-            exit = shrinkVertically(),
-        ) {
-            Column {
-                Spacer(Modifier.height(4.dp))
-                categories.forEach { category ->
-                    SectionHeader(category.titleRes)
-                    category.envVars.forEach { envVar ->
-                        EnvVarCard(envVar)
-                    }
-                }
-            }
         }
     }
 }
