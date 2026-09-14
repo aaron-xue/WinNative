@@ -101,6 +101,7 @@ import com.winlator.cmod.shared.ui.dialog.PreloaderDialog;
 import com.winlator.cmod.runtime.system.ProcessHelper;
 import com.winlator.cmod.runtime.system.SessionKeepAliveService;
 import com.winlator.cmod.shared.android.RefreshRateUtils;
+import com.winlator.cmod.shared.android.ScreenSizes;
 import com.winlator.cmod.shared.util.StringUtils;
 import com.winlator.cmod.shared.io.TarCompressorUtils;
 import com.winlator.cmod.runtime.display.renderer.EffectComposer;
@@ -2377,7 +2378,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                     startupSelection + "'");
         }
 
-        this.graphicsDriverConfig = GraphicsDriverConfigUtils.parseGraphicsDriverConfig(graphicsDriverConfig);
+        this.graphicsDriverConfig =
+                GraphicsDriverConfigUtils.parseGraphicsDriverConfig(Container.DEFAULT_GRAPHICSDRIVERCONFIG);
+        this.graphicsDriverConfig.putAll(
+                GraphicsDriverConfigUtils.parseGraphicsDriverConfig(graphicsDriverConfig));
         this.dxwrapperConfig = DXVKConfigUtils.parseConfig(dxwrapperConfig);
         Log.i("XServerDisplayActivity", "Launch DX wrapper selected: dxwrapper='" +
                 dxwrapper + "' dxvkVersion='" + this.dxwrapperConfig.get("version") +
@@ -2410,6 +2414,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
         inputControlsManager = new InputControlsManager(this);
         gestureProfileManager = new GestureProfileManager(this);
+        String sanitizedScreenSize = ScreenSizes.sanitize(screenSize, Container.DEFAULT_SCREEN_SIZE);
+        if (!sanitizedScreenSize.equals(screenSize)) {
+            Log.w("XServerDisplayActivity", "Unusable screen size '" + screenSize +
+                    "', falling back to '" + sanitizedScreenSize + "'");
+            screenSize = sanitizedScreenSize;
+        }
         sgsrBaseScreenSize = screenSize;
         String effectiveScreenSize =
                 SGSRResolutionUtils.applyRenderScale(screenSize, sgsrEnabled, sgsrUpscaleMode);
@@ -2523,88 +2533,92 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 simulateConfirmInputControlsDialog();
             }
             Executors.newSingleThreadExecutor().execute(() -> {
-                boolean sessionToReuse = SessionKeepAliveService.isSessionActive() &&
-                        SessionKeepAliveService.getActiveEnvironment() != null &&
-                        SessionKeepAliveService.getActiveXServer() != null;
+                try {
+                    boolean sessionToReuse = SessionKeepAliveService.isSessionActive() &&
+                            SessionKeepAliveService.getActiveEnvironment() != null &&
+                            SessionKeepAliveService.getActiveXServer() != null;
 
-                UpdateService.INSTANCE.cancelPostGameCheck();
+                    UpdateService.INSTANCE.cancelPostGameCheck();
 
-                if (!sessionToReuse) {
-                    if (isSteamShortcut()) {
-                        try {
-                            setSteamClientVisibility(true, isColdClientEnabledForShortcut());
-                        } catch (Throwable t) {
-                            Log.w("XServerDisplayActivity",
-                                    "Failed to select Steam client store before cloud sync", t);
+                    if (!sessionToReuse) {
+                        if (isSteamShortcut()) {
+                            try {
+                                setSteamClientVisibility(true, isColdClientEnabledForShortcut());
+                            } catch (Throwable t) {
+                                Log.w("XServerDisplayActivity",
+                                        "Failed to select Steam client store before cloud sync", t);
+                            }
                         }
-                    }
 
-                    // Parallel prep (cloud sync + Steam prefix DLL/asset setup), joined before setupXEnvironment so the launcher sees a complete prefix.
-                    java.util.concurrent.ExecutorService prepExec =
-                            java.util.concurrent.Executors.newFixedThreadPool(2);
-                    java.util.concurrent.Future<?> cloudFuture = prepExec.submit(() -> {
-                        try {
-                            if (steamCloudHandledByAgent()) {
-                                Log.i("XServerDisplayActivity",
-                                        "Steam cloud pre-launch sync skipped — the Steam Launcher "
-                                                + "agent runs RunAutoCloudOnAppLaunch inside the "
-                                                + "prefix");
-                            } else {
-                                SteamLaunchCloudSync.syncBeforeLaunch(
+                        // Parallel prep (cloud sync + Steam prefix DLL/asset setup), joined before setupXEnvironment so the launcher sees a complete prefix.
+                        java.util.concurrent.ExecutorService prepExec =
+                                java.util.concurrent.Executors.newFixedThreadPool(2);
+                        java.util.concurrent.Future<?> cloudFuture = prepExec.submit(() -> {
+                            try {
+                                if (steamCloudHandledByAgent()) {
+                                    Log.i("XServerDisplayActivity",
+                                            "Steam cloud pre-launch sync skipped — the Steam Launcher "
+                                                    + "agent runs RunAutoCloudOnAppLaunch inside the "
+                                                    + "prefix");
+                                } else {
+                                    SteamLaunchCloudSync.syncBeforeLaunch(
+                                            this, shortcut, isCloudSyncEnabledForShortcut(),
+                                            this::showLaunchPreloader);
+                                }
+                                EpicLaunchCloudSync.syncBeforeLaunch(
                                         this, shortcut, isCloudSyncEnabledForShortcut(),
                                         this::showLaunchPreloader);
+                                GogLaunchCloudSync.syncBeforeLaunch(
+                                        this, shortcut, isCloudSyncEnabledForShortcut(),
+                                        this::showLaunchPreloader);
+                            } catch (Throwable t) {
+                                Log.w("XServerDisplayActivity",
+                                        "Pre-launch cloud sync failed", t);
                             }
-                            EpicLaunchCloudSync.syncBeforeLaunch(
-                                    this, shortcut, isCloudSyncEnabledForShortcut(),
-                                    this::showLaunchPreloader);
-                            GogLaunchCloudSync.syncBeforeLaunch(
-                                    this, shortcut, isCloudSyncEnabledForShortcut(),
-                                    this::showLaunchPreloader);
+                        });
+                        java.util.concurrent.Future<?> steamFuture = isSteamShortcut()
+                                ? prepExec.submit(() -> {
+                                    try {
+                                        setupSteamGameFiles();
+                                    } catch (Throwable t) {
+                                        Log.w("XServerDisplayActivity",
+                                                "Pre-launch Steam game setup failed", t);
+                                    }
+                                })
+                                : null;
+                        prepExec.shutdown();
+
+                        if (preloaderDialog != null && isSteamShortcut()) {
+                            preloaderDialog.setStepOnUiThread(R.string.preloader_preparing_steam_environment);
+                        }
+                        setupWineSystemFiles();
+                        extractGraphicsDriverFiles();
+                        changeWineAudioDriver();
+
+                        try {
+                            if (steamFuture != null) steamFuture.get();
                         } catch (Throwable t) {
                             Log.w("XServerDisplayActivity",
-                                    "Pre-launch cloud sync failed", t);
+                                    "Steam game setup wait interrupted", t);
                         }
-                    });
-                    java.util.concurrent.Future<?> steamFuture = isSteamShortcut()
-                            ? prepExec.submit(() -> {
-                                try {
-                                    setupSteamGameFiles();
-                                } catch (Throwable t) {
-                                    Log.w("XServerDisplayActivity",
-                                            "Pre-launch Steam game setup failed", t);
-                                }
-                            })
-                            : null;
-                    prepExec.shutdown();
-
-                    if (preloaderDialog != null && isSteamShortcut()) {
-                        preloaderDialog.setStepOnUiThread(R.string.preloader_preparing_steam_environment);
+                        try {
+                            cloudFuture.get();
+                        } catch (Throwable t) {
+                            Log.w("XServerDisplayActivity",
+                                    "Cloud sync wait interrupted", t);
+                        }
+                    } else {
+                        Log.i("XServerDisplayActivity", "Skipping pre-game setup for active background session");
+                        applyPreferredRefreshRate();
                     }
-                    setupWineSystemFiles();
-                    extractGraphicsDriverFiles();
-                    changeWineAudioDriver();
 
                     try {
-                        if (steamFuture != null) steamFuture.get();
-                    } catch (Throwable t) {
-                        Log.w("XServerDisplayActivity",
-                                "Steam game setup wait interrupted", t);
+                        setupXEnvironment();
+                    } catch (PackageManager.NameNotFoundException e) {
+                        throw new RuntimeException(e);
                     }
-                    try {
-                        cloudFuture.get();
-                    } catch (Throwable t) {
-                        Log.w("XServerDisplayActivity",
-                                "Cloud sync wait interrupted", t);
-                    }
-                } else {
-                    Log.i("XServerDisplayActivity", "Skipping pre-game setup for active background session");
-                    applyPreferredRefreshRate();
-                }
-
-                try {
-                    setupXEnvironment();
-                } catch (PackageManager.NameNotFoundException e) {
-                    throw new RuntimeException(e);
+                } catch (Throwable t) {
+                    reportLaunchFailure(t);
                 }
             });
         };
@@ -4551,6 +4565,21 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             installStatusTimerHandler = null;
             installStatusTimerRunnable = null;
         }
+    }
+    
+    private void reportLaunchFailure(Throwable t) {
+        Log.e("XServerDisplayActivity", "Launch failed before the game window appeared", t);
+        LogManager.log(TAG, "Launch failed: " + t, this);
+        if (preloaderDialog != null) preloaderDialog.closeOnUiThread();
+        stopWnLauncherStatusTailer();
+        if (activityDestroyed.get() || isFinishing() || isDestroyed()) return;
+        String reason = t.getMessage();
+        if (reason == null || reason.isEmpty()) reason = t.getClass().getSimpleName();
+        final String message = reason;
+        runOnUiThread(() -> {
+            if (activityDestroyed.get() || isFinishing() || isDestroyed()) return;
+            WinToast.show(this, getString(R.string.preloader_launch_failed, message));
+        });
     }
 
     private void stopWnLauncherStatusTailer() {
@@ -7242,6 +7271,13 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         else if (!hasFocus) {
             releasePointerCapture();
         }
+
+        if (!hasFocus) {
+            if (touchpadView != null) touchpadView.resetInputState();
+            if (inputControlsView != null) inputControlsView.cancelActiveTouches();
+        } else if (winHandler != null) {
+            winHandler.resyncGamepadState();
+        }
     }
 
     @Override
@@ -7685,7 +7721,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (shortcut != null) {
             String shortcutInputType = shortcut.getSettingExtra("inputType", "");
             if (!shortcutInputType.isEmpty()) {
-                inputType = Byte.parseByte(shortcutInputType);
+                inputType = parseSettingInt(shortcutInputType, inputType);
             }
         }
         boolean dinputEnabled = (inputType & WinHandler.FLAG_INPUT_TYPE_DINPUT) == WinHandler.FLAG_INPUT_TYPE_DINPUT;
@@ -9577,9 +9613,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
         if (firstTimeBoot) {
             Log.d("XServerDisplayActivity", "First time container boot, re-extracting libs");
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper" + ".tzst", rootDir);
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "layers" + ".tzst", rootDir);
-            // extra_libs.tzst handled by the version-aware block below (covers first boot too).
         }
 
         // safe to re-extract: the tzst holds only usr/lib/*.so + usr/share/vulkan/*, no home/drive_c
@@ -9616,19 +9650,29 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         boolean wantGamenative = "wrapper-gamenative".equals(graphicsDriver);
         File leegaoMarker = new File(rootDir, "usr/lib/.wrapper_leegao");
         File gamenativeMarker = new File(rootDir, "usr/lib/.wrapper_gamenative");
-        if (wantLeegao) {
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper-leegao.tzst", rootDir);
-            try { leegaoMarker.createNewFile(); } catch (IOException ignored) {}
-            gamenativeMarker.delete();
-        } else if (wantGamenative) {
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper-gamenative.tzst", rootDir);
-            try { gamenativeMarker.createNewFile(); } catch (IOException ignored) {}
-            leegaoMarker.delete();
-        } else if (leegaoMarker.exists() || gamenativeMarker.exists()) {
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/wrapper" + ".tzst", rootDir);
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "layers" + ".tzst", rootDir);
-            leegaoMarker.delete();
-            gamenativeMarker.delete();
+        File wrapperStateMarker = new File(rootDir, "usr/lib/.wrapper_state");
+        String wantedWrapperState =
+                (wantLeegao ? "leegao" : wantGamenative ? "gamenative" : "stock")
+                        + ":" + AppUtils.getVersionCode(this);
+        String installedWrapperState = "";
+        if (wrapperStateMarker.isFile()) {
+            String raw = FileUtils.readString(wrapperStateMarker);
+            if (raw != null) installedWrapperState = raw.trim();
+        }
+        if (!wantedWrapperState.equals(installedWrapperState)) {
+            Log.i("GraphicsDriverExtraction", "Wrapper state " + installedWrapperState
+                    + " -> " + wantedWrapperState + ", extracting");
+            String wrapperAsset = wantLeegao ? "graphics_driver/wrapper-leegao.tzst"
+                    : wantGamenative ? "graphics_driver/wrapper-gamenative.tzst"
+                    : "graphics_driver/wrapper.tzst";
+            if (TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, wrapperAsset, rootDir)) {
+                FileUtils.writeString(wrapperStateMarker, wantedWrapperState);
+                leegaoMarker.delete();
+                gamenativeMarker.delete();
+            } else {
+                Log.w("GraphicsDriverExtraction", "Extraction of " + wrapperAsset + " failed");
+                wrapperStateMarker.delete();
+            }
         }
 
         // libgallium_wgl.dll is present only while Windows Zink is installed — use as marker.
