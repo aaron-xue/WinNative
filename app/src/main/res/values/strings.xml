@@ -20,6 +20,7 @@
     <string name="common_ui_path_not_found">Path not found</string>
     <string name="common_ui_select_valid_exe_file">Please select a valid .exe file</string>
     <string name="common_ui_select_valid_icon_file">Please select a valid .ico or .png file.</string>
+    <string name="common_ui_grant_all_files_access">Grant All files access to browse Downloads directly.</string>
     <string name="common_ui_exit">Exit</string>
     <string name="common_ui_exit_app">Exit App</string>
     <string name="common_ui_profile">Profile</string>
@@ -249,6 +250,20 @@
     <string name="library_games_game_folder_mapped_drive">Game Folder (Mapped Game Drive)</string>
     <string name="library_games_select_exe_provide_name">Select an exe and provide a name</string>
     <string name="library_games_sign_in_prompt">Sign into a store or add a custom game to build your library.</string>
+
+    <!-- Library > Custom game package (.game) import -->
+    <string name="library_games_game_package_added">%1$s added!</string>
+    <string name="library_games_game_package_add_failed">Could not add game</string>
+    <string name="library_games_game_package_select_exe_hint">Select Executable or Console ROM</string>
+    <string name="library_games_game_package_import_failed">Import failed</string>
+    <string name="library_games_game_package_error_file_missing">File not found: %1$s</string>
+    <string name="library_games_game_package_error_unsupported">Unsupported file format: %1$s</string>
+    <string name="library_games_game_package_error_extract">Failed to extract the package: %1$s</string>
+    <string name="library_games_game_package_error_manifest_missing">Package is missing manifests.json</string>
+    <string name="library_games_game_package_error_manifest_parse">Failed to parse manifests.json: %1$s</string>
+    <string name="library_games_game_package_error_name_empty">manifest.name must not be empty</string>
+    <string name="library_games_game_package_error_exe_empty">manifest.exe must not be empty</string>
+    <string name="library_games_game_package_error_exe_missing">manifest.exe path does not exist: %1$s → %2$s</string>
 
     <!-- Stores > Accounts -->
     <string name="stores_accounts_title">Stores</string>

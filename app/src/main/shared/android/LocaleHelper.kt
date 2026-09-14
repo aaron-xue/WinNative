@@ -52,7 +52,7 @@ object LocaleHelper {
     /** 0 = System default; 1..N map to SUPPORTED_LANGUAGE_TAGS. */
     fun indexForTag(tag: String?): Int {
         if (tag.isNullOrEmpty()) return 0
-        // Normalize region separator — getApplicationLocales() returns tags like "pt-BR",
+        // Normalize region separator — getApplicationLocales() returns tags like "zh-CN",
         // which should match our list; fall back to primary subtag if not found.
         val exact = SUPPORTED_LANGUAGE_TAGS.indexOf(tag)
         if (exact >= 0) return exact + 1
