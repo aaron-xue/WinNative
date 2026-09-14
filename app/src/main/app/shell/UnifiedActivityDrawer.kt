@@ -821,14 +821,14 @@ internal fun UnifiedActivity.AddCustomGameDialog(onDismiss: () -> Unit) {
                 if (added) {
                     com.winlator.cmod.shared.ui.toast.WinToast.show(
                         context,
-                        "$gameName added!",
+                        context.getString(R.string.library_games_game_package_added, gameName.trim()),
                         android.widget.Toast.LENGTH_SHORT,
                     )
                     onDismiss()
                 } else {
                     com.winlator.cmod.shared.ui.toast.WinToast.show(
                         context,
-                        "Could not add game",
+                        R.string.library_games_game_package_add_failed,
                         android.widget.Toast.LENGTH_SHORT,
                     )
                 }
@@ -859,9 +859,14 @@ internal fun UnifiedActivity.AddCustomGameDialog(onDismiss: () -> Unit) {
                         gameName = parsed.name
                         coverArtFile = parsed.coverFile
                     }.onFailure { e ->
+                        val failure =
+                            (e as? com.winlator.cmod.feature.shortcuts.GamePackageImporter.ImportException)
+                                ?.localized(context)
+                                ?: e.message
+                                ?: context.getString(R.string.library_games_game_package_import_failed)
                         com.winlator.cmod.shared.ui.toast.WinToast.show(
                             context,
-                            e.message ?: "导入失败",
+                            failure,
                             android.widget.Toast.LENGTH_SHORT,
                         )
                     }
@@ -975,7 +980,8 @@ internal fun UnifiedActivity.AddCustomGameDialog(onDismiss: () -> Unit) {
                             Icon(Icons.Outlined.FolderOpen, contentDescription = null, tint = Accent, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                selectedExePath ?: "Select Executable or Console ROM",
+                                selectedExePath
+                                    ?: stringResource(R.string.library_games_game_package_select_exe_hint),
                                 color = if (selectedExePath == null) TextSecondary else TextPrimary,
                                 maxLines = if (selectedExePath == null) 1 else Int.MAX_VALUE,
                                 overflow = if (selectedExePath == null) TextOverflow.Ellipsis else TextOverflow.Visible,
@@ -1207,7 +1213,7 @@ internal fun UnifiedActivity.ensureAllFilesAccessForImports(context: android.con
 
     com.winlator.cmod.shared.ui.toast.WinToast.show(
         context,
-        "Grant All files access to browse Downloads directly.",
+        R.string.common_ui_grant_all_files_access,
         android.widget.Toast.LENGTH_LONG,
     )
 

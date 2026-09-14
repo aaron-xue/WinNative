@@ -90,6 +90,7 @@ public class InputControlsView extends View {
 
   private SharedPreferences preferences;
   private final SparseArray<ArrayList<ControlElement>> activeTouchElements = new SparseArray<>();
+  private final Set<Binding> gestureHeldBindings = new HashSet<>();
 
   private ControlElement stickElement;
 
@@ -559,8 +560,17 @@ public class InputControlsView extends View {
       released |= releaseCaptures(activeTouchElements.keyAt(i), 0f, 0f, false);
     }
     activeTouchElements.clear();
+    if (stickElement != null) released |= stickElement.forceRelease();
+    ControlsProfile activeProfile = profile;
+    if (activeProfile != null) {
+      for (ControlElement element : activeProfile.getElements()) {
+        released |= element.forceRelease();
+        released |= element.releaseToggleLatch();
+      }
+      activeProfile.resetGamepadState();
+    }
     batchingUpdates = batched;
-    if (released) flushGamepadState();
+    if (released) forceFlushGamepadState();
     syncCapturedPointers();
   }
 
@@ -571,27 +581,68 @@ public class InputControlsView extends View {
     batchingUpdates = true;
     for (int i = activeTouchElements.size() - 1; i >= 0; i--) {
       int capturedId = activeTouchElements.keyAt(i);
-      boolean stillDown = false;
-      for (int p = 0, count = event.getPointerCount(); p < count; p++) {
-        if (event.getPointerId(p) == capturedId) {
-          stillDown = true;
-          break;
-        }
-      }
-      if (!stillDown) {
+      if (!isPointerDown(event, capturedId)) {
         releaseCaptures(capturedId, 0f, 0f, false);
         removedAny = true;
       }
     }
+    if (stickElement != null && isLatchedToMissingPointer(stickElement, event)) {
+      removedAny |= stickElement.forceRelease();
+    }
+    ControlsProfile activeProfile = profile;
+    if (activeProfile != null) {
+      for (ControlElement element : activeProfile.getElements()) {
+        if (isLatchedToMissingPointer(element, event)) removedAny |= element.forceRelease();
+      }
+    }
     batchingUpdates = batched;
+    if (reconcileIdleGamepadState()) removedAny = true;
     if (removedAny) {
-      flushGamepadState();
+      forceFlushGamepadState();
       syncCapturedPointers();
     }
   }
 
+  private boolean releaseLatchedPointer(int pointerId) {
+    boolean released = false;
+    if (stickElement != null && stickElement.getCurrentPointerId() == pointerId) {
+      released |= stickElement.forceRelease();
+    }
+    ControlsProfile activeProfile = profile;
+    if (activeProfile != null) {
+      for (ControlElement element : activeProfile.getElements()) {
+        if (element.getCurrentPointerId() == pointerId) released |= element.forceRelease();
+      }
+    }
+    activeTouchElements.remove(pointerId);
+    if (released) syncCapturedPointers();
+    return released;
+  }
+
+  private static boolean isLatchedToMissingPointer(ControlElement element, MotionEvent event) {
+    int latchedId = element.getCurrentPointerId();
+    return latchedId != -1 && !isPointerDown(event, latchedId);
+  }
+
+  private static boolean isPointerDown(MotionEvent event, int pointerId) {
+    int action = event.getActionMasked();
+    if (action == MotionEvent.ACTION_CANCEL) return false;
+    if ((action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP)
+        && event.getPointerId(event.getActionIndex()) == pointerId) {
+      return false;
+    }
+    for (int p = 0, count = event.getPointerCount(); p < count; p++) {
+      if (event.getPointerId(p) == pointerId) return true;
+    }
+    return false;
+  }
+
   private void flushGamepadState() {
     if (batchingUpdates) return;
+    forceFlushGamepadState();
+  }
+
+  private void forceFlushGamepadState() {
     WinHandler winHandler = xServer != null ? xServer.getWinHandler() : null;
     if (winHandler != null) winHandler.sendGamepadState();
   }
@@ -887,6 +938,7 @@ public class InputControlsView extends View {
             float y = event.getY(actionIndex);
 
             batchingUpdates = true;
+            boolean staleReleased = releaseLatchedPointer(pointerId);
 
             if (stickElement != null && stickElement.handleTouchDown(pointerId, x, y)) {
               eventHandled = true;
@@ -909,7 +961,7 @@ public class InputControlsView extends View {
             }
 
             batchingUpdates = false;
-            if (eventHandled) flushGamepadState();
+            if (eventHandled || staleReleased) flushGamepadState();
             syncCapturedPointers();
             if (!eventHandled) dispatchUnhandledTouch(event);
             break;
@@ -1086,6 +1138,24 @@ public class InputControlsView extends View {
       }
     }
     return false;
+  }
+
+  public void handleGestureInputEvent(Binding binding, boolean isActionDown) {
+    if (isActionDown) gestureHeldBindings.add(binding);
+    else gestureHeldBindings.remove(binding);
+    handleInputEvent(null, binding, isActionDown, 0f, false);
+  }
+
+  private boolean reconcileIdleGamepadState() {
+    ControlsProfile activeProfile = profile;
+    if (activeProfile == null || activeProfile.isGamepadStateNeutral()) return false;
+    if (activeTouchElements.size() > 0 || !gestureHeldBindings.isEmpty()) return false;
+    if (stickElement != null && !stickElement.isIdle()) return false;
+    for (ControlElement element : activeProfile.getElements()) {
+      if (!element.isIdle()) return false;
+    }
+    activeProfile.resetGamepadState();
+    return true;
   }
 
   public void handleInputEvent(Binding binding, boolean isActionDown) {

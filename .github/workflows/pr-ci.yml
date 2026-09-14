@@ -128,17 +128,21 @@ jobs:
       id: label
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        EVENT_NAME: ${{ github.event_name }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
-        if [ "${{ github.event_name }}" = "pull_request" ]; then
-          short_sha=$(printf '%s' "${{ github.event.pull_request.head.sha }}" | cut -c1-5)
-          echo "name=PR#${{ github.event.pull_request.number }}-${short_sha}" >> "$GITHUB_OUTPUT"
+        if [ "$EVENT_NAME" = "pull_request" ]; then
+          short_sha=$(printf '%s' "$PR_HEAD_SHA" | cut -c1-5)
+          echo "name=PR#${PR_NUMBER}-${short_sha}" >> "$GITHUB_OUTPUT"
         else
           short_sha=$(printf '%s' "$GITHUB_SHA" | cut -c1-5)
           # For merged PR commits on main, preserve the source PR number and PR head SHA.
           num=$(git log -1 --pretty=%s | grep -oE '\(#[0-9]+\)|#[0-9]+' | tail -1 | tr -cd '0-9')
           if [ -n "$num" ]; then
             pr_head_sha=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$num" --jq '.head.sha' 2>/dev/null || true)
-            if [ -n "$pr_head_sha" ] && [ "$pr_head_sha" != "null" ]; then
+            # Only accept a real 40-char hex SHA: a 404/error body here used to leak into the artifact name.
+            if printf '%s' "$pr_head_sha" | grep -qE '^[0-9a-f]{40}$'; then
               short_sha=$(printf '%s' "$pr_head_sha" | cut -c1-5)
             fi
             echo "name=PR#${num}-${short_sha}" >> "$GITHUB_OUTPUT"
@@ -148,10 +152,21 @@ jobs:
         fi
 
     - name: Prepare APK for upload
+      env:
+        APK_PATH: ${{ matrix.flavor.apkPath }}
+        FLAVOR_NAME: ${{ matrix.flavor.name }}
+        ARTIFACT_NAME: ${{ matrix.flavor.artifactName }}
+        LABEL: ${{ steps.label.outputs.name }}
       run: |
-        upload_dir="artifacts/${{ matrix.flavor.artifactName }}"
+        if [ -z "$LABEL" ]; then
+          echo "::error::artifact label is empty; 'Compute artifact label' produced no output"
+          exit 1
+        fi
+        upload_dir="artifacts/$ARTIFACT_NAME"
         mkdir -p "$upload_dir"
-        cp ${{ matrix.flavor.apkPath }} "$upload_dir/WinNative-Debug-${{ matrix.flavor.name }}-${{ steps.label.outputs.name }}.apk"
+        # Values arrive via env instead of inlined expressions, so an odd value can never break shell quoting.
+        cp "$APK_PATH" "$upload_dir/WinNative-Debug-${FLAVOR_NAME}-${LABEL}.apk"
+        ls -l "$upload_dir"
 
     - name: Upload APK
       uses: actions/upload-artifact@v7

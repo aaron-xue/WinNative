@@ -637,6 +637,8 @@ class UnifiedActivity :
 
         UpdateService.startHourlyLoop(this)
         processPendingRetroCloudBackup()
+        com.winlator.cmod.feature.storage.ExternalStorage
+            .refresh()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -1019,6 +1021,7 @@ class UnifiedActivity :
                         com.winlator.cmod.feature.stores.common.Store.EPIC -> "Epic"
                         com.winlator.cmod.feature.stores.common.Store.GOG -> "GOG"
                         com.winlator.cmod.feature.stores.common.Store.STEAM -> "Steam"
+                        com.winlator.cmod.feature.stores.common.Store.ITCH -> "Itch.io"
                     }
                 when (event) {
                     is com.winlator.cmod.feature.stores.common.StoreSessionEvent.SessionExpired -> {

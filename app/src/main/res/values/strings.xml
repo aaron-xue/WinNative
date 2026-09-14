@@ -20,6 +20,7 @@
     <string name="common_ui_path_not_found">Path not found</string>
     <string name="common_ui_select_valid_exe_file">Please select a valid .exe file</string>
     <string name="common_ui_select_valid_icon_file">Please select a valid .ico or .png file.</string>
+    <string name="common_ui_grant_all_files_access">Grant All files access to browse Downloads directly.</string>
     <string name="common_ui_exit">Exit</string>
     <string name="common_ui_exit_app">Exit App</string>
     <string name="common_ui_profile">Profile</string>
@@ -250,6 +251,20 @@
     <string name="library_games_select_exe_provide_name">Select an exe and provide a name</string>
     <string name="library_games_sign_in_prompt">Sign into a store or add a custom game to build your library.</string>
 
+    <!-- Library > Custom game package (.game) import -->
+    <string name="library_games_game_package_added">%1$s added!</string>
+    <string name="library_games_game_package_add_failed">Could not add game</string>
+    <string name="library_games_game_package_select_exe_hint">Select Executable or Console ROM</string>
+    <string name="library_games_game_package_import_failed">Import failed</string>
+    <string name="library_games_game_package_error_file_missing">File not found: %1$s</string>
+    <string name="library_games_game_package_error_unsupported">Unsupported file format: %1$s</string>
+    <string name="library_games_game_package_error_extract">Failed to extract the package: %1$s</string>
+    <string name="library_games_game_package_error_manifest_missing">Package is missing manifests.json</string>
+    <string name="library_games_game_package_error_manifest_parse">Failed to parse manifests.json: %1$s</string>
+    <string name="library_games_game_package_error_name_empty">manifest.name must not be empty</string>
+    <string name="library_games_game_package_error_exe_empty">manifest.exe must not be empty</string>
+    <string name="library_games_game_package_error_exe_missing">manifest.exe path does not exist: %1$s → %2$s</string>
+
     <!-- Stores > Accounts -->
     <string name="stores_accounts_title">Stores</string>
     <string name="stores_accounts_steam_integration_title">Steam</string>
@@ -278,6 +293,18 @@
     <string name="stores_accounts_gog_login_failed">GOG Login failed: %1$s</string>
     <string name="stores_accounts_custom_download_path">Custom Download Path</string>
     <string name="stores_accounts_custom_download_path_description">A default download path has already been configured in Settings &gt; Stores. If you wish to set a unique custom path for this specific installation, click Proceed.</string>
+    <!-- External Storage -->
+    <string name="external_storage_section_title">External Storage</string>
+    <string name="external_storage_add_title">Add External Storage</string>
+    <string name="external_storage_add_subtitle">Install games to a USB or SD drive</string>
+    <string name="external_storage_add_invalid">That folder is not on an external drive</string>
+    <string name="external_storage_status_connected">Connected · %1$s free</string>
+    <string name="external_storage_status_disconnected">Disconnected</string>
+    <string name="external_storage_download_target_title">Download Location</string>
+    <string name="external_storage_download_target_message">Choose where this game is installed.</string>
+    <string name="external_storage_download_target_internal">Internal Preferred</string>
+    <string name="external_storage_download_target_external">External Preferred</string>
+    <string name="external_storage_download_target_none">No external drive connected</string>
     <string name="stores_accounts_not_signed_in">Not signed in</string>
     <string name="stores_accounts_status_online">Online</string>
     <string name="stores_accounts_status_away">Away</string>
@@ -1785,6 +1812,7 @@ Installed path:
     <string name="preloader_launching">Launching</string>
     <string name="preloader_closing">Closing %1$s</string>
     <string name="preloader_preparing_steam_environment">Preparing Steam environment</string>
+    <string name="preloader_launch_failed">Launch failed: %1$s</string>
     <string name="preloader_starting_wine">Starting Wine</string>
     <string name="preloader_starting_steam_launcher">Starting Steam Launcher</string>
     <string name="preloader_loading_steam_client">Loading Steam client</string>

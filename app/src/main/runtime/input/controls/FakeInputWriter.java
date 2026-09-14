@@ -18,7 +18,6 @@ public class FakeInputWriter {
   public static final short ABS_RY = 4;
   public static final short ABS_X = 0;
   public static final short ABS_Y = 1;
-  private static final int BUFFER_SIZE = 768;
   private static final int EVENT_SIZE = 24;
   private static final int MAX_FAKE_INPUT_SLOTS = 4;
   private static final int RING_CAPACITY_EVENTS = 4096;
@@ -38,12 +37,14 @@ public class FakeInputWriter {
   private static final int RING_SNAPSHOT_SEQ_OFFSET = 32;
   private static final int RING_SNAPSHOT_BUTTONS_OFFSET = 40;
   private static final int RING_SNAPSHOT_AXES_OFFSET = 44; // short[8]
+  private static final int RING_RESYNC_SEQ_OFFSET = 60;
   private static final String RING_DIR_NAME = "fakeinput-rings";
   public static final short EV_ABS = 3;
   public static final short EV_KEY = 1;
   public static final short EV_MSC = 4;
   public static final short EV_SYN = 0;
   private static final int MAX_EVENTS_PER_UPDATE = 32;
+  private static final int BUFFER_SIZE = MAX_EVENTS_PER_UPDATE * EVENT_SIZE;
   public static final short MSC_SCAN = 4;
   public static final short SYN_REPORT = 0;
   private static final String TAG = "FakeInputWriter";
@@ -86,6 +87,7 @@ public class FakeInputWriter {
   // must re-emit the whole state once; otherwise an unchanged control would stay
   // silent and the ring snapshot would never catch up.
   private boolean pendingFullResend = false;
+  private boolean publishedStateNeutral = true;
   private boolean forceResend = false;
   private final ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
@@ -180,6 +182,7 @@ public class FakeInputWriter {
     for (int i = 0; i < 8; i++) {
       data.putShort(RING_SNAPSHOT_AXES_OFFSET + (i * 2), (short) 0);
     }
+    data.putInt(RING_RESYNC_SEQ_OFFSET, 0);
   }
 
   private static void releaseRingSlotLocked(int slot) {
@@ -449,6 +452,7 @@ public class FakeInputWriter {
         return false;
       }
       this.isOpen = true;
+      this.pendingFullResend = true;
       Log.i(TAG, "Opened fake input: " + this.eventFile.getAbsolutePath());
       return true;
     } catch (IOException e) {
@@ -459,6 +463,37 @@ public class FakeInputWriter {
 
   public synchronized void close() {
     this.isOpen = false;
+  }
+
+  public synchronized void requestFullResend() {
+    this.pendingFullResend = true;
+    requestRingResync();
+  }
+
+  private void requestRingResync() {
+    RingSlot ringSlot = ensureRingSlot();
+    if (ringSlot == null || ringSlot.data == null) {
+      return;
+    }
+    synchronized (ringSlot) {
+      ByteBuffer ring = ringSlot.data;
+      nativeStoreFence();
+      ring.putInt(RING_RESYNC_SEQ_OFFSET, ring.getInt(RING_RESYNC_SEQ_OFFSET) + 1);
+    }
+  }
+
+  private boolean isPublishedStateNeutral() {
+    for (int i = 0; i < BUTTON_MAP.length; i++) {
+      if (this.prevButtonStates[i]) return false;
+    }
+    return this.prevThumbLX == 0
+        && this.prevThumbLY == 0
+        && this.prevThumbRX == 0
+        && this.prevThumbRY == 0
+        && this.prevTriggerL == 0
+        && this.prevTriggerR == 0
+        && this.prevHatX == 0
+        && this.prevHatY == 0;
   }
 
   public synchronized void reset() {
@@ -507,7 +542,10 @@ public class FakeInputWriter {
       if (this.hasChanges) {
         writeEvent((short) 0, (short) 0, 0);
         this.buffer.flip();
-        if (!flushBuffer()) Log.e(TAG, "Reset write error: fake input mmap ring unavailable");
+        if (!flushBuffer()) {
+          Log.e(TAG, "Reset write error: fake input mmap ring unavailable");
+          this.pendingFullResend = true;
+        }
         Log.i(TAG, "Reset fake input to neutral state: " + this.eventFile.getAbsolutePath());
         return;
       }
@@ -647,6 +685,11 @@ public class FakeInputWriter {
         // Couldn't publish; re-assert the whole state on the next frame.
         this.pendingFullResend = true;
       }
+      boolean neutral = isPublishedStateNeutral();
+      if (neutral && !this.publishedStateNeutral) {
+        requestRingResync();
+      }
+      this.publishedStateNeutral = neutral;
     }
     this.forceResend = false;
   }

@@ -2453,7 +2453,7 @@ private fun ExtensionsPickerDialog(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    stringResource(android.R.string.ok),
+                    stringResource(R.string.common_ui_ok),
                     color = AccentBlue,
                     fontSize = SettingValueSize,
                     fontWeight = FontWeight.SemiBold

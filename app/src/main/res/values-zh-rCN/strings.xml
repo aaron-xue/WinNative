@@ -16,6 +16,7 @@
     <string name="common_ui_select_exe">选择 EXE</string>
     <string name="common_ui_select_valid_exe_file">请选择一个有效的 .exe 文件</string>
     <string name="common_ui_select_valid_icon_file">请选择一个有效的 .ico 或 .png 文件。</string>
+    <string name="common_ui_grant_all_files_access">请授予「所有文件访问权限」，以便直接浏览下载目录。</string>
     <string name="common_ui_exit">退出</string>
     <string name="common_ui_exit_app">退出应用</string>
     <string name="common_ui_profile">配置文件</string>
@@ -248,6 +249,20 @@
     <string name="library_games_select_exe_provide_name">选择 exe 文件并输入名称</string>
     <string name="library_games_sign_in_prompt">登录商店或添加自定义游戏来构建您的游戏库。</string>
 
+    <!-- Library > Custom game package (.game) import -->
+    <string name="library_games_game_package_added">已添加 %1$s！</string>
+    <string name="library_games_game_package_add_failed">无法添加游戏</string>
+    <string name="library_games_game_package_select_exe_hint">选择可执行文件或主机 ROM</string>
+    <string name="library_games_game_package_import_failed">导入失败</string>
+    <string name="library_games_game_package_error_file_missing">文件不存在: %1$s</string>
+    <string name="library_games_game_package_error_unsupported">不支持的文件格式: %1$s</string>
+    <string name="library_games_game_package_error_extract">文件解包失败: %1$s</string>
+    <string name="library_games_game_package_error_manifest_missing">安装包缺少 manifests.json</string>
+    <string name="library_games_game_package_error_manifest_parse">manifests.json 解析失败: %1$s</string>
+    <string name="library_games_game_package_error_name_empty">manifest.name 不能为空</string>
+    <string name="library_games_game_package_error_exe_empty">manifest.exe 不能为空</string>
+    <string name="library_games_game_package_error_exe_missing">manifest.exe 路径不存在: %1$s → %2$s</string>
+
     <!-- Stores > Accounts -->
     <string name="stores_accounts_title">商店</string>
     <string name="stores_accounts_steam_integration_title">Steam</string>
@@ -276,6 +291,18 @@
     <string name="stores_accounts_gog_login_failed">GOG 登录失败：%1$s</string>
     <string name="stores_accounts_custom_download_path">自定义下载路径</string>
     <string name="stores_accounts_custom_download_path_description">设置 &gt; 商店中已配置了默认下载路径。如果您希望为此次安装设置特定的自定义路径，请点击继续。</string>
+    <!-- External Storage -->
+    <string name="external_storage_section_title">外部存储</string>
+    <string name="external_storage_add_title">添加外部存储</string>
+    <string name="external_storage_add_subtitle">将游戏安装到 USB 或 SD 驱动器</string>
+    <string name="external_storage_add_invalid">该文件夹不在外部驱动器上</string>
+    <string name="external_storage_status_connected">已连接 · 剩余 %1$s</string>
+    <string name="external_storage_status_disconnected">已断开</string>
+    <string name="external_storage_download_target_title">下载位置</string>
+    <string name="external_storage_download_target_message">选择此游戏的安装位置。</string>
+    <string name="external_storage_download_target_internal">优先内部存储</string>
+    <string name="external_storage_download_target_external">优先外部存储</string>
+    <string name="external_storage_download_target_none">未连接外部驱动器</string>
     <string name="stores_accounts_not_signed_in">未登录</string>
     <string name="stores_accounts_status_online">在线</string>
     <string name="stores_accounts_status_away">离开</string>
@@ -1490,6 +1517,7 @@
     <string name="preloader_steam_service_running">Steam 服务正在运行</string>
     <string name="preloader_syncing_cloud_saves">正在同步 Steam Cloud 存档…</string>
     <string name="preloader_launching_game">正在启动 %1$s</string>
+    <string name="preloader_launch_failed">启动失败: %1$s</string>
     <string name="preloader_steam_launcher_failed_restaging">Steam Launcher 失败 — 正在重新准备资源</string>
     <string name="preloader_steam_launcher_start_failed">Steam Launcher 无法启动。正在重新准备资源 — 请重新启动</string>
     <string name="preloader_steam_launcher_game_never_started">Steam Launcher 已到达游戏，但游戏未启动</string>
