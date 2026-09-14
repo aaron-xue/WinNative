@@ -2645,6 +2645,7 @@ Installed path:
     <string name="help_env_wine_new_mediasource">Uses the new Media Source implementation. Enables Wine\'s video/audio decoders for more format support.</string>
     <string name="help_env_wine_large_address_aware">Enables Large Address Aware. Allows 32-bit Windows programs to access more than 2GB of memory (up to 4GB), helpful for memory-intensive games.</string>
     <string name="help_env_winedlloverrides">Wine DLL override settings. Specifies which DLLs use builtin or native versions. Format: dllname1,dllname2=n,b;…\n\nExample: msvcp140,concrt140=n,b means use native, fall back to builtin.</string>
+    <string name="help_env_wine_peek_limiter">Limits how fast a message loop can spin when PeekMessage() finds nothing to process. 0 disables the limiter (default); 1–16 sleeps that many milliseconds on every empty peek, lowering CPU usage and capping busy loops (16 ms is roughly 60 Hz).</string>
     <string name="settings_help_box64_env_vars_title">Box64 Environment Variables Reference</string>
     <string name="help_env_box64_cat_dynarec">Dynarec Core Settings</string>
     <string name="help_env_box64_cat_cache">Dynarec Cache</string>
@@ -2686,6 +2687,11 @@ Installed path:
     <string name="help_env_box64_mmap32">Enable 32-bit memory mapping. Allows memory mapping in the low 4GB address space — critical for some 64-bit programs that need 32-bit pointers.</string>
     <string name="help_opt_enable">Enable</string>
     <string name="help_opt_disable">Disable</string>
+    <string name="help_opt_peek_limiter_1">Sleep 1 ms on an empty peek</string>
+    <string name="help_opt_peek_limiter_2">Sleep 2 ms on an empty peek</string>
+    <string name="help_opt_peek_limiter_4">Sleep 4 ms on an empty peek</string>
+    <string name="help_opt_peek_limiter_8">Sleep 8 ms on an empty peek</string>
+    <string name="help_opt_peek_limiter_16">Sleep 16 ms on an empty peek (about 60 Hz)</string>
     <string name="help_opt_zink_auto">Auto-select the best strategy</string>
     <string name="help_opt_zink_lazy">Lazy descriptor allocation</string>
     <string name="help_opt_zink_cached">Cache descriptors to reduce reallocation</string>

@@ -397,6 +397,19 @@ private val envVarCategories = listOf(
                 type = EnvVarType.TEXT,
                 descriptionRes = R.string.help_env_winedlloverrides,
             ),
+            EnvVarInfo(
+                name = "WINE_PEEK_LIMITER",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_env_wine_peek_limiter,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("1", R.string.help_opt_peek_limiter_1),
+                    EnvVarOption("2", R.string.help_opt_peek_limiter_2),
+                    EnvVarOption("4", R.string.help_opt_peek_limiter_4),
+                    EnvVarOption("8", R.string.help_opt_peek_limiter_8),
+                    EnvVarOption("16", R.string.help_opt_peek_limiter_16),
+                ),
+            ),
         ),
     ),
 )

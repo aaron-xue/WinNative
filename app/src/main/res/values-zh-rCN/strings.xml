@@ -2387,6 +2387,7 @@
     <string name="help_env_wine_new_mediasource">使用新版 Media Source 实现。启用 Wine 的视频/音频解码器，支持更多格式。</string>
     <string name="help_env_wine_large_address_aware">启用大地址感知（Large Address Aware）。允许 32 位 Windows 程序访问超过 2GB 的内存空间（最多 4GB），对某些内存需求大的游戏有帮助。</string>
     <string name="help_env_winedlloverrides">Wine DLL 覆盖设置。用于指定哪些 DLL 使用 Wine 内置版本（builtin）或 Windows 原生版本（native），格式为 dllname1,dllname2=n,b;…。\n\n示例：msvcp140,concrt140=n,b 表示使用原生版本，如果没有则回退到内置版本。</string>
+    <string name="help_env_wine_peek_limiter">限制消息循环在 PeekMessage() 取不到消息时的空转频率。0 表示关闭限流器（默认）；1–16 表示每次空取时睡眠对应毫秒数，可降低 CPU 占用并限制忙循环速率（16 毫秒约等于 60Hz）。</string>
     <string name="settings_help_box64_env_vars_title">Box64 环境变量说明</string>
     <string name="help_env_box64_cat_dynarec">Dynarec 核心设置</string>
     <string name="help_env_box64_cat_cache">Dynarec 缓存</string>
@@ -2428,6 +2429,11 @@
     <string name="help_env_box64_mmap32">启用 32 位内存映射。允许在低 4GB 地址空间进行内存映射，对于需要 32 位指针的 64 位程序至关重要。</string>
     <string name="help_opt_enable">启用</string>
     <string name="help_opt_disable">禁用</string>
+    <string name="help_opt_peek_limiter_1">每次空取睡眠 1 毫秒</string>
+    <string name="help_opt_peek_limiter_2">每次空取睡眠 2 毫秒</string>
+    <string name="help_opt_peek_limiter_4">每次空取睡眠 4 毫秒</string>
+    <string name="help_opt_peek_limiter_8">每次空取睡眠 8 毫秒</string>
+    <string name="help_opt_peek_limiter_16">每次空取睡眠 16 毫秒（约 60Hz）</string>
     <string name="help_opt_zink_auto">自动选择最佳策略</string>
     <string name="help_opt_zink_lazy">延迟分配描述符</string>
     <string name="help_opt_zink_cached">缓存描述符以减少重复分配</string>
