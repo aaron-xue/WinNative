@@ -77,7 +77,24 @@ jobs:
         env:
           PR_NUMBER: ${{ steps.scope.outputs.pr_number }}
         run: |
-          short_sha=$(jq -r '.head.sha' pr.json | cut -c1-5)
+          # Label must match the PR CI artifact name; validate each piece so a null or
+          # error body can't silently yield names like PR#761-null.
+          jq_sha=$(jq -r '.head.sha // "null"' pr.json)
+          head_sha=""
+          if printf '%s' "$jq_sha" | grep -qE '^[0-9a-f]{40}$'; then
+            head_sha="$jq_sha"
+          elif printf '%s' "$HEAD_SHA" | grep -qE '^[0-9a-f]{40}$'; then
+            head_sha="$HEAD_SHA"
+          fi
+          if [ -z "$head_sha" ]; then
+            echo "::error::no valid PR head SHA (jq=$jq_sha, event=$HEAD_SHA)"
+            exit 1
+          fi
+          if ! printf '%s' "$PR_NUMBER" | grep -qE '^[0-9]+$'; then
+            echo "::error::PR number is not numeric: $PR_NUMBER"
+            exit 1
+          fi
+          short_sha=$(printf '%s' "$head_sha" | cut -c1-5)
           label="PR#${PR_NUMBER}-${short_sha}"
           release_label=$(printf '%s' "$label" | tr '#' '.')
           {
