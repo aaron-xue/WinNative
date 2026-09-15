@@ -50,6 +50,10 @@ updates, UI improvements, or anything else you'd like to add.
 Please match the existing code style and ensure any AI-assisted code is thoroughly reviewed and
 tested before submission.
 
+This fork ships **English and Simplified Chinese only**. If you compile a fresh clone, run
+`sh tools/git/setup-hooks.sh` once so that removed translations are never merged back in — see
+[tools/git/README.md](tools/git/README.md).
+
 ---
 
 ### Credits
