@@ -3,7 +3,10 @@
 .mcp.json
 .vscode/
 /local.properties
-/.idea/
+/.idea/*
+# .idea 里的其它文件都是本机的，只有 vcs.xml 需要入库：它让 IDE 打开项目时
+# 默认不启用 Git（本仓库统一用 TortoiseGit / 命令行操作）。
+!/.idea/vcs.xml
 .DS_Store
 /build
 /captures
