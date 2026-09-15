@@ -313,6 +313,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private String zinkMode = Container.DEFAULT_ZINK_MODE;
     private HashMap<String, String> graphicsDriverConfig;
     private String audioDriver = Container.DEFAULT_AUDIO_DRIVER;
+    private Boolean directAudioAvailable;
     private String emulator = Container.DEFAULT_EMULATOR;
     private String wineVersion = WineInfo.MAIN_WINE_VERSION.identifier();
     private String dxwrapper = Container.DEFAULT_DXWRAPPER;
@@ -2593,6 +2594,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                         }
                         setupWineSystemFiles();
                         extractGraphicsDriverFiles();
+                        resolveAudioDriver();
                         changeWineAudioDriver();
 
                         try {
@@ -2610,6 +2612,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                     } else {
                         Log.i("XServerDisplayActivity", "Skipping pre-game setup for active background session");
                         applyPreferredRefreshRate();
+                        resolveAudioDriver();
                     }
 
                     try {
@@ -8124,15 +8127,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                     )
             );
         } else if (DirectAudioDriver.INSTANCE.isSelected(audioDriver)) {
-            // No daemon to start; the driver talks AAudio from Wine's unixlib.
-            // wineInfo matches imageFs.winePath, so the ABI follows the layer being written.
-            String daWineVersion =
-                    wineInfo != null ? wineInfo.fullVersion() : container.getWineVersion();
-            if (!DirectAudioDriver.INSTANCE.install(this, imageFs, daWineVersion)) {
-                Log.w("XServerDisplayActivity", "DirectAudio install failed for wine '"
-                        + daWineVersion + "'; audio may be silent");
-            }
-
             boolean micRequested = DirectAudioDriver.INSTANCE.isMicEnabled(
                     getShortcutSetting(
                             DirectAudioDriver.EXTRA_MIC,
@@ -9831,14 +9825,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
         handleDrawerEdgeSwipe(event);
-
-        // Drop paused input after the drawer edge-swipe check to avoid ANRs.
-        if (isInputSuspended() && (drawerStateHolder == null ||
-                (!drawerStateHolder.isDrawerOpen() && !drawerStateHolder.isPaneOpen()))) {
-
-            return true;
-        }
-
         return super.dispatchTouchEvent(event);
     }
 
@@ -9939,11 +9925,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             }
             return true;
         }
-        if (isInputSuspended() && (drawerStateHolder == null ||
-                (!drawerStateHolder.isDrawerOpen() && !drawerStateHolder.isPaneOpen()))) {
-
-            return true;
-        }
 
         boolean handledByWinHandler = false;
         boolean handledByTouchpadView = false;
@@ -10031,7 +10012,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             }
             return true;
         }
-        if (isInputSuspended()) return super.dispatchKeyEvent(event);
         if (ExternalController.isGameController(event.getDevice())) {
             cancelMousePointerTimeout();
             if (touchpadView != null) {
@@ -13038,6 +13018,26 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             overrideEnvVars = new EnvVars();
         }
         return overrideEnvVars;
+    }
+
+    private boolean ensureDirectAudioInstalled() {
+        if (directAudioAvailable != null) return directAudioAvailable;
+        String wineIdentifier =
+                wineInfo != null ? wineInfo.identifier() : container.getWineVersion();
+        directAudioAvailable = DirectAudioDriver.INSTANCE.install(this, imageFs, wineIdentifier);
+        Log.d("XServerDisplayActivity", "DirectAudio install for wine '" + wineIdentifier
+                + "' available=" + directAudioAvailable);
+        return directAudioAvailable;
+    }
+
+    private void resolveAudioDriver() {
+        if (!DirectAudioDriver.INSTANCE.isSelected(audioDriver)) return;
+        if (ensureDirectAudioInstalled()) return;
+        Log.w("XServerDisplayActivity", "DirectAudio is unavailable for this container; falling back to "
+                + Container.DEFAULT_AUDIO_DRIVER + " so mmdevapi keeps a loadable backend");
+        audioDriver = Container.DEFAULT_AUDIO_DRIVER;
+        runOnUiThread(() -> android.widget.Toast.makeText(
+                this, R.string.directaudio_unavailable, android.widget.Toast.LENGTH_LONG).show());
     }
 
     private void changeWineAudioDriver() {
