@@ -1595,6 +1595,12 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
         setIntent(intent);
         launchedFromPinnedShortcut = isPinnedShortcutLaunchIntent(intent);
+        // singleTask: a dependency-install launch can be delivered here instead of onCreate,
+        // so keep the flag in sync with the new intent or the session would close as a
+        // regular game session (and take the calling Settings screen down with it).
+        if (intent.hasExtra("is_dependency_installer")) {
+            isDependencyInstall = intent.getBooleanExtra("is_dependency_installer", false);
+        }
 
         boolean shortcutChanged = incomingShortcutPath != null
                 && !incomingShortcutPath.isEmpty()
@@ -4007,6 +4013,14 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     }
 
     private void closeAfterSessionExit() {
+        // A dependency install session is pushed on top of whoever asked for it (e.g. the
+        // component installer sheet in SettingsActivity). Simply finish so that caller is
+        // revealed again — routing to UnifiedActivity with CLEAR_TOP would destroy it and
+        // dump the user on the home screen the moment an install finishes.
+        if (isDependencyInstall) {
+            finish();
+            return;
+        }
         if (launchedFromPinnedShortcut) {
             AppTerminationHelper.exitApplication(this, "shortcut_session_exit");
             return;
