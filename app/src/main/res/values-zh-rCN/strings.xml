@@ -3323,6 +3323,29 @@
     <string name="comp_install_status_running_installer">正在运行安装程序：%1$s</string>
     <string name="comp_install_error_installer_exit_code">安装程序退出码 %1$d：%2$s</string>
     <string name="comp_install_status_registering_dlls">正在注册 %1$d 个 DLL</string>
+    <!-- msiexec 标准动作名，显示在安装百分比前面 -->
+    <string name="comp_install_action_costing">正在计算空间需求</string>
+    <string name="comp_install_action_validating">正在验证安装</string>
+    <string name="comp_install_action_initializing">正在准备安装</string>
+    <string name="comp_install_action_components">正在处理组件</string>
+    <string name="comp_install_action_cleanup_files">正在删除旧文件</string>
+    <string name="comp_install_action_cleanup_folders">正在删除旧文件夹</string>
+    <string name="comp_install_action_create_folders">正在创建文件夹</string>
+    <string name="comp_install_action_move_files">正在移动文件</string>
+    <string name="comp_install_action_install_files">正在复制文件</string>
+    <string name="comp_install_action_patch_files">正在修补文件</string>
+    <string name="comp_install_action_duplicate_files">正在复制副本文件</string>
+    <string name="comp_install_action_bind_image">正在绑定映像</string>
+    <string name="comp_install_action_shortcuts">正在创建快捷方式</string>
+    <string name="comp_install_action_type_libraries">正在注册类型库</string>
+    <string name="comp_install_action_modules">正在注册模块</string>
+    <string name="comp_install_action_registry">正在写入注册表</string>
+    <string name="comp_install_action_fonts">正在注册字体</string>
+    <string name="comp_install_action_product">正在注册产品</string>
+    <string name="comp_install_action_publish">正在发布产品信息</string>
+    <string name="comp_install_action_services">正在配置服务</string>
+    <string name="comp_install_action_finalizing">正在完成安装</string>
+    <string name="comp_install_action_complete">安装完成</string>
     <string name="comp_install_error_session_active">会话仍在运行 — 请在安装组件前关闭它。</string>
     <string name="comp_install_error_timeout">安装程序超时或会话已关闭。</string>
 </resources>

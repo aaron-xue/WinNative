@@ -3237,6 +3237,29 @@ Installed path:
     <string name="comp_install_status_running_installer">Running installer: %1$s</string>
     <string name="comp_install_error_installer_exit_code">Installer exited with code %1$d: %2$s</string>
     <string name="comp_install_status_registering_dlls">Registering %1$d DLL(s)</string>
+    <!-- msiexec standard-action names, shown in front of the install percentage -->
+    <string name="comp_install_action_costing">Computing space requirements</string>
+    <string name="comp_install_action_validating">Validating install</string>
+    <string name="comp_install_action_initializing">Preparing install</string>
+    <string name="comp_install_action_components">Processing components</string>
+    <string name="comp_install_action_cleanup_files">Removing old files</string>
+    <string name="comp_install_action_cleanup_folders">Removing old folders</string>
+    <string name="comp_install_action_create_folders">Creating folders</string>
+    <string name="comp_install_action_move_files">Moving files</string>
+    <string name="comp_install_action_install_files">Copying files</string>
+    <string name="comp_install_action_patch_files">Patching files</string>
+    <string name="comp_install_action_duplicate_files">Duplicating files</string>
+    <string name="comp_install_action_bind_image">Binding images</string>
+    <string name="comp_install_action_shortcuts">Creating shortcuts</string>
+    <string name="comp_install_action_type_libraries">Registering type libraries</string>
+    <string name="comp_install_action_modules">Registering modules</string>
+    <string name="comp_install_action_registry">Writing registry values</string>
+    <string name="comp_install_action_fonts">Registering fonts</string>
+    <string name="comp_install_action_product">Registering product</string>
+    <string name="comp_install_action_publish">Publishing product info</string>
+    <string name="comp_install_action_services">Configuring services</string>
+    <string name="comp_install_action_finalizing">Finishing install</string>
+    <string name="comp_install_action_complete">Install complete</string>
     <string name="comp_install_error_session_active">A session is still running — close it before installing components.</string>
     <string name="comp_install_error_timeout">Installer timed out or the session was closed.</string>
 

@@ -19,6 +19,19 @@ object DependencyInstallBridge {
 
     @Volatile var installStatusText: String? = null
 
+    /**
+     * Human-readable label for the msiexec standard action currently running (already localised by
+     * the caller), shown in front of the percentage when one is available.
+     */
+    @Volatile private var installActionText: String? = null
+
+    /**
+     * Install progress in 0..100 reported by the guest installer (currently: parsed out of the
+     * msiexec verbose log), or -1 when the installer does not report a percentage and the UI
+     * should fall back to its elapsed-time readout.
+     */
+    @Volatile private var installProgress: Int = -1
+
     @JvmStatic
     fun updateStatus(text: String?) {
         installStatusText = text
@@ -29,10 +42,32 @@ object DependencyInstallBridge {
         return installStatusText
     }
 
+    @JvmStatic
+    fun updateAction(text: String?) {
+        installActionText = text
+    }
+
+    @JvmStatic
+    fun getAction(): String? {
+        return installActionText
+    }
+
+    @JvmStatic
+    fun updateProgress(percent: Int) {
+        installProgress = percent
+    }
+
+    @JvmStatic
+    fun getProgress(): Int {
+        return installProgress
+    }
+
     fun begin() {
         synchronized(lock) {
             latch = CountDownLatch(1)
             exitCode = -1
+            installProgress = -1
+            installActionText = null
         }
     }
 

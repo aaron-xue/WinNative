@@ -83,6 +83,7 @@ import com.winlator.cmod.runtime.compat.SteamBridge;
 import com.winlator.cmod.runtime.content.ContentProfile;
 import com.winlator.cmod.runtime.content.ContentsManager;
 import com.winlator.cmod.runtime.content.AdrenotoolsManager;
+import com.winlator.cmod.runtime.content.component.DependencyInstallBridge;
 import com.winlator.cmod.runtime.system.LogManager;
 import com.winlator.cmod.shared.android.AppUtils;
 import com.winlator.cmod.shared.android.AppTerminationHelper;
@@ -4578,15 +4579,25 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         installStatusTimerRunnable = new Runnable() {
             @Override
             public void run() {
-                String status = com.winlator.cmod.runtime.content.component.DependencyInstallBridge.getStatus();
+                String status = DependencyInstallBridge.getStatus();
                 if (status == null || status.isEmpty()) {
                     stopInstallStatusTimer();
                     return;
                 }
-                long elapsedMs = System.currentTimeMillis() - installStatusStartTime;
-                long elapsedSeconds = elapsedMs / 1000;
-                preloaderDialog.updateInstallStatusOnUiThread(status, elapsedSeconds);
-                installStatusTimerHandler.postDelayed(this, 1000);
+                int percent = DependencyInstallBridge.getProgress();
+                if (percent >= 0) {
+                    // The installer reports a real percentage (msiexec log) -- show it instead of a timer.
+                    preloaderDialog.updateInstallProgressOnUiThread(
+                            status,
+                            DependencyInstallBridge.getAction(),
+                            percent);
+                    installStatusTimerHandler.postDelayed(this, 400);
+                } else {
+                    long elapsedMs = System.currentTimeMillis() - installStatusStartTime;
+                    long elapsedSeconds = elapsedMs / 1000;
+                    preloaderDialog.updateInstallStatusOnUiThread(status, elapsedSeconds);
+                    installStatusTimerHandler.postDelayed(this, 1000);
+                }
             }
         };
         installStatusTimerHandler.post(installStatusTimerRunnable);
@@ -5081,7 +5092,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             audioFocusHandler = null;
         }
         if (isDependencyInstall) {
-            com.winlator.cmod.runtime.content.component.DependencyInstallBridge.complete(dependencyExitStatus);
+            DependencyInstallBridge.complete(dependencyExitStatus);
         }
         unregisterDisplayChangeListener();
         unregisterControllerAutoHideListener();

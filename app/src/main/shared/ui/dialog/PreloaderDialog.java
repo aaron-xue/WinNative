@@ -116,24 +116,6 @@ public class PreloaderDialog {
     show(activity.getString(textResId), title, badge, subtitle);
   }
 
-  public synchronized void setProgress(int percent) {
-    if (dialog == null) return;
-    composeState.setProgress(percent);
-  }
-
-  public synchronized void setIndeterminate(boolean indeterminate) {
-    if (dialog == null) return;
-    composeState.setIndeterminate(indeterminate);
-  }
-
-  public void setProgressOnUiThread(final int percent) {
-    uiHandler.post(() -> setProgress(percent));
-  }
-
-  public void setIndeterminateOnUiThread(final boolean indeterminate) {
-    uiHandler.post(() -> setIndeterminate(indeterminate));
-  }
-
   public void showOnUiThread(final int textResId) {
     uiHandler.post(() -> show(textResId));
   }
@@ -195,8 +177,26 @@ public class PreloaderDialog {
     uiHandler.post(() -> {
       if (dialog != null) {
         composeState.setText(text);
+        composeState.setInstallAction("");
         composeState.setElapsedSeconds(elapsedSeconds);
       }
+    });
+  }
+
+  /**
+   * Same as {@link #updateInstallStatusOnUiThread} but with a real percentage reported by the guest
+   * installer; the elapsed-time readout is swapped for the percentage and the ring becomes
+   * determinate.
+   */
+  public void updateInstallProgressOnUiThread(
+      final String text, final String action, final int percent) {
+    uiHandler.post(() -> {
+      if (dialog == null) return;
+      composeState.setText(text);
+      composeState.setInstallAction(action != null ? action : "");
+      composeState.setShowElapsed(false);
+      composeState.setIndeterminate(false);
+      composeState.setProgress(Math.max(0, Math.min(100, percent)));
     });
   }
 

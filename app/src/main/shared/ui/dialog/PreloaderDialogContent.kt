@@ -138,8 +138,14 @@ class PreloaderDialogState {
         stableContentLayout.value = value
     }
 
+    /** Localised name of the msiexec action in flight, shown in front of the percentage. */
+    val installAction = mutableStateOf("")
     val showElapsed = mutableStateOf(false)
     val elapsedSeconds = mutableStateOf(0L)
+
+    fun setInstallAction(value: String) {
+        installAction.value = value
+    }
 
     fun setShowElapsed(value: Boolean) {
         showElapsed.value = value
@@ -200,6 +206,7 @@ fun PreloaderDialogContent(state: PreloaderDialogState) {
     val text by state.text
     val isIndeterminate by state.isIndeterminate
     val progress by state.progress
+    val installAction by state.installAction
     val title by state.title
     val badge by state.badge
     val subtitle by state.subtitle
@@ -452,10 +459,21 @@ fun PreloaderDialogContent(state: PreloaderDialogState) {
                 )
                 }
 
-                if (showElapsed) {
+                // Real installer progress (parsed from the msiexec log) replaces the elapsed-time
+                // counter; fall back to the timer when the installer reports no percentage.
+                val progressLabel =
+                    when {
+                        showElapsed -> formatElapsed(elapsedSeconds)
+                        !isIndeterminate -> {
+                            val pct = "${progress.coerceIn(0, 100)}%"
+                            if (installAction.isNotBlank()) "$installAction · $pct" else pct
+                        }
+                        else -> null
+                    }
+                if (progressLabel != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = formatElapsed(elapsedSeconds),
+                        text = progressLabel,
                         fontSize = 14.sp,
                         fontFamily = InterFont,
                         color = TextDim.copy(alpha = contentAlpha),
