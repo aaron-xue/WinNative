@@ -288,11 +288,7 @@ class InputControlsFragment : Fragment() {
     }
 
     override fun onPause() {
-        super.onPause()
         unregisterInputDeviceListener()
-    }
-
-    override fun onPause() {
         stopSteamBackend()
         super.onPause()
     }
