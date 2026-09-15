@@ -1152,6 +1152,8 @@ interface XServerDrawerActionListener {
 
     fun onInputControlsEditClick()
 
+    fun onControllerTestClick()
+
     fun onScreenTouchModeChanged(mode: Int)
 
     fun onRtsGesturesToggled(enabled: Boolean)

@@ -1,0 +1,7 @@
+#!/bin/sh
+# Last line of defence: nothing containing removed translations can ever be
+# committed, however it got into the tree (merge, cherry-pick, checkout from an
+# upstream remote, manual edit, "git add -A", ...).
+# See tools/git/README.md.
+hooks_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+sh "$hooks_dir/../purge-translations.sh"

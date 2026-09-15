@@ -3,3 +3,9 @@ app/src/main/assets/imagefs.tzst filter=lfs diff=lfs merge=lfs -text
 app/src/main/assets/imagefs.part*.tzst filter=lfs diff=lfs merge=lfs -text
 reference/tooling/jadx.zip filter=lfs diff=lfs merge=lfs -text
 reference/tooling/jadx/lib/jadx-1.5.3-all.jar filter=lfs diff=lfs merge=lfs -text
+tools/sdl/*.patch whitespace=-blank-at-eol
+
+# Git hooks / helpers must stay LF-terminated so they still run when checked out
+# with text conversion enabled (a stray CRLF would break `sh`).
+tools/git/*.sh text eol=lf
+tools/git/hooks/* text eol=lf

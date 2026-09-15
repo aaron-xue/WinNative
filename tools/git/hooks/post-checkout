@@ -1,0 +1,6 @@
+#!/bin/sh
+# Same content as the stock Git LFS post-checkout hook (was previously living in
+# .git/hooks). Kept here so that core.hooksPath can point at tools/git/hooks
+# without losing LFS support. See tools/git/README.md.
+command -v git-lfs >/dev/null 2>&1 || { echo >&2 "\nThis repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-checkout' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks').\n"; exit 2; }
+git lfs post-checkout "$@"
