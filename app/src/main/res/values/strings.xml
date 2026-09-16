@@ -2669,7 +2669,6 @@ Installed path:
     <string name="help_env_alsa_volume">Sets the ALSA output audio gain (multiplier). e.g. 1.0 = original, 0.5 = half, 2.0 = double.</string>
     <string name="help_env_alsa_bass_boost">Sets the ALSA output bass boost (multiplier). Used to enhance low-frequency effects.</string>
     <string name="help_env_alsa_performance_mode">ALSA performance mode.</string>
-    <string name="help_env_wine_desktop_capture">Enables Wine desktop capture. Allows apps to capture the entire Wine desktop screen.</string>
     <string name="help_env_wine_do_not_create_dxgi_device_manager">Disables Wine from creating a DXGI device manager. Some games crash or render incorrectly when Wine creates one — enable this to avoid the issue.</string>
     <string name="help_env_wine_new_mediasource">Uses the new Media Source implementation. Enables Wine\'s video/audio decoders for more format support.</string>
     <string name="help_env_wine_large_address_aware">Enables Large Address Aware. Allows 32-bit Windows programs to access more than 2GB of memory (up to 4GB), helpful for memory-intensive games.</string>

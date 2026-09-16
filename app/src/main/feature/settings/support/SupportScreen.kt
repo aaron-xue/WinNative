@@ -356,16 +356,6 @@ private val envVarCategories = listOf(
         titleRes = R.string.help_env_cat_compat,
         envVars = listOf(
             EnvVarInfo(
-                name = "WINE_DESKTOP_CAPTURE",
-                type = EnvVarType.CHECKBOX,
-                descriptionRes = R.string.help_env_wine_desktop_capture,
-                default = "0",
-                options = listOf(
-                    EnvVarOption("0", R.string.help_opt_disable),
-                    EnvVarOption("1", R.string.help_opt_enable),
-                ),
-            ),
-            EnvVarInfo(
                 name = "WINE_DO_NOT_CREATE_DXGI_DEVICE_MANAGER",
                 type = EnvVarType.CHECKBOX,
                 descriptionRes = R.string.help_env_wine_do_not_create_dxgi_device_manager,

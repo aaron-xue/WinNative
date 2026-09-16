@@ -2411,7 +2411,6 @@
     <string name="help_env_alsa_volume">设置 ALSA 输出的音频增益（倍数）。例如 1.0 为原始音量，0.5 降低一半，2.0 翻倍。</string>
     <string name="help_env_alsa_bass_boost">设置 ALSA 输出的低频增强（倍数）。用于加强低音效果。</string>
     <string name="help_env_alsa_performance_mode">ALSA 性能模式。</string>
-    <string name="help_env_wine_desktop_capture">启用 Wine 桌面捕获功能。允许应用截取整个 Wine 桌面的屏幕内容。</string>
     <string name="help_env_wine_do_not_create_dxgi_device_manager">禁用 Wine 创建 DXGI 设备管理器。某些游戏在 Wine 创建 DXGI 设备管理器后会崩溃或渲染异常，启用此选项可避免。</string>
     <string name="help_env_wine_new_mediasource">使用新版 Media Source 实现。启用 Wine 的视频/音频解码器，支持更多格式。</string>
     <string name="help_env_wine_large_address_aware">启用大地址感知（Large Address Aware）。允许 32 位 Windows 程序访问超过 2GB 的内存空间（最多 4GB），对某些内存需求大的游戏有帮助。</string>
