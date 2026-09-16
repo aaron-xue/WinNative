@@ -782,7 +782,7 @@
     <string name="container_graphics_version">Graphics Driver Version</string>
     <string name="container_graphics_available_extensions">Available Extensions</string>
     <string name="container_graphics_extensions_enabled_summary">%1$d / %2$d enabled</string>
-    <string name="container_graphics_max_device_memory">Max Device Memory</string>
+    <string name="container_graphics_max_device_memory">Video Memory Limit</string>
     <string name="container_graphics_sync_frame">Sync Every Frame</string>
     <string name="container_graphics_disable_present_wait">Disable KHR_present_wait</string>
     <string name="container_graphics_present_modes">Present Modes</string>
@@ -3360,4 +3360,139 @@ Installed path:
     <string name="steam_controller_left_pad_click">Left pad click</string>
     <string name="steam_controller_right_pad_click">Right pad click</string>
     <string name="controller_test_generic">Generic</string>
+
+    <!-- Graphics Driver Settings -->
+    <string name="settings_help_graphics_driver_title">Graphics Driver Settings Reference</string>
+
+    <!-- Graphics Driver Categories -->
+    <string name="help_gd_cat_driver">Driver &amp; Device</string>
+    <string name="help_gd_cat_texture">Textures &amp; Compression</string>
+    <string name="help_gd_cat_sync">Sync &amp; Presentation</string>
+    <string name="help_gd_cat_advanced">Advanced</string>
+
+    <!-- Graphics Driver Setting Descriptions -->
+    <string name="help_gd_graphics_driver">Which Vulkan wrapper package is extracted when the container starts. Stored in its own field, not in the graphics driver config string.</string>
+    <string name="help_gd_version">Graphics driver (Turnip) version to inject. System uses the driver shipped with the device; any other entry loads an installed custom driver through Adrenotools. Changing the version re-enumerates the available extensions.</string>
+    <string name="help_gd_vulkan_version">Vulkan minor version reported to the guest. If the real driver is older it is automatically clamped down (log tag: Clamping Vulkan). Lower it for old games or old DXVK builds.</string>
+    <string name="help_gd_gpu_name">Device reports the real GPU to the game. Picking a specific card also writes its device id and vendor id, fooling games that branch on the GPU name. Ignored when the DXVK version is 1.11.1-sarek.</string>
+    <string name="help_gd_max_device_memory">Cap in MB that the Vulkan wrapper puts on device memory (video memory, VRAM). 0 (default) does not set the limit at all — the wrapper and driver manage memory on their own. A value above 0 only clamps what the guest is allowed to see and allocate, it never creates memory: it stops games from loading oversized textures, but too low a value can cause allocation failures, missing textures or games refusing to start.</string>
+    <string name="help_gd_bcn_emulation">Mobile GPUs do not support desktop BCn (DXTn) compressed textures, so they must be decoded. none = leave them alone (may render black or crash), partial = only what is required (cheapest), full = everything (best compatibility, heaviest), auto = let the wrapper decide (default).</string>
+    <string name="help_gd_bcn_emulation_type">How BCn textures are decoded. software = on the CPU (most compatible, slower), compute = with a compute shader on the GPU (faster, default). Only affects the auto and full modes, and is forced off on Adreno and on Xclipse with Wrapper-Gamenative.</string>
+    <string name="help_gd_bcn_emulation_cache">Caches decoded textures so the same texture is not decoded again. Less stutter at the cost of extra disk and memory usage.</string>
+    <string name="help_gd_transcoder">Wrapper-Gamenative only. Instead of expanding BCn blocks into raw pixels, they are transcoded into a native compressed block format, which saves memory and bandwidth. cpu = stable, gpu = faster with large textures but depends on the gamenative implementation.</string>
+    <string name="help_gd_astc_transcoding">Wrapper-Gamenative only. Target ASTC block size for transcoded BCn textures. off = no ASTC transcoding, 4x4 (Fidelity) = best quality and highest cost, 8x8 (Performance) = half the memory and bandwidth with visible detail loss on normal maps and sharp textures.</string>
+    <string name="help_gd_present_mode">Present mode of the guest swap chain (inside Wine). mailbox keeps only the newest frame (low latency, no tearing, default), fifo is strict vsync locked to the refresh rate, immediate is unsynced (lowest latency, tearing), relaxed is fifo that may present late to avoid extra stutter.</string>
+    <string name="help_gd_compositor_present_mode">How the app compositor puts the final frame on screen, a different layer from the guest swap chain. fifo = one frame per refresh and most stable, mailbox = newest frame wins with lower latency, immediate = present as soon as possible and may tear.</string>
+    <string name="help_gd_sync_frame">Forces a full sync on every frame. Fixes some rendering and timing glitches but costs a lot of FPS, so use it only for troubleshooting.</string>
+    <string name="help_gd_disable_present_wait">Disables use of the VK_KHR_present_wait extension. Some drivers implement it badly and cause stutter or abnormal frame pacing; turn this on to bypass it.</string>
+    <string name="help_gd_resource_type">How images and buffers are shared between the guest and the host. auto lets the wrapper decide, dmabuf is the most compatible, ahb can be zero-copy on some devices, opaque is the fallback. Try each one when the picture is corrupted or green.</string>
+    <string name="help_gd_blacklisted_extensions">Vulkan extensions hidden from the guest. The list comes from the currently selected driver; if a game crashes or renders wrongly with a specific extension, uncheck it here. The list resets when the driver version changes.</string>
+
+    <!-- Graphics Driver Option Values -->
+    <string name="help_opt_gd_off">Off</string>
+    <string name="help_opt_gd_on">On</string>
+    <string name="help_opt_gd_wrapper">Standard wrapper (graphics_driver/wrapper.tzst)</string>
+    <string name="help_opt_gd_wrapper_leegao">Same wrapper plus usr/lib registered as the Adrenotools hooks path</string>
+    <string name="help_opt_gd_wrapper_gamenative">Wrapper with BCn transcoder and ASTC transcoding support</string>
+    <string name="help_opt_gd_version_system">Use the Vulkan driver shipped with the device</string>
+    <string name="help_opt_gd_version_custom">An installed custom Turnip or Adrenotools driver</string>
+    <string name="help_opt_gd_vulkan_11">Vulkan 1.1 — widest compatibility with old games and old DXVK</string>
+    <string name="help_opt_gd_vulkan_12">Vulkan 1.2 — adds timeline semaphores and descriptor indexing</string>
+    <string name="help_opt_gd_vulkan_13">Vulkan 1.3 — required by newer DXVK and VKD3D builds</string>
+    <string name="help_opt_gd_vulkan_14">Vulkan 1.4 — default, newest features, clamped down if the driver is older</string>
+    <string name="help_opt_gd_gpu_device">Passthrough — report the real GPU</string>
+    <string name="help_opt_gd_gpu_custom">Report the selected graphics card, including device id and vendor id</string>
+    <string name="help_opt_gd_memory_default">0 (Default) — no limit, the variable is not written at all</string>
+    <string name="help_opt_gd_memory_512">512 MB</string>
+    <string name="help_opt_gd_memory_1024">1024 MB</string>
+    <string name="help_opt_gd_memory_2048">2048 MB</string>
+    <string name="help_opt_gd_memory_4096">4096 MB</string>
+    <string name="help_opt_gd_memory_8192">8192 MB</string>
+    <string name="help_opt_gd_memory_12288">12288 MB</string>
+    <string name="help_opt_gd_memory_16384">16384 MB</string>
+    <string name="help_opt_gd_bcn_none">none — no emulation, BCn textures may render wrong</string>
+    <string name="help_opt_gd_bcn_partial">partial — emulate only what is required</string>
+    <string name="help_opt_gd_bcn_full">full — emulate everything, best compatibility</string>
+    <string name="help_opt_gd_bcn_auto">auto — let the wrapper decide (default)</string>
+    <string name="help_opt_gd_bcn_type_software">software — decode on the CPU, most compatible but slower</string>
+    <string name="help_opt_gd_bcn_type_compute">compute — decode with a compute shader on the GPU, faster</string>
+    <string name="help_opt_gd_transcoder_cpu">cpu — transcode on the CPU, stable</string>
+    <string name="help_opt_gd_transcoder_gpu">gpu — transcode on the GPU, faster with large textures</string>
+    <string name="help_opt_gd_astc_off">off — no ASTC transcoding</string>
+    <string name="help_opt_gd_astc_4x4">4x4 (Fidelity) — best quality, highest memory and bandwidth cost</string>
+    <string name="help_opt_gd_astc_8x8">8x8 (Performance) — half the memory and bandwidth, some detail loss</string>
+    <string name="help_opt_gd_present_mailbox">mailbox — newest frame only, low latency, no tearing</string>
+    <string name="help_opt_gd_present_fifo">fifo — strict vsync, locked to the refresh rate</string>
+    <string name="help_opt_gd_present_immediate">immediate — unsynced, lowest latency, tearing</string>
+    <string name="help_opt_gd_present_relaxed">relaxed — fifo that may present late to avoid extra stutter</string>
+    <string name="help_opt_gd_compositor_fifo">FIFO — one frame per refresh, most stable</string>
+    <string name="help_opt_gd_compositor_mailbox">Mailbox — newest frame wins, lower latency</string>
+    <string name="help_opt_gd_compositor_immediate">Immediate — present as soon as possible, may tear</string>
+    <string name="help_opt_gd_resource_auto">auto — let the wrapper choose</string>
+    <string name="help_opt_gd_resource_dmabuf">dmabuf — most compatible</string>
+    <string name="help_opt_gd_resource_ahb">ahb — Android Hardware Buffer, can be zero-copy</string>
+    <string name="help_opt_gd_resource_opaque">opaque — compatibility fallback</string>
+
+    <!-- DX Wrapper Settings -->
+    <string name="settings_help_dx_wrapper_title">DX Wrapper Settings Reference</string>
+
+    <!-- DX Wrapper Categories -->
+    <string name="help_dxw_cat_wrapper">Wrapper Selection</string>
+    <string name="help_dxw_cat_dxvk">DXVK Configuration</string>
+    <string name="help_dxw_cat_wined3d">WineD3D Configuration</string>
+
+    <!-- DX Wrapper Setting Descriptions -->
+    <string name="help_dxw_dxwrapper">Which translation layer converts Direct3D calls. Stored in its own field; the detailed parameters live in dxwrapperConfig (comma separated, unlike the graphics driver config which uses semicolons).</string>
+    <string name="help_dxw_version">DXVK version to inject. None does not inject DXVK at all. Entries come from the installed DXVK content packages, and arm64ec builds are filtered out on non-ARM64EC containers. Only versions whose name contains async or gplasync can use the two async switches below.</string>
+    <string name="help_dxw_async">Shader compilation no longer blocks rendering (DXVK_ASYNC). This is the main fix for multi-second freezes when entering a scene for the first time. May briefly show missing or flickering geometry; a few strict anti-cheat setups do not accept it.</string>
+    <string name="help_dxw_async_cache">Caches the GPL shaders produced by async compilation on disk, so the same scene does not stutter again on the next launch. Requires a gplasync DXVK build. Recommended to leave on.</string>
+    <string name="help_dxw_vkd3d_version">VKD3D version to inject, only used by D3D12 games. None falls back to the Wine built-in d3d12.dll. Selecting a version here restricts the DXVK list to 2.x and newer.</string>
+    <string name="help_dxw_vkd3d_level">D3D feature level reported to the game (VKD3D_FEATURE_LEVEL). Lower it when a D3D12 game refuses to start or reports an unsupported feature level; setting it too low makes games drop advanced effects or refuse to run.</string>
+    <string name="help_dxw_ddrawrapper">DirectDraw wrapper for pre-2000 games using DirectDraw or Direct3D 7 and older. The Glide compatibility layer (nglide) is always extracted first. D7VK entries come from installed content packages.</string>
+    <string name="help_dxw_csmt">Command stream multi-threading: submits the D3D command stream from a separate thread so the main thread is not blocked by the driver. Usually a clear FPS gain; disable it only if an old game glitches or crashes.</string>
+    <string name="help_dxw_gpu_name">Graphics card reported to the game through its device id, fixing games that refuse to run on an unrecognized GPU. Applies to the WineD3D path only — with DXVK the GPU name from the graphics driver settings takes effect instead.</string>
+    <string name="help_dxw_video_memory_size">Video memory size in MB reported to the game. Old games pick their texture quality from this value; reporting too much memory makes them load textures that do not fit.</string>
+    <string name="help_dxw_strict_shader_math">Forces shaders to follow IEEE math rules, so lighting and fog match the PC original. Disabling it lets the driver use faster approximations, which may change lighting or fog.</string>
+    <string name="help_dxw_offscreen_rendering_mode">Where WineD3D renders offscreen content. fbo renders into a framebuffer object and then composites (best compatibility, default); backbuffer renders straight into the back buffer, faster in some games and worth trying when fbo shows corruption or a black screen.</string>
+    <string name="help_dxw_renderer">Backend used by WineD3D. gl is the default and still ends up on Vulkan through zink; vulkan is faster in some cases but less compatible; gdi is a last-resort software path for very old 2D games.</string>
+
+    <!-- DX Wrapper Option Values -->
+    <string name="help_opt_dxw_wined3d">WineD3D — D3D to OpenGL or Vulkan. Best compatibility for old, DirectDraw and 2D games, usually slower than DXVK</string>
+    <string name="help_opt_dxw_dxvk">DXVK+VKD3D — D3D9/10/11 through DXVK and D3D12 through VKD3D, both to Vulkan. Faster, with async and cached shader compilation</string>
+    <string name="help_opt_dxw_version_none">None — do not inject DXVK</string>
+    <string name="help_opt_dxw_version_package">An installed DXVK content package</string>
+    <string name="help_opt_dxw_vkd3d_none">None — keep the Wine built-in d3d12.dll</string>
+    <string name="help_opt_dxw_vkd3d_package">An installed VKD3D content package</string>
+    <string name="help_opt_dxw_level_12_2">12_2 — highest, only for games that require it</string>
+    <string name="help_opt_dxw_level_12_1">12_1 — default, what most D3D12 games expect</string>
+    <string name="help_opt_dxw_level_12_0">12_0 — try this when a game reports an unsupported feature level</string>
+    <string name="help_opt_dxw_level_11_1">11_1 — D3D11.1 level, next fallback for stubborn games</string>
+    <string name="help_opt_dxw_level_11_0">11_0 — D3D11 level, disables most D3D12 features</string>
+    <string name="help_opt_dxw_level_9_3">9_3 — lowest, only for very old or misbehaving titles</string>
+    <string name="help_opt_dxw_ddraw_none">none — restore the Wine built-in ddraw.dll and d3dimm.dll</string>
+    <string name="help_opt_dxw_ddraw_cnc">CnC-DDraw — classic wrapper, also sets CNC_DDRAW_CONFIG_FILE</string>
+    <string name="help_opt_dxw_ddraw_dd7to9">Dd7To9 — translates Direct3D 7 calls to D3D9</string>
+    <string name="help_opt_dxw_ddraw_421">ddraw-4.21 — older ddraw build</string>
+    <string name="help_opt_dxw_ddraw_118">ddraw-11.8 — newer ddraw build</string>
+    <string name="help_opt_dxw_ddraw_d7vk">D7VK — Direct3D 7 over Vulkan, from an installed content package</string>
+    <string name="help_opt_dxw_gpu_default">NVIDIA GeForce GTX 480 — a safe card most games recognize</string>
+    <string name="help_opt_dxw_gpu_custom">Any card from the GPU list, reported through its device id</string>
+    <string name="help_opt_dxw_vmem_256">256 MB</string>
+    <string name="help_opt_dxw_vmem_512">512 MB</string>
+    <string name="help_opt_dxw_vmem_1024">1024 MB</string>
+    <string name="help_opt_dxw_vmem_2048">2048 MB</string>
+    <string name="help_opt_dxw_vmem_4096">4096 MB (default)</string>
+    <string name="help_opt_dxw_offscreen_fbo">fbo — render into a framebuffer object, best compatibility</string>
+    <string name="help_opt_dxw_offscreen_backbuffer">backbuffer — render into the back buffer, faster in some games</string>
+    <string name="help_opt_dxw_renderer_gl">gl — OpenGL backend, still running on Vulkan through zink</string>
+    <string name="help_opt_dxw_renderer_vulkan">vulkan — WineD3D Vulkan backend, faster in some cases, less compatible</string>
+    <string name="help_opt_dxw_renderer_gdi">gdi — GDI software rendering, last resort for very old 2D games</string>
+
+    <!-- Help: setting value types -->
+    <string name="help_type_checkbox">Checkbox</string>
+    <string name="help_type_select">Select</string>
+    <string name="help_type_multi_select">Multi-Select</string>
+    <string name="help_type_text">Text</string>
+    <string name="help_type_number">Number</string>
+    <string name="help_type_decimal">Decimal</string>
 </resources>

@@ -63,14 +63,16 @@ private data class EnvVarOption(
     @StringRes val descRes: Int,
 )
 
-private enum class EnvVarType(val label: String) {
-    CHECKBOX("Checkbox"),
-    SELECT("Select"),
-    SELECT_CUSTOM("Select"),
-    SELECT_MULTIPLE("Multi-Select"),
-    TEXT("Text"),
-    NUMBER("Number"),
-    DECIMAL("Decimal"),
+private enum class EnvVarType(
+    @StringRes val labelRes: Int,
+) {
+    CHECKBOX(R.string.help_type_checkbox),
+    SELECT(R.string.help_type_select),
+    SELECT_CUSTOM(R.string.help_type_select),
+    SELECT_MULTIPLE(R.string.help_type_multi_select),
+    TEXT(R.string.help_type_text),
+    NUMBER(R.string.help_type_number),
+    DECIMAL(R.string.help_type_decimal),
 }
 
 private data class EnvVarInfo(
@@ -79,6 +81,7 @@ private data class EnvVarInfo(
     @StringRes val descriptionRes: Int,
     val default: String = "",
     val options: List<EnvVarOption> = emptyList(),
+    @StringRes val labelRes: Int = 0,
 )
 
 private data class EnvVarCategory(
@@ -972,6 +975,375 @@ private val fexcoreEnvVarCategories = listOf(
     ),
 )
 
+private val graphicsDriverOnOffOptions = listOf(
+    EnvVarOption("0", R.string.help_opt_gd_off),
+    EnvVarOption("1", R.string.help_opt_gd_on),
+)
+
+private val graphicsDriverCategories = listOf(
+    EnvVarCategory(
+        titleRes = R.string.help_gd_cat_driver,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "graphicsDriver",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_graphics_driver,
+                labelRes = R.string.container_graphics_driver,
+                default = "Wrapper",
+                options = listOf(
+                    EnvVarOption("Wrapper", R.string.help_opt_gd_wrapper),
+                    EnvVarOption("Wrapper-Leegao", R.string.help_opt_gd_wrapper_leegao),
+                    EnvVarOption("Wrapper-Gamenative", R.string.help_opt_gd_wrapper_gamenative),
+                ),
+            ),
+            EnvVarInfo(
+                name = "version",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_version,
+                labelRes = R.string.container_graphics_version,
+                default = "System",
+                options = listOf(
+                    EnvVarOption("System", R.string.help_opt_gd_version_system),
+                    EnvVarOption("<driver>", R.string.help_opt_gd_version_custom),
+                ),
+            ),
+            EnvVarInfo(
+                name = "vulkanVersion",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_vulkan_version,
+                labelRes = R.string.container_graphics_vulkan_version,
+                default = "1.4",
+                options = listOf(
+                    EnvVarOption("1.1", R.string.help_opt_gd_vulkan_11),
+                    EnvVarOption("1.2", R.string.help_opt_gd_vulkan_12),
+                    EnvVarOption("1.3", R.string.help_opt_gd_vulkan_13),
+                    EnvVarOption("1.4", R.string.help_opt_gd_vulkan_14),
+                ),
+            ),
+            EnvVarInfo(
+                name = "gpuName",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_gpu_name,
+                labelRes = R.string.container_wine_gpu_name,
+                default = "Device",
+                options = listOf(
+                    EnvVarOption("Device", R.string.help_opt_gd_gpu_device),
+                    EnvVarOption("<card name>", R.string.help_opt_gd_gpu_custom),
+                ),
+            ),
+            EnvVarInfo(
+                name = "maxDeviceMemory",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_max_device_memory,
+                labelRes = R.string.container_graphics_max_device_memory,
+                default = "0",
+                options = listOf(
+                    EnvVarOption("0", R.string.help_opt_gd_memory_default),
+                    EnvVarOption("512", R.string.help_opt_gd_memory_512),
+                    EnvVarOption("1024", R.string.help_opt_gd_memory_1024),
+                    EnvVarOption("2048", R.string.help_opt_gd_memory_2048),
+                    EnvVarOption("4096", R.string.help_opt_gd_memory_4096),
+                    EnvVarOption("8192", R.string.help_opt_gd_memory_8192),
+                    EnvVarOption("12288", R.string.help_opt_gd_memory_12288),
+                    EnvVarOption("16384", R.string.help_opt_gd_memory_16384),
+                ),
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_gd_cat_texture,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "bcnEmulation",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_bcn_emulation,
+                labelRes = R.string.container_graphics_bcn_emulation,
+                default = "auto",
+                options = listOf(
+                    EnvVarOption("none", R.string.help_opt_gd_bcn_none),
+                    EnvVarOption("partial", R.string.help_opt_gd_bcn_partial),
+                    EnvVarOption("full", R.string.help_opt_gd_bcn_full),
+                    EnvVarOption("auto", R.string.help_opt_gd_bcn_auto),
+                ),
+            ),
+            EnvVarInfo(
+                name = "bcnEmulationType",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_bcn_emulation_type,
+                labelRes = R.string.container_graphics_bcn_emulation_type,
+                default = "compute",
+                options = listOf(
+                    EnvVarOption("software", R.string.help_opt_gd_bcn_type_software),
+                    EnvVarOption("compute", R.string.help_opt_gd_bcn_type_compute),
+                ),
+            ),
+            EnvVarInfo(
+                name = "bcnEmulationCache",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_gd_bcn_emulation_cache,
+                labelRes = R.string.container_graphics_bcn_emulation_cache,
+                default = "0",
+                options = graphicsDriverOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "transcoder",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_transcoder,
+                labelRes = R.string.container_graphics_transcoder,
+                default = "cpu",
+                options = listOf(
+                    EnvVarOption("cpu", R.string.help_opt_gd_transcoder_cpu),
+                    EnvVarOption("gpu", R.string.help_opt_gd_transcoder_gpu),
+                ),
+            ),
+            EnvVarInfo(
+                name = "astcTranscoding",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_astc_transcoding,
+                labelRes = R.string.container_graphics_astc_transcoding,
+                default = "off",
+                options = listOf(
+                    EnvVarOption("off", R.string.help_opt_gd_astc_off),
+                    EnvVarOption("4x4", R.string.help_opt_gd_astc_4x4),
+                    EnvVarOption("8x8", R.string.help_opt_gd_astc_8x8),
+                ),
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_gd_cat_sync,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "presentMode",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_present_mode,
+                labelRes = R.string.container_graphics_present_modes,
+                default = "mailbox",
+                options = listOf(
+                    EnvVarOption("mailbox", R.string.help_opt_gd_present_mailbox),
+                    EnvVarOption("fifo", R.string.help_opt_gd_present_fifo),
+                    EnvVarOption("immediate", R.string.help_opt_gd_present_immediate),
+                    EnvVarOption("relaxed", R.string.help_opt_gd_present_relaxed),
+                ),
+            ),
+            EnvVarInfo(
+                name = "compositorPresentMode",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_compositor_present_mode,
+                labelRes = R.string.container_graphics_compositor_present_mode,
+                default = "fifo",
+                options = listOf(
+                    EnvVarOption("fifo", R.string.help_opt_gd_compositor_fifo),
+                    EnvVarOption("mailbox", R.string.help_opt_gd_compositor_mailbox),
+                    EnvVarOption("immediate", R.string.help_opt_gd_compositor_immediate),
+                ),
+            ),
+            EnvVarInfo(
+                name = "syncFrame",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_gd_sync_frame,
+                labelRes = R.string.container_graphics_sync_frame,
+                default = "0",
+                options = graphicsDriverOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "disablePresentWait",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_gd_disable_present_wait,
+                labelRes = R.string.container_graphics_disable_present_wait,
+                default = "0",
+                options = graphicsDriverOnOffOptions,
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_gd_cat_advanced,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "resourceType",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_gd_resource_type,
+                labelRes = R.string.container_graphics_resource_type,
+                default = "auto",
+                options = listOf(
+                    EnvVarOption("auto", R.string.help_opt_gd_resource_auto),
+                    EnvVarOption("dmabuf", R.string.help_opt_gd_resource_dmabuf),
+                    EnvVarOption("ahb", R.string.help_opt_gd_resource_ahb),
+                    EnvVarOption("opaque", R.string.help_opt_gd_resource_opaque),
+                ),
+            ),
+            EnvVarInfo(
+                name = "blacklistedExtensions",
+                type = EnvVarType.SELECT_MULTIPLE,
+                descriptionRes = R.string.help_gd_blacklisted_extensions,
+                labelRes = R.string.container_graphics_available_extensions,
+                default = "",
+            ),
+        ),
+    ),
+)
+
+private val dxWrapperCategories = listOf(
+    EnvVarCategory(
+        titleRes = R.string.help_dxw_cat_wrapper,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "dxwrapper",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_dxw_dxwrapper,
+                labelRes = R.string.container_wine_dxwrapper,
+                default = "DXVK+VKD3D",
+                options = listOf(
+                    EnvVarOption("WineD3D", R.string.help_opt_dxw_wined3d),
+                    EnvVarOption("DXVK+VKD3D", R.string.help_opt_dxw_dxvk),
+                ),
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_dxw_cat_dxvk,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "version",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_dxw_version,
+                labelRes = R.string.container_wine_dxvk_version,
+                default = "None",
+                options = listOf(
+                    EnvVarOption("None", R.string.help_opt_dxw_version_none),
+                    EnvVarOption("<package>", R.string.help_opt_dxw_version_package),
+                ),
+            ),
+            EnvVarInfo(
+                name = "async",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_dxw_async,
+                labelRes = R.string.container_wine_enabled_async,
+                default = "1",
+                options = graphicsDriverOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "asyncCache",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_dxw_async_cache,
+                labelRes = R.string.container_wine_enabled_async_cache,
+                default = "1",
+                options = graphicsDriverOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "vkd3dVersion",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_dxw_vkd3d_version,
+                labelRes = R.string.container_wine_vkd3d_version,
+                default = "None",
+                options = listOf(
+                    EnvVarOption("None", R.string.help_opt_dxw_vkd3d_none),
+                    EnvVarOption("<package>", R.string.help_opt_dxw_vkd3d_package),
+                ),
+            ),
+            EnvVarInfo(
+                name = "vkd3dLevel",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_dxw_vkd3d_level,
+                labelRes = R.string.container_wine_vkd3d_feature_level,
+                default = "12_1",
+                options = listOf(
+                    EnvVarOption("12_2", R.string.help_opt_dxw_level_12_2),
+                    EnvVarOption("12_1", R.string.help_opt_dxw_level_12_1),
+                    EnvVarOption("12_0", R.string.help_opt_dxw_level_12_0),
+                    EnvVarOption("11_1", R.string.help_opt_dxw_level_11_1),
+                    EnvVarOption("11_0", R.string.help_opt_dxw_level_11_0),
+                    EnvVarOption("9_3", R.string.help_opt_dxw_level_9_3),
+                ),
+            ),
+            EnvVarInfo(
+                name = "ddrawrapper",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_dxw_ddrawrapper,
+                labelRes = R.string.container_wine_ddraw_wrapper,
+                default = "none",
+                options = listOf(
+                    EnvVarOption("none", R.string.help_opt_dxw_ddraw_none),
+                    EnvVarOption("cnc-ddraw", R.string.help_opt_dxw_ddraw_cnc),
+                    EnvVarOption("Dd7To9", R.string.help_opt_dxw_ddraw_dd7to9),
+                    EnvVarOption("ddraw-4.21", R.string.help_opt_dxw_ddraw_421),
+                    EnvVarOption("ddraw-11.8", R.string.help_opt_dxw_ddraw_118),
+                    EnvVarOption("D7VK", R.string.help_opt_dxw_ddraw_d7vk),
+                ),
+            ),
+        ),
+    ),
+    EnvVarCategory(
+        titleRes = R.string.help_dxw_cat_wined3d,
+        envVars = listOf(
+            EnvVarInfo(
+                name = "csmt",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_dxw_csmt,
+                labelRes = R.string.container_wine_csmt,
+                default = "1",
+                options = graphicsDriverOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "gpuName",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_dxw_gpu_name,
+                labelRes = R.string.container_wine_gpu_name,
+                default = "NVIDIA GeForce GTX 480",
+                options = listOf(
+                    EnvVarOption("NVIDIA GeForce GTX 480", R.string.help_opt_dxw_gpu_default),
+                    EnvVarOption("<card name>", R.string.help_opt_dxw_gpu_custom),
+                ),
+            ),
+            EnvVarInfo(
+                name = "videoMemorySize",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_dxw_video_memory_size,
+                labelRes = R.string.container_wine_video_memory_size,
+                default = "4096",
+                options = listOf(
+                    EnvVarOption("256", R.string.help_opt_dxw_vmem_256),
+                    EnvVarOption("512", R.string.help_opt_dxw_vmem_512),
+                    EnvVarOption("1024", R.string.help_opt_dxw_vmem_1024),
+                    EnvVarOption("2048", R.string.help_opt_dxw_vmem_2048),
+                    EnvVarOption("4096", R.string.help_opt_dxw_vmem_4096),
+                ),
+            ),
+            EnvVarInfo(
+                name = "strict_shader_math",
+                type = EnvVarType.CHECKBOX,
+                descriptionRes = R.string.help_dxw_strict_shader_math,
+                labelRes = R.string.container_wine_strict_shader_math,
+                default = "1",
+                options = graphicsDriverOnOffOptions,
+            ),
+            EnvVarInfo(
+                name = "OffscreenRenderingMode",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_dxw_offscreen_rendering_mode,
+                labelRes = R.string.container_wine_offscreen_rendering_mode,
+                default = "fbo",
+                options = listOf(
+                    EnvVarOption("fbo", R.string.help_opt_dxw_offscreen_fbo),
+                    EnvVarOption("backbuffer", R.string.help_opt_dxw_offscreen_backbuffer),
+                ),
+            ),
+            EnvVarInfo(
+                name = "renderer",
+                type = EnvVarType.SELECT,
+                descriptionRes = R.string.help_dxw_renderer,
+                labelRes = R.string.container_config_renderer,
+                default = "gl",
+                options = listOf(
+                    EnvVarOption("gl", R.string.help_opt_dxw_renderer_gl),
+                    EnvVarOption("vulkan", R.string.help_opt_dxw_renderer_vulkan),
+                    EnvVarOption("gdi", R.string.help_opt_dxw_renderer_gdi),
+                ),
+            ),
+        ),
+    ),
+)
+
 @Composable
 private fun SectionHeader(@StringRes titleRes: Int) {
     Text(
@@ -993,7 +1365,7 @@ private fun TypeChip(type: EnvVarType) {
                 .padding(horizontal = 6.dp, vertical = 2.dp),
     ) {
         Text(
-            type.label,
+            stringResource(type.labelRes),
             color = HelpAccent,
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
@@ -1021,13 +1393,24 @@ private fun EnvVarCard(info: EnvVarInfo) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    info.name,
+                    if (info.labelRes != 0) stringResource(info.labelRes) else info.name,
                     color = HelpText,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (info.labelRes != 0) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        info.name,
+                        color = HelpSub,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 Spacer(Modifier.height(2.dp))
                 Text(
                     stringResource(info.descriptionRes),
@@ -1210,6 +1593,48 @@ fun SupportScreen(bridge: SettingsNavBridge? = null) {
                     }
                     category.envVars.forEach { envVar ->
                         item(key = "fexcore_var_${envVar.name}") {
+                            EnvVarCard(envVar)
+                        }
+                    }
+                }
+            }
+
+            stickyHeader(key = "graphicsdriver") {
+                AccordionSectionHeader(
+                    titleRes = R.string.settings_help_graphics_driver_title,
+                    expanded = expandedSection == 4,
+                    onClick = { expandedSection = if (expandedSection == 4) 0 else 4 },
+                )
+            }
+
+            if (expandedSection == 4) {
+                graphicsDriverCategories.forEach { category ->
+                    item(key = "gd_cat_${category.titleRes}") {
+                        SectionHeader(category.titleRes)
+                    }
+                    category.envVars.forEach { envVar ->
+                        item(key = "gd_var_${envVar.name}") {
+                            EnvVarCard(envVar)
+                        }
+                    }
+                }
+            }
+
+            stickyHeader(key = "dxwrapper") {
+                AccordionSectionHeader(
+                    titleRes = R.string.settings_help_dx_wrapper_title,
+                    expanded = expandedSection == 5,
+                    onClick = { expandedSection = if (expandedSection == 5) 0 else 5 },
+                )
+            }
+
+            if (expandedSection == 5) {
+                dxWrapperCategories.forEach { category ->
+                    item(key = "dxw_cat_${category.titleRes}") {
+                        SectionHeader(category.titleRes)
+                    }
+                    category.envVars.forEach { envVar ->
+                        item(key = "dxw_var_${envVar.name}") {
                             EnvVarCard(envVar)
                         }
                     }

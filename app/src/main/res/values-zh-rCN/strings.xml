@@ -602,7 +602,7 @@
     <string name="container_graphics_version">图形驱动版本</string>
     <string name="container_graphics_available_extensions">可用扩展</string>
     <string name="container_graphics_extensions_enabled_summary">已启用 %1$d / %2$d</string>
-    <string name="container_graphics_max_device_memory">最大设备内存</string>
+    <string name="container_graphics_max_device_memory">显存上限</string>
     <string name="container_graphics_sync_frame">每帧同步</string>
     <string name="container_graphics_disable_present_wait">禁用 KHR_present_wait</string>
     <string name="container_graphics_present_modes">呈现模式</string>
@@ -3348,4 +3348,139 @@
     <string name="comp_install_action_complete">安装完成</string>
     <string name="comp_install_error_session_active">会话仍在运行 — 请在安装组件前关闭它。</string>
     <string name="comp_install_error_timeout">安装程序超时或会话已关闭。</string>
+
+    <!-- Graphics Driver Settings -->
+    <string name="settings_help_graphics_driver_title">图形驱动配置说明</string>
+
+    <!-- Graphics Driver Categories -->
+    <string name="help_gd_cat_driver">驱动与设备</string>
+    <string name="help_gd_cat_texture">纹理与压缩</string>
+    <string name="help_gd_cat_sync">同步与呈现</string>
+    <string name="help_gd_cat_advanced">高级</string>
+
+    <!-- Graphics Driver Setting Descriptions -->
+    <string name="help_gd_graphics_driver">启动容器时解压哪一套 Vulkan wrapper。该选项独立存储，不在图形驱动配置串里。</string>
+    <string name="help_gd_version">要注入的图形驱动（Turnip）版本。System 使用设备自带的驱动；选择其它条目则通过 Adrenotools 加载已安装的自定义驱动。切换版本会重新枚举可用扩展。</string>
+    <string name="help_gd_vulkan_version">向 guest 声明的 Vulkan 次版本号。若驱动实际版本更低，会自动降级并在日志中打印 Clamping Vulkan。老游戏或旧版 DXVK 可调低此项。</string>
+    <string name="help_gd_gpu_name">Device 表示把设备真实 GPU 信息透传给游戏。选择具体显卡时会一并写入对应的 device id 与 vendor id，用于骗过按显卡名分支的游戏。DXVK 版本为 1.11.1-sarek 时该项不生效。</string>
+    <string name="help_gd_max_device_memory">交给 Vulkan wrapper 的显存（device memory / VRAM）上限，单位 MB。0（默认）表示完全不设限，此时不会写入任何环境变量，由 wrapper 与驱动自行管理；只有大于 0 时才生效，且只是把 guest 能看到与能分配的显存压到该上限，并不会凭空多出显存。可用于阻止游戏按大显存加载超大纹理，但设得过小可能导致分配失败、贴图缺失或游戏拒绝启动。</string>
+    <string name="help_gd_bcn_emulation">移动 GPU 大多不支持桌面 BCn（DXTn）压缩纹理，需要解码处理。none = 不处理（贴图可能发黑或崩溃），partial = 只处理必要的部分（开销最小），full = 全量处理（兼容性最好、开销最大），auto = 交给 wrapper 判断（默认）。</string>
+    <string name="help_gd_bcn_emulation_type">BCn 纹理的解码方式。software = 用 CPU 解码（兼容性最好但慢），compute = 用 GPU 计算着色器解码（更快，默认）。仅影响 auto 与 full 两种模式；在 Adreno 以及 Wrapper-Gamenative + Xclipse 上会被强制关闭。</string>
+    <string name="help_gd_bcn_emulation_cache">缓存已解码的纹理，重复出现的贴图无需再次解码，可减少卡顿，代价是占用更多磁盘与内存。</string>
+    <string name="help_gd_transcoder">仅 Wrapper-Gamenative 可用。不再把 BCn 块展开成未压缩像素，而是转码成 GPU 原生的压缩块格式，从而节省显存与带宽。cpu = 稳定，gpu = 大纹理时更快，但依赖 gamenative 的实现。</string>
+    <string name="help_gd_astc_transcoding">仅 Wrapper-Gamenative 可用。决定 BCn 纹理转码成哪种 ASTC 块。off = 不做 ASTC 转码，4x4（Fidelity）= 画质最好、开销最大，8x8（Performance）= 显存与带宽减半，法线贴图和锐利纹理上会有可见细节损失。</string>
+    <string name="help_gd_present_mode">guest 侧（Wine 内）交换链的呈现模式。mailbox = 队列里只留最新帧（延迟低、不撕裂，默认），fifo = 严格垂直同步、帧率锁在刷新率，immediate = 不同步（延迟最低、会撕裂），relaxed = 允许延迟呈现以避免卡顿加剧的 fifo。</string>
+    <string name="help_gd_compositor_present_mode">应用自身的合成器把最终画面上屏的方式，与 guest 交换链是两层。fifo = 每个刷新周期一帧、最稳，mailbox = 有新帧就替换、延迟更低，immediate = 尽快上屏、可能撕裂。</string>
+    <string name="help_gd_sync_frame">强制每帧都做同步。可修复部分渲染错乱与时序问题，但会明显掉帧，仅建议排查时开启。</string>
+    <string name="help_gd_disable_present_wait">禁用 VK_KHR_present_wait 扩展。部分驱动对该扩展实现有问题，会导致卡顿或帧率异常，可开启此项绕开。</string>
+    <string name="help_gd_resource_type">guest 与 host 之间图像与缓冲内存的共享方式。auto = 由 wrapper 自行挑选，dmabuf = 兼容性最好，ahb = 部分设备上可零拷贝，opaque = 兼容性兜底。出现花屏、绿屏时可逐个切换排查。</string>
+    <string name="help_gd_blacklisted_extensions">对 guest 隐藏的 Vulkan 扩展。列表来自当前所选驱动；若某游戏在特定扩展下崩溃或渲染异常，取消勾选即可屏蔽。切换驱动版本后该列表会重置。</string>
+
+    <!-- Graphics Driver Option Values -->
+    <string name="help_opt_gd_off">关闭</string>
+    <string name="help_opt_gd_on">开启</string>
+    <string name="help_opt_gd_wrapper">标准 wrapper（graphics_driver/wrapper.tzst）</string>
+    <string name="help_opt_gd_wrapper_leegao">同上，并额外把 usr/lib 注册为 Adrenotools hooks 路径</string>
+    <string name="help_opt_gd_wrapper_gamenative">支持 BCn 转码器与 ASTC 转码的 wrapper</string>
+    <string name="help_opt_gd_version_system">使用设备自带的 Vulkan 驱动</string>
+    <string name="help_opt_gd_version_custom">已安装的自定义 Turnip / Adrenotools 驱动</string>
+    <string name="help_opt_gd_vulkan_11">Vulkan 1.1 — 对老游戏与旧版 DXVK 兼容性最好</string>
+    <string name="help_opt_gd_vulkan_12">Vulkan 1.2 — 增加时间线信号量与描述符索引特性</string>
+    <string name="help_opt_gd_vulkan_13">Vulkan 1.3 — 较新的 DXVK / VKD3D 需要此版本</string>
+    <string name="help_opt_gd_vulkan_14">Vulkan 1.4 — 默认，特性最新，驱动较旧时会自动降级</string>
+    <string name="help_opt_gd_gpu_device">透传 — 上报真实 GPU 信息</string>
+    <string name="help_opt_gd_gpu_custom">上报所选显卡，同时写入 device id 与 vendor id</string>
+    <string name="help_opt_gd_memory_default">0（默认）— 不设限，此时不会写入环境变量</string>
+    <string name="help_opt_gd_memory_512">512 MB</string>
+    <string name="help_opt_gd_memory_1024">1024 MB</string>
+    <string name="help_opt_gd_memory_2048">2048 MB</string>
+    <string name="help_opt_gd_memory_4096">4096 MB</string>
+    <string name="help_opt_gd_memory_8192">8192 MB</string>
+    <string name="help_opt_gd_memory_12288">12288 MB</string>
+    <string name="help_opt_gd_memory_16384">16384 MB</string>
+    <string name="help_opt_gd_bcn_none">none — 不模拟，BCn 贴图可能显示错误</string>
+    <string name="help_opt_gd_bcn_partial">partial — 只模拟必要的部分</string>
+    <string name="help_opt_gd_bcn_full">full — 全量模拟，兼容性最好</string>
+    <string name="help_opt_gd_bcn_auto">auto — 交给 wrapper 判断（默认）</string>
+    <string name="help_opt_gd_bcn_type_software">software — 用 CPU 解码，兼容性最好但更慢</string>
+    <string name="help_opt_gd_bcn_type_compute">compute — 用 GPU 计算着色器解码，更快</string>
+    <string name="help_opt_gd_transcoder_cpu">cpu — 在 CPU 上转码，稳定</string>
+    <string name="help_opt_gd_transcoder_gpu">gpu — 在 GPU 上转码，大纹理时更快</string>
+    <string name="help_opt_gd_astc_off">off — 不做 ASTC 转码</string>
+    <string name="help_opt_gd_astc_4x4">4x4（Fidelity）— 画质最好，显存与带宽开销最大</string>
+    <string name="help_opt_gd_astc_8x8">8x8（Performance）— 显存与带宽减半，有细节损失</string>
+    <string name="help_opt_gd_present_mailbox">mailbox — 只保留最新帧，延迟低、不撕裂</string>
+    <string name="help_opt_gd_present_fifo">fifo — 严格垂直同步，帧率锁定在刷新率</string>
+    <string name="help_opt_gd_present_immediate">immediate — 不同步，延迟最低、会撕裂</string>
+    <string name="help_opt_gd_present_relaxed">relaxed — 允许延迟呈现以避免卡顿加剧的 fifo</string>
+    <string name="help_opt_gd_compositor_fifo">FIFO — 每个刷新周期一帧，最稳定</string>
+    <string name="help_opt_gd_compositor_mailbox">Mailbox — 有新帧就替换，延迟更低</string>
+    <string name="help_opt_gd_compositor_immediate">Immediate — 尽快上屏，可能撕裂</string>
+    <string name="help_opt_gd_resource_auto">auto — 由 wrapper 自行挑选</string>
+    <string name="help_opt_gd_resource_dmabuf">dmabuf — 兼容性最好</string>
+    <string name="help_opt_gd_resource_ahb">ahb — Android Hardware Buffer，部分设备可零拷贝</string>
+    <string name="help_opt_gd_resource_opaque">opaque — 兼容性兜底</string>
+
+    <!-- DX Wrapper Settings -->
+    <string name="settings_help_dx_wrapper_title">DX 包装器配置说明</string>
+
+    <!-- DX Wrapper Categories -->
+    <string name="help_dxw_cat_wrapper">包装器选择</string>
+    <string name="help_dxw_cat_dxvk">DXVK 配置</string>
+    <string name="help_dxw_cat_wined3d">WineD3D 配置</string>
+
+    <!-- DX Wrapper Setting Descriptions -->
+    <string name="help_dxw_dxwrapper">由哪套转换层来翻译 Direct3D 调用。该选项独立存储，详细参数放在 dxwrapperConfig 里（以逗号分隔，注意与用分号分隔的图形驱动配置不同）。</string>
+    <string name="help_dxw_version">要注入的 DXVK 版本。None 表示完全不注入。候选来自已安装的 DXVK 内容包，非 ARM64EC 容器会过滤掉 arm64ec 版本。只有名称含 async 或 gplasync 的版本才能使用下面两个异步开关。</string>
+    <string name="help_dxw_async">着色器编译不再阻塞渲染（DXVK_ASYNC），是解决「首次进入场景卡几秒」的主要手段。代价是着色器未编译完成时可能短暂缺画面或闪烁，少数反作弊严格的在线游戏可能不接受。</string>
+    <string name="help_dxw_async_cache">把异步编译产生的 GPL 着色器缓存到磁盘，第二次进入同一场景就不会再卡。需要带 gplasync 的 DXVK 版本，建议常开。</string>
+    <string name="help_dxw_vkd3d_version">要注入的 VKD3D 版本，仅 D3D12 游戏用得上。None 表示沿用 Wine 内置的 d3d12.dll。选择非 None 后，DXVK 版本列表会限制到 2.x 及以上。</string>
+    <string name="help_dxw_vkd3d_level">向游戏声明的 D3D 功能级别（VKD3D_FEATURE_LEVEL）。D3D12 游戏起不来或报「不支持的功能级别」时可下调；调得太低会让游戏关闭高级特效甚至拒绝启动。</string>
+    <string name="help_dxw_ddrawrapper">面向使用 DirectDraw 或 Direct3D 7 及更早接口的老游戏。启动时总会先解压 Glide 兼容层（nglide）。D7VK 条目来自已安装的内容包。</string>
+    <string name="help_dxw_csmt">命令流多线程：把 D3D 命令流的提交放到独立线程，避免主线程被驱动阻塞，通常能明显提升帧率。仅当个别老游戏开启后花屏或崩溃时才关闭。</string>
+    <string name="help_dxw_gpu_name">用所选显卡的 device id 向游戏伪装硬件，解决「显卡不被识别 / 报不支持」的问题。只对 WineD3D 路线生效；走 DXVK 时生效的是图形驱动配置里的 GPU 名称。</string>
+    <string name="help_dxw_video_memory_size">向游戏报告的显存容量（MB）。老游戏按此值选择纹理档位，报得过大反而会让它们尝试加载装不下的贴图。</string>
+    <string name="help_dxw_strict_shader_math">要求着色器按 IEEE 规范严格计算，光照与雾效更接近 PC 原版。关掉后驱动可走更快但不精确的近似路径，可能出现光照/雾效差异。</string>
+    <string name="help_dxw_offscreen_rendering_mode">WineD3D 离屏内容的渲染目标。fbo = 渲染到帧缓冲对象再合成（兼容性最好，默认）；backbuffer = 直接渲染到后缓冲，部分游戏更快，fbo 下花屏或黑屏时可尝试。</string>
+    <string name="help_dxw_renderer">WineD3D 使用的后端。gl = OpenGL（默认，实际经 zink 落到 Vulkan）；vulkan = WineD3D 的 Vulkan 后端，部分场景更快但兼容性弱于 gl；gdi = 走 GDI，仅用于极老 2D 游戏的软件渲染兜底。</string>
+
+    <!-- DX Wrapper Option Values -->
+    <string name="help_opt_dxw_wined3d">WineD3D — D3D 转 OpenGL / Vulkan，对老游戏、DirectDraw、2D 游戏兼容性最好，性能通常低于 DXVK</string>
+    <string name="help_opt_dxw_dxvk">DXVK+VKD3D — D3D9/10/11 走 DXVK、D3D12 走 VKD3D，最终都到 Vulkan；性能更好，着色器编译可异步且可缓存</string>
+    <string name="help_opt_dxw_version_none">None — 不注入 DXVK</string>
+    <string name="help_opt_dxw_version_package">已安装的 DXVK 内容包</string>
+    <string name="help_opt_dxw_vkd3d_none">None — 沿用 Wine 内置的 d3d12.dll</string>
+    <string name="help_opt_dxw_vkd3d_package">已安装的 VKD3D 内容包</string>
+    <string name="help_opt_dxw_level_12_2">12_2 — 最高级别，仅用于确实需要的游戏</string>
+    <string name="help_opt_dxw_level_12_1">12_1 — 默认，多数 D3D12 游戏期望的级别</string>
+    <string name="help_opt_dxw_level_12_0">12_0 — 游戏报「不支持的功能级别」时先试此项</string>
+    <string name="help_opt_dxw_level_11_1">11_1 — D3D11.1 级别，仍起不来时的下一个退路</string>
+    <string name="help_opt_dxw_level_11_0">11_0 — D3D11 级别，会关掉大部分 D3D12 特性</string>
+    <string name="help_opt_dxw_level_9_3">9_3 — 最低级别，仅用于很老或异常的游戏</string>
+    <string name="help_opt_dxw_ddraw_none">none — 恢复 Wine 内置的 ddraw.dll 与 d3dimm.dll</string>
+    <string name="help_opt_dxw_ddraw_cnc">CnC-DDraw — 经典封装器，会额外设置 CNC_DDRAW_CONFIG_FILE</string>
+    <string name="help_opt_dxw_ddraw_dd7to9">Dd7To9 — 把 Direct3D 7 调用翻译为 D3D9</string>
+    <string name="help_opt_dxw_ddraw_421">ddraw-4.21 — 较旧的 ddraw 构建</string>
+    <string name="help_opt_dxw_ddraw_118">ddraw-11.8 — 较新的 ddraw 构建</string>
+    <string name="help_opt_dxw_ddraw_d7vk">D7VK — 基于 Vulkan 的 Direct3D 7 实现，来自已安装内容包</string>
+    <string name="help_opt_dxw_gpu_default">NVIDIA GeForce GTX 480 — 大多数游戏都能识别的稳妥选择</string>
+    <string name="help_opt_dxw_gpu_custom">显卡列表中的任意型号，通过其 device id 上报</string>
+    <string name="help_opt_dxw_vmem_256">256 MB</string>
+    <string name="help_opt_dxw_vmem_512">512 MB</string>
+    <string name="help_opt_dxw_vmem_1024">1024 MB</string>
+    <string name="help_opt_dxw_vmem_2048">2048 MB</string>
+    <string name="help_opt_dxw_vmem_4096">4096 MB（默认）</string>
+    <string name="help_opt_dxw_offscreen_fbo">fbo — 渲染到帧缓冲对象，兼容性最好</string>
+    <string name="help_opt_dxw_offscreen_backbuffer">backbuffer — 渲染到后缓冲，部分游戏更快</string>
+    <string name="help_opt_dxw_renderer_gl">gl — OpenGL 后端，实际仍经 zink 落到 Vulkan</string>
+    <string name="help_opt_dxw_renderer_vulkan">vulkan — WineD3D 的 Vulkan 后端，部分场景更快，兼容性弱于 gl</string>
+    <string name="help_opt_dxw_renderer_gdi">gdi — GDI 软件渲染，极老 2D 游戏的最后兜底</string>
+
+    <!-- Help: setting value types -->
+    <string name="help_type_checkbox">开关</string>
+    <string name="help_type_select">单选</string>
+    <string name="help_type_multi_select">多选</string>
+    <string name="help_type_text">文本</string>
+    <string name="help_type_number">整数</string>
+    <string name="help_type_decimal">小数</string>
 </resources>
