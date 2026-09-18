@@ -1379,7 +1379,7 @@ private fun RetroGraphicsSection(state: RetroSettingsState) {
                 val current = state.optionValues[option.key] ?: option.defaultValue
                 RetroSettingDropdown(
                     label = option.labelText(ctx),
-                    entries = option.valueLabels,
+                    entries = option.valueLabels.mapIndexed { i, _ -> option.valueLabelText(ctx, i) },
                     selectedIndex = option.values.indexOf(current).coerceAtLeast(0),
                     onSelected = { state.optionValues[option.key] = option.values[it] },
                 )

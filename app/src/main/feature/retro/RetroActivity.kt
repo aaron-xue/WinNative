@@ -1216,7 +1216,7 @@ class RetroActivity : FixedFontScaleAppCompatActivity(), LandscapeOnlyActivity, 
         fun entryFor(option: RetroCoreOption): RetroMenuEntry {
             val current = coreVars[option.key] ?: option.defaultValue
             val index = option.values.indexOf(current).coerceAtLeast(0)
-            return RetroMenuEntry.Choice(option.labelText(this), option.valueLabels, index) { next ->
+            return RetroMenuEntry.Choice(option.labelText(this), option.valueLabels.mapIndexed { i, _ -> option.valueLabelText(this, i) }, index) { next ->
                 val newValue = option.values[next]
                 coreVars[option.key] = newValue
                 retroView.updateVariables(Variable(option.key, newValue))

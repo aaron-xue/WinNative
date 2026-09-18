@@ -806,7 +806,7 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                         ) { RetroDefaults.setSgsr(context, sys, it); refresh++ }
                         RetroSettingDropdown(
                             label = stringResource(R.string.retro_scr_upscale_resolution),
-                            entries = listOf("2x", "4x", stringResource(R.string.retro_scr_upscale_native)),
+                            entries = listOf(stringResource(R.string.retro_co_val_2x), stringResource(R.string.retro_co_val_4x), stringResource(R.string.retro_scr_upscale_native)),
                             selectedIndex = UPSCALE_KEYS.indexOf(RetroDefaults.upscale(context, sys)).coerceAtLeast(0),
                             onSelected = { RetroDefaults.setUpscale(context, sys, UPSCALE_KEYS[it]); refresh++ },
                         )
@@ -817,7 +817,7 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                             val current = RetroDefaults.coreOption(context, sys, option.key, option.defaultValue)
                             RetroSettingDropdown(
                                 label = option.labelText(context),
-                                entries = option.valueLabels,
+                                entries = option.valueLabels.mapIndexed { i, _ -> option.valueLabelText(context, i) },
                                 selectedIndex = option.values.indexOf(current).coerceAtLeast(0),
                                 onSelected = { RetroDefaults.setCoreOption(context, sys, option.key, option.values[it]); refresh++ },
                             )

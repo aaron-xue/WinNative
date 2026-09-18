@@ -596,7 +596,7 @@ object DolphinGameOverlay {
                 add(
                     RetroMenuEntry.Choice(
                         option.labelText(activity),
-                        option.valueLabels,
+                        option.valueLabels.mapIndexed { i, _ -> option.valueLabelText(activity, i) },
                         index,
                     ) { next ->
                         applyVar(option.key, option.values[next])
