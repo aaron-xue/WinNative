@@ -2358,6 +2358,12 @@ private fun ExtensionsPickerDialog(
     onToggle: (String, Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredExtensions = remember(extensions, searchQuery) {
+        if (searchQuery.isEmpty()) extensions
+        else extensions.filter { it.contains(searchQuery, ignoreCase = true) }
+    }
+
     androidx.compose.ui.window.Dialog(
         onDismissRequest = onDismiss,
         properties = androidx.compose.ui.window.DialogProperties(
@@ -2366,8 +2372,8 @@ private fun ExtensionsPickerDialog(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 360.dp)
-                .fillMaxHeight(0.70f)
+                .widthIn(max = 420.dp)
+                .fillMaxHeight(0.80f)
                 .clip(RoundedCornerShape(SettingGroupCorner))
                 .background(BgDeep)
                 .border(1.dp, CardBorder, RoundedCornerShape(SettingGroupCorner))
@@ -2403,6 +2409,64 @@ private fun ExtensionsPickerDialog(
 
             Box(Modifier.fillMaxWidth().height(1.dp).background(DividerColor))
 
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                BasicTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    textStyle = TextStyle(color = TextPrimary, fontSize = SettingValueSize),
+                    cursorBrush = SolidColor(AccentBlue),
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(EnvVarControlHeight)
+                        .paneNavItem(cornerRadius = 8.dp, onActivate = {}, highlightColor = NavHighlight),
+                    decorationBox = { innerTextField ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(InputSurface)
+                                .border(1.dp, InputBorder, RoundedCornerShape(8.dp))
+                                .padding(horizontal = SettingFieldHorizontalPadding),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Outlined.Search,
+                                contentDescription = null,
+                                tint = TextDim,
+                                modifier = Modifier.size(SettingIconSize)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Box(Modifier.weight(1f)) {
+                                if (searchQuery.isEmpty()) {
+                                    Text(
+                                        stringResource(R.string.reshade_catalog_search),
+                                        color = TextDim,
+                                        fontSize = SettingValueSize
+                                    )
+                                }
+                                innerTextField()
+                            }
+                            if (searchQuery.isNotEmpty()) {
+                                Icon(
+                                    Icons.Outlined.Close,
+                                    contentDescription = null,
+                                    tint = TextDim,
+                                    modifier = Modifier
+                                        .size(SettingIconSize)
+                                        .paneNavItem(cornerRadius = 6.dp, onActivate = { searchQuery = "" }, highlightColor = NavHighlight)
+                                        .clickable { searchQuery = "" }
+                                )
+                            }
+                        }
+                    }
+                )
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2410,7 +2474,19 @@ private fun ExtensionsPickerDialog(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
-                extensions.forEach { ext ->
+                if (filteredExtensions.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            stringResource(R.string.common_ui_no_match_found),
+                            color = TextDim,
+                            fontSize = SettingValueSize
+                        )
+                    }
+                }
+                filteredExtensions.forEach { ext ->
                     val isEnabled = ext !in blacklisted
                     Row(
                         modifier = Modifier
