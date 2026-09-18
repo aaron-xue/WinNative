@@ -74,4 +74,264 @@
         <item>D-pad 左</item>
         <item>D-pad 右</item>
     </string-array>
+    <string-array name="help_opt_dxw_level_descs">
+        <item>12_2 — 最高级别，仅用于确实需要的游戏</item>
+        <item>12_1 — 默认，多数 D3D12 游戏期望的级别</item>
+        <item>12_0 — 游戏报「不支持的功能级别」时先试此项</item>
+        <item>11_1 — D3D11.1 级别，仍起不来时的下一个退路</item>
+        <item>11_0 — D3D11 级别，会关掉大部分 D3D12 特性</item>
+        <item>9_3 — 最低级别，仅用于很老或异常的游戏</item>
+    </string-array>
+    <string-array name="help_opt_dxw_ddraw_descs">
+        <item>none — 恢复 Wine 内置的 ddraw.dll 与 d3dimm.dll</item>
+        <item>CnC-DDraw — 经典封装器，会额外设置 CNC_DDRAW_CONFIG_FILE</item>
+        <item>Dd7To9 — 把 Direct3D 7 调用翻译为 D3D9</item>
+        <item>ddraw-4.21 — 较旧的 ddraw 构建</item>
+        <item>ddraw-11.8 — 较新的 ddraw 构建</item>
+        <item>D7VK — 基于 Vulkan 的 Direct3D 7 实现，来自已安装内容包</item>
+    </string-array>
+    <string-array name="help_opt_dxw_vmem_descs">
+        <item>256 MB</item>
+        <item>512 MB</item>
+        <item>1024 MB</item>
+        <item>2048 MB</item>
+        <item>4096 MB（默认）</item>
+    </string-array>
+    <string-array name="help_opt_dxw_renderer_descs">
+        <item>gl — OpenGL 后端，实际仍经 zink 落到 Vulkan</item>
+        <item>vulkan — WineD3D 的 Vulkan 后端，部分场景更快，兼容性弱于 gl</item>
+        <item>gdi — GDI 软件渲染，极老 2D 游戏的最后兜底</item>
+    </string-array>
+    <string-array name="help_opt_peek_limiter_descs">
+        <item>每次空取睡眠 1 毫秒</item>
+        <item>每次空取睡眠 2 毫秒</item>
+        <item>每次空取睡眠 4 毫秒</item>
+        <item>每次空取睡眠 8 毫秒</item>
+        <item>每次空取睡眠 16 毫秒（约 60Hz）</item>
+    </string-array>
+    <string-array name="help_opt_zink_descriptors_descs">
+        <item>自动选择最佳策略</item>
+        <item>延迟分配描述符</item>
+        <item>缓存描述符以减少重复分配</item>
+        <item>禁用描述符模板</item>
+    </string-array>
+    <string-array name="help_opt_zink_debug_descs">
+        <item>调试 NIR（中间表示）代码</item>
+        <item>调试 SPIR-V 着色器</item>
+        <item>调试 TGSI（旧版着色器中间表示）</item>
+        <item>启用 Vulkan 验证层</item>
+        <item>调试同步问题</item>
+        <item>紧凑模式</item>
+        <item>禁用指令重排序</item>
+    </string-array>
+    <string-array name="help_opt_gallium_hud_descs">
+        <item>显示简单的性能信息</item>
+        <item>显示帧率 (FPS)</item>
+        <item>显示帧时间</item>
+    </string-array>
+    <string-array name="help_opt_dxvk_hud_descs">
+        <item>HUD 缩放 50%</item>
+        <item>HUD 缩放 70%</item>
+        <item>HUD 透明度 50%</item>
+        <item>HUD 透明度 70%</item>
+        <item>显示设备信息（GPU 名称、驱动版本等）</item>
+        <item>显示帧率</item>
+        <item>显示帧时间图</item>
+        <item>显示提交数量</item>
+        <item>显示绘制调用次数</item>
+        <item>显示图形管线统计</item>
+        <item>显示描述符统计</item>
+        <item>显示显存使用情况</item>
+        <item>显示 GPU 负载</item>
+        <item>显示 DXVK 版本</item>
+        <item>显示使用的 API</item>
+        <item>显示计算着色器信息</item>
+        <item>显示着色器编译信息</item>
+        <item>显示采样器统计</item>
+    </string-array>
+    <string-array name="help_opt_vkd3d_sm_descs">
+        <item>Shader Model 6.9（最新）</item>
+        <item>Shader Model 6.6</item>
+        <item>Shader Model 6.0</item>
+        <item>Shader Model 5.0（较老）</item>
+    </string-array>
+    <string-array name="help_opt_tu_debug_descs">
+        <item>强制使用常量缓冲区</item>
+        <item>禁用常量缓冲区</item>
+        <item>显示启动调试信息</item>
+        <item>Steam Deck 模拟模式</item>
+        <item>调试 NIR 代码</item>
+        <item>禁用二进制着色器</item>
+        <item>使用系统内存模式</item>
+        <item>使用 GMEM（片上内存）模式</item>
+        <item>强制分箱（Binning）模式</item>
+        <item>显示管线布局信息</item>
+        <item>禁用 UBWC 压缩</item>
+        <item>禁用多位置输出</item>
+        <item>禁用 LRZ</item>
+        <item>禁用 LRZ 快速清除</item>
+        <item>性能调试信息</item>
+        <item>精简性能调试信息</item>
+        <item>强制刷新所有操作</item>
+        <item>同步绘制操作</item>
+        <item>每个阶段使用推送常量</item>
+        <item>强制光栅化顺序</item>
+        <item>允许非对齐存储</item>
+        <item>记录跳过的 GMEM 操作</item>
+        <item>动态模式</item>
+        <item>调试缓冲对象</item>
+        <item>调试 3D 加载</item>
+        <item>调试 FDM</item>
+        <item>禁用一致性检查</item>
+        <item>调试渲染目标</item>
+    </string-array>
+    <string-array name="help_opt_ir3_debug_descs">
+        <item>禁用 UBO（Uniform Buffer Object）优化</item>
+        <item>禁用着色器前导码</item>
+        <item>禁用提前前导码</item>
+    </string-array>
+    <string-array name="help_opt_alsa_perf_descs">
+        <item>低延迟模式，适合游戏</item>
+        <item>默认模式</item>
+        <item>省电模式，降低功耗但可能增加延迟</item>
+    </string-array>
+
+    <string-array name="help_opt_box64_safeflags_descs">
+        <item>严格检查（兼容性最高）</item>
+        <item>基本检查（推荐）</item>
+        <item>不检查（最快，可能崩溃）</item>
+    </string-array>
+    <string-array name="help_opt_box64_fastround_descs">
+        <item>最快舍入（可能不精确）</item>
+        <item>快速舍入（推荐）</item>
+        <item>精确模拟（较慢）</item>
+    </string-array>
+    <string-array name="help_opt_box64_x87double_descs">
+        <item>混合模式</item>
+        <item>双精度类型（精度更高，较慢）</item>
+        <item>浮点类型（默认）</item>
+    </string-array>
+    <string-array name="help_opt_box64_bigblock_descs">
+        <item>最大块（最高性能）</item>
+        <item>大块（推荐）</item>
+        <item>中等大小</item>
+        <item>最小块（最佳兼容性，最慢）</item>
+    </string-array>
+    <string-array name="help_opt_box64_strongmem_descs">
+        <item>最强内存屏障</item>
+        <item>强屏障</item>
+        <item>中屏障</item>
+        <item>轻屏障</item>
+        <item>无屏障（最快）</item>
+    </string-array>
+    <string-array name="help_opt_box64_forward_descs">
+        <item>1024 条指令</item>
+        <item>512 条指令</item>
+        <item>256 条指令</item>
+        <item>128 条指令（默认）</item>
+        <item>不限制</item>
+    </string-array>
+    <string-array name="help_opt_box64_callret_descs">
+        <item>激进优化</item>
+        <item>基本优化</item>
+        <item>不优化（默认）</item>
+    </string-array>
+    <string-array name="help_opt_box64_sep_descs">
+        <item>严格分离</item>
+        <item>正常分离（默认）</item>
+        <item>不分离</item>
+    </string-array>
+    <string-array name="help_opt_box64_weakbarrier_descs">
+        <item>最弱屏障</item>
+        <item>弱屏障（默认）</item>
+        <item>不使用弱屏障</item>
+    </string-array>
+    <string-array name="help_opt_box64_dirty_descs">
+        <item>完全清理（最安全，最慢）</item>
+        <item>部分清理</item>
+        <item>不清理（默认）</item>
+    </string-array>
+    <string-array name="help_opt_box64_pause_descs">
+        <item>最长暂停</item>
+        <item>较长暂停</item>
+        <item>轻微暂停</item>
+        <item>不模拟（默认）</item>
+    </string-array>
+    <string-array name="help_opt_box64_noarch_descs">
+        <item>严格限制</item>
+        <item>部分限制</item>
+        <item>允许所有扩展（默认）</item>
+    </string-array>
+    <string-array name="help_opt_box64_dynacache_descs">
+        <item>最大缓存（适用于大型程序）</item>
+        <item>扩展缓存</item>
+        <item>默认大小</item>
+    </string-array>
+    <string-array name="help_opt_box64_avx_descs">
+        <item>支持 AVX2</item>
+        <item>支持 AVX</item>
+        <item>不支持（默认，兼容性最好）</item>
+    </string-array>
+    <string-array name="help_opt_box64_maxcpu_descs">
+        <item>使用实际核心数</item>
+        <item>4 核</item>
+        <item>8 核</item>
+        <item>16 核</item>
+        <item>32 核</item>
+        <item>64 核</item>
+    </string-array>
+
+    <string-array name="help_opt_fexcore_hostfeat_descs">
+        <item>默认设置（不做更改）</item>
+        <item>启用 SVE（可扩展向量扩展）</item>
+        <item>禁用 SVE</item>
+        <item>启用 AVX 指令模拟</item>
+        <item>禁用 AVX 指令模拟</item>
+        <item>启用 AFP（替代浮点）</item>
+        <item>禁用 AFP</item>
+        <item>启用 LRCPC</item>
+        <item>禁用 LRCPC</item>
+        <item>启用 LRCPC2</item>
+        <item>禁用 LRCPC2</item>
+        <item>启用 CSSC</item>
+        <item>禁用 CSSC</item>
+        <item>启用 PMULL 128 位乘法</item>
+        <item>禁用 PMULL 128 位乘法</item>
+        <item>启用 RNG（随机数生成器）</item>
+        <item>禁用 RNG</item>
+        <item>启用 CLZERO（缓存行清零）</item>
+        <item>禁用 CLZERO</item>
+        <item>启用原子操作扩展</item>
+        <item>禁用原子操作扩展</item>
+        <item>启用 FCMA（浮点复数乘加）</item>
+        <item>禁用 FCMA</item>
+        <item>启用 FlagM（标志位操作）</item>
+        <item>禁用 FlagM</item>
+        <item>启用 FlagM2</item>
+        <item>禁用 FlagM2</item>
+        <item>启用 FRINTTS（浮点舍入到有符号整数）</item>
+        <item>禁用 FRINTTS</item>
+        <item>启用加密扩展</item>
+        <item>禁用加密扩展</item>
+        <item>启用 RPRES</item>
+        <item>禁用 RPRES</item>
+        <item>启用 SVE 位排列</item>
+        <item>禁用 SVE 位排列</item>
+        <item>启用 PreserveAll ABI</item>
+        <item>禁用 PreserveAll ABI</item>
+        <item>启用 WFXT</item>
+        <item>禁用 WFXT</item>
+        <item>启用 3DNow! 指令模拟</item>
+        <item>禁用 3DNow! 指令模拟</item>
+        <item>启用 SSE4a 指令模拟</item>
+        <item>禁用 SSE4a 指令模拟</item>
+        <item>启用 MOPS（内存操作）</item>
+        <item>禁用 MOPS</item>
+    </string-array>
+
+    <string-array name="help_opt_fexcore_smc_descs">
+        <item>不检测 SMC（最快）</item>
+        <item>内存跟踪检测</item>
+        <item>完整检测（最安全）</item>
+    </string-array>
 </resources>

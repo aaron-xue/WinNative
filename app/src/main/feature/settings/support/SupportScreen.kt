@@ -1,5 +1,6 @@
 package com.winlator.cmod.feature.settings.support
 
+import androidx.annotation.ArrayRes
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -40,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,7 +62,8 @@ private val HelpOptionBg = Color(0xFF14141F)
 
 private data class EnvVarOption(
     val value: String,
-    @StringRes val descRes: Int,
+    @StringRes val descRes: Int = 0,
+    val desc: String = "",
 )
 
 private enum class EnvVarType(
@@ -82,6 +85,8 @@ private data class EnvVarInfo(
     val default: String = "",
     val options: List<EnvVarOption> = emptyList(),
     @StringRes val labelRes: Int = 0,
+    @ArrayRes val optionsValuesArray: Int = 0,
+    @ArrayRes val optionsDescArray: Int = 0,
 )
 
 private data class EnvVarCategory(
@@ -98,26 +103,15 @@ private val envVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_zink_descriptors,
                 default = "auto",
-                options = listOf(
-                    EnvVarOption("auto", R.string.help_opt_zink_auto),
-                    EnvVarOption("lazy", R.string.help_opt_zink_lazy),
-                    EnvVarOption("cached", R.string.help_opt_zink_cached),
-                    EnvVarOption("notemplates", R.string.help_opt_zink_notemplates),
-                ),
+                optionsValuesArray = R.array.zink_descriptors_values,
+                optionsDescArray = R.array.help_opt_zink_descriptors_descs,
             ),
             EnvVarInfo(
                 name = "ZINK_DEBUG",
                 type = EnvVarType.SELECT_MULTIPLE,
                 descriptionRes = R.string.help_env_zink_debug,
-                options = listOf(
-                    EnvVarOption("nir", R.string.help_opt_zink_debug_nir),
-                    EnvVarOption("spirv", R.string.help_opt_zink_debug_spirv),
-                    EnvVarOption("tgsi", R.string.help_opt_zink_debug_tgsi),
-                    EnvVarOption("validation", R.string.help_opt_zink_debug_validation),
-                    EnvVarOption("sync", R.string.help_opt_zink_debug_sync),
-                    EnvVarOption("compact", R.string.help_opt_zink_debug_compact),
-                    EnvVarOption("noreorder", R.string.help_opt_zink_debug_noreorder),
-                ),
+                optionsValuesArray = R.array.zink_debug_values,
+                optionsDescArray = R.array.help_opt_zink_debug_descs,
             ),
             EnvVarInfo(
                 name = "MESA_SHADER_CACHE_DISABLE",
@@ -153,11 +147,8 @@ private val envVarCategories = listOf(
                 name = "GALLIUM_HUD",
                 type = EnvVarType.SELECT_MULTIPLE,
                 descriptionRes = R.string.help_env_gallium_hud,
-                options = listOf(
-                    EnvVarOption("simple", R.string.help_opt_gallium_hud_simple),
-                    EnvVarOption("fps", R.string.help_opt_gallium_hud_fps),
-                    EnvVarOption("frametime", R.string.help_opt_gallium_hud_frametime),
-                ),
+                optionsValuesArray = R.array.gallium_hud_values,
+                optionsDescArray = R.array.help_opt_gallium_hud_descs,
             ),
         ),
     ),
@@ -168,26 +159,8 @@ private val envVarCategories = listOf(
                 name = "DXVK_HUD",
                 type = EnvVarType.SELECT_MULTIPLE,
                 descriptionRes = R.string.help_env_dxvk_hud,
-                options = listOf(
-                    EnvVarOption("scale=0.5", R.string.help_opt_dxvk_hud_scale50),
-                    EnvVarOption("scale=0.7", R.string.help_opt_dxvk_hud_scale70),
-                    EnvVarOption("opacity=0.5", R.string.help_opt_dxvk_hud_opacity50),
-                    EnvVarOption("opacity=0.7", R.string.help_opt_dxvk_hud_opacity70),
-                    EnvVarOption("devinfo", R.string.help_opt_dxvk_hud_devinfo),
-                    EnvVarOption("fps", R.string.help_opt_dxvk_hud_fps),
-                    EnvVarOption("frametimes", R.string.help_opt_dxvk_hud_frametimes),
-                    EnvVarOption("submissions", R.string.help_opt_dxvk_hud_submissions),
-                    EnvVarOption("drawcalls", R.string.help_opt_dxvk_hud_drawcalls),
-                    EnvVarOption("pipelines", R.string.help_opt_dxvk_hud_pipelines),
-                    EnvVarOption("descriptors", R.string.help_opt_dxvk_hud_descriptors),
-                    EnvVarOption("memory", R.string.help_opt_dxvk_hud_memory),
-                    EnvVarOption("gpuload", R.string.help_opt_dxvk_hud_gpuload),
-                    EnvVarOption("version", R.string.help_opt_dxvk_hud_version),
-                    EnvVarOption("api", R.string.help_opt_dxvk_hud_api),
-                    EnvVarOption("cs", R.string.help_opt_dxvk_hud_cs),
-                    EnvVarOption("compiler", R.string.help_opt_dxvk_hud_compiler),
-                    EnvVarOption("samplers", R.string.help_opt_dxvk_hud_samplers),
-                ),
+                optionsValuesArray = R.array.dxvk_hud_values,
+                optionsDescArray = R.array.help_opt_dxvk_hud_descs,
             ),
             EnvVarInfo(
                 name = "DXVK_DISABLE_TIMELINE_SEMAPHORES",
@@ -203,12 +176,8 @@ private val envVarCategories = listOf(
                 name = "VKD3D_SHADER_MODEL",
                 type = EnvVarType.SELECT_CUSTOM,
                 descriptionRes = R.string.help_env_vkd3d_shader_model,
-                options = listOf(
-                    EnvVarOption("6_9", R.string.help_opt_vkd3d_sm_6_9),
-                    EnvVarOption("6_6", R.string.help_opt_vkd3d_sm_6_6),
-                    EnvVarOption("6_0", R.string.help_opt_vkd3d_sm_6_0),
-                    EnvVarOption("5_0", R.string.help_opt_vkd3d_sm_5_0),
-                ),
+                optionsValuesArray = R.array.vkd3d_sm_values,
+                optionsDescArray = R.array.help_opt_vkd3d_sm_descs,
             ),
         ),
     ),
@@ -250,36 +219,8 @@ private val envVarCategories = listOf(
                 name = "TU_DEBUG",
                 type = EnvVarType.SELECT_MULTIPLE,
                 descriptionRes = R.string.help_env_tu_debug,
-                options = listOf(
-                    EnvVarOption("forcecb", R.string.help_opt_tu_debug_forcecb),
-                    EnvVarOption("nocb", R.string.help_opt_tu_debug_nocb),
-                    EnvVarOption("startup", R.string.help_opt_tu_debug_startup),
-                    EnvVarOption("deck_emu", R.string.help_opt_tu_debug_deck_emu),
-                    EnvVarOption("nir", R.string.help_opt_tu_debug_nir),
-                    EnvVarOption("nobin", R.string.help_opt_tu_debug_nobin),
-                    EnvVarOption("sysmem", R.string.help_opt_tu_debug_sysmem),
-                    EnvVarOption("gmem", R.string.help_opt_tu_debug_gmem),
-                    EnvVarOption("forcebin", R.string.help_opt_tu_debug_forcebin),
-                    EnvVarOption("layout", R.string.help_opt_tu_debug_layout),
-                    EnvVarOption("noubwc", R.string.help_opt_tu_debug_noubwc),
-                    EnvVarOption("nomultipos", R.string.help_opt_tu_debug_nomultipos),
-                    EnvVarOption("nolrz", R.string.help_opt_tu_debug_nolrz),
-                    EnvVarOption("nolrzfc", R.string.help_opt_tu_debug_nolrzfc),
-                    EnvVarOption("perf", R.string.help_opt_tu_debug_perf),
-                    EnvVarOption("perfc", R.string.help_opt_tu_debug_perfc),
-                    EnvVarOption("flushall", R.string.help_opt_tu_debug_flushall),
-                    EnvVarOption("syncdraw", R.string.help_opt_tu_debug_syncdraw),
-                    EnvVarOption("push_consts_per_stage", R.string.help_opt_tu_debug_push_consts),
-                    EnvVarOption("rast_order", R.string.help_opt_tu_debug_rast_order),
-                    EnvVarOption("unaligned_store", R.string.help_opt_tu_debug_unaligned),
-                    EnvVarOption("log_skip_gmem_ops", R.string.help_opt_tu_debug_log_skip_gmem),
-                    EnvVarOption("dynamic", R.string.help_opt_tu_debug_dynamic),
-                    EnvVarOption("bos", R.string.help_opt_tu_debug_bos),
-                    EnvVarOption("3d_load", R.string.help_opt_tu_debug_3d_load),
-                    EnvVarOption("fdm", R.string.help_opt_tu_debug_fdm),
-                    EnvVarOption("noconform", R.string.help_opt_tu_debug_noconform),
-                    EnvVarOption("rd", R.string.help_opt_tu_debug_rd),
-                ),
+                optionsValuesArray = R.array.tu_debug_values,
+                optionsDescArray = R.array.help_opt_tu_debug_descs,
             ),
             EnvVarInfo(
                 name = "FD_DEV_FEATURES",
@@ -294,11 +235,8 @@ private val envVarCategories = listOf(
                 name = "IR3_SHADER_DEBUG",
                 type = EnvVarType.SELECT_MULTIPLE,
                 descriptionRes = R.string.help_env_ir3_shader_debug,
-                options = listOf(
-                    EnvVarOption("nouboopt", R.string.help_opt_ir3_nouboopt),
-                    EnvVarOption("nopreamble", R.string.help_opt_ir3_nopreamble),
-                    EnvVarOption("noearlypreamble", R.string.help_opt_ir3_noearlypreamble),
-                ),
+                optionsValuesArray = R.array.ir3_debug_values,
+                optionsDescArray = R.array.help_opt_ir3_debug_descs,
             ),
             EnvVarInfo(
                 name = "WRAPPER_MAX_IMAGE_COUNT",
@@ -344,11 +282,8 @@ private val envVarCategories = listOf(
                 name = "ALSA_PERFORMANCE_MODE",
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_alsa_performance_mode,
-                options = listOf(
-                    EnvVarOption("low_latency", R.string.help_opt_alsa_low_latency),
-                    EnvVarOption("none", R.string.help_opt_alsa_none),
-                    EnvVarOption("power_saving", R.string.help_opt_alsa_power_saving),
-                ),
+                optionsValuesArray = R.array.alsa_perf_values,
+                optionsDescArray = R.array.help_opt_alsa_perf_descs,
             ),
         ),
     ),
@@ -395,13 +330,8 @@ private val envVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_wine_peek_limiter,
                 default = "0",
-                options = listOf(
-                    EnvVarOption("1", R.string.help_opt_peek_limiter_1),
-                    EnvVarOption("2", R.string.help_opt_peek_limiter_2),
-                    EnvVarOption("4", R.string.help_opt_peek_limiter_4),
-                    EnvVarOption("8", R.string.help_opt_peek_limiter_8),
-                    EnvVarOption("16", R.string.help_opt_peek_limiter_16),
-                ),
+                optionsValuesArray = R.array.peek_limiter_values,
+                optionsDescArray = R.array.help_opt_peek_limiter_descs,
             ),
         ),
     ),
@@ -428,11 +358,8 @@ private val box64EnvVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_safeflags,
                 default = "1",
-                options = listOf(
-                    EnvVarOption("2", R.string.help_opt_box64_safeflags_2),
-                    EnvVarOption("1", R.string.help_opt_box64_safeflags_1),
-                    EnvVarOption("0", R.string.help_opt_box64_safeflags_0),
-                ),
+                optionsValuesArray = R.array.box64_safeflags_values,
+                optionsDescArray = R.array.help_opt_box64_safeflags_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_FASTNAN",
@@ -446,82 +373,56 @@ private val box64EnvVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_fastround,
                 default = "1",
-                options = listOf(
-                    EnvVarOption("2", R.string.help_opt_box64_fastround_2),
-                    EnvVarOption("1", R.string.help_opt_box64_fastround_1),
-                    EnvVarOption("0", R.string.help_opt_box64_fastround_0),
-                ),
+                optionsValuesArray = R.array.box64_fastround_values,
+                optionsDescArray = R.array.help_opt_box64_fastround_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_X87DOUBLE",
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_x87double,
                 default = "0",
-                options = listOf(
-                    EnvVarOption("2", R.string.help_opt_box64_x87double_2),
-                    EnvVarOption("1", R.string.help_opt_box64_x87double_1),
-                    EnvVarOption("0", R.string.help_opt_box64_x87double_0),
-                ),
+                optionsValuesArray = R.array.box64_x87double_values,
+                optionsDescArray = R.array.help_opt_box64_x87double_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_BIGBLOCK",
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_bigblock,
                 default = "2",
-                options = listOf(
-                    EnvVarOption("3", R.string.help_opt_box64_bigblock_3),
-                    EnvVarOption("2", R.string.help_opt_box64_bigblock_2),
-                    EnvVarOption("1", R.string.help_opt_box64_bigblock_1),
-                    EnvVarOption("0", R.string.help_opt_box64_bigblock_0),
-                ),
+                optionsValuesArray = R.array.box64_bigblock_values,
+                optionsDescArray = R.array.help_opt_box64_bigblock_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_STRONGMEM",
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_strongmem,
                 default = "0",
-                options = listOf(
-                    EnvVarOption("4", R.string.help_opt_box64_strongmem_4),
-                    EnvVarOption("3", R.string.help_opt_box64_strongmem_3),
-                    EnvVarOption("2", R.string.help_opt_box64_strongmem_2),
-                    EnvVarOption("1", R.string.help_opt_box64_strongmem_1),
-                    EnvVarOption("0", R.string.help_opt_box64_strongmem_0),
-                ),
+                optionsValuesArray = R.array.box64_strongmem_values,
+                optionsDescArray = R.array.help_opt_box64_strongmem_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_FORWARD",
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_forward,
                 default = "128",
-                options = listOf(
-                    EnvVarOption("1024", R.string.help_opt_box64_forward_1024),
-                    EnvVarOption("512", R.string.help_opt_box64_forward_512),
-                    EnvVarOption("256", R.string.help_opt_box64_forward_256),
-                    EnvVarOption("128", R.string.help_opt_box64_forward_128),
-                    EnvVarOption("0", R.string.help_opt_box64_forward_0),
-                ),
+                optionsValuesArray = R.array.box64_forward_values,
+                optionsDescArray = R.array.help_opt_box64_forward_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_CALLRET",
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_callret,
                 default = "0",
-                options = listOf(
-                    EnvVarOption("2", R.string.help_opt_box64_callret_2),
-                    EnvVarOption("1", R.string.help_opt_box64_callret_1),
-                    EnvVarOption("0", R.string.help_opt_box64_callret_0),
-                ),
+                optionsValuesArray = R.array.box64_callret_values,
+                optionsDescArray = R.array.help_opt_box64_callret_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_SEP",
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_sep,
                 default = "1",
-                options = listOf(
-                    EnvVarOption("2", R.string.help_opt_box64_sep_2),
-                    EnvVarOption("1", R.string.help_opt_box64_sep_1),
-                    EnvVarOption("0", R.string.help_opt_box64_sep_0),
-                ),
+                optionsValuesArray = R.array.box64_sep_values,
+                optionsDescArray = R.array.help_opt_box64_sep_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_WAIT",
@@ -535,11 +436,8 @@ private val box64EnvVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_weakbarrier,
                 default = "1",
-                options = listOf(
-                    EnvVarOption("2", R.string.help_opt_box64_weakbarrier_2),
-                    EnvVarOption("1", R.string.help_opt_box64_weakbarrier_1),
-                    EnvVarOption("0", R.string.help_opt_box64_weakbarrier_0),
-                ),
+                optionsValuesArray = R.array.box64_weakbarrier_values,
+                optionsDescArray = R.array.help_opt_box64_weakbarrier_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_ALIGNED_ATOMICS",
@@ -560,11 +458,8 @@ private val box64EnvVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_dirty,
                 default = "0",
-                options = listOf(
-                    EnvVarOption("2", R.string.help_opt_box64_dirty_2),
-                    EnvVarOption("1", R.string.help_opt_box64_dirty_1),
-                    EnvVarOption("0", R.string.help_opt_box64_dirty_0),
-                ),
+                optionsValuesArray = R.array.box64_dirty_values,
+                optionsDescArray = R.array.help_opt_box64_dirty_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_NATIVEFLAGS",
@@ -578,23 +473,16 @@ private val box64EnvVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_pause,
                 default = "0",
-                options = listOf(
-                    EnvVarOption("3", R.string.help_opt_box64_pause_3),
-                    EnvVarOption("2", R.string.help_opt_box64_pause_2),
-                    EnvVarOption("1", R.string.help_opt_box64_pause_1),
-                    EnvVarOption("0", R.string.help_opt_box64_pause_0),
-                ),
+                optionsValuesArray = R.array.box64_pause_values,
+                optionsDescArray = R.array.help_opt_box64_pause_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_NOARCH",
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynarec_noarch,
                 default = "0",
-                options = listOf(
-                    EnvVarOption("2", R.string.help_opt_box64_noarch_2),
-                    EnvVarOption("1", R.string.help_opt_box64_noarch_1),
-                    EnvVarOption("0", R.string.help_opt_box64_noarch_0),
-                ),
+                optionsValuesArray = R.array.box64_noarch_values,
+                optionsDescArray = R.array.help_opt_box64_noarch_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_DYNAREC_VOLATILE_METADATA",
@@ -613,11 +501,8 @@ private val box64EnvVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_dynacache,
                 default = "0",
-                options = listOf(
-                    EnvVarOption("2", R.string.help_opt_box64_dynacache_2),
-                    EnvVarOption("1", R.string.help_opt_box64_dynacache_1),
-                    EnvVarOption("0", R.string.help_opt_box64_dynacache_0),
-                ),
+                optionsValuesArray = R.array.box64_dynacache_values,
+                optionsDescArray = R.array.help_opt_box64_dynacache_descs,
             ),
         ),
     ),
@@ -629,11 +514,8 @@ private val box64EnvVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_avx,
                 default = "0",
-                options = listOf(
-                    EnvVarOption("2", R.string.help_opt_box64_avx_2),
-                    EnvVarOption("1", R.string.help_opt_box64_avx_1),
-                    EnvVarOption("0", R.string.help_opt_box64_avx_0),
-                ),
+                optionsValuesArray = R.array.box64_avx_values,
+                optionsDescArray = R.array.help_opt_box64_avx_descs,
             ),
             EnvVarInfo(
                 name = "BOX64_AES",
@@ -697,14 +579,8 @@ private val box64EnvVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_box64_maxcpu,
                 default = "0",
-                options = listOf(
-                    EnvVarOption("0", R.string.help_opt_box64_maxcpu_0),
-                    EnvVarOption("4", R.string.help_opt_box64_maxcpu_4),
-                    EnvVarOption("8", R.string.help_opt_box64_maxcpu_8),
-                    EnvVarOption("16", R.string.help_opt_box64_maxcpu_16),
-                    EnvVarOption("32", R.string.help_opt_box64_maxcpu_32),
-                    EnvVarOption("64", R.string.help_opt_box64_maxcpu_64),
-                ),
+                optionsValuesArray = R.array.box64_maxcpu_values,
+                optionsDescArray = R.array.help_opt_box64_maxcpu_descs,
             ),
         ),
     ),
@@ -746,59 +622,11 @@ private val fexcoreOnOffOptions = listOf(
     EnvVarOption("0", R.string.help_opt_disable),
 )
 
-private val fexcoreHostFeaturesOptions = listOf(
-    EnvVarOption("off", R.string.help_opt_fexcore_hostfeat_off),
-    EnvVarOption("enablesve", R.string.help_opt_fexcore_hostfeat_enablesve),
-    EnvVarOption("disablesve", R.string.help_opt_fexcore_hostfeat_disablesve),
-    EnvVarOption("enableavx", R.string.help_opt_fexcore_hostfeat_enableavx),
-    EnvVarOption("disableavx", R.string.help_opt_fexcore_hostfeat_disableavx),
-    EnvVarOption("enableafp", R.string.help_opt_fexcore_hostfeat_enableafp),
-    EnvVarOption("disableafp", R.string.help_opt_fexcore_hostfeat_disableafp),
-    EnvVarOption("enablelrcpc", R.string.help_opt_fexcore_hostfeat_enablelrcpc),
-    EnvVarOption("disablelrcpc", R.string.help_opt_fexcore_hostfeat_disablelrcpc),
-    EnvVarOption("enablelrcpc2", R.string.help_opt_fexcore_hostfeat_enablelrcpc2),
-    EnvVarOption("disablelrcpc2", R.string.help_opt_fexcore_hostfeat_disablelrcpc2),
-    EnvVarOption("enablecssc", R.string.help_opt_fexcore_hostfeat_enablecssc),
-    EnvVarOption("disablecssc", R.string.help_opt_fexcore_hostfeat_disablecssc),
-    EnvVarOption("enablepmull128", R.string.help_opt_fexcore_hostfeat_enablepmull128),
-    EnvVarOption("disablepmull128", R.string.help_opt_fexcore_hostfeat_disablepmull128),
-    EnvVarOption("enablerng", R.string.help_opt_fexcore_hostfeat_enablerng),
-    EnvVarOption("disablerng", R.string.help_opt_fexcore_hostfeat_disablerng),
-    EnvVarOption("enableclzero", R.string.help_opt_fexcore_hostfeat_enableclzero),
-    EnvVarOption("disableclzero", R.string.help_opt_fexcore_hostfeat_disableclzero),
-    EnvVarOption("enableatomics", R.string.help_opt_fexcore_hostfeat_enableatomics),
-    EnvVarOption("disableatomics", R.string.help_opt_fexcore_hostfeat_disableatomics),
-    EnvVarOption("enablefcma", R.string.help_opt_fexcore_hostfeat_enablefcma),
-    EnvVarOption("disablefcma", R.string.help_opt_fexcore_hostfeat_disablefcma),
-    EnvVarOption("enableflagm", R.string.help_opt_fexcore_hostfeat_enableflagm),
-    EnvVarOption("disableflagm", R.string.help_opt_fexcore_hostfeat_disableflagm),
-    EnvVarOption("enableflagm2", R.string.help_opt_fexcore_hostfeat_enableflagm2),
-    EnvVarOption("disableflagm2", R.string.help_opt_fexcore_hostfeat_disableflagm2),
-    EnvVarOption("enablefrintts", R.string.help_opt_fexcore_hostfeat_enablefrintts),
-    EnvVarOption("disablefrintts", R.string.help_opt_fexcore_hostfeat_disablefrintts),
-    EnvVarOption("enablecrypto", R.string.help_opt_fexcore_hostfeat_enablecrypto),
-    EnvVarOption("disablecrypto", R.string.help_opt_fexcore_hostfeat_disablecrypto),
-    EnvVarOption("enablerpres", R.string.help_opt_fexcore_hostfeat_enablerpres),
-    EnvVarOption("disablerpres", R.string.help_opt_fexcore_hostfeat_disablerpres),
-    EnvVarOption("enablesvebitperm", R.string.help_opt_fexcore_hostfeat_enablesvebitperm),
-    EnvVarOption("disablesvebitperm", R.string.help_opt_fexcore_hostfeat_disablesvebitperm),
-    EnvVarOption("enablepreserveallabi", R.string.help_opt_fexcore_hostfeat_enablepreserveallabi),
-    EnvVarOption("disablepreserveallabi", R.string.help_opt_fexcore_hostfeat_disablepreserveallabi),
-    EnvVarOption("enablewfxt", R.string.help_opt_fexcore_hostfeat_enablewfxt),
-    EnvVarOption("disablewfxt", R.string.help_opt_fexcore_hostfeat_disablewfxt),
-    EnvVarOption("enable3dnow", R.string.help_opt_fexcore_hostfeat_enable3dnow),
-    EnvVarOption("disable3dnow", R.string.help_opt_fexcore_hostfeat_disable3dnow),
-    EnvVarOption("enablesse4a", R.string.help_opt_fexcore_hostfeat_enablesse4a),
-    EnvVarOption("disablesse4a", R.string.help_opt_fexcore_hostfeat_disablesse4a),
-    EnvVarOption("enablemops", R.string.help_opt_fexcore_hostfeat_enablemops),
-    EnvVarOption("disablemops", R.string.help_opt_fexcore_hostfeat_disablemops),
-)
+private val fexcoreHostFeaturesValuesArray = R.array.fexcore_hostfeat_values
+private val fexcoreHostFeaturesDescArray = R.array.help_opt_fexcore_hostfeat_descs
 
-private val fexcoreSmcChecksOptions = listOf(
-    EnvVarOption("none", R.string.help_opt_fexcore_smc_none),
-    EnvVarOption("mtrack", R.string.help_opt_fexcore_smc_mtrack),
-    EnvVarOption("full", R.string.help_opt_fexcore_smc_full),
-)
+private val fexcoreSmcValuesArray = R.array.fexcore_smc_values
+private val fexcoreSmcDescArray = R.array.help_opt_fexcore_smc_descs
 
 private val fexcoreEnvVarCategories = listOf(
     EnvVarCategory(
@@ -876,7 +704,8 @@ private val fexcoreEnvVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_fexcore_hostfeatures,
                 default = "off",
-                options = fexcoreHostFeaturesOptions,
+                optionsValuesArray = fexcoreHostFeaturesValuesArray,
+                optionsDescArray = fexcoreHostFeaturesDescArray,
             ),
         ),
     ),
@@ -902,7 +731,8 @@ private val fexcoreEnvVarCategories = listOf(
                 type = EnvVarType.SELECT,
                 descriptionRes = R.string.help_env_fexcore_smcchecks,
                 default = "mtrack",
-                options = fexcoreSmcChecksOptions,
+                optionsValuesArray = fexcoreSmcValuesArray,
+                optionsDescArray = fexcoreSmcDescArray,
             ),
             EnvVarInfo(
                 name = "FEX_MONOHACKS",
@@ -1237,14 +1067,8 @@ private val dxWrapperCategories = listOf(
                 descriptionRes = R.string.help_dxw_vkd3d_level,
                 labelRes = R.string.container_wine_vkd3d_feature_level,
                 default = "12_1",
-                options = listOf(
-                    EnvVarOption("12_2", R.string.help_opt_dxw_level_12_2),
-                    EnvVarOption("12_1", R.string.help_opt_dxw_level_12_1),
-                    EnvVarOption("12_0", R.string.help_opt_dxw_level_12_0),
-                    EnvVarOption("11_1", R.string.help_opt_dxw_level_11_1),
-                    EnvVarOption("11_0", R.string.help_opt_dxw_level_11_0),
-                    EnvVarOption("9_3", R.string.help_opt_dxw_level_9_3),
-                ),
+                optionsValuesArray = R.array.vkd3d_level_values,
+                optionsDescArray = R.array.help_opt_dxw_level_descs,
             ),
             EnvVarInfo(
                 name = "ddrawrapper",
@@ -1252,14 +1076,8 @@ private val dxWrapperCategories = listOf(
                 descriptionRes = R.string.help_dxw_ddrawrapper,
                 labelRes = R.string.container_wine_ddraw_wrapper,
                 default = "none",
-                options = listOf(
-                    EnvVarOption("none", R.string.help_opt_dxw_ddraw_none),
-                    EnvVarOption("cnc-ddraw", R.string.help_opt_dxw_ddraw_cnc),
-                    EnvVarOption("Dd7To9", R.string.help_opt_dxw_ddraw_dd7to9),
-                    EnvVarOption("ddraw-4.21", R.string.help_opt_dxw_ddraw_421),
-                    EnvVarOption("ddraw-11.8", R.string.help_opt_dxw_ddraw_118),
-                    EnvVarOption("D7VK", R.string.help_opt_dxw_ddraw_d7vk),
-                ),
+                optionsValuesArray = R.array.ddrawrapper_values,
+                optionsDescArray = R.array.help_opt_dxw_ddraw_descs,
             ),
         ),
     ),
@@ -1291,13 +1109,8 @@ private val dxWrapperCategories = listOf(
                 descriptionRes = R.string.help_dxw_video_memory_size,
                 labelRes = R.string.container_wine_video_memory_size,
                 default = "4096",
-                options = listOf(
-                    EnvVarOption("256", R.string.help_opt_dxw_vmem_256),
-                    EnvVarOption("512", R.string.help_opt_dxw_vmem_512),
-                    EnvVarOption("1024", R.string.help_opt_dxw_vmem_1024),
-                    EnvVarOption("2048", R.string.help_opt_dxw_vmem_2048),
-                    EnvVarOption("4096", R.string.help_opt_dxw_vmem_4096),
-                ),
+                optionsValuesArray = R.array.vmem_values,
+                optionsDescArray = R.array.help_opt_dxw_vmem_descs,
             ),
             EnvVarInfo(
                 name = "strict_shader_math",
@@ -1324,11 +1137,8 @@ private val dxWrapperCategories = listOf(
                 descriptionRes = R.string.help_dxw_renderer,
                 labelRes = R.string.container_config_renderer,
                 default = "gl",
-                options = listOf(
-                    EnvVarOption("gl", R.string.help_opt_dxw_renderer_gl),
-                    EnvVarOption("vulkan", R.string.help_opt_dxw_renderer_vulkan),
-                    EnvVarOption("gdi", R.string.help_opt_dxw_renderer_gdi),
-                ),
+                optionsValuesArray = R.array.renderer_values,
+                optionsDescArray = R.array.help_opt_dxw_renderer_descs,
             ),
         ),
     ),
@@ -1448,7 +1258,15 @@ private fun EnvVarCard(info: EnvVarInfo) {
                     }
                 }
 
-                if (info.options.isNotEmpty()) {
+                val resolvedOptions = if (info.optionsDescArray != 0) {
+                    val values = stringArrayResource(info.optionsValuesArray)
+                    val descs = stringArrayResource(info.optionsDescArray)
+                    values.zip(descs).map { (value, desc) -> EnvVarOption(value, desc = desc) }
+                } else {
+                    info.options
+                }
+
+                if (resolvedOptions.isNotEmpty()) {
                     Text(
                         "${stringResource(R.string.settings_help_env_vars_options)}:",
                         color = HelpSub,
@@ -1457,7 +1275,7 @@ private fun EnvVarCard(info: EnvVarInfo) {
                         modifier = Modifier.padding(bottom = 4.dp),
                     )
 
-                    info.options.forEach { option ->
+                    resolvedOptions.forEach { option ->
                         Row(
                             modifier =
                                 Modifier
@@ -1477,7 +1295,7 @@ private fun EnvVarCard(info: EnvVarInfo) {
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                stringResource(option.descRes),
+                                option.desc.ifEmpty { stringResource(option.descRes) },
                                 color = HelpSub,
                                 fontSize = 11.sp,
                                 modifier = Modifier.weight(1f),
@@ -1489,7 +1307,7 @@ private fun EnvVarCard(info: EnvVarInfo) {
             }
         }
 
-        if (!expanded && (info.default.isNotEmpty() || info.options.isNotEmpty())) {
+        if (!expanded && (info.default.isNotEmpty() || info.options.isNotEmpty() || info.optionsDescArray != 0)) {
             Row(
                 modifier =
                     Modifier

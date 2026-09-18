@@ -246,4 +246,535 @@
         <item>Fidelity</item>
         <item>Performance</item>
     </string-array>
+    <string-array name="vkd3d_level_values" translatable="false">
+        <item>12_2</item>
+        <item>12_1</item>
+        <item>12_0</item>
+        <item>11_1</item>
+        <item>11_0</item>
+        <item>9_3</item>
+    </string-array>
+    <string-array name="help_opt_dxw_level_descs">
+        <item>12_2 — highest, only for games that require it</item>
+        <item>12_1 — default, what most D3D12 games expect</item>
+        <item>12_0 — try this when a game reports an unsupported feature level</item>
+        <item>11_1 — D3D11.1 level, next fallback for stubborn games</item>
+        <item>11_0 — D3D11 level, disables most D3D12 features</item>
+        <item>9_3 — lowest, only for very old or misbehaving titles</item>
+    </string-array>
+    <string-array name="ddrawrapper_values" translatable="false">
+        <item>none</item>
+        <item>cnc-ddraw</item>
+        <item>Dd7To9</item>
+        <item>ddraw-4.21</item>
+        <item>ddraw-11.8</item>
+        <item>D7VK</item>
+    </string-array>
+    <string-array name="help_opt_dxw_ddraw_descs">
+        <item>none — restore the Wine built-in ddraw.dll and d3dimm.dll</item>
+        <item>CnC-DDraw — classic wrapper, also sets CNC_DDRAW_CONFIG_FILE</item>
+        <item>Dd7To9 — translates Direct3D 7 calls to D3D9</item>
+        <item>ddraw-4.21 — older ddraw build</item>
+        <item>ddraw-11.8 — newer ddraw build</item>
+        <item>D7VK — Direct3D 7 over Vulkan, from an installed content package</item>
+    </string-array>
+    <string-array name="vmem_values" translatable="false">
+        <item>256</item>
+        <item>512</item>
+        <item>1024</item>
+        <item>2048</item>
+        <item>4096</item>
+    </string-array>
+    <string-array name="help_opt_dxw_vmem_descs">
+        <item>256 MB</item>
+        <item>512 MB</item>
+        <item>1024 MB</item>
+        <item>2048 MB</item>
+        <item>4096 MB</item>
+    </string-array>
+    <string-array name="renderer_values" translatable="false">
+        <item>gl</item>
+        <item>vulkan</item>
+        <item>gdi</item>
+    </string-array>
+    <string-array name="help_opt_dxw_renderer_descs">
+        <item>gl — OpenGL backend, ultimately goes through zink to Vulkan anyway</item>
+        <item>vulkan — WineD3D with Vulkan backend, faster in some cases but less compatible than gl</item>
+        <item>gdi — GDI software rendering, last resort for very old 2D games</item>
+    </string-array>
+    <string-array name="peek_limiter_values" translatable="false">
+        <item>1</item>
+        <item>2</item>
+        <item>4</item>
+        <item>8</item>
+        <item>16</item>
+    </string-array>
+    <string-array name="help_opt_peek_limiter_descs">
+        <item>Sleep 1 ms on an empty peek</item>
+        <item>Sleep 2 ms on an empty peek</item>
+        <item>Sleep 4 ms on an empty peek</item>
+        <item>Sleep 8 ms on an empty peek</item>
+        <item>Sleep 16 ms on an empty peek (about 60 Hz)</item>
+    </string-array>
+    <string-array name="zink_descriptors_values" translatable="false">
+        <item>auto</item>
+        <item>lazy</item>
+        <item>cached</item>
+        <item>notemplates</item>
+    </string-array>
+    <string-array name="help_opt_zink_descriptors_descs">
+        <item>Auto-select the best strategy</item>
+        <item>Lazy descriptor allocation</item>
+        <item>Cache descriptors to reduce reallocation</item>
+        <item>Disable descriptor templates</item>
+    </string-array>
+    <string-array name="zink_debug_values" translatable="false">
+        <item>nir</item>
+        <item>spirv</item>
+        <item>tgsi</item>
+        <item>validation</item>
+        <item>sync</item>
+        <item>compact</item>
+        <item>noreorder</item>
+    </string-array>
+    <string-array name="help_opt_zink_debug_descs">
+        <item>Debug NIR (Intermediate Representation) code</item>
+        <item>Debug SPIR-V shaders</item>
+        <item>Debug TGSI (legacy shader IR)</item>
+        <item>Enable Vulkan validation layers</item>
+        <item>Debug synchronization issues</item>
+        <item>Compact mode</item>
+        <item>Disable instruction reordering</item>
+    </string-array>
+    <string-array name="gallium_hud_values" translatable="false">
+        <item>simple</item>
+        <item>fps</item>
+        <item>frametime</item>
+    </string-array>
+    <string-array name="help_opt_gallium_hud_descs">
+        <item>Show basic performance information</item>
+        <item>Show frame rate (FPS)</item>
+        <item>Show frame time</item>
+    </string-array>
+    <string-array name="dxvk_hud_values" translatable="false">
+        <item>scale=0.5</item>
+        <item>scale=0.7</item>
+        <item>opacity=0.5</item>
+        <item>opacity=0.7</item>
+        <item>devinfo</item>
+        <item>fps</item>
+        <item>frametimes</item>
+        <item>submissions</item>
+        <item>drawcalls</item>
+        <item>pipelines</item>
+        <item>descriptors</item>
+        <item>memory</item>
+        <item>gpuload</item>
+        <item>version</item>
+        <item>api</item>
+        <item>cs</item>
+        <item>compiler</item>
+        <item>samplers</item>
+    </string-array>
+    <string-array name="help_opt_dxvk_hud_descs">
+        <item>HUD scale 50%</item>
+        <item>HUD scale 70%</item>
+        <item>HUD opacity 50%</item>
+        <item>HUD opacity 70%</item>
+        <item>Show device information (GPU name, driver version, etc.)</item>
+        <item>Show frame rate</item>
+        <item>Show frame time graph</item>
+        <item>Show submission count</item>
+        <item>Show draw call count</item>
+        <item>Show graphics pipeline statistics</item>
+        <item>Show descriptor statistics</item>
+        <item>Show VRAM usage</item>
+        <item>Show GPU load</item>
+        <item>Show DXVK version</item>
+        <item>Show API in use</item>
+        <item>Show compute shader information</item>
+        <item>Show shader compilation information</item>
+        <item>Show sampler statistics</item>
+    </string-array>
+    <string-array name="vkd3d_sm_values" translatable="false">
+        <item>6_9</item>
+        <item>6_6</item>
+        <item>6_0</item>
+        <item>5_0</item>
+    </string-array>
+    <string-array name="help_opt_vkd3d_sm_descs">
+        <item>Shader Model 6.9 (latest)</item>
+        <item>Shader Model 6.6</item>
+        <item>Shader Model 6.0</item>
+        <item>Shader Model 5.0 (older)</item>
+    </string-array>
+    <string-array name="tu_debug_values" translatable="false">
+        <item>forcecb</item>
+        <item>nocb</item>
+        <item>startup</item>
+        <item>deck_emu</item>
+        <item>nir</item>
+        <item>nobin</item>
+        <item>sysmem</item>
+        <item>gmem</item>
+        <item>forcebin</item>
+        <item>layout</item>
+        <item>noubwc</item>
+        <item>nomultipos</item>
+        <item>nolrz</item>
+        <item>nolrzfc</item>
+        <item>perf</item>
+        <item>perfc</item>
+        <item>flushall</item>
+        <item>syncdraw</item>
+        <item>push_consts_per_stage</item>
+        <item>rast_order</item>
+        <item>unaligned_store</item>
+        <item>log_skip_gmem_ops</item>
+        <item>dynamic</item>
+        <item>bos</item>
+        <item>3d_load</item>
+        <item>fdm</item>
+        <item>noconform</item>
+        <item>rd</item>
+    </string-array>
+    <string-array name="help_opt_tu_debug_descs">
+        <item>Force constant buffer usage</item>
+        <item>Disable constant buffers</item>
+        <item>Show startup debug information</item>
+        <item>Steam Deck emulation mode</item>
+        <item>Debug NIR code</item>
+        <item>Disable binary shaders</item>
+        <item>Use system memory mode</item>
+        <item>Use GMEM (on-chip memory) mode</item>
+        <item>Force binning mode</item>
+        <item>Show pipeline layout information</item>
+        <item>Disable UBWC compression</item>
+        <item>Disable multi-position output</item>
+        <item>Disable LRZ</item>
+        <item>Disable LRZ fast clear</item>
+        <item>Performance debug information</item>
+        <item>Compact performance debug information</item>
+        <item>Force flush all operations</item>
+        <item>Synchronize draw operations</item>
+        <item>Use push constants per stage</item>
+        <item>Force rasterization order</item>
+        <item>Allow unaligned stores</item>
+        <item>Log skipped GMEM operations</item>
+        <item>Dynamic mode</item>
+        <item>Debug buffer objects</item>
+        <item>Debug 3D loads</item>
+        <item>Debug FDM</item>
+        <item>Disable conformance checks</item>
+        <item>Debug render targets</item>
+    </string-array>
+    <string-array name="ir3_debug_values" translatable="false">
+        <item>nouboopt</item>
+        <item>nopreamble</item>
+        <item>noearlypreamble</item>
+    </string-array>
+    <string-array name="help_opt_ir3_debug_descs">
+        <item>Disable UBO (Uniform Buffer Object) optimization</item>
+        <item>Disable shader preamble</item>
+        <item>Disable early preamble</item>
+    </string-array>
+    <string-array name="alsa_perf_values" translatable="false">
+        <item>low_latency</item>
+        <item>none</item>
+        <item>power_saving</item>
+    </string-array>
+    <string-array name="help_opt_alsa_perf_descs">
+        <item>Low latency mode, suitable for games</item>
+        <item>Default mode</item>
+        <item>Power saving mode, reduces power but may increase latency</item>
+    </string-array>
+
+    <string-array name="box64_safeflags_values" translatable="false">
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_safeflags_descs">
+        <item>Strict checks (highest compatibility)</item>
+        <item>Basic checks (recommended)</item>
+        <item>No checks (fastest, may crash)</item>
+    </string-array>
+
+    <string-array name="box64_fastround_values" translatable="false">
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_fastround_descs">
+        <item>Fastest rounding (may be imprecise)</item>
+        <item>Fast rounding (recommended)</item>
+        <item>Precise emulation (slower)</item>
+    </string-array>
+
+    <string-array name="box64_x87double_values" translatable="false">
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_x87double_descs">
+        <item>Mixed mode</item>
+        <item>Double type (higher precision, slower)</item>
+        <item>Float type (default)</item>
+    </string-array>
+
+    <string-array name="box64_bigblock_values" translatable="false">
+        <item>3</item>
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_bigblock_descs">
+        <item>Maximum block (highest performance)</item>
+        <item>Large block (recommended)</item>
+        <item>Medium size</item>
+        <item>Minimal block (best compatibility, slowest)</item>
+    </string-array>
+
+    <string-array name="box64_strongmem_values" translatable="false">
+        <item>4</item>
+        <item>3</item>
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_strongmem_descs">
+        <item>Strongest memory barrier</item>
+        <item>Strong barrier</item>
+        <item>Medium barrier</item>
+        <item>Light barrier</item>
+        <item>No barriers (fastest)</item>
+    </string-array>
+
+    <string-array name="box64_forward_values" translatable="false">
+        <item>1024</item>
+        <item>512</item>
+        <item>256</item>
+        <item>128</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_forward_descs">
+        <item>1024 instructions</item>
+        <item>512 instructions</item>
+        <item>256 instructions</item>
+        <item>128 instructions (default)</item>
+        <item>Unlimited</item>
+    </string-array>
+
+    <string-array name="box64_callret_values" translatable="false">
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_callret_descs">
+        <item>Aggressive optimization</item>
+        <item>Basic optimization</item>
+        <item>No optimization (default)</item>
+    </string-array>
+
+    <string-array name="box64_sep_values" translatable="false">
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_sep_descs">
+        <item>Strict separation</item>
+        <item>Normal separation (default)</item>
+        <item>No separation</item>
+    </string-array>
+
+    <string-array name="box64_weakbarrier_values" translatable="false">
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_weakbarrier_descs">
+        <item>Weakest barrier</item>
+        <item>Weak barrier (default)</item>
+        <item>No weak barriers</item>
+    </string-array>
+
+    <string-array name="box64_dirty_values" translatable="false">
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_dirty_descs">
+        <item>Full cleanup (safest, slowest)</item>
+        <item>Partial cleanup</item>
+        <item>No cleanup (default)</item>
+    </string-array>
+
+    <string-array name="box64_pause_values" translatable="false">
+        <item>3</item>
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_pause_descs">
+        <item>Longest pause</item>
+        <item>Longer pause</item>
+        <item>Light pause</item>
+        <item>No emulation (default)</item>
+    </string-array>
+
+    <string-array name="box64_noarch_values" translatable="false">
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_noarch_descs">
+        <item>Strictly restrict</item>
+        <item>Partially restrict</item>
+        <item>Allow all extensions (default)</item>
+    </string-array>
+
+    <string-array name="box64_dynacache_values" translatable="false">
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_dynacache_descs">
+        <item>Maximum cache (large programs)</item>
+        <item>Expanded cache</item>
+        <item>Default size</item>
+    </string-array>
+
+    <string-array name="box64_avx_values" translatable="false">
+        <item>2</item>
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string-array name="help_opt_box64_avx_descs">
+        <item>Support AVX2</item>
+        <item>Support AVX</item>
+        <item>Not supported (default, most compatible)</item>
+    </string-array>
+
+    <string-array name="box64_maxcpu_values" translatable="false">
+        <item>0</item>
+        <item>4</item>
+        <item>8</item>
+        <item>16</item>
+        <item>32</item>
+        <item>64</item>
+    </string-array>
+    <string-array name="help_opt_box64_maxcpu_descs">
+        <item>Use actual core count</item>
+        <item>4 cores</item>
+        <item>8 cores</item>
+        <item>16 cores</item>
+        <item>32 cores</item>
+        <item>64 cores</item>
+    </string-array>
+
+    <string-array name="fexcore_hostfeat_values" translatable="false">
+        <item>off</item>
+        <item>enablesve</item>
+        <item>disablesve</item>
+        <item>enableavx</item>
+        <item>disableavx</item>
+        <item>enableafp</item>
+        <item>disableafp</item>
+        <item>enablelrcpc</item>
+        <item>disablelrcpc</item>
+        <item>enablelrcpc2</item>
+        <item>disablelrcpc2</item>
+        <item>enablecssc</item>
+        <item>disablecssc</item>
+        <item>enablepmull128</item>
+        <item>disablepmull128</item>
+        <item>enablerng</item>
+        <item>disablerng</item>
+        <item>enableclzero</item>
+        <item>disableclzero</item>
+        <item>enableatomics</item>
+        <item>disableatomics</item>
+        <item>enablefcma</item>
+        <item>disablefcma</item>
+        <item>enableflagm</item>
+        <item>disableflagm</item>
+        <item>enableflagm2</item>
+        <item>disableflagm2</item>
+        <item>enablefrintts</item>
+        <item>disablefrintts</item>
+        <item>enablecrypto</item>
+        <item>disablecrypto</item>
+        <item>enablerpres</item>
+        <item>disablerpres</item>
+        <item>enablesvebitperm</item>
+        <item>disablesvebitperm</item>
+        <item>enablepreserveallabi</item>
+        <item>disablepreserveallabi</item>
+        <item>enablewfxt</item>
+        <item>disablewfxt</item>
+        <item>enable3dnow</item>
+        <item>disable3dnow</item>
+        <item>enablesse4a</item>
+        <item>disablesse4a</item>
+        <item>enablemops</item>
+        <item>disablemops</item>
+    </string-array>
+    <string-array name="help_opt_fexcore_hostfeat_descs">
+        <item>Default settings (no changes)</item>
+        <item>Enable SVE (Scalable Vector Extension)</item>
+        <item>Disable SVE</item>
+        <item>Enable AVX instruction emulation</item>
+        <item>Disable AVX instruction emulation</item>
+        <item>Enable AFP (Alternate Floating Point)</item>
+        <item>Disable AFP</item>
+        <item>Enable LRCPC</item>
+        <item>Disable LRCPC</item>
+        <item>Enable LRCPC2</item>
+        <item>Disable LRCPC2</item>
+        <item>Enable CSSC</item>
+        <item>Disable CSSC</item>
+        <item>Enable PMULL 128-bit multiply</item>
+        <item>Disable PMULL 128-bit multiply</item>
+        <item>Enable RNG (Random Number Generator)</item>
+        <item>Disable RNG</item>
+        <item>Enable CLZERO (Cache Line Zero)</item>
+        <item>Disable CLZERO</item>
+        <item>Enable atomic operation extensions</item>
+        <item>Disable atomic operation extensions</item>
+        <item>Enable FCMA (Floating-point Complex Multiply-Add)</item>
+        <item>Disable FCMA</item>
+        <item>Enable FlagM (Flag manipulation)</item>
+        <item>Disable FlagM</item>
+        <item>Enable FlagM2</item>
+        <item>Disable FlagM2</item>
+        <item>Enable FRINTTS (Float Round to Signed Integer)</item>
+        <item>Disable FRINTTS</item>
+        <item>Enable Crypto extensions</item>
+        <item>Disable Crypto extensions</item>
+        <item>Enable RPRES</item>
+        <item>Disable RPRES</item>
+        <item>Enable SVE bit permute</item>
+        <item>Disable SVE bit permute</item>
+        <item>Enable PreserveAll ABI</item>
+        <item>Disable PreserveAll ABI</item>
+        <item>Enable WFXT</item>
+        <item>Disable WFXT</item>
+        <item>Enable 3DNow! instruction emulation</item>
+        <item>Disable 3DNow! instruction emulation</item>
+        <item>Enable SSE4a instruction emulation</item>
+        <item>Disable SSE4a instruction emulation</item>
+        <item>Enable MOPS (Memory Operations)</item>
+        <item>Disable MOPS</item>
+    </string-array>
+
+    <string-array name="fexcore_smc_values" translatable="false">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string-array name="help_opt_fexcore_smc_descs">
+        <item>No SMC detection (fastest)</item>
+        <item>Memory tracking detection</item>
+        <item>Full detection (safest)</item>
+    </string-array>
 </resources>
