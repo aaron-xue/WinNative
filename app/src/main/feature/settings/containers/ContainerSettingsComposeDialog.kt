@@ -1772,7 +1772,13 @@ class ContainerSettingsComposeDialog @JvmOverloads constructor(
             return
         }
         val sanitizedName = container.name.replace(" ", "_")
-        val date = SimpleDateFormat("MMddyyyy_HHmmss", Locale.US).format(Date())
+        val locale = Locale.getDefault()
+        val dateFormat = if (locale.language == "zh") {
+            SimpleDateFormat("yyyyMMdd_HHmmss", locale)
+        } else {
+            SimpleDateFormat("MMddyyyy_HHmmss", locale)
+        }
+        val date = dateFormat.format(Date())
         val zipName = "${sanitizedName}_${date}.zip"
         val exportDir = File(Environment.getExternalStorageDirectory(), "WinNative/saves")
         if (!exportDir.exists()) exportDir.mkdirs()

@@ -28,7 +28,7 @@
   //tzst工具
   tzst a 龙珠大冒险.tzst cover1.jpg manifests.json
   ```
-- **tzst工具** Download standalone executables from the [Releases](https://github.com/xixu-me/tzst/releases) section.
+- **tzst工具** Download standalone executables from the [Releases](https://github.com/aaron-xue/tzst/releases) section.
 
 ---
 
