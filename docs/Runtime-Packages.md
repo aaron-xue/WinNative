@@ -26,7 +26,7 @@
   ```
   tar -I zstd -cf example.tar.zst ./usr
   //tzst工具
-  tzst a 龙珠大冒险.tzst cover1.jpg manifests.json
+  tzst a wine-mono-11.2.1-x86.tzst wine-mono-11.2.1-x86.msi wine-mono-11.2.1-x86.yml -l 15
   ```
 - **tzst工具** Download standalone executables from the [Releases](https://github.com/aaron-xue/tzst/releases) section.
 
