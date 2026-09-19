@@ -3597,6 +3597,11 @@
     <string name="help_opt_dxw_offscreen_fbo">fbo — 渲染到帧缓冲对象，兼容性最好</string>
     <string name="help_opt_dxw_offscreen_backbuffer">backbuffer — 渲染到后缓冲，部分游戏更快</string>
 
+    <!-- Other Notes -->
+    <string name="settings_help_other_notes_title">其他说明</string>
+    <string name="help_other_unixlibs_title">UnixLibs</string>
+    <string name="help_other_unixlibs">UnixLibs 为 FEX（x86→ARM 翻译器）提供一个原生 .so 辅助库，该库直接运行在 Android 侧而非 Wine 的 Windows 沙盒内。这解锁了硬件 TSO（Total Store Order）内存排序，让 FEX 能够丢弃昂贵的软件内存屏障——与苹果 Rosetta 原理相同。\n\n最适合：多线程密集型现代游戏（DX11/DX12/Vulkan）。\n\n可能有害：老式单线程或 DDRAW/D3D8/D3D9 游戏——软件屏障在此充当天然的「功耗节流器」；去掉屏障后 CPU 全程满载无间歇。如果老游戏出现电池消耗异常或发热，请尝试关闭 UnixLibs。</string>
+
     <!-- Help: setting value types -->
     <string name="help_type_checkbox">开关</string>
     <string name="help_type_select">单选</string>

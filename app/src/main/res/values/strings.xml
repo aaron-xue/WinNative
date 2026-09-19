@@ -3609,6 +3609,11 @@ Installed path:
     <string name="help_opt_dxw_offscreen_fbo">fbo — render into a framebuffer object, best compatibility</string>
     <string name="help_opt_dxw_offscreen_backbuffer">backbuffer — render into the back buffer, faster in some games</string>
 
+    <!-- Other Notes -->
+    <string name="settings_help_other_notes_title">Other Notes</string>
+    <string name="help_other_unixlibs_title">UnixLibs</string>
+    <string name="help_other_unixlibs">UnixLibs gives FEX (the x86→ARM translator) a native .so companion that runs directly on Android instead of inside the Wine Windows box. This unlocks hardware TSO (Total Store Order) memory ordering, letting FEX drop expensive software memory barriers — the same trick Apple Rosetta uses.\n\nBest for: modern multi-threaded games (DX11/DX12/Vulkan) with heavy memory traffic.\n\nMay hurt: old single-threaded or DDRAW/D3D8/D3D9 games — the software barriers act as natural micro-throttles that keep power in check; removing them can cause the CPU to run full‑tilt with no breaks. If you notice battery drain or heat on older titles, try turning UnixLibs off.</string>
+
     <!-- Help: setting value types -->
     <string name="help_type_checkbox">Checkbox</string>
     <string name="help_type_select">Select</string>

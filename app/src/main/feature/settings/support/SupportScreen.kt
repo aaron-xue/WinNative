@@ -1156,6 +1156,38 @@ private fun SectionHeader(@StringRes titleRes: Int) {
 }
 
 @Composable
+private fun NoteCard(
+    @StringRes titleRes: Int = 0,
+    title: String = "",
+    @StringRes bodyRes: Int,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(HelpCard)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        if (titleRes != 0 || title.isNotEmpty()) {
+            Text(
+                text = if (titleRes != 0) stringResource(titleRes) else title,
+                color = HelpAccent,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(6.dp))
+        }
+        Text(
+            stringResource(bodyRes),
+            color = HelpSub,
+            fontSize = 13.sp,
+            lineHeight = 20.sp,
+        )
+    }
+}
+
+@Composable
 private fun TypeChip(type: EnvVarType) {
     Box(
         modifier =
@@ -1446,6 +1478,23 @@ fun SupportScreen(bridge: SettingsNavBridge? = null) {
                             EnvVarCard(envVar)
                         }
                     }
+                }
+            }
+
+            stickyHeader(key = "othernotes") {
+                AccordionSectionHeader(
+                    titleRes = R.string.settings_help_other_notes_title,
+                    expanded = expandedSection == 6,
+                    onClick = { expandedSection = if (expandedSection == 6) 0 else 6 },
+                )
+            }
+
+            if (expandedSection == 6) {
+                item(key = "note_unixlibs") {
+                    NoteCard(
+                        titleRes = R.string.help_other_unixlibs_title,
+                        bodyRes = R.string.help_other_unixlibs,
+                    )
                 }
             }
         }
