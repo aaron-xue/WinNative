@@ -3572,7 +3572,7 @@
 
     <!-- DX Wrapper Setting Descriptions -->
     <string name="help_dxw_dxwrapper">由哪套转换层来翻译 Direct3D 调用。该选项独立存储，详细参数放在 dxwrapperConfig 里（以逗号分隔，注意与用分号分隔的图形驱动配置不同）。</string>
-    <string name="help_dxw_version">要注入的 DXVK 版本。None 表示完全不注入。候选来自已安装的 DXVK 内容包，非 ARM64EC 容器会过滤掉 arm64ec 版本。只有名称含 async 或 gplasync 的版本才能使用下面两个异步开关。</string>
+    <string name="help_dxw_version">要注入的 DXVK 版本。None 表示完全不注入。候选来自已安装的 DXVK 内容包，非 ARM64EC 容器会过滤掉 arm64ec 版本。只有名称含 async 或 gplasync 的版本才能使用下面两个异步开关。注：DXVK 3.0 主线已经内置完整的后台着色器编译，不再需要 gplasync 补丁版；gplasync 项目停留在 DXVK 2.x 时代，没有 3.0+ 的维护版本</string>
     <string name="help_dxw_async">着色器编译不再阻塞渲染（DXVK_ASYNC），是解决「首次进入场景卡几秒」的主要手段。代价是着色器未编译完成时可能短暂缺画面或闪烁，少数反作弊严格的在线游戏可能不接受。</string>
     <string name="help_dxw_async_cache">把异步编译产生的 GPL 着色器缓存到磁盘，第二次进入同一场景就不会再卡。需要带 gplasync 的 DXVK 版本，建议常开。</string>
     <string name="help_dxw_vkd3d_version">要注入的 VKD3D 版本，仅 D3D12 游戏用得上。None 表示沿用 Wine 内置的 d3d12.dll。选择非 None 后，DXVK 版本列表会限制到 2.x 及以上。</string>
