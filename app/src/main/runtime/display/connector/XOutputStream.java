@@ -33,21 +33,25 @@ public class XOutputStream {
 
   public void writeByte(byte value) {
     ensureSpaceIsAvailable(1);
+    if (buffer == null) return;
     buffer.put(value);
   }
 
   public void writeShort(short value) {
     ensureSpaceIsAvailable(2);
+    if (buffer == null) return;
     buffer.putShort(value);
   }
 
   public void writeInt(int value) {
     ensureSpaceIsAvailable(4);
+    if (buffer == null) return;
     buffer.putInt(value);
   }
 
   public void writeLong(long value) {
     ensureSpaceIsAvailable(8);
+    if (buffer == null) return;
     buffer.putLong(value);
   }
 
@@ -60,6 +64,7 @@ public class XOutputStream {
     byte[] bytes = str.getBytes(XServer.LATIN1_CHARSET);
     int length = -bytes.length & 3;
     ensureSpaceIsAvailable(bytes.length + length);
+    if (buffer == null) return;
     buffer.put(bytes);
     if (length > 0) writePad(length);
   }
@@ -70,11 +75,13 @@ public class XOutputStream {
 
   public void write(byte[] data, int offset, int length) {
     ensureSpaceIsAvailable(length);
+    if (buffer == null) return;
     buffer.put(data, offset, length);
   }
 
   public void write(ByteBuffer data) {
     ensureSpaceIsAvailable(data.remaining());
+    if (buffer == null) return;
     buffer.put(data);
   }
 
@@ -83,16 +90,15 @@ public class XOutputStream {
   }
 
   private void flush() throws IOException {
-    if (buffer.position() != 0) {
-      buffer.flip();
+    if (buffer == null || buffer.position() == 0) return;
+    buffer.flip();
 
-      if (ancillaryFd != -1) {
-        clientSocket.sendAncillaryMsg(buffer, ancillaryFd);
-        ancillaryFd = -1;
-      } else clientSocket.write(buffer);
+    if (ancillaryFd != -1) {
+      clientSocket.sendAncillaryMsg(buffer, ancillaryFd);
+      ancillaryFd = -1;
+    } else clientSocket.write(buffer);
 
-      buffer.clear();
-    }
+    buffer.clear();
   }
 
   public XStreamLock lock() {
@@ -100,6 +106,7 @@ public class XOutputStream {
   }
 
   private void ensureSpaceIsAvailable(int length) {
+    if (buffer == null) return;
     int position = buffer.position();
     if ((buffer.capacity() - position) >= length) return;
     ByteBuffer newBuffer =
