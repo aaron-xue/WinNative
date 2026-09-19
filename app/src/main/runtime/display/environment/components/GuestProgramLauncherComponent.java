@@ -1220,6 +1220,11 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
             + " "
             + "MESA_VK_WSI_DEBUG="
             + envVars.get("MESA_VK_WSI_DEBUG"));
+    //解决 逸剑风云决 0 帧卡死的问题
+    //禁止 DXVK 使用 10-bit HDR 格式（PF_A2B10G10R10）
+    //强制 8-bit SDR 交换链格式，避免手机 GPU 驱动对 HDR 格式的支持缺陷
+    envVars.put("DXVK_NO_HDR", "1");
+    envVars.put("DXVK_SWAPCHAIN_FORMAT", "B8G8R8A8_UNORM");
 
     return ProcessHelper.exec(
         command,
