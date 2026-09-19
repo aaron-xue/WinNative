@@ -1,5 +1,7 @@
 @echo off
+chcp 65001 >nul
 setlocal enabledelayedexpansion
+cd /d "%~dp0"
 
 REM ============================================
 REM  获取脚本所在目录名称作为 .tzst 归档文件名
@@ -7,12 +9,9 @@ REM ============================================
 for %%I in ("%~dp0.") do set "ARCHIVE_NAME=%%~nxI"
 
 REM ============================================
-REM  收集当前目录下的所有文件和子目录
-REM  排除脚本自身
+REM  收集当前目录下的所有文件和子目录排除脚本自身
 REM ============================================
 set "ITEMS="
-
-REM 收集文件（排除 .bat 脚本自身）
 for %%F in (*) do (
     if /I not "%%F"=="%~nx0" (
         set "ITEMS=!ITEMS! "%%F""
