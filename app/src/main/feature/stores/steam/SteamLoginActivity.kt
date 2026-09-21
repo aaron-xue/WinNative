@@ -71,7 +71,31 @@ private val DangerRed = Color(0xFFFF7A88)
 class SteamLoginActivity : FixedFontScaleComponentActivity(), LandscapeOnlyActivity {
 
     private val viewModel: SteamLoginViewModel by viewModels()
-    
+    private val controllerInput by lazy {
+        com.winlator.cmod.runtime.input.controls.SteamControllerUiSession(this)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        controllerInput.resume()
+    }
+
+    override fun onPause() {
+        controllerInput.pause()
+        super.onPause()
+    }
+
+    override fun onStop() {
+        controllerInput.stop()
+        super.onStop()
+    }
+
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean =
+        controllerInput.isShadow(event.device) || super.dispatchKeyEvent(event)
+
+    override fun dispatchGenericMotionEvent(event: android.view.MotionEvent): Boolean =
+        controllerInput.isShadow(event.device) || super.dispatchGenericMotionEvent(event)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -103,6 +127,7 @@ class SteamLoginActivity : FixedFontScaleComponentActivity(), LandscapeOnlyActiv
     }
 
     override fun onDestroy() {
+        controllerInput.stop()
         // Manually unregister this service as reason.
         SessionKeepAliveService.stopComponent(this, SessionKeepAliveService.COMPONENT_STEAM)
 

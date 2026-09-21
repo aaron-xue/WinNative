@@ -39,7 +39,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -262,6 +261,10 @@ internal fun LogsPaneHeader(
                 color = if (paused) DrawerAccent else DrawerTextSecondary,
                 fontSize = (11f * paneScale).sp,
                 fontWeight = FontWeight.Medium,
+                // Three action tiles and the close button take about 190 dp of the drawer's
+                // fixed 300 dp, so this subtitle wrapped to two or three lines.
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
 
@@ -285,8 +288,6 @@ internal fun LogsPaneHeader(
             contentDescription = stringResource(R.string.session_drawer_logs_share),
             onClick = onShare,
         )
-
-        Spacer(Modifier.width((16f * paneScale).dp))
 
         TaskManagerCloseButton(onClick = onClose)
     }

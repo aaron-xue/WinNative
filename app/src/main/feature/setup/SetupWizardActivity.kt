@@ -2925,7 +2925,15 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.TopCenter,
             ) {
-                val gridColumns = 3
+                // Fixed at 3, a portrait window gave each card about 120 dp: the Create
+                // button took its intrinsic width and the weighted text column beside it was
+                // left with a few dp, wrapping "ARM64EC" one character per line.
+                val gridColumns =
+                    when {
+                        maxWidth < 420.dp -> 1
+                        maxWidth < 720.dp -> 2
+                        else -> 3
+                    }
                 val compactGrid = maxWidth < 720.dp || maxHeight < 280.dp
                 val region by navRegion
                 val navIdx by navIndex
@@ -3069,6 +3077,8 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
                         fontSize = if (compact) 8.sp else 9.sp,
                         letterSpacing = 1.sp,
                         fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Spacer(Modifier.height(if (compact) 1.dp else 3.dp))
