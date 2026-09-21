@@ -97,11 +97,7 @@ fun ControllerTestDialog(
                 ControllerTestBus.setDialogOpen(true)
                 ControllerTestBus.setActive(testMode)
                 window?.apply {
-                    if (testMode) {
-                        addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-                    } else {
-                        clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-                    }
+                    addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
                     clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
                     setDimAmount(0f)
                 }

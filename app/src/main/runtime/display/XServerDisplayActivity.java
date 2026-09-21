@@ -9984,7 +9984,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         }
         if (isSteamControllerShadowEvent(event.getDevice())) return true;
         if (controllerTestComposeView != null
-                && com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.isActive()
                 && consumeControllerTestMotionEvent(event)) {
             return true;
         }
@@ -10031,7 +10030,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (ExternalController.isGameController(event.getDevice())
                 && handleControllerMenuKey(event.getKeyCode(), event.getAction() == KeyEvent.ACTION_DOWN, event.getEventTime())) return true;
         if (controllerTestComposeView != null
-                && com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.isActive()
                 && consumeControllerTestKeyEvent(event)) {
             return true;
         }

@@ -343,7 +343,7 @@ class InputControlsFragment : Fragment() {
 
     fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (steamPads.isNotEmpty() && event.device?.vendorId == SteamControllerBackend.VALVE_VENDOR_ID) return true
-        if (showControllerTest && ControllerTestBus.isActive()) {
+        if (showControllerTest) {
             val device = event.device
             if (ExternalController.isGameController(device)) {
                 if (event.repeatCount == 0) {
@@ -368,7 +368,7 @@ class InputControlsFragment : Fragment() {
 
     fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         if (steamPads.isNotEmpty() && event.device?.vendorId == SteamControllerBackend.VALVE_VENDOR_ID) return true
-        if (showControllerTest && ControllerTestBus.isActive()) {
+        if (showControllerTest) {
             val device = event.device
             if (ExternalController.isGameController(device)) {
                 prepareTestController(device)
