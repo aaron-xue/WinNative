@@ -3312,6 +3312,7 @@
     <string name="controller_bind_target_rstick_down">右摇杆 下</string>
     <string name="controller_bind_target_rstick_left">右摇杆 左</string>
     <string name="controller_bind_target_rstick_right">右摇杆 右</string>
+    <string name="controller_bind_note">备注</string>
     <string name="steam_controller_section">Steam Controller</string>
     <string name="steam_controller_enable">Steam Controller 支持</string>
     <string name="steam_controller_enable_summary">通过 Bluetooth LE 或 USB 读取已配对的 Steam Controller。默认关闭；关闭时不会影响常规控制器通路。</string>

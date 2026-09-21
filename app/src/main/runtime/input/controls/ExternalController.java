@@ -330,6 +330,10 @@ public class ExternalController {
     this.state.thumbLY = getCenteredAxis(event, 1, historyPos);
     this.state.thumbRX = getCenteredAxis(event, 11, historyPos);
     this.state.thumbRY = getCenteredAxis(event, 14, historyPos);
+    if (this.state.thumbRX == 0.0f && this.state.thumbRY == 0.0f) {
+      this.state.thumbRX = getCenteredAxis(event, 12, historyPos);
+      this.state.thumbRY = getCenteredAxis(event, 13, historyPos);
+    }
     if (historyPos == -1) {
       float axisX = getCenteredAxis(event, 15, historyPos);
       float axisY = getCenteredAxis(event, 16, historyPos);
@@ -545,7 +549,7 @@ public class ExternalController {
     if (Math.abs(value2) <= flat) {
       return 0.0f;
     }
-    if ((axis == 0 || axis == 1 || axis == 11 || axis == 14) && Math.abs(value2) >= 0.15f) {
+    if ((axis == 0 || axis == 1 || axis == 11 || axis == 12 || axis == 13 || axis == 14) && Math.abs(value2) >= 0.15f) {
       return value2;
     }
     return 0.0f;

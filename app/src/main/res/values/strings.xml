@@ -3483,6 +3483,7 @@ Installed path:
     <string name="controller_bind_target_rstick_down">Right stick down</string>
     <string name="controller_bind_target_rstick_left">Right stick left</string>
     <string name="controller_bind_target_rstick_right">Right stick right</string>
+    <string name="controller_bind_note">Note</string>
     <string name="steam_controller_section">Steam Controller</string>
     <string name="steam_controller_enable">Steam Controller support</string>
     <string name="steam_controller_enable_summary">Read a paired Steam Controller over Bluetooth LE or USB. Off by default; the normal controller path is untouched while it is off.</string>

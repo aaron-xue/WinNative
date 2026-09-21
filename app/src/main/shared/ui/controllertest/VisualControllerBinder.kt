@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -29,6 +30,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -95,7 +97,113 @@ fun VisualControllerBinder(
         remember(bindRev, controller) {
             targets.associate { it.id to bindingLabelOrNull(controller, it.id) }
         }
+    val notes =
+        remember(bindRev, controller) {
+            targets.associate { it.id to bindingNoteOrNull(controller, it.id) }
+        }
     val boundBindIds = remember(bindRev, controller) { labels.filterValues { it != null }.keys.toSet() }
+
+    var prevButtons by remember { mutableIntStateOf(0) }
+    var lastDpadUp by remember { mutableStateOf(false) }
+    var lastDpadDown by remember { mutableStateOf(false) }
+    var lastDpadLeft by remember { mutableStateOf(false) }
+    var lastDpadRight by remember { mutableStateOf(false) }
+    var lastThumbLH by remember { mutableIntStateOf(0) }
+    var lastThumbLV by remember { mutableIntStateOf(0) }
+    var lastThumbRH by remember { mutableIntStateOf(0) }
+    var lastThumbRV by remember { mutableIntStateOf(0) }
+    var lastTriggerLDir by remember { mutableIntStateOf(0) }
+    var lastTriggerRDir by remember { mutableIntStateOf(0) }
+    var lastGuide by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        ControllerTestBus.snapshot.collect { snap ->
+            if (snap == null) {
+                prevButtons = 0
+                lastDpadUp = false; lastDpadDown = false; lastDpadLeft = false; lastDpadRight = false
+                lastThumbLH = 0; lastThumbLV = 0; lastThumbRH = 0; lastThumbRV = 0
+                lastTriggerLDir = 0; lastTriggerRDir = 0
+                lastGuide = false
+                return@collect
+            }
+
+            val newPresses = snap.buttons and prevButtons.inv()
+            prevButtons = snap.buttons
+            if (newPresses != 0) {
+                val bit = Integer.lowestOneBit(newPresses)
+                selectedId =
+                    when (Integer.numberOfTrailingZeros(bit)) {
+                        0 -> "a"
+                        1 -> "b"
+                        2 -> "x"
+                        3 -> "y"
+                        4 -> "lb"
+                        5 -> "rb"
+                        6 -> "back"
+                        7 -> "start"
+                        8 -> "l3"
+                        9 -> "r3"
+                        10 -> "lt"
+                        11 -> "rt"
+                        else -> null
+                    }
+                if (selectedId != null) return@collect
+            }
+
+            fun dpad(up: Boolean, down: Boolean, left: Boolean, right: Boolean): Boolean {
+                if (up != lastDpadUp) { lastDpadUp = up; if (up) { selectedId = "dup"; return true } }
+                if (down != lastDpadDown) { lastDpadDown = down; if (down) { selectedId = "ddown"; return true } }
+                if (left != lastDpadLeft) { lastDpadLeft = left; if (left) { selectedId = "dleft"; return true } }
+                if (right != lastDpadRight) { lastDpadRight = right; if (right) { selectedId = "dright"; return true } }
+                return false
+            }
+            if (dpad(snap.dpadUp, snap.dpadDown, snap.dpadLeft, snap.dpadRight)) return@collect
+
+            fun detectStick(
+                x: Float, y: Float,
+                lastH: Int, lastV: Int,
+                leftId: String, rightId: String, upId: String, downId: String,
+            ): String? {
+                val thresh = 0.5f
+                val h = when { x <= -thresh -> -1; x >= thresh -> 1; else -> 0 }
+                val v = when { y <= -thresh -> -1; y >= thresh -> 1; else -> 0 }
+                if (h != 0 && h != lastH) return if (h < 0) leftId else rightId
+                if (v != 0 && v != lastV) return if (v < 0) upId else downId
+                return null
+            }
+
+            val lx = snap.thumbLX; val ly = snap.thumbLY
+            val lHit = detectStick(lx, ly, lastThumbLH, lastThumbLV, "lsl", "lsr", "lsu", "lsd")
+            val lh = when { lx <= -0.5f -> -1; lx >= 0.5f -> 1; else -> 0 }
+            val lv = when { ly <= -0.5f -> -1; ly >= 0.5f -> 1; else -> 0 }
+            lastThumbLH = lh; lastThumbLV = lv
+            if (lHit != null) { selectedId = lHit; return@collect }
+
+            val rx = snap.thumbRX; val ry = snap.thumbRY
+            val rHit = detectStick(rx, ry, lastThumbRH, lastThumbRV, "rsl", "rsr", "rsu", "rsd")
+            val rh = when { rx <= -0.5f -> -1; rx >= 0.5f -> 1; else -> 0 }
+            val rv = when { ry <= -0.5f -> -1; ry >= 0.5f -> 1; else -> 0 }
+            lastThumbRH = rh; lastThumbRV = rv
+            if (rHit != null) { selectedId = rHit; return@collect }
+
+            fun trigDir(v: Float, last: Int, id: String): Int {
+                val d = if (v >= 0.5f) 1 else 0
+                if (d != 0 && d != last) { selectedId = id; return d }
+                return d
+            }
+            val newTL = trigDir(snap.triggerL, lastTriggerLDir, "lt")
+            lastTriggerLDir = newTL
+            if (newTL != 0) return@collect
+            val newTR = trigDir(snap.triggerR, lastTriggerRDir, "rt")
+            lastTriggerRDir = newTR
+            if (newTR != 0) return@collect
+
+            if (snap.guide != lastGuide) {
+                lastGuide = snap.guide
+                if (snap.guide) selectedId = "guide"
+            }
+        }
+    }
 
     Column(modifier.verticalScroll(rememberScrollState())) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -280,8 +388,16 @@ fun VisualControllerBinder(
                 BindEditor(
                     id = current,
                     currentLabel = labels[current],
+                    note = notes[current] ?: "",
                     category = category,
                     onCategory = { category = it },
+                    onNoteChange = { note ->
+                        setBindingNote(controller, current, note)
+                    },
+                    onNoteCommit = {
+                        profile?.save()
+                        bumpSaved()
+                    },
                     onPick = { bnd ->
                         setTarget(controller, profile, current, bnd)
                         bumpSaved()
@@ -373,8 +489,11 @@ private fun BindSummary(
 private fun BindEditor(
     id: String,
     currentLabel: String?,
+    note: String,
     category: BindCategory,
     onCategory: (BindCategory) -> Unit,
+    onNoteChange: (String) -> Unit,
+    onNoteCommit: () -> Unit,
     onPick: (Binding) -> Unit,
     onNative: () -> Unit,
     onClear: () -> Unit,
@@ -403,14 +522,76 @@ private fun BindEditor(
                 Text(stringResource(R.string.common_ui_done), fontSize = 12.sp)
             }
         }
-        Text(
-            stringResource(
-                R.string.controller_bind_current,
-                currentLabel ?: stringResource(R.string.controller_bind_current_native),
-            ),
-            fontSize = 12.sp,
-            color = if (currentLabel != null) BIND_BLUE else WinNativeTextSecondary,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                stringResource(
+                    R.string.controller_bind_current,
+                    currentLabel ?: stringResource(R.string.controller_bind_current_native),
+                ),
+                fontSize = 12.sp,
+                color = if (currentLabel != null) BIND_BLUE else WinNativeTextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 150.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            var showNoteDialog by remember { mutableStateOf(false) }
+            var dialogNote by remember(note) { mutableStateOf(note) }
+            val hasNote = note.isNotEmpty()
+            OutlinedButton(
+                onClick = { showNoteDialog = true },
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    if (hasNote) note else stringResource(R.string.controller_bind_note),
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 120.dp),
+                )
+            }
+            if (showNoteDialog) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showNoteDialog = false
+                    },
+                    title = {
+                        Text(stringResource(R.string.controller_bind_note), fontSize = 14.sp)
+                    },
+                    text = {
+                        OutlinedTextField(
+                            value = dialogNote,
+                            onValueChange = { dialogNote = it },
+                            singleLine = true,
+                            placeholder = {
+                                Text(stringResource(R.string.controller_bind_note), fontSize = 13.sp)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                onNoteChange(dialogNote)
+                                onNoteCommit()
+                                showNoteDialog = false
+                            },
+                        ) {
+                            Text(stringResource(R.string.common_ui_done), fontSize = 13.sp)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showNoteDialog = false }) {
+                            Text(stringResource(R.string.common_ui_cancel), fontSize = 13.sp)
+                        }
+                    },
+                )
+            }
+        }
         Spacer(Modifier.height(6.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {

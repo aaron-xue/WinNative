@@ -170,6 +170,15 @@ internal fun bindingLabelOrNull(
     return b.binding?.toString()
 }
 
+internal fun bindingNoteOrNull(
+    controller: ExternalController?,
+    id: String,
+): String? {
+    val t = BIND_BY_ID[id] ?: return null
+    val b = controller?.getControllerBinding(t.keyCode) ?: return null
+    return b.note.takeIf { it.isNotEmpty() }
+}
+
 internal fun boundCount(controller: ExternalController?): Int {
     if (controller == null) return 0
     return bindTargets(controller).count { controller.getControllerBinding(it.keyCode) != null }
@@ -204,6 +213,16 @@ internal fun clearTarget(
     val b = controller.getControllerBinding(t.keyCode) ?: return
     controller.removeControllerBinding(b)
     profile.save()
+}
+
+internal fun setBindingNote(
+    controller: ExternalController?,
+    id: String,
+    note: String,
+) {
+    val t = BIND_BY_ID[id] ?: return
+    val b = controller?.getControllerBinding(t.keyCode) ?: return
+    b.note = note
 }
 
 internal fun fillNative(
