@@ -221,8 +221,6 @@ class ContainerSettingsComposeDialog @JvmOverloads constructor(
                 dismiss()
             }
 
-            override fun onAddToHomeScreen() {}
-
             override fun onRemoveEnvVar(index: Int) {
                 val list = state.envVars.value.toMutableList()
                 if (index in list.indices) {

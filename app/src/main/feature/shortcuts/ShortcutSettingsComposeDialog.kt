@@ -237,26 +237,6 @@ class ShortcutSettingsComposeDialog private constructor(
                 dismiss()
             }
 
-            override fun onAddToHomeScreen() {
-                val result = if (fragment != null) {
-                    fragment.addShortcutToScreen(shortcut)
-                } else {
-                    addShortcutToScreen(shortcut)
-                }
-                if (result == ShortcutsFragment.PinShortcutResult.REUSED_EXISTING) {
-                    WinToast.show(context, R.string.shortcuts_list_readded_existing, shortcut.icon, dialog.window?.decorView)
-                } else if (result == ShortcutsFragment.PinShortcutResult.FAILED) {
-                    WinToast.show(
-                        context,
-                        context.getString(
-                            R.string.library_games_failed_to_create_shortcut,
-                            shortcut.name
-                        ),
-                        dialog.window?.decorView,
-                    )
-                }
-            }
-
             override fun onScrapeGameArtwork(gameName: String) {
                 WinToast.show(context, context.getString(R.string.library_games_scraping_artwork), Toast.LENGTH_LONG, dialog.window?.decorView)
                 CoroutineScope(Dispatchers.IO).launch {

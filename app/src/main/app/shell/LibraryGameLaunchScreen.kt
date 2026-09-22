@@ -179,7 +179,6 @@ internal fun LibraryGameLaunchScreen(
     onAchievements: (() -> Unit)? = null,
     onCheats: (() -> Unit)? = null,
     cheatsEnabled: Boolean = true,
-    onShortcut: () -> Unit,
     onCloudSaves: () -> Unit,
     onSaveTransfer: (() -> Unit)? = null,
     onUninstall: () -> Unit,
@@ -509,15 +508,6 @@ internal fun LibraryGameLaunchScreen(
                                 onClick = onBootToDesktop,
                             )
                         }
-                        LaunchIconActionButton(
-                            icon = Icons.Outlined.Home,
-                            contentDescription =
-                                stringResource(
-                                    if (hasPinnedShortcut) R.string.common_ui_remove else R.string.common_ui_shortcut,
-                                ),
-                            size = actionIconSize,
-                            onClick = onShortcut,
-                        )
                         Box {
                             LaunchIconActionButton(
                                 icon = Icons.Outlined.Delete,

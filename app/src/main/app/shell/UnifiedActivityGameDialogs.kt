@@ -1184,46 +1184,6 @@ internal fun UnifiedActivity.GameSettingsDialog(
                             },
                         ),
                         GameSettingsActionItem(
-                            title =
-                                stringResource(
-                                    if (hasPinnedShortcut) {
-                                        R.string.common_ui_remove
-                                    } else {
-                                        R.string.common_ui_shortcut
-                                    },
-                                ),
-                            icon = Icons.Outlined.Home,
-                            accentColor = if (hasPinnedShortcut) DangerRed else Accent,
-                            onClick = {
-                                if (hasPinnedShortcut) {
-                                    currentTab = GameSettingsScreen.Shortcut
-                                } else {
-                                    scope.launch {
-                                        val created =
-                                            withContext(Dispatchers.IO) {
-                                                addLibraryShortcutToHomeScreen(
-                                                    context,
-                                                    app,
-                                                    isCustom,
-                                                    isEpic,
-                                                    epicId,
-                                                    epicArtworkUrl,
-                                                )
-                                            }
-                                        if (!created) {
-                                            com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                                context,
-                                                context.getString(
-                                                    R.string.library_games_failed_to_create_shortcut,
-                                                    app.name,
-                                                ),
-                                            )
-                                        }
-                                    }
-                                }
-                            },
-                        ),
-                        GameSettingsActionItem(
                             title = stringResource(R.string.cloud_saves_title),
                             icon = Icons.Outlined.CloudSync,
                             onClick = { currentTab = GameSettingsScreen.CloudSaves },
@@ -1245,34 +1205,6 @@ internal fun UnifiedActivity.GameSettingsDialog(
                     )
 
                 GameSettingsActionGrid(actions = actions)
-            }
-
-            GameSettingsScreen.Shortcut -> {
-                ShortcutRemovalConfirmation(
-                    message = stringResource(R.string.shortcuts_list_remove_game_shortcut_message, app.name),
-                    onConfirm = {
-                        scope.launch {
-                            val removed =
-                                withContext(Dispatchers.IO) {
-                                    homeShortcutState.shortcut?.let {
-                                        LibraryShortcutUtils.disablePinnedHomeShortcut(context, it)
-                                    } == true
-                                }
-                            pinnedShortcutOverride = if (removed) false else hasPinnedShortcut
-                            shortcutRefreshKey++
-                            currentTab = GameSettingsScreen.Menu
-                            com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                context,
-                                if (removed) {
-                                    context.getString(R.string.shortcuts_list_removed)
-                                } else {
-                                    context.getString(R.string.common_ui_unknown_error)
-                                },
-                            )
-                        }
-                    },
-                    onCancel = { currentTab = GameSettingsScreen.Menu },
-                )
             }
 
             GameSettingsScreen.CloudSaves -> {
@@ -1530,40 +1462,6 @@ internal fun UnifiedActivity.GOGGameSettingsDialog(
                                 },
                             ),
                             GameSettingsActionItem(
-                                title =
-                                    stringResource(
-                                        if (hasPinnedShortcut) {
-                                            R.string.common_ui_remove
-                                        } else {
-                                            R.string.common_ui_shortcut
-                                        },
-                                    ),
-                                icon = Icons.Outlined.Home,
-                                accentColor = if (hasPinnedShortcut) DangerRed else Accent,
-                                onClick = {
-                                    if (hasPinnedShortcut) {
-                                        currentTab = GameSettingsScreen.Shortcut
-                                    } else {
-                                        scope.launch {
-                                            val artworkUrl = app.imageUrl.ifEmpty { app.iconUrl }
-                                            val created =
-                                                withContext(Dispatchers.IO) {
-                                                    addGogShortcutToHomeScreen(context, app, artworkUrl)
-                                                }
-                                            if (!created) {
-                                                com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                                    context,
-                                                    context.getString(
-                                                        R.string.library_games_failed_to_create_shortcut,
-                                                        app.title,
-                                                    ),
-                                                )
-                                            }
-                                        }
-                                    }
-                                },
-                            ),
-                            GameSettingsActionItem(
                                 title = stringResource(R.string.cloud_saves_title),
                                 icon = Icons.Outlined.CloudSync,
                                 onClick = { currentTab = GameSettingsScreen.CloudSaves },
@@ -1575,35 +1473,6 @@ internal fun UnifiedActivity.GOGGameSettingsDialog(
                                 onClick = { currentTab = GameSettingsScreen.Uninstall },
                             ),
                         ),
-                )
-            }
-
-            GameSettingsScreen.Shortcut -> {
-                ShortcutRemovalConfirmation(
-                    message = stringResource(R.string.shortcuts_list_remove_game_shortcut_message, app.title),
-                    onConfirm = {
-                        scope.launch {
-                            val removed =
-                                withContext(Dispatchers.IO) {
-                                    homeShortcutState.shortcut?.let {
-                                        LibraryShortcutUtils.disablePinnedHomeShortcut(context, it)
-                                    } == true
-                                }
-                            pinnedShortcutOverride = if (removed) false else hasPinnedShortcut
-                            shortcutRefreshKey++
-                            currentTab = GameSettingsScreen.Menu
-                            com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                context,
-                                if (removed) {
-                                    context.getString(R.string.shortcuts_list_removed)
-                                } else {
-                                    context.getString(R.string.common_ui_unknown_error)
-                                },
-                                android.widget.Toast.LENGTH_SHORT,
-                            )
-                        }
-                    },
-                    onCancel = { currentTab = GameSettingsScreen.Menu },
                 )
             }
 
@@ -2693,39 +2562,6 @@ internal fun UnifiedActivity.LibraryGameDetailDialog(
                                         }
                                         else -> null
                                     },
-                                onShortcut = {
-                                    if (hasPinnedShortcut) {
-                                        heroPopup = HeroLaunchPopup.RemoveShortcut
-                                    } else {
-                                        scope.launch {
-                                            val created =
-                                                withContext(Dispatchers.IO) {
-                                                    if (isGog) {
-                                                        val artworkUrl = gogGame!!.imageUrl.ifEmpty { gogGame.iconUrl }
-                                                        addGogShortcutToHomeScreen(context, gogGame, artworkUrl)
-                                                    } else {
-                                                        addLibraryShortcutToHomeScreen(
-                                                            context,
-                                                            app,
-                                                            isCustom,
-                                                            isEpic,
-                                                            epicId,
-                                                            epicArtworkUrl,
-                                                        )
-                                                    }
-                                                }
-                                            if (!created) {
-                                                com.winlator.cmod.shared.ui.toast.WinToast.show(
-                                                    context,
-                                                    context.getString(
-                                                        R.string.library_games_failed_to_create_shortcut,
-                                                        app.name,
-                                                    ),
-                                                )
-                                            }
-                                        }
-                                    }
-                                },
                                 onCloudSaves = { activePopup = LibraryDetailPopup.CloudSaves },
                                 onSaveTransfer =
                                     if (retroCaps.showSaveTransfer) {

@@ -1362,7 +1362,6 @@ class UnifiedActivity :
 
     internal enum class GameSettingsScreen {
         Menu,
-        Shortcut,
         CloudSaves,
         Uninstall,
     }

@@ -77,21 +77,6 @@ public class ShortcutsFragment extends Fragment {
         }
 
         @Override
-        public void onAddToHomeScreen(Shortcut shortcut) {
-          PinShortcutResult result = addShortcutToScreen(shortcut);
-          if (result == PinShortcutResult.REUSED_EXISTING) {
-            WinToast.show(
-                requireContext(), R.string.shortcuts_list_readded_existing, shortcut.icon);
-          } else {
-            WinToast.show(
-                requireContext(),
-                result == PinShortcutResult.REQUESTED_NEW
-                    ? R.string.shortcuts_list_added
-                    : R.string.shortcuts_list_failed_add);
-          }
-        }
-
-        @Override
         public void onRemoveShortcut(Shortcut shortcut) {
           removeShortcut(shortcut);
         }

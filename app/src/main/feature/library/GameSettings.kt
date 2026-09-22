@@ -666,8 +666,6 @@ class GameSettingsStateHolder {
 interface GameSettingsCallbacks {
     fun onConfirm()
     fun onDismiss()
-    fun onAddToHomeScreen()
-
     fun onScrapeGameArtwork(gameName: String) {}
     fun onPickGameCardArtwork() {}
     fun onRemoveGameCardArtwork() {}
@@ -1478,34 +1476,7 @@ private fun GeneralSection(
             )
         }
 
-        if (!isContainer) {
-            Spacer(Modifier.height(SettingItemGap))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(AccentBlue.copy(alpha = 0.08f))
-                    .border(1.dp, AccentBlue.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
-                    .paneNavItem(cornerRadius = 10.dp, onActivate = { callbacks.onAddToHomeScreen() }, highlightColor = NavHighlight)
-                    .clickable { callbacks.onAddToHomeScreen() }
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Outlined.Home,
-                        contentDescription = null,
-                        tint = AccentBlue,
-                        modifier = Modifier.size(SettingIconSize)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        stringResource(R.string.shortcuts_list_add_to_home_screen),
-                        color = AccentBlue,
-                        fontSize = SettingValueSize,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
+        
     }
 
     if (!isContainer) {

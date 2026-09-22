@@ -59,8 +59,6 @@ interface ShortcutsActionListener {
 
     fun onEditShortcut(shortcut: Shortcut)
 
-    fun onAddToHomeScreen(shortcut: Shortcut)
-
     fun onRemoveShortcut(shortcut: Shortcut)
 
     fun onExportShortcut(shortcut: Shortcut)
@@ -233,13 +231,6 @@ private fun ShortcutRow(
                     onClick = {
                         menuExpanded = false
                         listener.onEditShortcut(shortcut)
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.shortcuts_list_add_to_home_screen), color = WinNativeTextPrimary) },
-                    onClick = {
-                        menuExpanded = false
-                        listener.onAddToHomeScreen(shortcut)
                     },
                 )
                 DropdownMenuItem(
