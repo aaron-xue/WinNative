@@ -10,6 +10,7 @@ import com.winlator.cmod.runtime.container.Container
 import com.winlator.cmod.runtime.container.ContainerManager
 import com.winlator.cmod.runtime.container.Shortcut
 import com.winlator.cmod.runtime.system.SessionKeepAliveService
+import com.winlator.cmod.shared.ui.toast.WinToast
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -243,9 +244,13 @@ exec /usr/local/bin/winnative-proton-launch "${'$'}here/proton" "${'$'}@"
         mutable.value = mutable.value.copy(working = build.id, progress = Float.NaN, failed = false, stage = R.string.common_ui_downloading_file)
         job = scope.launch {
             val archive = File(app.cacheDir, "linux-proton-${build.id}.part")
+            if (!LinuxRuntime.isInstalled(app)) {
+                mutable.value = mutable.value.copy(working = null, failed = true)
+                WinToast.show(app, R.string.linux_runtime_missing)
+                return@launch
+            }
             SessionKeepAliveService.startDownload(app, "linux_proton")
             try {
-                check(LinuxRuntime.isInstalled(app))
                 // What the tree unpacks to, against the archive it unpacks from: measured at 3.4x
                 // for the gzip builds and 6.5x for the xz ones, and both are on disk at once.
                 val expansion = if (build.url.endsWith(".xz")) 8L else 5L
