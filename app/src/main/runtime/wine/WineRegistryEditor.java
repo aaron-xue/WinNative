@@ -65,6 +65,16 @@ public class WineRegistryEditor implements Closeable {
           this.type = type;
           this.value = value;
       }
+   }
+  /** Runs an edit that touches the registry file directly, under the same lock the editor uses. */
+  public static void withFileLock(File file, Runnable edit) {
+    ReentrantLock lock = lockFor(file);
+    lock.lock();
+    try {
+      edit.run();
+    } finally {
+      lock.unlock();
+    }
   }
 
   public WineRegistryEditor(File file) {

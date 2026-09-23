@@ -79,6 +79,7 @@ endif()
 
 set(SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/winlator/vk/shaders")
 set(SHADER_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
+set(WINLATOR_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 file(MAKE_DIRECTORY "${SHADER_OUT_DIR}")
 
 set(BIN2C_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/winlator/vk/bin2c.cmake")
@@ -113,6 +114,7 @@ set(SHADER_LIST
     "dis_interpolate:comp:dis_interpolate_comp"
     "dis_hist:comp:dis_hist_comp"
     "dis_side:comp:dis_side_comp"
+    "dis_temporal:comp:dis_temporal_comp"
     "dis_vr_prep:comp:dis_vr_prep_comp"
     "dis_vr_d1:comp:dis_vr_d1_comp"
     "dis_vr_d2:comp:dis_vr_d2_comp"
@@ -232,6 +234,13 @@ add_library(waudio SHARED
 target_compile_options(waudio PRIVATE -Wall -Wextra -fvisibility=hidden)
 target_link_libraries(waudio log dl)
 
+# The app's end of DirectAudio in a Linux session, see wnaudiohook/wn_aaudio_protocol.h.
+add_library(wnaudiohost SHARED
+        wnaudiohook/wn_aaudio_host.c
+)
+target_compile_options(wnaudiohost PRIVATE -Wall -Wextra -fvisibility=hidden)
+target_link_libraries(wnaudiohost aaudio android log)
+
 find_package(SDL3 REQUIRED CONFIG)
 
 add_library(steamctrl SHARED
@@ -239,3 +248,7 @@ add_library(steamctrl SHARED
 )
 target_compile_options(steamctrl PRIVATE -Wall -Wextra -fvisibility=hidden)
 target_link_libraries(steamctrl SDL3::SDL3 log)
+
+# Embedded Wayland compositor (winewayland.drv sessions); see waylandcomp/CMakeLists.txt.
+add_subdirectory(waylandcomp)
+add_subdirectory(proot)
