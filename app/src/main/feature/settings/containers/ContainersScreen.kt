@@ -266,6 +266,8 @@ fun ContainersScreen(
                                                     onInstallComponents = null,
                                                     onRemove = { onRemoveContainer(gamescope) },
                                                     onShowInfo = { onShowInfo(gamescope) },
+                                                    onFileManager = { onFileManager(gamescope) },
+                                                    onRegistryEditor = { onRegistryEditor(gamescope) },
                                                 )
                                             }
                                         }
