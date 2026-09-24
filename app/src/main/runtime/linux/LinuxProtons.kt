@@ -380,5 +380,40 @@ exec /usr/local/bin/winnative-proton-launch "${'$'}here/proton" "${'$'}@"
         return job
     }
 
+    @Synchronized
+    fun installLocal(context: Context, archive: File) {
+        if (job?.isActive == true) return
+        val app = context.applicationContext
+        val fileName = archive.name
+        val id = fileName.replace(Regex("\\.(tar\\.(gz|xz|zst)|tzst)$"), "")
+            .replace(Regex("[^A-Za-z0-9._-]"), "-").trim('-').ifEmpty { "local-proton" }
+        val build = Build(
+            id = id,
+            name = id,
+            url = archive.absolutePath,
+            sha256 = "",
+            size = archive.length()
+        )
+        mutable.value = mutable.value.copy(working = build.id, progress = Float.NaN, failed = false, stage = R.string.settings_content_install)
+        job = scope.launch {
+            if (!LinuxRuntime.isInstalled(app)) {
+                mutable.value = mutable.value.copy(working = null, failed = true)
+                WinToast.show(app, R.string.linux_runtime_missing)
+                return@launch
+            }
+            try {
+                mutable.value = mutable.value.copy(stage = R.string.linux_client_stage_install_proton, progress = Float.NaN)
+                installArchive(app, build, archive)
+                mutable.value = mutable.value.copy(installed = installed(app).map { it.id }.toSet(), working = null)
+            } catch (error: CancellationException) {
+                mutable.value = mutable.value.copy(working = null)
+                throw error
+            } catch (error: Exception) {
+                mutable.value = mutable.value.copy(working = null, failed = true)
+                Log.w(TAG, "Failed to install local Proton: ${archive.path}", error)
+            }
+        }
+    }
+
     fun cancel() { if (!mutable.value.removing) job?.cancel() }
 }

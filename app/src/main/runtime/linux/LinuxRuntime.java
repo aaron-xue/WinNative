@@ -92,6 +92,7 @@ public final class LinuxRuntime {
     File root = rootDir(context);
     return new File(root, "usr/bin/gamescope").isFile()
         && new File(root, SESSION_SCRIPT.substring(1)).isFile()
+        && (new File(root, "bin/bash").isFile() || new File(root, "bin/sh").isFile())
         && prootBinary(context).isFile()
         && prootLoader(context).isFile();
   }

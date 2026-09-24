@@ -38,6 +38,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeveloperBoard
@@ -152,6 +153,7 @@ data class ComponentsState(
     val autoCreateContainer: Boolean = true,
     val isRefreshing: Boolean = false,
     val loadFailed: Boolean = false,
+    val linuxRuntimeInstalled: Boolean = false,
 )
 
 // Root
@@ -171,6 +173,8 @@ fun ComponentsScreen(
     onDismissConflict: () -> Unit,
     onToggleAutoCreateContainer: (Boolean) -> Unit,
     onRefresh: () -> Unit,
+    onInstallLinuxRuntimeFromFile: () -> Unit,
+    onInstallLinuxContentFromFile: () -> Unit,
 ) {
     var itemPendingRemoval by remember { mutableStateOf<ComponentItem?>(null) }
     var linuxItemPendingRemoval by remember { mutableStateOf<LinuxComponentItem?>(null) }
@@ -294,11 +298,14 @@ fun ComponentsScreen(
                 autoCreateContainer = state.autoCreateContainer,
                 isRefreshing = state.isRefreshing,
                 loadFailed = state.loadFailed,
+                linuxRuntimeInstalled = state.linuxRuntimeInstalled,
                 onPlatformSelected = onPlatformSelected,
                 onTypeSelected = onTypeSelected,
                 onInstallFromFile = onInstallFromFile,
                 onToggleAutoCreateContainer = onToggleAutoCreateContainer,
                 onRefresh = onRefresh,
+                onInstallLinuxRuntimeFromFile = onInstallLinuxRuntimeFromFile,
+                onInstallLinuxContentFromFile = onInstallLinuxContentFromFile,
             )
 
             if (state.platform == ComponentsPlatform.LINUX) {
@@ -392,11 +399,14 @@ private fun HeroHeader(
     autoCreateContainer: Boolean,
     isRefreshing: Boolean,
     loadFailed: Boolean,
+    linuxRuntimeInstalled: Boolean,
     onPlatformSelected: (ComponentsPlatform) -> Unit,
     onTypeSelected: (ContentProfile.ContentType) -> Unit,
     onInstallFromFile: () -> Unit,
     onToggleAutoCreateContainer: (Boolean) -> Unit,
     onRefresh: () -> Unit,
+    onInstallLinuxRuntimeFromFile: () -> Unit,
+    onInstallLinuxContentFromFile: () -> Unit,
 ) {
     Box(
         modifier =
@@ -442,6 +452,33 @@ private fun HeroHeader(
                         compact = true,
                         onClick = onInstallFromFile,
                     )
+                } else if (platform == ComponentsPlatform.LINUX) {
+                    SmallPillButton(
+                        label = stringResource(R.string.settings_content_install),
+                        icon = Icons.Outlined.Upload,
+                        tint = Accent,
+                        compact = true,
+                        onClick = onInstallLinuxContentFromFile,
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    if (linuxRuntimeInstalled) {
+                        SmallPillButton(
+                            label = stringResource(R.string.linux_runtime_installed),
+                            icon = Icons.Outlined.CheckCircle,
+                            tint = SuccessGreen,
+                            compact = true,
+                            enabled = true,
+                            onClick = onInstallLinuxRuntimeFromFile,
+                        )
+                    } else {
+                        SmallPillButton(
+                            label = stringResource(R.string.linux_runtime_install_local),
+                            icon = Icons.Outlined.Upload,
+                            tint = Accent,
+                            compact = true,
+                            onClick = onInstallLinuxRuntimeFromFile,
+                        )
+                    }
                 }
             }
 
@@ -1135,24 +1172,32 @@ private fun SmallPillButton(
     icon: ImageVector?,
     tint: Color,
     compact: Boolean = false,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     val horizontalPadding = if (compact) 8.dp else 10.dp
     val verticalPadding = if (compact) 4.dp else 6.dp
     val iconSize = if (compact) 11.dp else 12.dp
     val fontSize = if (compact) 10.sp else 11.sp
+    val alpha = if (enabled) 1f else 0.5f
     Row(
         modifier =
             Modifier
                 .clip(RoundedCornerShape(8.dp))
                 .background(tint.copy(alpha = 0.14f))
                 .border(1.dp, tint.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
-                .paneNavItem(
-                    cornerRadius = 8.dp,
-                    onActivate = onClick,
-                    highlightColor = NavHighlight,
-                    tapToSelect = true,
-                )
+                .let { mod ->
+                    if (enabled) {
+                        mod.paneNavItem(
+                            cornerRadius = 8.dp,
+                            onActivate = onClick,
+                            highlightColor = NavHighlight,
+                            tapToSelect = true,
+                        )
+                    } else {
+                        mod
+                    }
+                }
                 .padding(horizontal = horizontalPadding, vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1160,14 +1205,14 @@ private fun SmallPillButton(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = tint,
+                tint = tint.copy(alpha = alpha),
                 modifier = Modifier.size(iconSize),
             )
             Spacer(Modifier.width(5.dp))
         }
         Text(
             text = label,
-            color = tint,
+            color = tint.copy(alpha = alpha),
             fontSize = fontSize,
             fontWeight = FontWeight.SemiBold,
             // Never let a squeezed row break the label across lines mid-word;

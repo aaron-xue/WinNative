@@ -9,3 +9,6 @@ tools/sdl/*.patch whitespace=-blank-at-eol
 # with text conversion enabled (a stray CRLF would break `sh`).
 tools/git/*.sh text eol=lf
 tools/git/hooks/* text eol=lf
+
+# Linux session scripts must stay LF-terminated; a stray CRLF breaks the shebang under proot.
+app/src/main/assets/linuxfs/usr/local/bin/* text eol=lf
