@@ -203,6 +203,7 @@ import com.winlator.cmod.feature.sync.google.GameSaveBackupManager
 import com.winlator.cmod.feature.sync.ui.CloudSavesContent
 import com.winlator.cmod.feature.library.LinuxApps
 import com.winlator.cmod.feature.library.LinuxSteamLibrary
+import com.winlator.cmod.runtime.linux.LinuxClientInstaller
 import com.winlator.cmod.runtime.linux.LinuxRuntime
 import com.winlator.cmod.runtime.container.ContainerManager
 import com.winlator.cmod.runtime.container.Shortcut
@@ -405,7 +406,12 @@ internal fun UnifiedActivity.bootstrapStartupState() {
         // install made by an earlier build picks up the current one.
         runCatching {
             val manager = ContainerManager(appContext)
-            LinuxApps.gamescopeContainer(manager)?.let { LinuxApps.ensureSteamShortcut(appContext, it) }
+            val container = LinuxApps.gamescopeContainer(manager)
+            if (container != null && LinuxRuntime.isInstalled(appContext) &&
+                LinuxClientInstaller.isSteamInstalled(appContext)
+            ) {
+                LinuxApps.ensureSteamShortcut(appContext, container)
+            }
             if (LinuxRuntime.isInstalled(appContext)) {
                 LinuxSteamLibrary.adoptClientInstalls(appContext, LinuxRuntime.rootDir(appContext))
             }

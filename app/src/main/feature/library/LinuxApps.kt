@@ -70,6 +70,7 @@ object LinuxApps {
         context: Context,
         container: Container,
     ) {
+        if (!LinuxRuntime.isInstalled(context) || !LinuxClientInstaller.isSteamInstalled(context)) return
         val desktopDir = container.desktopDir
         if (!desktopDir.exists()) desktopDir.mkdirs()
         val shortcutFile = File(desktopDir, "$STEAM_SHORTCUT_NAME.desktop")

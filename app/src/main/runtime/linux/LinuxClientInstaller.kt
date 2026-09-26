@@ -533,7 +533,8 @@ object LinuxClientInstaller {
         LinuxApps.ensureSteamShortcut(context, container)
     }
 
-    private fun isSteamInstalled(context: Context): Boolean {
+    @JvmStatic
+    fun isSteamInstalled(context: Context): Boolean {
         val steamRoot = hostPath(context, STEAM_ROOT)
         return File(steamRoot, STEAM_STAMP).isFile && File(steamRoot, "steamrtarm64/steam").isFile
     }

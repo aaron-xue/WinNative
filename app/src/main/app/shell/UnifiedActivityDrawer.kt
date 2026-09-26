@@ -817,8 +817,7 @@ internal fun UnifiedActivity.AddCustomGameDialog(
         isAdding = true
         scope.launch(Dispatchers.IO) {
             val container = LinuxApps.gamescopeContainer(ContainerManager(context))
-            if (container == null) {
-                // The entry lives in the GameScope container, which the Linux Client install creates.
+            if (container == null || !LinuxClientInstaller.isSteamInstalled(context)) {
                 withContext(Dispatchers.Main) {
                     isAdding = false
                     onDismiss()
