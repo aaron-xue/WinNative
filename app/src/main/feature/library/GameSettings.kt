@@ -86,7 +86,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SliderState
@@ -4302,7 +4301,7 @@ private fun NetworkingSection(state: GameSettingsStateHolder) {
         Text(
             text = stringResource(R.string.networking_driver_summary),
             style = MaterialTheme.typography.bodySmall,
-            color = LocalContentColor.current.copy(alpha = 0.7f)
+            color = TextSecondary,
         )
     }
     Spacer(Modifier.height(SettingSectionGap))
@@ -4322,7 +4321,7 @@ private fun NetworkingSection(state: GameSettingsStateHolder) {
             else if (state.netMac.value.isBlank()) stringResource(R.string.networking_mac_automatic, state.netMacAuto.value)
             else stringResource(R.string.networking_mac_summary),
             style = MaterialTheme.typography.bodySmall,
-            color = if (!macValid) MaterialTheme.colorScheme.error else LocalContentColor.current.copy(alpha = 0.7f)
+            color = if (!macValid) MaterialTheme.colorScheme.error else TextSecondary,
         )
     }
 }

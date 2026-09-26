@@ -198,7 +198,6 @@ fun DriversScreen(
     onRestoreDefaultRepos: () -> Unit,
     bridge: SettingsNavBridge? = null,
 ) {
-    var showInstallDialog by remember { mutableStateOf(false) }
     var showAddRepoDialog by remember { mutableStateOf(false) }
     var editingRepo by remember { mutableStateOf<Pair<Int, DriverRepo>?>(null) }
     var driverPendingRemoval by remember { mutableStateOf<InstalledDriverItem?>(null) }
@@ -209,26 +208,6 @@ fun DriversScreen(
     val navBarEndPadding = navBarPadding.calculateEndPadding(layoutDirection)
     val navBarBottomPadding = navBarPadding.calculateBottomPadding()
     val contentNav = rememberSettingsContentNav(bridge)
-
-    if (showInstallDialog) {
-        val nav = remember { PaneNavRegistry() }
-        Dialog(onDismissRequest = { showInstallDialog = false }) {
-            DialogPaneNav(nav, onDismiss = { showInstallDialog = false })
-            CompositionLocalProvider(LocalPaneNav provides nav) {
-                Column(
-                    modifier = Modifier.widthIn(max = 360.dp).clip(RoundedCornerShape(14.dp)).background(CardDark).padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Text(stringResource(R.string.settings_drivers_install), color = TextPrimary)
-                    Text(stringResource(R.string.settings_drivers_platform_hint), color = TextSecondary)
-                    PlatformOptions(state.platform) { platform ->
-                        showInstallDialog = false
-                        onInstallFromFile(platform)
-                    }
-                }
-            }
-        }
-    }
 
     if (showAddRepoDialog || editingRepo != null) {
         val editing = editingRepo
@@ -317,7 +296,7 @@ fun DriversScreen(
             HeroHeader(
                 installedCount = state.installedDrivers.size,
                 repoCount = state.sources.size,
-                onInstall = { showInstallDialog = true },
+                onInstall = { onInstallFromFile(state.platform) },
                 onAddRepo = { showAddRepoDialog = true },
             )
 
