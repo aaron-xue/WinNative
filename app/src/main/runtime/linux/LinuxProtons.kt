@@ -67,7 +67,7 @@ exec /usr/local/bin/winnative-proton-launch "${'$'}here/proton" "${'$'}@"
 """
 
     fun directory(context: Context) = File(LinuxRuntime.rootDir(context), "root/.local/share/Steam/compatibilitytools.d")
-    private fun installed(context: Context) = directory(context).listFiles().orEmpty().mapNotNull { file ->
+    internal fun installed(context: Context) = directory(context).listFiles().orEmpty().mapNotNull { file ->
         runCatching { parse(JSONObject(File(file, MARKER).readText())) }.getOrNull()?.takeIf { it.id == file.name }
     }
     /**

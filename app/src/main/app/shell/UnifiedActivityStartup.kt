@@ -412,7 +412,9 @@ internal fun UnifiedActivity.bootstrapStartupState() {
             ) {
                 LinuxApps.ensureSteamShortcut(appContext, container)
             }
-            if (LinuxRuntime.isInstalled(appContext)) {
+            if (LinuxRuntime.isInstalled(appContext) &&
+                LinuxClientInstaller.isSteamInstalled(appContext)
+            ) {
                 LinuxSteamLibrary.adoptClientInstalls(appContext, LinuxRuntime.rootDir(appContext))
             }
         }.onFailure { Log.w("UnifiedActivity", "Could not refresh the Steam entries", it) }
@@ -449,14 +451,22 @@ internal fun UnifiedActivity.bootstrapStartupState() {
 
         runCatching { dbProvider.get() }
             .onFailure { Log.w("UnifiedActivity", "Database warmup failed", it) }
-        runCatching { EpicAuthManager.updateLoginStatus(appContext) }
-            .onFailure { Log.w("UnifiedActivity", "Epic auth warmup failed", it) }
-        runCatching { GOGAuthManager.updateLoginStatus(appContext) }
-            .onFailure { Log.w("UnifiedActivity", "GOG auth warmup failed", it) }
-        runCatching { ItchService.start(appContext) }
-            .onFailure { Log.w("UnifiedActivity", "itch.io service warmup failed", it) }
-        runCatching { SteamService.initLoginStatus(appContext) }
-            .onFailure { Log.w("UnifiedActivity", "Steam auth warmup failed", it) }
+        if (resolvedStoreVisible["epic"] == true) {
+            runCatching { EpicAuthManager.updateLoginStatus(appContext) }
+                .onFailure { Log.w("UnifiedActivity", "Epic auth warmup failed", it) }
+        }
+        if (resolvedStoreVisible["gog"] == true) {
+            runCatching { GOGAuthManager.updateLoginStatus(appContext) }
+                .onFailure { Log.w("UnifiedActivity", "GOG auth warmup failed", it) }
+        }
+        if (resolvedStoreVisible["itch"] == true) {
+            runCatching { ItchService.start(appContext) }
+                .onFailure { Log.w("UnifiedActivity", "itch.io service warmup failed", it) }
+        }
+        if (resolvedStoreVisible["steam"] == true) {
+            runCatching { SteamService.initLoginStatus(appContext) }
+                .onFailure { Log.w("UnifiedActivity", "Steam auth warmup failed", it) }
+        }
 
         withContext(Dispatchers.Main.immediate) {
             startupLibraryLayoutMode = resolvedLayoutMode

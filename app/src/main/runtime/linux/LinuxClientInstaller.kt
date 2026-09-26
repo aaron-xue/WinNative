@@ -344,7 +344,8 @@ object LinuxClientInstaller {
         File(hostPath(context, PROTON_DIR), "proton").isFile ||
             listOf("Proton Experimental (ARM64)", "Proton 11.0 (ARM64)").any {
                 File(hostPath(context, STEAM_ROOT), "steamapps/common/$it/proton").isFile
-            }
+            } ||
+            LinuxProtons.installed(context).isNotEmpty()
 
     private suspend fun installProton(
         context: Context,
