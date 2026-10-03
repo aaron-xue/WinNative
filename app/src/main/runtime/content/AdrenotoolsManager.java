@@ -14,6 +14,7 @@ import com.winlator.cmod.shared.io.FileUtils;
 import com.winlator.cmod.feature.settings.GraphicsDriverConfigUtils;
 import com.winlator.cmod.shared.io.TarCompressorUtils;
 import com.winlator.cmod.runtime.display.environment.ImageFs;
+import com.winlator.cmod.app.config.SettingsConfig;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -250,5 +251,6 @@ public class AdrenotoolsManager {
         String nativeLibDir = mContext.getApplicationInfo().nativeLibraryDir;
         envVars.put("ADRENOTOOLS_HOOKS_PATH", nativeLibDir);
         envVars.put("ADRENOTOOLS_DRIVER_NAME", libraryName);
+        envVars.put("ADRENOTOOLS_REDIRECT_DIR", SettingsConfig.DEFAULT_WINLATOR_PATH + "/");
     }
  }
