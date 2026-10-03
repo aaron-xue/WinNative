@@ -289,6 +289,9 @@
     <string name="linux_client_busy">The Linux Steam Client is still installing. Try again when it finishes.</string>
     <string name="linux_client_update_message">A newer Linux runtime is available. Updating keeps your Steam sign-in, installed games, saves and containers.</string>
     <string name="linux_client_update_session_running">A Linux session is running. Exit it, then update.</string>
+    <string name="linux_client_uninstall_message">Uninstalling removes the Linux runtime with the Steam client, its sign-in and Proton, and the games and saves kept inside it. Games in your other Steam libraries stay installed.</string>
+    <string name="linux_client_uninstall_session_running">A Linux session is running. Exit it, then uninstall.</string>
+    <string name="linux_client_stage_uninstall">Uninstalling the Linux client</string>
     <string name="linux_client_gpu_unsupported">The Linux client draws with the Turnip Vulkan driver, which needs an Adreno GPU. This device has a different GPU.</string>
     <string name="linux_client_driver_missing">The display driver of the Linux client is not installed, so the screen would stay black. Install it with Linux Client in Settings > Stores.</string>
     <string name="linux_session_failed">The Linux session stopped as soon as it started. Its log is under Settings > Debug > Open Logs Manager; share it so the cause can be found.</string>
@@ -948,7 +951,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="session_drawer_frame_generation_enable">Generate Frames</string>
     <string name="session_drawer_frame_generation_engine_off">Off</string>
     <string name="session_drawer_frame_generation_engine_lsfg">LSFG</string>
-    <string name="session_drawer_frame_generation_engine_dis">DIS</string>
+    <string name="session_drawer_frame_generation_engine_dis">OpenFlow</string>
     <string name="session_drawer_frame_generation_multiplier">Multiplier</string>
     <string name="session_drawer_frame_generation_multiplier_value">%1$dx</string>
     <string name="session_drawer_frame_generation_target">Adaptive Target</string>
@@ -969,7 +972,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="frame_generation_preset_quality_note" formatted="false">Motion estimated at full resolution. Highest cost; use it only when the game has GPU headroom to spare.</string>
     <string name="session_drawer_frame_generation_note">Interpolates between rendered frames with Lossless Scaling. Smoother motion, but one extra frame of input latency.</string>
     <string name="session_drawer_frame_generation_target_note">Climbs toward the target only while it measurably helps, instead of holding a fixed multiplier.</string>
-    <string name="session_drawer_frame_generation_missing">Install Lossless Scaling in container settings to use the LSFG engine. DIS needs nothing extra.</string>
+    <string name="session_drawer_frame_generation_missing">Install Lossless Scaling in container settings to use the LSFG engine. OpenFlow needs nothing extra.</string>
     <string name="session_drawer_dis_frame_generation_note">Interpolates between rendered frames with Dense Inverse Search. Built into the app; no external shaders required.</string>
     <string name="session_drawer_dis_resolution_scale">Resolution Scale</string>
     <string name="session_drawer_dis_preset_fast">Fast</string>
@@ -980,7 +983,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="session_drawer_dis_target_fps_max">Max refresh rate</string>
     <string name="session_drawer_dis_target_fps_value">%1$d fps</string>
     <string name="session_drawer_dis_debug_flow">Show flow</string>
-    <string name="session_drawer_dis_debug_flow_note">Draws the motion vectors DIS estimates instead of the generated frame. Diagnostic only.</string>
+    <string name="session_drawer_dis_debug_flow_note">Draws the motion vectors OpenFlow estimates instead of the generated frame. Diagnostic only.</string>
     <string name="settings_frame_generation_title">Frame Generation</string>
     <string name="settings_frame_generation_importing">Looking for Lossless Scaling…</string>
     <string name="settings_frame_generation_ready">Lossless Scaling shaders ready.</string>
@@ -3687,6 +3690,10 @@ Installed path:
     <string name="linux_runtime_windows_program">This is a Windows program. Move it to a Wine container in Shortcut Settings to start it.</string>
     <string name="linux_runtime_install_local">Install Linux runtime</string>
     <string name="linux_runtime_installed">Linux runtime installed</string>
+    <string name="linux_steam_library_preferred" translatable="false">WinNative</string>
+    <string name="linux_steam_library_named">WinNative (%1$s)</string>
+    <string name="linux_steam_library_internal">Internal Storage</string>
+    <string name="linux_steam_library_device_storage">Device Storage</string>
     <string name="display_server_x11" translatable="false">X11</string>
     <string name="display_server_wayland" translatable="false">Wayland</string>
     <string name="settings_content_badge_online">Online</string>

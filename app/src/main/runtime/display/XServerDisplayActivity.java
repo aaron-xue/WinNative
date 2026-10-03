@@ -1607,6 +1607,15 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 VulkanRenderer renderer = xServerView != null ? xServerView.getRenderer() : null;
                 frameGenRefreshRate = refreshRate;
                 if (renderer != null) renderer.setFrameGenerationRefreshRate(refreshRate);
+                applyWaylandFrameGeneration();
+                return;
+            }
+            if (disFrameGenEnabled) {
+                float refreshRate = applyDisFrameGenerationDisplayMode();
+                VulkanRenderer renderer = xServerView != null ? xServerView.getRenderer() : null;
+                frameGenRefreshRate = refreshRate;
+                if (renderer != null) renderer.setFrameGenerationRefreshRate(refreshRate);
+                applyWaylandFrameGeneration();
                 return;
             }
             int pacedFpsLimit = systemFrameGenHudEnabled ? 0 : runtimeFpsLimit;
@@ -1688,20 +1697,40 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     }
 
     private void syncFrameGenerationRefreshRate() {
-        boolean lsfg = frameGenEnabled && frameGenCachePath != null;
-        if (!lsfg && !disFrameGenEnabled) return;
-
         android.view.Display display = getDisplayCompat();
         if (display == null) return;
 
         float active = display.getMode().getRefreshRate();
-        if (active <= 0f || Math.abs(active - frameGenRefreshRate) < 0.5f) return;
+        if (active <= 0f) return;
+        if (waylandMode) WaylandCompositor.nativeSetOutputRefreshRate(active);
+
+        boolean lsfg = frameGenEnabled && frameGenCachePath != null;
+        if (!lsfg && !disFrameGenEnabled) return;
+        if (Math.abs(active - frameGenRefreshRate) < 0.5f) return;
 
         Log.i("XServerDisplayActivity", "Frame generation panel changed: "
                 + Math.round(frameGenRefreshRate) + "Hz -> " + Math.round(active) + "Hz");
         frameGenRefreshRate = active;
         VulkanRenderer renderer = xServerView != null ? xServerView.getRenderer() : null;
         if (renderer != null) renderer.setFrameGenerationRefreshRate(active);
+        applyWaylandFrameGeneration();
+    }
+
+    /** The rate the panel is being moved to: a mode switch lands a moment after it is asked for. */
+    private float requestedPanelRefreshRate() {
+        android.view.Display display = getDisplayCompat();
+        if (display == null) return 0f;
+        android.view.Window window = getWindow();
+        if (window != null) {
+            android.view.WindowManager.LayoutParams params = window.getAttributes();
+            if (params.preferredDisplayModeId != 0) {
+                for (android.view.Display.Mode mode : display.getSupportedModes()) {
+                    if (mode.getModeId() == params.preferredDisplayModeId) return mode.getRefreshRate();
+                }
+            }
+            if (params.preferredRefreshRate > 0f) return params.preferredRefreshRate;
+        }
+        return display.getRefreshRate();
     }
 
     @Override
@@ -3234,7 +3263,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             String shortcutInstallPath = shortcut.getExtra("game_install_path");
             String resolvedShortcutInstallPath =
                     sanitizeSteamGameInstallPath(appId, shortcutInstallPath, "shortcut");
-            if (resolvedShortcutInstallPath != null && !resolvedShortcutInstallPath.isEmpty()) {
+            if (resolvedShortcutInstallPath != null && new File(resolvedShortcutInstallPath).isDirectory()) {
                 if (!resolvedShortcutInstallPath.equals(shortcutInstallPath)) {
                     shortcut.putExtra("game_install_path", resolvedShortcutInstallPath);
                     shortcut.saveData();
@@ -9091,13 +9120,13 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         guest.add("WN_FPS=" + Math.max(0, runtimeFpsLimit));
         // What gamescope advertises when no limit is set, and what a game reads as the display's:
         // left out, gamescope says 60 and titles cap themselves there on a faster panel.
-        android.view.Display panel = getDisplayCompat();
-        int panelHz = panel != null ? Math.round(panel.getRefreshRate()) : 0;
+        int panelHz = Math.round(requestedPanelRefreshRate());
         if (panelHz > 1) guest.add("WN_REFRESH=" + panelHz);
         File logDir = com.winlator.cmod.runtime.system.LogManager.getSessionLogsDir(this);
         File linuxLog = new File(logDir, "linux-session-" + java.time.LocalDateTime.now().format(
                 java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss", java.util.Locale.US)) + ".log");
         guest.add("WN_LOG=" + linuxLog.getPath());
+        if (preferences.getBoolean("enable_wine_debug", false)) guest.add("WN_PROTON_LOG=1");
         guest.add(LinuxRuntime.SESSION_SCRIPT);
         guest.addAll(session);
 
@@ -9112,9 +9141,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         environment.addComponent(networkLink);
 
         EnvVars hostEnv = LinuxRuntime.hostEnvironment(this, sessionEnv);
-        List<String> binds = new ArrayList<>(com.winlator.cmod.feature.library.LinuxSteamLibrary.prepare(
-                this, LinuxRuntime.rootDir(this)));
-        if (!reusingSession) binds.addAll(com.winlator.cmod.runtime.linux.LinuxSteamShortcuts.sync(this));
+        List<String> binds = new ArrayList<>();
+        if (!reusingSession) {
+            binds.addAll(com.winlator.cmod.feature.library.LinuxSteamLibrary.prepare(this, LinuxRuntime.rootDir(this)));
+            binds.addAll(com.winlator.cmod.runtime.linux.LinuxSteamShortcuts.sync(this));
+        }
         com.winlator.cmod.runtime.linux.LinuxEpicTokens.start(this);
         List<String> command = LinuxRuntime.command(this, imageFs, runtimeDir,
                 android.os.Environment.getExternalStorageDirectory(), devInputDir, binds, guest);
@@ -9288,9 +9319,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (!hasDriver && gamescopeMode) return;
         cfg.hideShell = shortcut != null || (bootExePath != null && !bootExePath.isEmpty());
         try {
-            android.view.Display display = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-                    ? getDisplay() : getWindowManager().getDefaultDisplay();
-            cfg.refreshHz = display != null ? display.getRefreshRate() : 60f;
+            float requested = requestedPanelRefreshRate();
+            cfg.refreshHz = requested > 1f ? requested : 60f;
         } catch (Exception e) {
             cfg.refreshHz = 60f;
         }

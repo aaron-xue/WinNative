@@ -287,6 +287,9 @@
     <string name="linux_client_busy">Linux Steam 客户端仍在安装。请在完成后重试。</string>
     <string name="linux_client_update_message">有更新的 Linux 运行环境可用。更新会保留 Steam 登录、已安装的游戏、存档和容器。</string>
     <string name="linux_client_update_session_running">Linux 会话正在运行。请先退出，然后再更新。</string>
+    <string name="linux_client_uninstall_message">卸载会删除 Linux 运行时及其中的 Steam 客户端、登录信息和 Proton，以及保存在其中的游戏和存档。其他 Steam 库中的游戏仍会保留安装。</string>
+    <string name="linux_client_uninstall_session_running">Linux 会话正在运行。请先退出，然后再卸载。</string>
+    <string name="linux_client_stage_uninstall">正在卸载 Linux 客户端</string>
     <string name="linux_client_gpu_unsupported">The Linux client draws with the Turnip Vulkan driver, which needs an Adreno GPU. This device has a different GPU.</string>
     <string name="linux_client_driver_missing">The display driver of the Linux client is not installed, so the screen would stay black. Install it with Linux Client in Settings > Stores.</string>
     <string name="linux_session_failed">Linux 会话刚启动就停止了。日志位于 设置 > 调试 > 打开日志管理器；请分享日志以便查明原因。</string>
@@ -3188,7 +3191,7 @@
     <string name="session_drawer_frame_generation_enable">生成帧</string>
     <string name="session_drawer_frame_generation_engine_off">关闭</string>
     <string name="session_drawer_frame_generation_engine_lsfg">LSFG</string>
-    <string name="session_drawer_frame_generation_engine_dis">DIS</string>
+    <string name="session_drawer_frame_generation_engine_dis">OpenFlow</string>
     <string name="session_drawer_frame_generation_multiplier">倍数</string>
     <string name="session_drawer_frame_generation_multiplier_value">%1$dx</string>
     <string name="session_drawer_frame_generation_target">自适应目标</string>
@@ -3196,7 +3199,7 @@
     <string name="session_drawer_frame_generation_target_value">%1$d fps</string>
     <string name="session_drawer_frame_generation_note">使用 Lossless Scaling 在已渲染的帧之间插帧。画面更流畅，但输入延迟会增加一帧。</string>
     <string name="session_drawer_frame_generation_target_note">仅在能带来可测量的提升时才向目标提升，而不是保持固定倍数。</string>
-    <string name="session_drawer_frame_generation_missing">请在容器设置中安装 Lossless Scaling 以使用 LSFG 引擎。DIS 无需任何额外内容。</string>
+    <string name="session_drawer_frame_generation_missing">请在容器设置中安装 Lossless Scaling 以使用 LSFG 引擎。OpenFlow 无需任何额外内容。</string>
     <string name="session_drawer_dis_frame_generation_note">使用 Dense Inverse Search 在渲染帧之间插帧。内置功能，无需外部着色器。</string>
     <string name="session_drawer_dis_resolution_scale">分辨率缩放</string>
     <string name="session_drawer_dis_preset_fast">快速</string>
@@ -3207,7 +3210,7 @@
     <string name="session_drawer_dis_target_fps_max">最高刷新率</string>
     <string name="session_drawer_dis_target_fps_value">%1$d fps</string>
     <string name="session_drawer_dis_debug_flow">显示光流</string>
-    <string name="session_drawer_dis_debug_flow_note">绘制 DIS 估算的运动矢量，而不是生成的帧。仅用于诊断。</string>
+    <string name="session_drawer_dis_debug_flow_note">绘制 OpenFlow 估算的运动矢量，而不是生成的帧。仅用于诊断。</string>
     <string name="frame_generation_preset">画质预设</string>
     <string name="frame_generation_preset_ultra_performance">极致性能</string>
     <string name="frame_generation_preset_performance">性能</string>
@@ -3414,6 +3417,9 @@
     <string name="linux_runtime_windows_program">这是一个 Windows 程序。请在快捷方式设置中将其移到 Wine 容器后再启动。</string>
     <string name="linux_runtime_install_local">安装 Linux 运行时</string>
     <string name="linux_runtime_installed">已安装 Linux 运行时</string>
+    <string name="linux_steam_library_named">WinNative（%1$s）</string>
+    <string name="linux_steam_library_internal">内部存储</string>
+    <string name="linux_steam_library_device_storage">设备存储</string>
     <string name="settings_content_badge_online">联机</string>
     <string name="gamescope_fex_title">FEX (64-bit and 32-bit)</string>
     <string name="gamescope_fex_preset">FEX Preset</string>

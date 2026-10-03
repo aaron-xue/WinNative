@@ -3,7 +3,7 @@
 
 #include "framegen_engine.h"
 #include "framegen_bridge.h"
-#include "dis/vkr_dis.h"
+#include "vkr_dis.h"
 #include "lsfg/vkr_lsfg.h"
 
 #include <stdlib.h>
@@ -214,7 +214,7 @@ void fge_telemetry(float *accepted, float *source_rate, float *thermal) {
 }
 
 const char *fge_engine_name(int kind) {
-    return kind == VKP_FG_ENGINE_DIS ? "DIS Native" : "LSFG Native";
+    return kind == VKP_FG_ENGINE_DIS ? "OpenFlow Native" : "LSFG Native";
 }
 
 const char *fge_build_info(void) { return "lsfg-native/dis-native"; }

@@ -166,6 +166,7 @@ import com.winlator.cmod.feature.setup.SetupWizardActivity
 import com.winlator.cmod.feature.library.LibraryItemType
 import com.winlator.cmod.feature.library.LinuxApps
 import com.winlator.cmod.runtime.linux.LinuxClientInstaller
+import com.winlator.cmod.runtime.linux.LinuxRuntime
 import com.winlator.cmod.feature.shortcuts.LibraryShortcutUtils
 import com.winlator.cmod.feature.shortcuts.LibraryShortcutArtwork
 import com.winlator.cmod.feature.artwork.SteamArtworkScraper

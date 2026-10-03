@@ -233,6 +233,7 @@ import com.winlator.cmod.shared.ui.dialog.ContainerProgressPopup
 import com.winlator.cmod.shared.ui.dialog.PopupDialog
 import com.winlator.cmod.shared.ui.dialog.PopupTextAction
 import androidx.compose.foundation.focusGroup
+import com.winlator.cmod.shared.ui.focus.controllerConfirmOnA
 import com.winlator.cmod.shared.ui.focus.controllerFocusGlow
 import com.winlator.cmod.shared.ui.focus.controllerMenuInput
 import com.winlator.cmod.shared.ui.focus.controllerTextFieldEscape
@@ -2191,7 +2192,7 @@ internal fun UnifiedActivity.LibraryGameDetailDialog(
             ),
     ) {
         Surface(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().controllerConfirmOnA(),
             shape = RectangleShape,
             color = Color.Black,
         ) {
@@ -2410,6 +2411,7 @@ internal fun UnifiedActivity.LibraryGameDetailDialog(
                             if (showSaveTransfer) {
                                 androidx.compose.material3.AlertDialog(
                                     onDismissRequest = { showSaveTransfer = false },
+                                    modifier = Modifier.controllerConfirmOnA(),
                                     title = { androidx.compose.material3.Text(stringResource(R.string.retro_save_transfer_title)) },
                                     text = { androidx.compose.material3.Text(stringResource(R.string.retro_save_transfer_message)) },
                                     confirmButton = {
@@ -3216,7 +3218,7 @@ private fun UnifiedActivity.startLibraryStorageMove(
     popup.show()
     lifecycleScope.launch {
         val result =
-            LibraryStorageMove.move(plan) { copied, total ->
+            LibraryStorageMove.move(applicationContext, plan) { copied, total ->
                 if (total > 0L) popup.setProgress(((copied * 100L) / total).toInt())
             }
         popup.close()

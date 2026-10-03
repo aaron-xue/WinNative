@@ -441,11 +441,11 @@ public class SessionKeepAliveService extends Service {
         // Reset the stopping flag as we've received a new start command (or are resuming)
         serviceStopping = false;
 
-        // Always promote to foreground first so Android does not consider
-        // the start a violation (and so the notification reflects current
-        // reasons), even if the command immediately tells us to stop.
-        ensureForeground();
-        serviceRunning.set(true);
+        // A startForegroundService() request must be followed by a real
+        // startForeground() call. Do not trust the process-wide running flag
+        // here: a stop/restart race can leave it true after the service has
+        // already left the foreground.
+        ensureForeground(true);
 
         // Handle the Exit button from the notification
         if (ACTION_SESSION_STOP.equals(action)) {
@@ -488,6 +488,10 @@ public class SessionKeepAliveService extends Service {
     }
 
     private void ensureForeground() {
+        ensureForeground(false);
+    }
+
+    private void ensureForeground(boolean forceStart) {
         boolean containerActive = sessionActive.get();
         // Only show Exit button if app is in background AND container is running or user wants to keep steam chat alive.
 //        boolean showExit = isAppNotVisible() && (containerActive || PrefManager.INSTANCE.getChatStayRunningOnExit());    // Disabled because container "Exit" causes too much issues, ANR crash for example.
@@ -512,14 +516,16 @@ public class SessionKeepAliveService extends Service {
         }
 
         try {
-            // Only call startForeground the first time. Use notify() for updates.
-            if (!serviceRunning.get()) {
+            // startForeground() is required for every explicit service start.
+            // Otherwise, only call it the first time and use notify() for updates.
+            if (forceStart || !serviceRunning.get()) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     startForeground(notificationId, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
                 }
                 else {
                     startForeground(notificationId, n);
                 }
+                serviceRunning.set(true);
             }
             else {
                 // Standard notification update

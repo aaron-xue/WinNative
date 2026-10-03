@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.annotation.StringRes
 import com.winlator.cmod.R
 import com.winlator.cmod.feature.library.LinuxApps
+import com.winlator.cmod.feature.library.LinuxSteamLibrary
 import com.winlator.cmod.runtime.container.Container
 import com.winlator.cmod.runtime.container.ContainerCreation
 import com.winlator.cmod.runtime.container.ContainerManager
@@ -26,6 +27,7 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.Locale
 import java.util.TimeZone
 import kotlin.coroutines.coroutineContext
@@ -76,7 +78,8 @@ object LinuxClientInstaller {
      * and its sign-in, the library the app maps in with its prefixes and saves, Proton, and the
      * machine id the client ties its sign-in to.
      */
-    private val KEPT_PATHS = listOf("root", "mnt/winnative", PROTON_DIR.substring(1), "etc/machine-id")
+    private const val MACHINE_ID = "etc/machine-id"
+    private val KEPT_PATHS = listOf("root", "mnt/winnative", PROTON_DIR.substring(1), MACHINE_ID)
     private const val PREFERENCES = "linux_client"
     private const val DISMISSED_UPDATE = "dismissed_update"
     private const val STEAM_CDN = "https://client-update.fastly.steamstatic.com"
@@ -95,7 +98,7 @@ object LinuxClientInstaller {
     private const val CLIENT_ZONE_SECONDS = 8 * 3600L
     private const val PROGRESS_INTERVAL_MS = 100L
 
-    enum class Stage { CONNECT, DOWNLOAD_RUNTIME, INSTALL_RUNTIME, DOWNLOAD_PROTON, INSTALL_PROTON, DOWNLOAD_STEAM, INSTALL_STEAM, LIBRARY }
+    enum class Stage { CONNECT, DOWNLOAD_RUNTIME, INSTALL_RUNTIME, DOWNLOAD_PROTON, INSTALL_PROTON, DOWNLOAD_STEAM, INSTALL_STEAM, LIBRARY, UNINSTALL }
 
     sealed interface State {
         data object Checking : State
@@ -220,6 +223,38 @@ object LinuxClientInstaller {
 
     fun cancel() {
         synchronized(lock) { job?.cancel() }
+    }
+
+    /**
+     * Removes the runtime, and with it the client, its sign-in, Proton and what the client keeps
+     * inside it, then the driver it downloaded and the Library's Steam entry. False while a
+     * session has the runtime open.
+     */
+    fun uninstall(context: Context): Boolean {
+        val appContext = context.applicationContext
+        synchronized(lock) {
+            if (isWorking || SessionKeepAliveService.isLinuxSessionActive()) return false
+            generation++
+            mutableState.value = State.Working(Stage.UNINSTALL, 0, 0)
+            job = scope.launch { remove(appContext) }
+        }
+        return true
+    }
+
+    private fun remove(context: Context) {
+        try {
+            recoverSwap(context)
+            discard(context, File(context.filesDir, WORK_DIR))
+            val root = LinuxRuntime.rootDir(context)
+            FileUtils.delete(root)
+            FileUtils.delete(LinuxRuntime.driverDir(context))
+            preferences(context).edit().remove(DISMISSED_UPDATE).apply()
+            gamescopeContainer(context)?.let { File(it.desktopDir, "${LinuxApps.STEAM_SHORTCUT_NAME}.desktop").delete() }
+            LinuxSteamLibrary.adoptClientInstalls(context, root)
+        } catch (e: Exception) {
+            Log.w(TAG, "Linux client uninstall failed", e)
+        }
+        publishSettled(if (isInstalled(context)) State.Installed else State.Missing)
     }
 
     private suspend fun install(
@@ -450,6 +485,7 @@ object LinuxClientInstaller {
     ) {
         val root = LinuxRuntime.rootDir(context)
         if (!root.exists()) {
+            writeMachineId(staging)
             if (!staging.renameTo(root)) throw IOException("Could not move the runtime into place")
             return
         }
@@ -457,6 +493,21 @@ object LinuxClientInstaller {
         FileUtils.delete(retired)
         synchronized(swapLock) { swap(root, staging, retired) }
         FileUtils.delete(retired)
+    }
+
+    /**
+     * A first install gets a machine id of its own: the archive's is the same for everyone who
+     * unpacks it, and Steam and the anti-cheats it hosts read it as this device's. A runtime being
+     * replaced hands its own on instead, as the client's sign-in is tied to it.
+     */
+    private fun writeMachineId(staging: File) {
+        val bytes = ByteArray(16).also(SecureRandom()::nextBytes)
+        val id = bytes.joinToString("") { "%02x".format(it) }
+        val file = File(staging, MACHINE_ID)
+        val parent = file.parentFile
+        if (parent != null && !parent.isDirectory && !parent.mkdirs()) throw IOException("Could not create $parent")
+        FileUtils.delete(file)
+        file.writeText("$id\n")
     }
 
     private fun swap(
