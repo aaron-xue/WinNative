@@ -65,10 +65,16 @@ import com.winlator.cmod.feature.stores.steam.data.SteamApp
 import com.winlator.cmod.runtime.container.ContainerManager
 import com.winlator.cmod.runtime.input.ControllerHelper
 import com.winlator.cmod.shared.ui.focus.controllerFocusGlow
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.runtime.produceState
+import com.winlator.cmod.feature.stores.steam.service.SteamService
+import com.winlator.cmod.shared.io.StorageUtils
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val DefaultBlack = Color.Black
 private val DefaultAccent = Color(0xFF1A9FFF)
@@ -146,27 +152,62 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
         remember(focusedApp?.id, playtimeRefreshKey) {
             focusedApp?.let { defaultPlaytimeLabel(playtimePrefs, it) }
         }
+    // Subtitle: developer / publisher, mirroring the game detail dialog's subtitle.
     val sourceLabel =
         when {
-            focusedApp == null -> ""
-            focusedGogGame != null -> "GOG"
-            focusedApp.id >= 2000000000 -> "EPIC"
-            focusedApp.id < 0 -> "CUSTOM"
-            else -> "STEAM"
-        }
-    val studioText =
-        remember(focusedApp?.id, focusedGogGame?.id, focusedEpicGame?.id) {
-            focusedApp?.let {
+            focusedGogGame != null -> focusedGogGame.developer
+            focusedApp?.id != null && focusedApp.id < 0 ->
+                stringResource(R.string.library_games_custom_game)
+            focusedEpicGame != null -> focusedEpicGame.developer ?: ""
+            else ->
                 listOfNotNull(
-                    when {
-                        focusedGogGame != null -> focusedGogGame.developer.takeIf { d -> d.isNotBlank() }
-                        focusedEpicGame != null -> focusedEpicGame.developer.takeIf { d -> d.isNotBlank() }
-                        else -> it.developer.takeIf { d -> d.isNotBlank() }
-                    },
-                    defaultReleaseYear(it.releaseDate),
-                ).joinToString("  ·  ")
+                    focusedApp?.developer?.takeIf { it.isNotBlank() },
+                    focusedApp?.publisher?.takeIf { it.isNotBlank() },
+                ).distinctBy { it.trim().lowercase() }.joinToString(" • ")
+        }
+
+    // Play-count / last-played stats, keyed the same way as the playtime prefs.
+    val playtimeKey =
+        remember(focusedApp?.id, focusedApp?.name) {
+            focusedApp?.let { app ->
+                when {
+                    app.id < 0 -> "custom_${app.id}"
+                    app.id >= 2000000000 -> app.name
+                    else -> app.name.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
+                }
             }
         }
+    val playCount = playtimeKey?.let { playtimePrefs.getInt("${it}_play_count", 0) } ?: 0
+    val lastPlayed = playtimeKey?.let { playtimePrefs.getLong("${it}_last_played", 0L) } ?: 0L
+
+    // Install size (computed async), mirroring the game detail dialog.
+    val installPath by produceState("", focusedApp, focusedGogGame, focusedEpicGame) {
+        value =
+            withContext(Dispatchers.IO) {
+                when {
+                    focusedGogGame != null -> focusedGogGame.installPath
+                    focusedApp?.id != null && focusedApp.id >= 2000000000 -> focusedEpicGame?.installPath ?: ""
+                    focusedApp?.id != null && focusedApp.id < 0 -> focusedApp.gameDir
+                    focusedApp != null -> SteamService.getAppDirPath(focusedApp.id)
+                    else -> ""
+                }
+            }
+    }
+    val installSizeText by produceState<String?>(null, installPath) {
+        value =
+            if (installPath.isNotBlank()) {
+                withContext(Dispatchers.IO) {
+                    try {
+                        val bytes = StorageUtils.getFolderSize(installPath)
+                        if (bytes > 0) StorageUtils.formatBinarySize(bytes) else null
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+            } else {
+                null
+            }
+    }
 
     fun playFocused(
         app: SteamApp,
@@ -290,20 +331,25 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
                         overflow = TextOverflow.Ellipsis,
                     )
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.widthIn(max = 620.dp),
+                    ) {
                         if (sourceLabel.isNotBlank()) DefaultChip(sourceLabel)
-                        if (!playtimeText.isNullOrBlank()) DefaultChip(playtimeText)
-                    }
-
-                    if (!studioText.isNullOrBlank()) {
-                        Text(
-                            studioText,
-                            color = DefaultTextPrimary.copy(alpha = 0.72f),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        if (!playtimeText.isNullOrBlank()) {
+                            DefaultChip(stringResource(R.string.library_games_playtime) + " " + playtimeText)
+                        }
+                        if (playCount > 0) {
+                            DefaultChip(stringResource(R.string.library_games_plays) + " " + playCount)
+                        }
+                        if (lastPlayed > 0L) {
+                            val lastPlayedText = remember(lastPlayed) { defaultFormatLastPlayed(lastPlayed) }
+                            DefaultChip(stringResource(R.string.library_games_last_played) + " " + lastPlayedText)
+                        }
+                        installSizeText?.let { size ->
+                            DefaultChip(stringResource(R.string.common_ui_size) + " " + size)
+                        }
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -624,9 +670,5 @@ private fun defaultFormatPlaytime(playtimeMillis: Long): String {
     }
 }
 
-private fun defaultReleaseYear(releaseDateEpochSeconds: Long): String? =
-    if (releaseDateEpochSeconds <= 0L) {
-        null
-    } else {
-        SimpleDateFormat("yyyy", Locale.getDefault()).format(Date(releaseDateEpochSeconds * 1000L))
-    }
+private fun defaultFormatLastPlayed(lastPlayedMillis: Long): String =
+    SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(lastPlayedMillis))
