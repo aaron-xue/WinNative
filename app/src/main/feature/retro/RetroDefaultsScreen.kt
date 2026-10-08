@@ -17,9 +17,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LinearProgressIndicator
@@ -112,16 +113,21 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
     @Suppress("UNUSED_EXPRESSION") refresh
 
     CompositionLocalProvider(LocalPaneNav provides contentNav) {
-    Column(
+    LazyColumn(
         modifier =
             Modifier
                 .fillMaxSize()
                 .background(PageBg)
-                .verticalScroll(rememberScrollState())
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
         Text(
             stringResource(R.string.retro_scr_retro_defaults),
             color = PageSub,
@@ -447,45 +453,29 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
             color = PageSub,
             style = MaterialTheme.typography.labelMedium,
         )
+            }
+        }
 
         RetroSystems.ALL.sortedBy { it.displayName }.forEach { console ->
             val sys = console.id
             val expanded = expandedConsole == sys
-            RetroSettingGroup {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { expandedConsole = if (expanded) null else sys }
-                            .paneNavItem(
-                                cornerRadius = 8.dp,
-                                onActivate = { expandedConsole = if (expanded) null else sys },
-                                highlightColor = Color(0xFF4FC3F7),
-                                tapToSelect = true,
-                            )
-                            .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        console.displayName,
-                        color = PageText,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        if (expanded) "▲" else "▼",
-                        color = PageSub,
-                    )
-                }
-                if (expanded) {
-                    RetroSettingSwitch(
-                        stringResource(R.string.settings_frame_generation_title),
-                        RetroDefaults.frameGen(context, sys),
-                        subtitle = stringResource(R.string.retro_gs_frame_generation_subtitle),
-                    ) { RetroDefaults.setFrameGen(context, sys, it); refresh++ }
-                }
-                if (expanded && console.isExternal) {
+            stickyHeader(key = "console_header_$sys") {
+                ConsoleDefaultsHeader(
+                    console = console,
+                    expanded = expanded,
+                    onToggle = { expandedConsole = if (expanded) null else sys },
+                )
+            }
+            if (expanded) {
+                item(key = "console_settings_$sys") {
+                    RetroSettingGroup {
+                        RetroSettingSwitch(
+                            stringResource(R.string.settings_frame_generation_title),
+                            RetroDefaults.frameGen(context, sys),
+                            subtitle = stringResource(R.string.retro_gs_frame_generation_subtitle),
+                        ) { RetroDefaults.setFrameGen(context, sys, it); refresh++ }
+                    }
+                if (console.isExternal) {
                     val ps2Prefs = context.getSharedPreferences("ARMSX2", android.content.Context.MODE_PRIVATE)
                     val rendererKeys = listOf("vulkan", "opengl", "software")
                     val rendererLabels = listOf(
@@ -771,7 +761,7 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                         RetroSettingSwitch(stringResource(R.string.retro_scr_auto_ip_dhcp), ps2Prefs.getBoolean("wn.ps2.net.dhcp", true)) { ps2Prefs.edit().putBoolean("wn.ps2.net.dhcp", it).apply(); refresh++ }
                     }
                 }
-                if (expanded && !console.isExternal) {
+                if (!console.isExternal) {
                     if (RetroCoreManager.usesDolphinCore(console)) {
                         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
                         val gcDrivers = remember { com.armsx2.CustomDriver.listInstalled(context) }
@@ -851,8 +841,48 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                     }
                 }
             }
+            }
         }
     }
+    }
+}
+
+@Composable
+private fun ConsoleDefaultsHeader(
+    console: RetroSystem,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(PageBg)
+                .clickable { onToggle() }
+                .paneNavItem(
+                    cornerRadius = 8.dp,
+                    onActivate = { onToggle() },
+                    highlightColor = Color(0xFF4FC3F7),
+                    tapToSelect = true,
+                )
+                .padding(vertical = 6.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                console.displayName,
+                color = PageText,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                if (expanded) "▲" else "▼",
+                color = PageSub,
+            )
+        }
     }
 }
 
