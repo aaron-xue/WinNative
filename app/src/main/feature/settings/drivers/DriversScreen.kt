@@ -373,18 +373,32 @@ fun DriversScreen(
 
 @Composable
 private fun PlatformOptions(selected: Platform, onSelect: (Platform) -> Unit) {
+    // Sized to match ComponentsScreen's PlatformTabChip (height 34.dp, 10.dp horizontal
+    // padding, 12.sp label) so the Android / Linux toggles look identical across tabs.
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Platform.entries.forEach { platform ->
             val label = stringResource(if (platform == Platform.ANDROID) R.string.settings_drivers_android else R.string.settings_drivers_linux)
             Box(
-                modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
-                    .background(if (selected == platform) Accent.copy(alpha = 0.22f) else CardDark)
-                    .border(1.dp, if (selected == platform) Accent else CardBorder, RoundedCornerShape(10.dp))
-                    .paneNavItem(cornerRadius = 10.dp, onActivate = { onSelect(platform) }, highlightColor = NavHighlight, tapToSelect = true)
-                    .padding(14.dp),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (selected == platform) Accent.copy(alpha = 0.18f) else CardDark)
+                        .border(1.dp, if (selected == platform) Accent.copy(alpha = 0.45f) else CardBorder, RoundedCornerShape(10.dp))
+                        .paneNavItem(cornerRadius = 10.dp, onActivate = { onSelect(platform) }, highlightColor = NavHighlight, tapToSelect = true)
+                        .padding(horizontal = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(label, color = if (selected == platform) Accent else TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text(
+                    label,
+                    color = if (selected == platform) Accent else TextSecondary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
