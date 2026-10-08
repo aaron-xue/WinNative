@@ -1,8 +1,6 @@
 package com.winlator.cmod.feature.retro
 
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -80,13 +78,19 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
         )
     }
 
-    val biosPicker =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) {
+    val importPs1Bios = {
+        val activity = context as? android.app.Activity
+        if (activity != null) {
+            com.winlator.cmod.shared.android.DirectoryPickerDialog.showFile(
+                activity = activity,
+                title = context.getString(R.string.retro_scr_import_ps1_bios),
+                allowedExtensions = setOf("bin"),
+            ) { path ->
                 scope.launch {
-                    val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        RetroBiosImport.importFromUri(context, uri)
-                    }
+                    val result =
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            RetroBiosImport.importFromUri(context, android.net.Uri.fromFile(File(path)))
+                        }
                     result
                         .onSuccess { Toast.makeText(context, context.getString(R.string.retro_scr_bios_imported, it), Toast.LENGTH_SHORT).show() }
                         .onFailure { Toast.makeText(context, it.message ?: context.getString(R.string.retro_scr_invalid_bios_file), Toast.LENGTH_LONG).show() }
@@ -94,14 +98,21 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                 }
             }
         }
+    }
 
-    val ps2BiosPicker =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) {
+    val importPs2Bios = {
+        val activity = context as? android.app.Activity
+        if (activity != null) {
+            com.winlator.cmod.shared.android.DirectoryPickerDialog.showFile(
+                activity = activity,
+                title = context.getString(R.string.retro_scr_import_ps2_bios),
+                allowedExtensions = setOf("bin"),
+            ) { path ->
                 scope.launch {
-                    val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        RetroBiosImport.importPs2FromUri(context, uri)
-                    }
+                    val result =
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            RetroBiosImport.importPs2FromUri(context, android.net.Uri.fromFile(File(path)))
+                        }
                     result
                         .onSuccess { Toast.makeText(context, context.getString(R.string.retro_scr_ps2_bios_imported, it), Toast.LENGTH_SHORT).show() }
                         .onFailure { Toast.makeText(context, it.message ?: context.getString(R.string.retro_scr_invalid_ps2_bios_file), Toast.LENGTH_LONG).show() }
@@ -109,6 +120,7 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                 }
             }
         }
+    }
 
     @Suppress("UNUSED_EXPRESSION") refresh
 
@@ -217,14 +229,14 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                         },
                     )
                     Button(
-                        onClick = { runCatching { biosPicker.launch(arrayOf("*/*")) } },
+                        onClick = { runCatching { importPs1Bios() } },
                         modifier =
                             Modifier
                                 .fillMaxWidth()
                                 .padding(top = 4.dp)
                                 .paneNavItem(
                                     cornerRadius = 8.dp,
-                                    onActivate = { runCatching { biosPicker.launch(arrayOf("*/*")) } },
+                                    onActivate = { runCatching { importPs1Bios() } },
                                     highlightColor = Color(0xFF4FC3F7),
                                     tapToSelect = true,
                                 ),
@@ -287,14 +299,14 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                         },
                     )
                     Button(
-                        onClick = { runCatching { ps2BiosPicker.launch(arrayOf("*/*")) } },
+                        onClick = { runCatching { importPs2Bios() } },
                         modifier =
                             Modifier
                                 .fillMaxWidth()
                                 .padding(top = 4.dp)
                                 .paneNavItem(
                                     cornerRadius = 8.dp,
-                                    onActivate = { runCatching { ps2BiosPicker.launch(arrayOf("*/*")) } },
+                                    onActivate = { runCatching { importPs2Bios() } },
                                     highlightColor = Color(0xFF4FC3F7),
                                     tapToSelect = true,
                                 ),
@@ -1126,6 +1138,8 @@ private fun RetroConsoleBundleGroup(
                             }
                         }
                     },
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(
@@ -1143,6 +1157,8 @@ private fun RetroConsoleBundleGroup(
                 OutlinedButton(
                     enabled = !busy && !checking,
                     onClick = pickLocalBundle,
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(stringResource(R.string.retro_scr_consoles_install_file))
@@ -1158,6 +1174,8 @@ private fun RetroConsoleBundleGroup(
                     onClick = {
                         scope.launch { check(selectedTag) }
                     },
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(stringResource(R.string.retro_scr_consoles_check))
@@ -1165,6 +1183,8 @@ private fun RetroConsoleBundleGroup(
                 OutlinedButton(
                     enabled = !busy && !checking,
                     onClick = pickLocalBundle,
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(stringResource(R.string.retro_scr_consoles_install_file))

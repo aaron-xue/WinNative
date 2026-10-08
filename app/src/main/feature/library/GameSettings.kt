@@ -1962,15 +1962,15 @@ private fun DisplayServerRow(state: GameSettingsStateHolder) {
                     enabled = false
                 )
             }
-            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                Text(
-                    text = stringResource(R.string.container_display_server_gamescope),
-                    color = TextDim,
-                    fontSize = SettingLabelSize,
-                    modifier = Modifier.padding(top = SettingLabelRowHeight)
-                )
-            }
+            Box(Modifier.weight(1f)) {}
         }
+        Text(
+            text = stringResource(R.string.container_display_server_gamescope),
+            color = TextDim,
+            fontSize = 11.sp,
+            lineHeight = 16.sp,
+            modifier = Modifier.padding(top = 6.dp)
+        )
         return
     }
     val wineIdentifier = displayServerWineIdentifier(state)
@@ -1993,19 +1993,19 @@ private fun DisplayServerRow(state: GameSettingsStateHolder) {
                 enabled = enabled
             )
         }
-        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            Text(
-                text = when (status.reason) {
-                    WAYLAND_AVAILABLE -> stringResource(R.string.container_display_server_help)
-                    WAYLAND_NEEDS_ADRENO -> stringResource(R.string.container_display_server_wayland_requirements)
-                    else -> stringResource(R.string.container_display_server_needs_wayland_proton)
-                },
-                color = TextDim,
-                fontSize = SettingLabelSize,
-                modifier = Modifier.padding(top = SettingLabelRowHeight)
-            )
-        }
+        Box(Modifier.weight(1f)) {}
     }
+    Text(
+        text = when (status.reason) {
+            WAYLAND_AVAILABLE -> stringResource(R.string.container_display_server_help)
+            WAYLAND_NEEDS_ADRENO -> stringResource(R.string.container_display_server_wayland_requirements)
+            else -> stringResource(R.string.container_display_server_needs_wayland_proton)
+        },
+        color = TextDim,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        modifier = Modifier.padding(top = 6.dp)
+    )
 }
 
 private const val WAYLAND_AVAILABLE = 0

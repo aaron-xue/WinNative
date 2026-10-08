@@ -2329,7 +2329,7 @@
     <string name="retro_scr_playstation_bios">PLAYSTATION BIOS</string>
     <string name="retro_scr_installed">已安装</string>
     <string name="retro_scr_none_ps1_bios">无 — PS1 游戏需要 BIOS</string>
-    <string name="retro_scr_import_ps1_bios">导入 PS1 BIOS…</string>
+    <string name="retro_scr_import_ps1_bios">导入 PS1 BIOS</string>
     <string name="retro_scr_ps1_bios_removed">已移除 PS1 BIOS</string>
     <string name="retro_scr_no_bios_to_remove">没有可移除的 BIOS</string>
     <string name="retro_scr_remove_ps1_bios">移除 PS1 BIOS</string>
@@ -2337,7 +2337,7 @@
     <string name="retro_scr_none_ps2_bios">无 — PS2 游戏需要 BIOS</string>
     <string name="retro_scr_format">格式</string>
     <string name="retro_scr_ps2_bios_format">合并的单文件转储（带区域标记的 .bin，约 4MB）。不接受拆分的 ROM0/MEC/NVM 组。</string>
-    <string name="retro_scr_import_ps2_bios">导入 PS2 BIOS…</string>
+    <string name="retro_scr_import_ps2_bios">导入 PS2 BIOS</string>
     <string name="retro_scr_ps2_bios_removed">已移除 PS2 BIOS</string>
     <string name="retro_scr_remove_ps2_bios">移除 PS2 BIOS</string>
     <string name="retro_scr_library_artwork">库封面</string>

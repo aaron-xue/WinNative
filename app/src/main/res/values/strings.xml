@@ -2587,7 +2587,7 @@ Installed path:
     <string name="retro_scr_playstation_bios">PS1 BIOS</string>
     <string name="retro_scr_installed">Installed</string>
     <string name="retro_scr_none_ps1_bios">None — PS1 games require a BIOS</string>
-    <string name="retro_scr_import_ps1_bios">Import PS1 BIOS…</string>
+    <string name="retro_scr_import_ps1_bios">Import PS1 BIOS</string>
     <string name="retro_scr_ps1_bios_removed">PS1 BIOS removed</string>
     <string name="retro_scr_no_bios_to_remove">No BIOS to remove</string>
     <string name="retro_scr_remove_ps1_bios">Remove PS1 BIOS</string>
@@ -2595,7 +2595,7 @@ Installed path:
     <string name="retro_scr_none_ps2_bios">None — PS2 games require a BIOS</string>
     <string name="retro_scr_format">Format</string>
     <string name="retro_scr_ps2_bios_format">Merged single-file dump (region-tagged .bin, ~4MB). Split ROM0/MEC/NVM sets are not accepted.</string>
-    <string name="retro_scr_import_ps2_bios">Import PS2 BIOS…</string>
+    <string name="retro_scr_import_ps2_bios">Import PS2 BIOS</string>
     <string name="retro_scr_ps2_bios_removed">PS2 BIOS removed</string>
     <string name="retro_scr_remove_ps2_bios">Remove PS2 BIOS</string>
     <string name="retro_scr_library_artwork">LIBRARY ARTWORK</string>
