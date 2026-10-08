@@ -837,45 +837,78 @@ internal fun UnifiedActivity.UnifiedHub() {
                             Modifier
                                 .matchParentSize()
                                 .background(
-                                    Brush.radialGradient(
-                                        colorStops =
-                                            arrayOf(
-                                                0.0f to Color.Transparent,
-                                                0.55f to Color.Transparent,
-                                                0.82f to BgDark.copy(alpha = 0.35f),
-                                                1.0f to BgDark.copy(alpha = 0.75f),
-                                            ),
-                                    ),
+                                    if (currentLibraryLayoutMode == LibraryLayoutMode.DEFAULT) {
+                                        // DEFAULT: immersive backdrop reads left→right (dark behind the
+                                        // left-aligned text, transparent toward the right) instead of the
+                                        // radial vignette. Other modes keep the radial gradient.
+                                        // Match the game-detail/launch screen hero scrim (left→right).
+                                        Brush.horizontalGradient(
+                                            colorStops =
+                                                arrayOf(
+                                                    0.0f to Color.Black.copy(alpha = 0.9f),
+                                                    0.36f to Color.Black.copy(alpha = 0.58f),
+                                                    0.72f to Color.Black.copy(alpha = 0.18f),
+                                                    1.0f to Color.Black.copy(alpha = 0.62f),
+                                                ),
+                                        )
+                                    } else {
+                                        Brush.radialGradient(
+                                            colorStops =
+                                                arrayOf(
+                                                    0.0f to Color.Transparent,
+                                                    0.55f to Color.Transparent,
+                                                    0.82f to BgDark.copy(alpha = 0.35f),
+                                                    1.0f to BgDark.copy(alpha = 0.75f),
+                                                ),
+                                        )
+                                    },
                                 ),
                         )
+                        // The dialog's hero scrim already provides the horizontal darkening in DEFAULT,
+                        // so skip this extra horizontal edge scrim there to match its look.
+                        if (currentLibraryLayoutMode != LibraryLayoutMode.DEFAULT) {
+                            Box(
+                                Modifier
+                                    .matchParentSize()
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            colorStops =
+                                                arrayOf(
+                                                    0.0f to BgDark.copy(alpha = 0.55f),
+                                                    0.28f to Color.Transparent,
+                                                    0.72f to Color.Transparent,
+                                                    1.0f to BgDark.copy(alpha = 0.55f),
+                                                ),
+                                        ),
+                                    ),
+                            )
+                        }
                         Box(
                             Modifier
                                 .matchParentSize()
                                 .background(
-                                    Brush.horizontalGradient(
-                                        colorStops =
-                                            arrayOf(
-                                                0.0f to BgDark.copy(alpha = 0.55f),
-                                                0.28f to Color.Transparent,
-                                                0.72f to Color.Transparent,
-                                                1.0f to BgDark.copy(alpha = 0.55f),
-                                            ),
-                                    ),
-                                ),
-                        )
-                        Box(
-                            Modifier
-                                .matchParentSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colorStops =
-                                            arrayOf(
-                                                0.0f to BgDark.copy(alpha = 0.55f),
-                                                0.28f to Color.Transparent,
-                                                0.72f to Color.Transparent,
-                                                1.0f to BgDark.copy(alpha = 0.85f),
-                                            ),
-                                    ),
+                                    if (currentLibraryLayoutMode == LibraryLayoutMode.DEFAULT) {
+                                        // Match the game-detail/launch screen vertical scrim.
+                                        Brush.verticalGradient(
+                                            colorStops =
+                                                arrayOf(
+                                                    0.0f to Color.Black.copy(alpha = 0.54f),
+                                                    0.36f to Color.Transparent,
+                                                    0.72f to Color.Black.copy(alpha = 0.32f),
+                                                    1.0f to Color.Black.copy(alpha = 0.94f),
+                                                ),
+                                        )
+                                    } else {
+                                        Brush.verticalGradient(
+                                            colorStops =
+                                                arrayOf(
+                                                    0.0f to BgDark.copy(alpha = 0.55f),
+                                                    0.28f to Color.Transparent,
+                                                    0.72f to Color.Transparent,
+                                                    1.0f to BgDark.copy(alpha = 0.85f),
+                                                ),
+                                        )
+                                    },
                                 ),
                         )
                     }
