@@ -409,9 +409,16 @@ internal fun UnifiedActivity.DrawerContent(
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 DrawerFilterButton(
+                    label = stringResource(R.string.library_games_layout_default),
+                    checked = libraryLayoutMode == LibraryLayoutMode.DEFAULT,
+                    modifier = Modifier.weight(1f),
+                    fontSize = 11.sp,
+                ) { if (it) onLibraryLayoutSelected(LibraryLayoutMode.DEFAULT) }
+                DrawerFilterButton(
                     label = "4-Grid",
                     checked = libraryLayoutMode == LibraryLayoutMode.GRID_4,
                     modifier = Modifier.weight(1f),
+                    fontSize = 11.sp,
                 ) { if (it) onLibraryLayoutSelected(LibraryLayoutMode.GRID_4) }
                 DrawerFilterButton(
                     label = stringResource(R.string.library_games_layout_carousel),
@@ -423,6 +430,7 @@ internal fun UnifiedActivity.DrawerContent(
                     label = stringResource(R.string.library_games_layout_list),
                     checked = libraryLayoutMode == LibraryLayoutMode.LIST,
                     modifier = Modifier.weight(1f),
+                    fontSize = 11.sp,
                 ) { if (it) onLibraryLayoutSelected(LibraryLayoutMode.LIST) }
             }
 

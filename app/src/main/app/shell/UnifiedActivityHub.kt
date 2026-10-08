@@ -1083,6 +1083,7 @@ internal fun UnifiedActivity.UnifiedHub() {
                             iconRefreshKey = iconRefreshKey,
                             searchQuery = searchQuery,
                             isControllerConnected = isControllerConnected,
+                            immersiveBackgroundVisible = immersiveMode && key == "library",
                         )
                     }
 
@@ -1163,6 +1164,10 @@ internal fun UnifiedActivity.UnifiedHub() {
                     }
 
                     // Composed after the hot zones so the FAB stays on top for hit-testing.
+                    val isDefaultLibrary = key == "library" && currentLibraryLayoutMode == LibraryLayoutMode.DEFAULT
+                    val showFileManagerRight = isDefaultLibrary
+                    val showFileManagerLeft = (key == "library" || key == "downloads") && !showFileManagerRight
+
                     if (key == "library") {
                         Column(
                             modifier =
@@ -1174,6 +1179,43 @@ internal fun UnifiedActivity.UnifiedHub() {
                                     .padding(end = fabEndInset, bottom = addGameFabMargin),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
+                            if (showFileManagerRight) {
+                                // DEFAULT layout: keep both library actions on the same side, file
+                                // manager above the add-game FAB.
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(addGameFabSize)
+                                            .drawBehind {
+                                                drawCircle(
+                                                    brush =
+                                                        Brush.radialGradient(
+                                                            colors = listOf(Accent.copy(alpha = 0.22f), Color.Transparent),
+                                                            center = center,
+                                                            radius = size.minDimension * 0.64f,
+                                                        ),
+                                                    radius = size.minDimension * 0.64f,
+                                                )
+                                            }
+                                            .clip(CircleShape)
+                                            .background(Color.Transparent, CircleShape)
+                                            .border(1.5.dp, Accent.copy(alpha = 0.55f), CircleShape)
+                                            .focusProperties { canFocus = false }
+                                            .clickable(
+                                                interactionSource = null,
+                                                indication = androidx.compose.material3.ripple(color = Accent),
+                                            ) { openFileManager() },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.FolderOpen,
+                                        contentDescription = "Files",
+                                        tint = Accent,
+                                        modifier = Modifier.size(addGameFabIconSize),
+                                    )
+                                }
+                                Spacer(Modifier.height(8.dp))
+                            }
                             if (isControllerConnected) {
                                 ControllerBadge("R3")
                                 Spacer(Modifier.height(8.dp))
@@ -1182,38 +1224,38 @@ internal fun UnifiedActivity.UnifiedHub() {
                                 modifier =
                                     Modifier
                                         .size(addGameFabSize)
-                                    .drawBehind {
-                                        drawCircle(
-                                            brush =
-                                                Brush.radialGradient(
-                                                    colors = listOf(Accent.copy(alpha = 0.22f), Color.Transparent),
-                                                    center = center,
-                                                    radius = size.minDimension * 0.64f,
-                                                ),
-                                            radius = size.minDimension * 0.64f,
-                                        )
-                                    }
-                                    .clip(CircleShape)
-                                    .background(Color.Transparent, CircleShape)
-                                    .border(1.5.dp, Accent.copy(alpha = 0.55f), CircleShape)
-                                    .focusProperties { canFocus = false } // No specific button for this, handle via long press or touch
-                                    .clickable(
-                                        interactionSource = null,
-                                        indication = androidx.compose.material3.ripple(color = Accent),
-                                    ) { showAddCustomGame = true },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Outlined.Add,
-                                contentDescription = "Add Custom Game",
-                                tint = Accent,
-                                modifier = Modifier.size(addGameFabIconSize),
-                            )
+                                        .drawBehind {
+                                            drawCircle(
+                                                brush =
+                                                    Brush.radialGradient(
+                                                        colors = listOf(Accent.copy(alpha = 0.22f), Color.Transparent),
+                                                        center = center,
+                                                        radius = size.minDimension * 0.64f,
+                                                    ),
+                                                radius = size.minDimension * 0.64f,
+                                            )
+                                        }
+                                        .clip(CircleShape)
+                                        .background(Color.Transparent, CircleShape)
+                                        .border(1.5.dp, Accent.copy(alpha = 0.55f), CircleShape)
+                                        .focusProperties { canFocus = false } // No specific button for this, handle via long press or touch
+                                        .clickable(
+                                            interactionSource = null,
+                                            indication = androidx.compose.material3.ripple(color = Accent),
+                                        ) { showAddCustomGame = true },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Add,
+                                    contentDescription = "Add Custom Game",
+                                    tint = Accent,
+                                    modifier = Modifier.size(addGameFabIconSize),
+                                )
                             }
                         }
                     }
 
-                    if (key == "library" || key == "downloads") {
+                    if (showFileManagerLeft) {
                         Box(
                             modifier =
                                 Modifier
@@ -2132,6 +2174,7 @@ internal fun UnifiedActivity.LibraryCarousel(
     iconRefreshKey: Int = 0,
     searchQuery: String = "",
     isControllerConnected: Boolean = false,
+    immersiveBackgroundVisible: Boolean = false,
 ) {
     val context = LocalContext.current
     val libraryScope = rememberCoroutineScope()
@@ -3053,6 +3096,37 @@ internal fun UnifiedActivity.LibraryCarousel(
         modifier = Modifier.fillMaxSize(),
     ) {
         when (layoutMode) {
+            LibraryLayoutMode.DEFAULT -> {
+                LibraryDefaultLayout(
+                    items = displayedApps,
+                    focusIndex = focusIndex,
+                    playtimeRefreshKey = playtimeRefreshKey,
+                    immersiveBackgroundVisible = immersiveBackgroundVisible,
+                    gogByPseudoId = visibleGogByPseudoId,
+                    epicByPseudoId = visibleEpicByPseudoId,
+                    customArtworkPathByAppId = visibleCustomArtworkPathByAppId,
+                    customIconPathByAppId = visibleCustomIconPathByAppId,
+                    customListPathByAppId = visibleCustomListPathByAppId,
+                    customCarouselPathByAppId = visibleCustomCarouselPathByAppId,
+                    customHeroPathByAppId = visibleCustomHeroPathByAppId,
+                    iconRefreshKey = iconRefreshKey,
+                    artworkCacheRefreshKey = artworkCacheRefreshKey,
+                    isControllerActive = isControllerConnected,
+                    onClick = { index, app ->
+                        activity?.libraryFocusIndex?.value = index
+                        detailGogGame = visibleGogByPseudoId[app.id]
+                        detailApp = app
+                    },
+                    onLongClick = { index, app -> openSettingsForApp(index, app) },
+                    onDetails = { index, app ->
+                        activity?.libraryFocusIndex?.value = index
+                        detailGogGame = visibleGogByPseudoId[app.id]
+                        detailApp = app
+                    },
+                    onSettings = { index, app -> openSettingsForApp(index, app) },
+                )
+            }
+
             LibraryLayoutMode.GRID_4 -> {
                 FourByTwoGridView(
                     items = displayedApps,

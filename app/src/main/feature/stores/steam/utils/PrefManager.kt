@@ -263,7 +263,7 @@ object PrefManager {
     var libraryLayoutMode: String
         get() =
             libraryLayoutModeCache
-                ?: getString("library_layout_mode", "GRID_4").also {
+                ?: getString("library_layout_mode", "DEFAULT").also {
                     libraryLayoutModeCache = it
                 }
         set(value) {
@@ -301,7 +301,7 @@ object PrefManager {
         }
 
     var libraryImmersiveMode: Boolean
-        get() = getBoolean("library_immersive_mode", false)
+        get() = getBoolean("library_immersive_mode", true)
         set(value) {
             setBoolean("library_immersive_mode", value)
         }

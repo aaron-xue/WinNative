@@ -241,8 +241,11 @@
     <string name="library_games_installed_badge">INSTALLED</string>
     <string name="library_games_unknown_game">Unknown Game</string>
     <string name="library_games_layouts_header">LIBRARY LAYOUTS</string>
+    <string name="library_games_layout_default">Default</string>
     <string name="library_games_layout_carousel">Carousel</string>
     <string name="library_games_layout_list">List</string>
+    <string name="library_games_all_games">All Games %1$d</string>
+    <string name="library_games_details">Details</string>
     <string name="library_games_view_options_header">VIEW OPTIONS</string>
     <string name="library_games_force_landscape">Force Landscape</string>
     <string name="library_games_force_landscape_description">Keep the app in landscape, ignoring device rotation</string>

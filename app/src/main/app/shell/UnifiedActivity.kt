@@ -304,6 +304,7 @@ internal fun Modifier.tabScreenPadding(
 internal val LIBRARY_NAME_SANITIZE_REGEX = "[^A-Za-z0-9 _-]".toRegex()
 
 enum class LibraryLayoutMode {
+    DEFAULT,
     GRID_4,
     CAROUSEL,
     LIST,

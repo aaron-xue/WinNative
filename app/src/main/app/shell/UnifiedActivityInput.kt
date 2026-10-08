@@ -282,6 +282,11 @@ internal fun UnifiedActivity.moveLibraryFocus(
     if (count <= 0) return
     var newIdx = idx
     when (currentLibraryLayoutMode) {
+        LibraryLayoutMode.DEFAULT -> {
+            if (left) newIdx = (idx - 1).coerceAtLeast(0)
+            if (right) newIdx = (idx + 1).coerceAtMost(count - 1)
+        }
+
         LibraryLayoutMode.GRID_4 -> {
             val cols = storeColumns
             if (left) newIdx = (idx - 1).coerceAtLeast(0)

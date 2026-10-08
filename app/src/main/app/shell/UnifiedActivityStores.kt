@@ -330,6 +330,7 @@ internal fun UnifiedActivity.GameCapsule(
     onLongClick: (() -> Unit)? = null,
     useLibraryCapsule: Boolean = false,
     listMode: Boolean = false,
+    showTitle: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -558,7 +559,9 @@ internal fun UnifiedActivity.GameCapsule(
             }
         }
     } else {
-        // Vertical card: art on top, title below
+        // Vertical card: art on top, optional title below
+        val artShape =
+            if (showTitle) RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp) else RoundedCornerShape(12.dp)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier =
@@ -582,8 +585,8 @@ internal fun UnifiedActivity.GameCapsule(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                        .then(if (showTitle) Modifier.weight(1f) else Modifier.fillMaxSize())
+                        .clip(artShape),
             ) {
                 ArtContent(Modifier.fillMaxSize())
                 libraryBadgeLabel(app.id, isCustom)?.let { badge ->
@@ -591,19 +594,21 @@ internal fun UnifiedActivity.GameCapsule(
                 }
             }
 
-            Text(
-                text = app.name,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 4.dp)
-                        .then(if (isFocused) Modifier.basicMarquee(iterations = Int.MAX_VALUE) else Modifier),
-                style = MaterialTheme.typography.bodySmall,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-            )
+            if (showTitle) {
+                Text(
+                    text = app.name,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 4.dp)
+                            .then(if (isFocused) Modifier.basicMarquee(iterations = Int.MAX_VALUE) else Modifier),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }

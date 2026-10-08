@@ -239,8 +239,11 @@
     <string name="library_games_installed_badge">已安装</string>
     <string name="library_games_unknown_game">未知游戏</string>
     <string name="library_games_layouts_header">游戏库布局</string>
+    <string name="library_games_layout_default">默认</string>
     <string name="library_games_layout_carousel">轮播</string>
     <string name="library_games_layout_list">列表</string>
+    <string name="library_games_all_games">全部游戏 %1$d</string>
+    <string name="library_games_details">详情</string>
     <string name="library_games_view_options_header">视图选项</string>
     <string name="library_games_force_landscape">强制横屏</string>
     <string name="library_games_force_landscape_description">忽略设备旋转，始终以横屏显示应用</string>
