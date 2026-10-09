@@ -809,6 +809,7 @@ internal fun UnifiedActivity.AddCustomGameDialog(
     var isAdding by remember { mutableStateOf(false) }
     var nameEditing by remember { mutableStateOf(false) }
     var coverArtFile by remember { mutableStateOf<java.io.File?>(null) }
+    var shortcutCoverFile by remember { mutableStateOf<java.io.File?>(null) }
     val nameFocus = remember { FocusRequester() }
     val nameKeyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(nameEditing) {
@@ -856,15 +857,16 @@ internal fun UnifiedActivity.AddCustomGameDialog(
         val chosenRetro = retroSystem
         val chosenType = itemType
         val name = gameName.trim()
+        val chosenShortcutCover = shortcutCoverFile
         scope.launch(Dispatchers.IO) {
             val added =
                 when {
                     chosenRetro != null ->
                         com.winlator.cmod.feature.retro.RetroShortcuts
-                            .create(context, name, selectedExePath!!, chosenRetro, coverArtFile)
-                    linuxApp -> LinuxApps.create(context, name, selectedExePath!!, chosenType)
+                            .create(context, name, selectedExePath!!, chosenRetro, coverArtFile, chosenShortcutCover)
+                    linuxApp -> LinuxApps.create(context, name, selectedExePath!!, chosenType, chosenShortcutCover)
                     else -> {
-                        addCustomGame(context, name, selectedExePath!!, gameFolder!!, coverArtFile, type = chosenType)
+                        addCustomGame(context, name, selectedExePath!!, gameFolder!!, coverArtFile, chosenShortcutCover, type = chosenType)
                         true
                     }
                 }
@@ -910,6 +912,7 @@ internal fun UnifiedActivity.AddCustomGameDialog(
                             }
                         gameName = parsed.name
                         coverArtFile = parsed.coverFile
+                        shortcutCoverFile = parsed.shortcutFile
                     }.onFailure { e ->
                         val failure =
                             (e as? com.winlator.cmod.feature.shortcuts.GamePackageImporter.ImportException)
@@ -1411,6 +1414,7 @@ internal fun addCustomGame(
     exePath: String,
     gameFolderPath: String,
     coverArt: java.io.File? = null,
+    shortcutCover: java.io.File? = null,
     type: LibraryItemType = LibraryItemType.GAME,
 ) {
     val containerManager = ContainerManager(context)
@@ -1449,6 +1453,19 @@ internal fun addCustomGame(
         } catch (_: Exception) {
             null
         }
+    val extractedShortcutCoverPath =
+        try {
+            if (shortcutCover != null && shortcutCover.isFile) {
+                val shortcutCoverOutFile =
+                    LibraryShortcutArtwork.buildManagedShortcutCoverFile(context, shortcutUuid)
+                shortcutCover.copyTo(shortcutCoverOutFile, overwrite = true)
+                shortcutCoverOutFile.absolutePath
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
     val content = StringBuilder()
     content.append("[Desktop Entry]\n")
     content.append("Type=Application\n")
@@ -1463,6 +1480,7 @@ internal fun addCustomGame(
     content.append("${LibraryItemType.EXTRA_KEY}=${type.key}\n")
     content.append("uuid=$shortcutUuid\n")
     extractedArtworkPath?.let { content.append("customCoverArtPath=$it\n") }
+    extractedShortcutCoverPath?.let { content.append("${LibraryShortcutArtwork.SHORTCUT_COVER_EXTRA_KEY}=$it\n") }
     content.append("container_id=${container.id}\n")
     content.append("use_container_defaults=1\n")
     com.winlator.cmod.shared.io.FileUtils

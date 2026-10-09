@@ -106,6 +106,7 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
     customListPathByAppId: Map<Int, String> = emptyMap(),
     customCarouselPathByAppId: Map<Int, String> = emptyMap(),
     customHeroPathByAppId: Map<Int, String> = emptyMap(),
+    customShortcutPathByAppId: Map<Int, String> = emptyMap(),
     iconRefreshKey: Int = 0,
     artworkCacheRefreshKey: Int = 0,
     isControllerActive: Boolean = false,
@@ -386,6 +387,7 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
                 customListPathByAppId = customListPathByAppId,
                 customCarouselPathByAppId = customCarouselPathByAppId,
                 customHeroPathByAppId = customHeroPathByAppId,
+                customShortcutPathByAppId = customShortcutPathByAppId,
                 iconRefreshKey = iconRefreshKey,
                 artworkCacheRefreshKey = artworkCacheRefreshKey,
                 isControllerActive = isControllerActive,
@@ -416,6 +418,7 @@ private fun UnifiedActivity.DefaultGamesRow(
     customListPathByAppId: Map<Int, String>,
     customCarouselPathByAppId: Map<Int, String>,
     customHeroPathByAppId: Map<Int, String>,
+    customShortcutPathByAppId: Map<Int, String>,
     iconRefreshKey: Int,
     artworkCacheRefreshKey: Int,
     isControllerActive: Boolean,
@@ -451,7 +454,10 @@ private fun UnifiedActivity.DefaultGamesRow(
                 artworkCacheRefreshKey = artworkCacheRefreshKey,
                 isFocusedOverride = index == focusIndex,
                 isControllerActive = isControllerActive,
-                customArtworkPath = customArtworkPathByAppId[app.id] ?: customCarouselPathByAppId[app.id],
+                customArtworkPath =
+                    customShortcutPathByAppId[app.id]
+                        ?: customArtworkPathByAppId[app.id]
+                        ?: customCarouselPathByAppId[app.id],
                 customIconPath = customIconPathByAppId[app.id],
                 customListPath = customListPathByAppId[app.id],
                 customCarouselPath = customCarouselPathByAppId[app.id],

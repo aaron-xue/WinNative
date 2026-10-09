@@ -10,6 +10,9 @@ object LibraryShortcutArtwork {
     private const val CUSTOM_GAME_ARTWORK_DIR = "library_game_artwork"
     private const val LEGACY_CUSTOM_ICON_DIR = "custom_icons"
 
+    /** Extra key for the vertical "shortcut" cover shipped inside a .game package (manifests.json `shortcut`). */
+    const val SHORTCUT_COVER_EXTRA_KEY = "customLibraryShortcutArtPath"
+
     enum class LibraryArtworkSlot(
         val extraKey: String,
         val fileSuffix: String,
@@ -86,6 +89,20 @@ object LibraryShortcutArtwork {
         return File(context.filesDir, "$LEGACY_CUSTOM_ICON_DIR/$safeName.png")
     }
 
+    /** Managed file for the vertical "shortcut" cover shipped by a .game package. Lives under the
+     *  view-artwork root so [deleteManagedArtwork] already cleans it up. */
+    @JvmStatic
+    fun buildManagedShortcutCoverFile(
+        context: Context,
+        shortcutUuid: String,
+    ): File {
+        val dir = File(context.filesDir, VIEW_ARTWORK_DIR)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        return File(dir, "${shortcutUuid}_shortcut.png")
+    }
+
     @JvmStatic
     fun findPreferredHomeIconFile(
         context: Context,
@@ -138,6 +155,7 @@ object LibraryShortcutArtwork {
             buildSet {
                 add(shortcut.getExtra("customLibraryIconPath"))
                 add(shortcut.getExtra("customCoverArtPath"))
+                add(shortcut.getExtra(SHORTCUT_COVER_EXTRA_KEY))
                 LibraryArtworkSlot.values().forEach { slot ->
                     add(shortcut.getExtra(slot.extraKey))
                 }

@@ -24,7 +24,8 @@
 3. 选中 `.game` 文件。解析成功后：
    - 游戏名 = `manifest.name`（可在对话框里修改）；
    - 可执行文件 = `manifest.exe` 解析出的真实路径；
-   - 封面 = `manifest.cover` 复制出的封面文件（若清单里没写封面，则尝试从 exe 里提取图标）。
+   - 封面 = `manifest.cover` 复制出的封面文件（若清单里没写封面，则尝试从 exe 里提取图标）；
+   - 竖向封面 = `manifest.shortcut` 复制出的竖向（海报）封面文件，专供 DEFAULT 布局底部卡片使用（无则回退到封面）。
 4. 确认 **Add** 即可入库。
 
 ---
@@ -36,7 +37,8 @@
 ```
 MyGame.game            ← 实际上是 zip / 7z / tar(.gz) 等改名而来
 ├── manifests.json     ← 必需，必须在根目录
-└── cover.png          ← 可选，任意文件名/路径，由 manifest.cover 指定
+├── cover.png          ← 可选，横向/通用封面，由 manifest.cover 指定
+└── shortcut.png       ← 可选，竖向（海报）封面，由 manifest.shortcut 指定
 ```
 
 支持的解压格式（按文件头魔数识别，与文件名后缀无关）：
@@ -57,7 +59,8 @@ JSON 键名**大小写敏感**，必须是小写。
 | --- | --- | --- | --- |
 | `name` | 是 | string | 游戏显示名。空串/缺失会报错。作为对话框里的默认名称，用户可修改。 |
 | `exe` | 是 | string | 要启动的**可执行文件或主机 ROM** 的路径，见第 4 节路径规则。指向的文件必须真实存在。 |
-| `cover` | 否 | string | 封面图路径，相对压缩包根目录（也可写绝对路径）。文件存在时会被复制到应用私有封面目录。 |
+| `cover` | 否 | string | 横向/通用封面图路径，相对压缩包根目录（也可写绝对路径）。文件存在时会被复制到应用私有封面目录，用作库背景等。 |
+| `shortcut` | 否 | string | 竖向（海报）封面图路径，解析规则同 `cover`。专供 DEFAULT 布局底部卡片展示；缺失时该卡片回退到 `cover`。 |
 
 示例：
 
@@ -65,7 +68,8 @@ JSON 键名**大小写敏感**，必须是小写。
 {
   "name": "Half-Life",
   "exe": "/storage/emulated/0/Games/Half-Life/hl.exe",
-  "cover": "cover.png"
+  "cover": "cover.png",
+  "shortcut": "shortcut.png"
 }
 ```
 
@@ -116,6 +120,12 @@ val exeFile = resolvePath(baseDir, exeRaw)   // raw.startsWith("/") ? File(raw) 
 - 复制目标为 `<应用私有目录>/artwork/<随机 UUID>/cover.<原扩展名>`，扩展名为空时补 `.png`；
 - 复制失败或文件不存在时不报错，仅表现为“无封面”。
 
+### `shortcut`
+
+- 解析规则与 `cover` 完全一致：不以 `/` 开头时相对解包临时目录（压缩包根目录），以 `/` 开头时读设备上文件。
+- 复制目标为 `<应用私有目录>/artwork/<随机 UUID>/shortcut.<原扩展名>`，扩展名为空时补 `.png`。
+- 复制失败或文件不存在时不报错。该图用于 DEFAULT 布局底部竖向卡片；缺失时该卡片回退到 `cover`。
+
 ### 加入库时的 Windows 路径转换
 
 真正创建快捷方式时会调用 `WineUtils.resolveGameExeWindowsPath(container, "CUSTOM", gameFolder, exePath)`：
@@ -130,8 +140,8 @@ val exeFile = resolvePath(baseDir, exeRaw)   // raw.startsWith("/") ? File(raw) 
 
 1. 后缀（忽略大小写）为 `game` → 走导入包分支（否则按普通 exe/ROM 处理）。
 2. 在 `.game` 同级目录创建临时目录 `.wn-import-<UUID>`，解压进去。
-3. 读取 `<临时目录>/manifests.json` 并解析 `name` / `exe` / `cover`。
-4. 解析 `exe`（见上），校验文件存在；解析并复制 `cover`。
+3. 读取 `<临时目录>/manifests.json` 并解析 `name` / `exe` / `cover` / `shortcut`。
+4. 解析 `exe`（见上），校验文件存在；解析并复制 `cover` 与 `shortcut`（竖向封面）。
 5. 用解析结果回填对话框；清空临时目录（`finally` 中递归删除）。
 6. 用户点 **Add**：
    - 若 `exe` 后缀能识别为主机 ROM（`RetroSystems.detectForFile`）→ 走 `RetroShortcuts.create()`，
@@ -164,9 +174,11 @@ val exeFile = resolvePath(baseDir, exeRaw)   // raw.startsWith("/") ? File(raw) 
 
 - `.game` 只承载**元数据**：解包目录是临时的，不会被搬进游戏库；包里的游戏本体不会被安装。
 - 因此 `exe` 通常应指向设备上**已经存在**的游戏；否则请把游戏目录放在 `.game` 旁边并使用相对路径。
-- `manifests.json` 必须位于压缩包**根目录**，键名必须严格是 `name` / `exe` / `cover`。
+- `manifests.json` 必须位于压缩包**根目录**，键名必须严格是 `name` / `exe` / `cover` / `shortcut`。
 - `exe` 建议是 Windows 可启动文件（`.exe` `.bat` `.cmd` `.msi`）或受支持的主机 ROM
   （支持列表见 [RETRO-CONSOLES.md](RETRO-CONSOLES.md)）；指向其它类型文件不会报错，但无法正常启动。
 - 封面优先级：`manifest.cover` > 从 exe 提取的图标 > 自动刮削（需开启自动刮削，且仅 PC 游戏路径）。
+- 竖向封面（`manifest.shortcut`）仅被 DEFAULT 布局底部卡片使用；DEFAULT 布局的大背景始终使用 `cover`（或沉浸式背景），
+  其余布局（GRID_4 / CAROUSEL / LIST）仍只使用 `cover`，不受影响。
 - 删除游戏时，`removeCustomGame()` 依据快捷方式的 `custom_game_folder` 匹配并清理资源，
   不会删除 `.game` 文件本身。

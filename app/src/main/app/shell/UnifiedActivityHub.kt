@@ -2352,6 +2352,8 @@ internal fun UnifiedActivity.LibraryCarousel(
     var stableCustomHeroPathByAppId by remember { mutableStateOf(resumedArtwork.hero) }
     var stableCustomCarouselPathByAppId by remember { mutableStateOf(resumedArtwork.carousel) }
     var stableCustomListPathByAppId by remember { mutableStateOf(resumedArtwork.list) }
+    var customShortcutPathByAppId by remember { mutableStateOf(emptyMap<Int, String>()) }
+    var stableCustomShortcutPathByAppId by remember { mutableStateOf(emptyMap<Int, String>()) }
     var artworkCacheRefreshKey by remember { mutableIntStateOf(0) }
     var libraryLoaded by remember { mutableStateOf(resumed != null) }
     // Suppress transient empty states before background recomputation starts.
@@ -2663,6 +2665,21 @@ internal fun UnifiedActivity.LibraryCarousel(
                 }
             }
 
+        val customShortcutPath =
+            withContext(Dispatchers.IO) {
+                buildMap<Int, String> {
+                    appsSnapshot.forEach { app ->
+                        if (app.id >= 0) return@forEach
+                        val shortcut = findShortcutForGame(shortcutsSnapshot, app, true, false, 0) ?: return@forEach
+                        val shortcutCoverPath =
+                            shortcut.getExtra(LibraryShortcutArtwork.SHORTCUT_COVER_EXTRA_KEY)
+                        if (shortcutCoverPath.isNullOrBlank() || !java.io.File(shortcutCoverPath).isFile)
+                            return@forEach
+                        put(app.id, shortcutCoverPath)
+                    }
+                }
+            }
+
         val customIconPaths =
             withContext(Dispatchers.IO) {
                 buildMap<Int, String> {
@@ -2683,6 +2700,7 @@ internal fun UnifiedActivity.LibraryCarousel(
         customHeroArtworkPathByAppId = customHeroPath
         customCarouselArtworkPathByAppId = customCarouselPath
         customListArtworkPathByAppId = customListPath
+        customShortcutPathByAppId = customShortcutPath
         if (appsSnapshot.isNotEmpty()) {
             stableCustomArtworkPathByAppId = artworkPaths
             stableCustomIconArtworkPathByAppId = iconArtworkPaths
@@ -2690,6 +2708,7 @@ internal fun UnifiedActivity.LibraryCarousel(
             stableCustomHeroPathByAppId = customHeroPath
             stableCustomCarouselPathByAppId = customCarouselPath
             stableCustomListPathByAppId = customListPath
+            stableCustomShortcutPathByAppId = customShortcutPath
         }
     }
 
@@ -2790,6 +2809,8 @@ internal fun UnifiedActivity.LibraryCarousel(
         if (keepPreviousLibraryVisible) stableCustomHeroPathByAppId else customHeroArtworkPathByAppId
     val visibleCustomCarouselPathByAppId =
         if (keepPreviousLibraryVisible) stableCustomCarouselPathByAppId else customCarouselArtworkPathByAppId
+    val visibleCustomShortcutPathByAppId =
+        if (keepPreviousLibraryVisible) stableCustomShortcutPathByAppId else customShortcutPathByAppId
 
     val displayedApps =
         remember(visibleInstalledApps, searchQuery) {
@@ -3142,6 +3163,7 @@ internal fun UnifiedActivity.LibraryCarousel(
                     customListPathByAppId = visibleCustomListPathByAppId,
                     customCarouselPathByAppId = visibleCustomCarouselPathByAppId,
                     customHeroPathByAppId = visibleCustomHeroPathByAppId,
+                    customShortcutPathByAppId = visibleCustomShortcutPathByAppId,
                     iconRefreshKey = iconRefreshKey,
                     artworkCacheRefreshKey = artworkCacheRefreshKey,
                     isControllerActive = isControllerConnected,

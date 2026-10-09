@@ -111,6 +111,7 @@ object RetroShortcuts {
         romPath: String,
         system: RetroSystem,
         coverArt: java.io.File? = null,
+        shortcutCover: java.io.File? = null,
     ): Boolean {
         val container = ContainerManager(context).retroContainer
 
@@ -134,6 +135,20 @@ object RetroShortcuts {
             } catch (_: Exception) {
                 null
             }
+        val extractedShortcutCoverPath =
+            try {
+                if (shortcutCover != null && shortcutCover.isFile) {
+                    val shortcutCoverOutFile =
+                        com.winlator.cmod.feature.shortcuts.LibraryShortcutArtwork
+                            .buildManagedShortcutCoverFile(context, shortcutUuid)
+                    shortcutCover.copyTo(shortcutCoverOutFile, overwrite = true)
+                    shortcutCoverOutFile.absolutePath
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
 
         val content =
             buildString {
@@ -150,6 +165,9 @@ object RetroShortcuts {
                 append("$KEY_CORE=${system.coreFileName}\n")
                 append("uuid=$shortcutUuid\n")
                 extractedArtworkPath?.let { append("customCoverArtPath=$it\n") }
+                extractedShortcutCoverPath?.let {
+                    append("${com.winlator.cmod.feature.shortcuts.LibraryShortcutArtwork.SHORTCUT_COVER_EXTRA_KEY}=$it\n")
+                }
                 append("container_id=${container.id}\n")
                 append("use_container_defaults=1\n")
             }

@@ -170,6 +170,7 @@ object LinuxApps {
         name: String,
         exePath: String,
         type: LibraryItemType,
+        shortcutCover: java.io.File? = null,
     ): Boolean {
         val container = gamescopeContainer(ContainerManager(context))
         if (container == null) {
@@ -180,6 +181,21 @@ object LinuxApps {
         if (!desktopDir.exists()) desktopDir.mkdirs()
         val safeName = name.replace("/", "_").replace("\\", "_")
         val shortcutFile = File(desktopDir, "$safeName.desktop")
+        val shortcutUuid = UUID.randomUUID().toString()
+        val shortcutCoverPath =
+            try {
+                if (shortcutCover != null && shortcutCover.isFile) {
+                    val shortcutCoverOutFile =
+                        com.winlator.cmod.feature.shortcuts.LibraryShortcutArtwork
+                            .buildManagedShortcutCoverFile(context, shortcutUuid)
+                    shortcutCover.copyTo(shortcutCoverOutFile, overwrite = true)
+                    shortcutCoverOutFile.absolutePath
+                } else {
+                    null
+                }
+            } catch (_: Exception) {
+                null
+            }
         val content =
             buildString {
                 append("[Desktop Entry]\n")
@@ -194,7 +210,10 @@ object LinuxApps {
                 append("custom_game_folder=${File(exePath).parent.orEmpty()}\n")
                 append("$KEY_RUNTIME=$RUNTIME_LINUX\n")
                 append("${LibraryItemType.EXTRA_KEY}=${type.key}\n")
-                append("uuid=${UUID.randomUUID()}\n")
+                append("uuid=$shortcutUuid\n")
+                shortcutCoverPath?.let {
+                    append("${com.winlator.cmod.feature.shortcuts.LibraryShortcutArtwork.SHORTCUT_COVER_EXTRA_KEY}=$it\n")
+                }
                 append("container_id=${container.id}\n")
                 append("use_container_defaults=1\n")
             }
