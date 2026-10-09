@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -316,6 +317,7 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
             modifier =
                 Modifier
                     .fillMaxSize()
+                    .navigationBarsPadding()
                     .padding(start = 22.dp, top = 8.dp, end = 22.dp, bottom = 10.dp),
         ) {
             if (focusedApp != null) {
