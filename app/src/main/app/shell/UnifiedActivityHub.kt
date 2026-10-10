@@ -2572,127 +2572,80 @@ internal fun UnifiedActivity.LibraryCarousel(
         val gogSnapshot = gogByPseudoId
         val shortcutsSnapshot = cachedShortcuts
 
-        val artworkPaths =
+        // Build all seven per-app artwork path maps in a single pass. Previously each map was a
+        // separate full scan of `appsSnapshot` (and a separate `Dispatchers.IO` dispatch), so the
+        // shortcut lookup ran 7× per library refresh. We resolve the owning shortcut once per app
+        // via [findLibraryArtworkShortcut] (which already covers GOG / EPIC / Steam / custom) and
+        // then derive every path from that single result.
+        val maps =
             withContext(Dispatchers.IO) {
-                buildMap<Int, String> {
-                    appsSnapshot.forEach { app ->
-                        val gogGame = gogSnapshot[app.id]
-                        val isCustom = app.id < 0
-                        val isEpic = app.id >= 2000000000
-                        val epicId = if (isEpic) app.id - 2000000000 else 0
-                        val shortcut =
-                            if (gogGame != null) {
-                                shortcutsSnapshot.find {
-                                    it.getExtra("game_source") == "GOG" && it.getExtra("gog_id") == gogGame.id
-                                }
-                            } else {
-                                findShortcutForGame(shortcutsSnapshot, app, isCustom, isEpic, epicId)
-                            }
+                val artwork = mutableMapOf<Int, String>()
+                val iconArtwork = mutableMapOf<Int, String>()
+                val iconPath = mutableMapOf<Int, String>()
+                val hero = mutableMapOf<Int, String>()
+                val carousel = mutableMapOf<Int, String>()
+                val list = mutableMapOf<Int, String>()
+                val shortcutCover = mutableMapOf<Int, String>()
+
+                appsSnapshot.forEach { app ->
+                    val gogGame = gogSnapshot[app.id]
+                    val isCustom = app.id < 0
+                    val shortcut = findLibraryArtworkShortcut(shortcutsSnapshot, app, gogGame, null)
+
+                    if (shortcut != null) {
                         val customPath =
-                            shortcut
-                                ?.getExtra("customLibraryIconPath")
+                            shortcut.getExtra("customLibraryIconPath")
                                 ?.ifBlank { shortcut.getExtra("customCoverArtPath") }
                         if (!customPath.isNullOrBlank() && java.io.File(customPath).exists()) {
-                            put(app.id, customPath)
+                            artwork[app.id] = customPath
+                        }
+                        val resolvedIcon = LibraryShortcutArtwork.findIconArtworkPath(shortcut)
+                        if (resolvedIcon != null) {
+                            iconArtwork[app.id] = resolvedIcon
                         }
                     }
-                }
-            }
 
-        val iconArtworkPaths =
-            withContext(Dispatchers.IO) {
-                buildMap<Int, String> {
-                    appsSnapshot.forEach { app ->
-                        val gogGame = gogSnapshot[app.id]
-                        val isCustom = app.id < 0
-                        val isEpic = app.id >= 2000000000
-                        val epicId = if (isEpic) app.id - 2000000000 else 0
-                        val shortcut =
-                            if (gogGame != null) {
-                                shortcutsSnapshot.find {
-                                    it.getExtra("game_source") == "GOG" && it.getExtra("gog_id") == gogGame.id
-                                }
-                            } else {
-                                findShortcutForGame(shortcutsSnapshot, app, isCustom, isEpic, epicId)
-                            }
-                        val customPath = shortcut?.let(LibraryShortcutArtwork::findIconArtworkPath)
-                        if (customPath != null) {
-                            put(app.id, customPath)
+                    if (isCustom) {
+                        if (shortcut != null) {
+                            shortcut.getExtra("customLibraryHeroArtPath")?.takeIf {
+                                it.isNotBlank() && java.io.File(it).isFile
+                            }?.let { hero[app.id] = it }
+                            shortcut.getExtra("customLibraryCarouselArtPath")?.takeIf {
+                                it.isNotBlank() && java.io.File(it).isFile
+                            }?.let { carousel[app.id] = it }
+                            shortcut.getExtra("customLibraryListArtPath")?.takeIf {
+                                it.isNotBlank() && java.io.File(it).isFile
+                            }?.let { list[app.id] = it }
+                            shortcut.getExtra(LibraryShortcutArtwork.SHORTCUT_COVER_EXTRA_KEY)?.takeIf {
+                                it.isNotBlank() && java.io.File(it).isFile
+                            }?.let { shortcutCover[app.id] = it }
                         }
-                    }
-                }
-            }
-
-        val customHeroPath =
-            withContext(Dispatchers.IO) {
-                buildMap<Int, String> {
-                    appsSnapshot.forEach { app ->
-                        if (app.id >= 0) return@forEach
-                        val shortcut = findShortcutForGame(shortcutsSnapshot, app, true, false, 0) ?: return@forEach
-                        val heroPath = shortcut.getExtra("customLibraryHeroArtPath")
-                        if (heroPath.isNullOrBlank() || !java.io.File(heroPath).isFile)
-                            return@forEach
-                        put(app.id, heroPath)
-                    }
-                }
-            }
-
-        val customCarouselPath =
-            withContext(Dispatchers.IO) {
-                buildMap<Int, String> {
-                    appsSnapshot.forEach { app ->
-                        if (app.id >= 0) return@forEach
-                        val shortcut = findShortcutForGame(shortcutsSnapshot, app, true, false, 0) ?: return@forEach
-                        val carouselPath = shortcut.getExtra("customLibraryCarouselArtPath")
-                        if (carouselPath.isNullOrBlank() || !java.io.File(carouselPath).isFile)
-                            return@forEach
-                        put(app.id, carouselPath)
-                    }
-                }
-            }
-
-        val customListPath =
-            withContext(Dispatchers.IO) {
-                buildMap<Int, String> {
-                    appsSnapshot.forEach { app ->
-                        if (app.id >= 0) return@forEach
-                        val shortcut = findShortcutForGame(shortcutsSnapshot, app, true, false, 0) ?: return@forEach
-                        val listPath = shortcut.getExtra("customLibraryListArtPath")
-                        if (listPath.isNullOrBlank() || !java.io.File(listPath).isFile)
-                            return@forEach
-                        put(app.id, listPath)
-                    }
-                }
-            }
-
-        val customShortcutPath =
-            withContext(Dispatchers.IO) {
-                buildMap<Int, String> {
-                    appsSnapshot.forEach { app ->
-                        if (app.id >= 0) return@forEach
-                        val shortcut = findShortcutForGame(shortcutsSnapshot, app, true, false, 0) ?: return@forEach
-                        val shortcutCoverPath =
-                            shortcut.getExtra(LibraryShortcutArtwork.SHORTCUT_COVER_EXTRA_KEY)
-                        if (shortcutCoverPath.isNullOrBlank() || !java.io.File(shortcutCoverPath).isFile)
-                            return@forEach
-                        put(app.id, shortcutCoverPath)
-                    }
-                }
-            }
-
-        val customIconPaths =
-            withContext(Dispatchers.IO) {
-                buildMap<Int, String> {
-                    appsSnapshot.forEach { app ->
-                        if (app.id >= 0) return@forEach
                         val safeName = app.name.replace("/", "_").replace("\\", "_")
                         val iconFile = java.io.File(context.filesDir, "custom_icons/$safeName.png")
                         if (iconFile.exists()) {
-                            put(app.id, iconFile.absolutePath)
+                            iconPath[app.id] = iconFile.absolutePath
                         }
                     }
                 }
+
+                LibraryArtworkMaps(
+                    artwork = artwork,
+                    iconArtwork = iconArtwork,
+                    iconPath = iconPath,
+                    hero = hero,
+                    carousel = carousel,
+                    list = list,
+                    shortcutCover = shortcutCover,
+                )
             }
+
+        val artworkPaths = maps.artwork
+        val iconArtworkPaths = maps.iconArtwork
+        val customIconPaths = maps.iconPath
+        val customHeroPath = maps.hero
+        val customCarouselPath = maps.carousel
+        val customListPath = maps.list
+        val customShortcutPath = maps.shortcutCover
 
         customArtworkPathByAppId = artworkPaths
         customIconArtworkPathByAppId = iconArtworkPaths
@@ -3424,3 +3377,17 @@ private suspend fun UnifiedActivity.resolveStoreRow(
             customApps.firstOrNull { it.id == target.libraryId }?.let { it to null }
     }
 }
+
+/**
+ * Holds the seven per-app artwork path maps built together in a single pass over the library,
+ * instead of scanning shortcuts once per map.
+ */
+private data class LibraryArtworkMaps(
+    val artwork: Map<Int, String>,
+    val iconArtwork: Map<Int, String>,
+    val iconPath: Map<Int, String>,
+    val hero: Map<Int, String>,
+    val carousel: Map<Int, String>,
+    val list: Map<Int, String>,
+    val shortcutCover: Map<Int, String>,
+)
