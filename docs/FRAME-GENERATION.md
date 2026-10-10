@@ -11,20 +11,22 @@ its own settings so switching between them does not disturb the other.
 
 | Engine | Needs | Character |
 | --- | --- | --- |
-| **Lossless Scaling (LSFG)** | Your own copy of Lossless Scaling on Steam | The 25-shader chain from Lossless Scaling, ported to Vulkan |
+| **Lossless Scaling (LSFG)** | Bundled with the APK (or your own Steam copy) | The 25-shader chain from Lossless Scaling, ported to Vulkan |
 | **OpenFlow** | Nothing — ships with the APK | Dense Inverse Search optical flow, fully open source |
 
 ## Lossless Scaling (LSFG)
 
-**You must own [Lossless Scaling](https://store.steampowered.com/) on Steam.** Its shaders are
-not redistributable, so nothing ships with the APK. WinNative reads them out of your own copy of
-`Lossless.dll`, translates them from DXBC to SPIR-V once, and caches the result in app storage.
-The DLL is parsed as data and never executed.
+**No purchase required on a normal install.** A copy of `Lossless.dll` ships inside the APK under
+`assets/lsfg/` and is imported automatically the first time frame generation is needed — when a
+container is created, when the **FG** tab is opened, or when a game/shortcut launches. WinNative
+parses it as data, translates it from DXBC to SPIR-V once, and caches the result in app storage;
+the DLL is never executed.
 
-**Setup:** sign in to Steam, install Lossless Scaling, then open **Container Settings → Frame
-Generation**. WinNative finds the DLL automatically from your Steam library; if it can't, use
-**Select Lossless.dll…** to point at it. The LSFG half of the **FG** tab stays disabled until
-the shaders import successfully.
+**Using your own copy:** if you own [Lossless Scaling](https://store.steampowered.com/) on Steam,
+WinNative prefers it — it finds `Lossless.dll` in your Steam library first and falls back to the
+bundled copy only when no Steam copy is present. Open **Container Settings → Frame Generation** to
+point at a specific file with **Select Lossless.dll…** if the automatic detection misses it. The
+LSFG half of the **FG** tab stays disabled until the shaders import successfully.
 
 ## OpenFlow
 

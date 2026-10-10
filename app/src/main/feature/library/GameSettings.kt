@@ -460,7 +460,7 @@ class GameSettingsStateHolder {
     val sgsrUpscaleMode = mutableIntStateOf(1)
     val sgsrSharpness = mutableIntStateOf(100)
 
-    val frameGenEnabled = mutableStateOf(false)
+    val frameGenEnabled = mutableStateOf(true)
     val frameGenMultiplier = mutableIntStateOf(2)
 
     val netDriverEntries = mutableStateOf<List<String>>(emptyList())

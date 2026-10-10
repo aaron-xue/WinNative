@@ -194,6 +194,9 @@ object ContainerCreation {
             put("midiSoundFont", "")
             put("lc_all", LocaleEnv.deriveFromDevice())
             put("execArgs", "")
+            // Frame generation (LSFG) is on by default; the bundled Lossless.dll is imported at
+            // creation time, so a fresh container can interpolate without any Steam copy.
+            put("frameGen", "1")
         }
     }
 
@@ -205,10 +208,26 @@ object ContainerCreation {
         name: String,
         wineVersion: String,
     ): Container? {
+        prewarmLosslessShaders(context)
         val data = buildLaunchReadyData(context, contentsManager, name, wineVersion)
         return containerManager.createContainer(data, contentsManager)?.also {
             applyLaunchReadyDefaults(context, contentsManager, it)
         }
+    }
+
+    /**
+     * Best-effort, fire-and-forget import of the bundled Lossless.dll so frame generation has its
+     * shader cache ready before the first launch. The import is idempotent (no-op if already
+     * installed) and serialized inside LosslessAutoImport, so it is safe to call from any thread.
+     */
+    private fun prewarmLosslessShaders(context: Context) {
+        Thread({
+            try {
+                com.winlator.cmod.feature.library.LosslessAutoImport.sync(context)
+            } catch (_: Throwable) {
+                // Best-effort: the launch path retries and reports any failure.
+            }
+        }, "LosslessPrewarm").start()
     }
 
     @JvmStatic
@@ -237,6 +256,7 @@ object ContainerCreation {
         callback: Callback<Container?>,
     ) {
         val data = buildLaunchReadyData(context, contentsManager, name, wineVersion)
+        prewarmLosslessShaders(context)
         containerManager.createContainerAsync(data, contentsManager) { container ->
             if (container != null) {
                 applyLaunchReadyDefaults(context, contentsManager, container)
@@ -309,6 +329,7 @@ object ContainerCreation {
                 containerManager.createPrefixlessContainer(data)
             }
         val container = created ?: return null
+        prewarmLosslessShaders(context)
         applyLaunchReadyDefaults(context, contentsManager, container)
         container.setRuntime(Container.RUNTIME_GAMESCOPE)
         container.setEnvVars(EnvVarsView.forGamescope(container.getEnvVars()))

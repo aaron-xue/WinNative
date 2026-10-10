@@ -65,7 +65,7 @@ object RetroDefaults {
         prefs(context).edit().putBoolean("retro_def_hud_global", value).apply()
 
     fun frameGen(context: Context, systemId: String): Boolean =
-        prefs(context).getBoolean(key("framegen", systemId), false)
+        prefs(context).getBoolean(key("framegen", systemId), true)
 
     fun setFrameGen(context: Context, systemId: String, value: Boolean) =
         prefs(context).edit().putBoolean(key("framegen", systemId), value).apply()

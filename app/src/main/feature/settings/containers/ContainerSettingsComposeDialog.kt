@@ -607,7 +607,7 @@ class ContainerSettingsComposeDialog @JvmOverloads constructor(
         state.surfaceEffectEntries.value = surfaceEffectArr
         state.selectedSurfaceEffect.intValue = if (c?.getExtra("swapRB", "0") == "1") 1 else 0
 
-        state.frameGenEnabled.value = c?.getExtra("frameGen", "0") == "1"
+        state.frameGenEnabled.value = c?.getExtra("frameGen", "1") == "1"
         state.frameGenMultiplier.intValue =
             c?.getExtra("frameGenMultiplier", "2")?.toIntOrNull()?.coerceIn(2, 4) ?: 2
         state.frameGenTargetRate.intValue =

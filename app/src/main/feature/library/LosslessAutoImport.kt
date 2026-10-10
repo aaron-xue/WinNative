@@ -6,6 +6,8 @@ import com.winlator.cmod.feature.stores.steam.service.SteamService
 import com.winlator.cmod.runtime.container.ContainerManager
 import com.winlator.cmod.runtime.display.lsfg.LosslessScaling
 import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
 
 object LosslessAutoImport {
     const val STEAM_APP_ID = 993090
@@ -19,6 +21,14 @@ object LosslessAutoImport {
 
     private const val DLL_NAME = "Lossless.dll"
     private const val INSTALL_DIR_NAME = "Lossless Scaling"
+
+    // Bundled with the APK so frame generation works on a fresh install with no Steam copy and no
+    // user-provided Lossless.dll. Imported automatically when a container or game is created.
+    private const val ASSET_DLL_PATH = "lsfg/Lossless.dll"
+
+    // The native shader cache build is not reentrant; serialize it so concurrent callers (container
+    // creation, game-settings open, launch) never translate the DLL simultaneously.
+    private val importLock = Any()
 
     class Outcome(val result: Int, val sourceName: String)
 
@@ -45,31 +55,62 @@ object LosslessAutoImport {
     }
 
     fun sync(context: Context): Outcome {
-        val dll = findDll(context)
-        if (dll == null) {
-            return Outcome(if (LosslessScaling.isInstalled(context)) RESULT_READY else RESULT_NOT_FOUND, "")
+        synchronized(importLock) {
+            val dll = findDll(context)
+            if (dll == null) {
+                // No Steam or in-container copy: fall back to the DLL bundled in the APK assets.
+                importFromAssets(context)?.let { return it }
+                return Outcome(
+                    if (LosslessScaling.isInstalled(context)) RESULT_READY else RESULT_NOT_FOUND,
+                    "",
+                )
+            }
+
+            val name = dll.parentFile?.name.orEmpty()
+            val installed = LosslessScaling.isInstalled(context)
+            if (installed && !LosslessScaling.isCacheStale(context, dll)) {
+                return Outcome(RESULT_READY, name)
+            }
+
+            val status = LosslessScaling.installFrom(context, dll)
+            if (status != LosslessScaling.STATUS_OK) return Outcome(RESULT_FAILED, name)
+            return Outcome(if (installed) RESULT_UPDATED else RESULT_IMPORTED, name)
         }
-
-        val name = dll.parentFile?.name.orEmpty()
-        val installed = LosslessScaling.isInstalled(context)
-        if (installed && !LosslessScaling.isCacheStale(context, dll)) return Outcome(RESULT_READY, name)
-
-        val status = LosslessScaling.installFrom(context, dll)
-        if (status != LosslessScaling.STATUS_OK) return Outcome(RESULT_FAILED, name)
-        return Outcome(if (installed) RESULT_UPDATED else RESULT_IMPORTED, name)
     }
 
     fun importFrom(context: Context, uri: Uri): Outcome {
-        val status = LosslessScaling.installFrom(context, uri)
-        if (status != LosslessScaling.STATUS_OK) return Outcome(RESULT_FAILED, "")
-        return Outcome(RESULT_IMPORTED, uri.lastPathSegment?.substringAfterLast('/').orEmpty())
+        synchronized(importLock) {
+            val status = LosslessScaling.installFrom(context, uri)
+            if (status != LosslessScaling.STATUS_OK) return Outcome(RESULT_FAILED, "")
+            return Outcome(RESULT_IMPORTED, uri.lastPathSegment?.substringAfterLast('/').orEmpty())
+        }
     }
 
     fun importFrom(context: Context, dll: File): Outcome {
-        val name = dll.parentFile?.name?.takeIf { it.isNotBlank() } ?: dll.name
-        val status = LosslessScaling.installFrom(context, dll)
-        if (status != LosslessScaling.STATUS_OK) return Outcome(RESULT_FAILED, name)
-        return Outcome(RESULT_IMPORTED, name)
+        synchronized(importLock) {
+            val name = dll.parentFile?.name?.takeIf { it.isNotBlank() } ?: dll.name
+            val status = LosslessScaling.installFrom(context, dll)
+            if (status != LosslessScaling.STATUS_OK) return Outcome(RESULT_FAILED, name)
+            return Outcome(RESULT_IMPORTED, name)
+        }
+    }
+
+    /**
+     * Imports the Lossless.dll shipped inside the APK at [ASSET_DLL_PATH]. Returns null when the
+     * asset is absent (e.g. a build that strips it), letting callers fall through to NOT_FOUND.
+     * No-op and returns READY when shaders are already installed, so repeated calls are cheap.
+     */
+    fun importFromAssets(context: Context): Outcome? {
+        return runCatching {
+            val assetStream: InputStream = context.assets.open(ASSET_DLL_PATH)
+            if (LosslessScaling.isInstalled(context)) return Outcome(RESULT_READY, "")
+            val staged = File(context.cacheDir, "lsfg/Lossless.asset.staged")
+            staged.parentFile?.mkdirs()
+            assetStream.use { input ->
+                FileOutputStream(staged).use { output -> input.copyTo(output) }
+            }
+            importFrom(context, staged)
+        }.getOrNull()
     }
 
     private fun steamCandidateDirs(): List<File> {

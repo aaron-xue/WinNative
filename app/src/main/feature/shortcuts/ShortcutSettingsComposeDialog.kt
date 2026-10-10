@@ -561,7 +561,7 @@ class ShortcutSettingsComposeDialog private constructor(
         state.netMacAuto.value = NetworkingSettings.automaticMac(context)
 
         state.frameGenEnabled.value =
-            getShortcutSetting("frameGen", container.getExtra("frameGen", "0")) == "1"
+            getShortcutSetting("frameGen", container.getExtra("frameGen", "1")) == "1"
         state.frameGenMultiplier.intValue =
             getShortcutSetting("frameGenMultiplier", container.getExtra("frameGenMultiplier", "2"))
                 .toIntOrNull()
