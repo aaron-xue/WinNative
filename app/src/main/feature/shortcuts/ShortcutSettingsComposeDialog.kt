@@ -529,7 +529,7 @@ class ShortcutSettingsComposeDialog private constructor(
         }
 
         // FPS Limit
-        val savedFpsLimit = shortcut.getExtra("fpsLimit", "0")
+        val savedFpsLimit = shortcut.getExtra("fpsLimit", "30")
         state.fpsLimit.intValue = savedFpsLimit.toIntOrNull() ?: 0
 
         // SGSR 1 per-game shortcut settings
@@ -1414,7 +1414,9 @@ class ShortcutSettingsComposeDialog private constructor(
 
             // FPS Limit
             val fpsLimit = state.fpsLimit.intValue
-            shortcut.putExtra("fpsLimit", if (fpsLimit > 0) fpsLimit.toString() else null)
+            // Always persist an explicit value ("0" = off) so the Off choice survives a reopen
+            // instead of falling back to the default (30).
+            shortcut.putExtra("fpsLimit", fpsLimit.toString())
 
             // SGSR 1 is a shortcut-only setting, not a container override.
             if (state.sgsrEnabled.value) {

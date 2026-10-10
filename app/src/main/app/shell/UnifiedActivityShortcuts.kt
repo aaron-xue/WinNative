@@ -258,6 +258,35 @@ internal fun UnifiedActivity.findLibraryShortcutForGame(
     epicId: Int,
 ): Shortcut? = findShortcutForGame(containerManager.loadShortcuts(), app, isCustom, isEpic, epicId)
 
+/**
+ * Opens [ShortcutSettingsComposeDialog] for a library game directly, skipping the
+ * intermediate [GameSettingsDialog] menu. Mirrors the "Settings" action in that menu.
+ * Used by the DEFAULT layout's Settings pill so a tap goes straight to the shortcut editor.
+ */
+internal fun UnifiedActivity.openShortcutSettingsForGame(app: SteamApp) {
+    val isCustom = app.id < 0
+    val isEpic = app.id >= 2000000000
+    val epicId = if (isEpic) app.id - 2000000000 else 0
+    val containerManager = ContainerManager(this)
+    val shortcut =
+        findLibraryShortcutForGame(containerManager, app, isCustom, isEpic, epicId)
+            ?: if (isCustom) {
+                null
+            } else {
+                ShortcutSettingsComposeDialog.createLibraryShortcut(
+                    context = this,
+                    containerManager = containerManager,
+                    source = if (isEpic) "EPIC" else "STEAM",
+                    appId = if (isEpic) epicId else app.id,
+                    gogId = null,
+                    appName = app.name,
+                )
+            }
+    if (shortcut != null) {
+        ShortcutSettingsComposeDialog(this, shortcut).show()
+    }
+}
+
 
 internal fun UnifiedActivity.findShortcutForGame(
     shortcuts: List<Shortcut>,

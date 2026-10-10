@@ -5858,7 +5858,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                         if (waylandSession != null) waylandSession.setFpsLimit(runtimeFpsLimit);
                         applyPreferredRefreshRate();
                         if (shortcut != null) {
-                            shortcut.putExtra("fpsLimit", runtimeFpsLimit > 0 ? String.valueOf(runtimeFpsLimit) : null);
+                            // Persist an explicit value ("0" = off) so the Off choice survives a
+                            // reopen instead of falling back to the dialog default (30).
+                            shortcut.putExtra("fpsLimit", String.valueOf(runtimeFpsLimit));
                             shortcut.saveData();
                         }
                         renderDrawerMenu();

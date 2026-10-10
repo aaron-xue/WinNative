@@ -3178,7 +3178,10 @@ internal fun UnifiedActivity.LibraryCarousel(
                         detailGogGame = visibleGogByPseudoId[app.id]
                         detailApp = app
                     },
-                    onSettings = { index, app -> openSettingsForApp(index, app) },
+                    onSettings = { index, app ->
+                        activity?.libraryFocusIndex?.value = index
+                        activity?.openShortcutSettingsForGame(app)
+                    },
                 )
             }
 
