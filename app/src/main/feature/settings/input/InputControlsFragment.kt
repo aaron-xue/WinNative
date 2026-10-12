@@ -39,6 +39,7 @@ import com.winlator.cmod.runtime.input.controls.ControlElement
 import com.winlator.cmod.runtime.input.controls.ControlsProfile
 import com.winlator.cmod.runtime.input.controls.ExternalController
 import com.winlator.cmod.runtime.input.controls.ExternalControllerBinding
+import com.winlator.cmod.runtime.input.controls.GamepadIdentityStore
 import com.winlator.cmod.runtime.input.controls.GestureProfileManager
 import com.winlator.cmod.runtime.input.controls.InputControlsManager
 import com.winlator.cmod.runtime.input.ui.InputControlsView
@@ -237,6 +238,7 @@ class InputControlsFragment : Fragment() {
                                 onExportProfile = ::exportProfile,
                                 onControllerExpandedToggle = ::toggleControllerExpanded,
                                 onRemoveController = ::removeController,
+                                onReportRealIdentityChanged = ::setReportRealIdentity,
                                 onBindingTypeClick = ::showBindingTypePicker,
                                 onBindingValueClick = ::showBindingValuePicker,
                                 onBindingNoteChanged = ::updateBindingNote,
@@ -484,10 +486,27 @@ class InputControlsFragment : Fragment() {
                                 } else {
                                     emptyList()
                                 },
+                            reportRealIdentity = controller.isUseRealIdentity,
                         )
                     },
                 dialog = dialogState,
             )
+    }
+
+    // Per-pad opt-in to reporting the real name/VID/PID instead of the Xbox 360 spoof.
+    private fun setReportRealIdentity(
+        controllerId: String,
+        useRealIdentity: Boolean,
+    ) {
+        val controller = findVisibleController(controllerId) ?: return
+        val activity = activity ?: return
+        controller.setUseRealIdentity(useRealIdentity)
+        controller.savePreferences(activity)
+        lifecycleScope.launch(Dispatchers.IO) {
+            launch(Dispatchers.Main) {
+                publishUiState()
+            }
+        }
     }
 
     private fun buildBindingState(
@@ -534,6 +553,7 @@ class InputControlsFragment : Fragment() {
                     for (i in 0 until pController.controllerBindingCount) {
                         liveMatch.addControllerBinding(pController.getControllerBindingAt(i))
                     }
+                    liveMatch.setUseRealIdentity(pController.isUseRealIdentity());
                     visibleControllers.add(liveMatch)
                 } else {
                     visibleControllers.add(pController)
@@ -548,6 +568,8 @@ class InputControlsFragment : Fragment() {
         } else {
             visibleControllers.addAll(liveControllers)
         }
+
+        visibleControllers.forEach { controller -> controller.loadPreferences(activity) }
 
         activeBindingController =
             activeId?.let { id ->
