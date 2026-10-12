@@ -49,6 +49,29 @@
 -keepclasseswithmembernames class * {
     native <methods>;
 }
+# `-keepclasseswithmembernames` == `-keepclasseswithmembers,allowshrinking`:
+# it pins native method NAMES but still lets R8 delete the ones no Java code
+# calls. JNI_OnLoad registers natives by name regardless, so a stripped
+# method aborts the process. The rule below is the non-shrinking variant and
+# keeps every native method in the app (small size cost, no JNI risk).
+# [[release_native_method_stripped]]
+-keepclasseswithmembers class * {
+    native <methods>;
+}
+
+# MMKV (vendored: Java under src/main/java/com/tencent/mmkv, native under
+# src/main/cpp/mmkv). libmmkv.so's JNI_OnLoad RegisterNatives the whole native
+# surface of com.tencent.mmkv.MMKV by name, including static void onExit(),
+# which no Java code ever calls -> R8 (allowshrinking rule above) deleted it.
+# Crash 2026-10-11, release only (debug has minifyEnabled false):
+#   JNI_OnLoad -> "Failed to register native method com.tencent.mmkv.MMKV.onExit()V"
+#   art::ThrowNoSuchMethodError -> Runtime aborting -> SIGABRT
+#   at com.tencent.mmkv.MMKV.n -> com.winlator.cmod.app.PluviaApp.onCreate
+# [[mmkv_jni_onload_crash]]
+-keep class com.tencent.mmkv.** { *; }
+-keepclassmembers class com.tencent.mmkv.** { *; }
+-dontwarn com.tencent.mmkv.**
+
 
 # SDL3 (Steam Controller): SDL's native side resolves these classes by name.
 -keep class org.winnative.steam.** { *; }
