@@ -34,6 +34,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -2120,21 +2121,7 @@ private fun ActionCardGrid(
 
     val verticalPadding = (10f * paneScale).dp
     val horizontalPadding = (10f * paneScale).dp
-    val maxAspect = DeviceProfileSettings.sessionActionCardMaxAspect(LocalContext.current)
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val rows = ((cards.size + ActionCardColumns - 1) / ActionCardColumns).coerceAtLeast(1)
-        val cardWidth =
-            (maxWidth - horizontalPadding * 2 - ActionCardSpacing * (ActionCardColumns - 1)) / ActionCardColumns
-        val rowHeight =
-            DeviceProfileSettings
-                .actionCardRowHeight(
-                    availableHeight = (maxHeight - verticalPadding * 2).value,
-                    cardWidth = cardWidth.value,
-                    rows = rows,
-                    spacing = ActionCardSpacing.value,
-                    minHeight = (ActionCardMinHeight * paneScale).value,
-                    maxAspect = maxAspect,
-                ).dp
         Column(
             modifier =
                 Modifier
@@ -2159,7 +2146,7 @@ private fun ActionCardGrid(
                         modifier =
                             Modifier
                                 .weight(1f)
-                                .height(rowHeight),
+                                .aspectRatio(1f),
                         onClick = { onCursor(1, index); cardClick(item) },
                     )
                 }
