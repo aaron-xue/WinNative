@@ -64,6 +64,7 @@ import com.winlator.cmod.feature.stores.epic.data.EpicGame
 import com.winlator.cmod.feature.stores.gog.data.GOGGame
 import com.winlator.cmod.feature.stores.steam.data.SteamApp
 import com.winlator.cmod.runtime.container.ContainerManager
+import com.winlator.cmod.feature.builtin.BuiltinGames
 import com.winlator.cmod.runtime.input.ControllerHelper
 import com.winlator.cmod.shared.ui.focus.controllerFocusGlow
 import androidx.compose.foundation.layout.FlowRow
@@ -216,6 +217,10 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
         gogGame: GOGGame?,
         epicGame: EpicGame?,
     ) {
+        if (BuiltinGames.isBrotato(app.id)) {
+            BuiltinGames.launchWithTracking(context)
+            return
+        }
         val containerManager = ContainerManager(context)
         when {
             app.id < 0 -> launchCustomGame(context, containerManager, app.name)

@@ -1,0 +1,136 @@
+package com.winlator.cmod.feature.builtin
+
+import android.app.Activity
+import android.app.Application
+import android.content.Context
+import android.content.Intent
+import com.winlator.cmod.app.shell.LIBRARY_NAME_SANITIZE_REGEX
+import com.winlator.cmod.feature.stores.steam.data.SteamApp
+import com.winlator.cmod.feature.stores.steam.enums.AppType
+
+/**
+ * Built-in games bundled into the app (not installed from a store).
+ * Currently just Brotato, a Godot-exported Android game launched as a plain Activity.
+ *
+ * Play-time tracking mirrors the store games: stats live in the shared
+ * `playtime_stats` SharedPreferences under the same key scheme used by
+ * [com.winlator.cmod.app.shell.UnifiedActivityGameDialogs] and [com.winlator.cmod.app.shell.LibraryDefaultLayout]
+ * (i.e. `${name sanitized}_play_count` / `_last_played` / `_playtime`).
+ */
+object BuiltinGames {
+    const val BROTATO_ID = 1_900_000_001
+    const val BROTATO_ACTIVITY = "com.godot.game.GodotApp"
+    const val BROTATO_NAME = "Brotato"
+
+    private const val PLAYTIME_PREFS = "playtime_stats"
+    private const val SESSION_START_KEY = "__brotato_session_start"
+
+    /** The library entry for Brotato, injected into the merged library list. */
+    val brotato: SteamApp
+        get() = SteamApp(id = BROTATO_ID, name = BROTATO_NAME, type = AppType.game)
+
+    fun isBrotato(appId: Int): Boolean = appId == BROTATO_ID
+
+    /** Playtime key, derived identically to the rest of the library UI. */
+    fun playtimeKey(): String = brotato.name.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
+
+    /** Launch the bundled Godot activity. */
+    fun launch(context: Context) {
+        runCatching {
+            context.startActivity(
+                Intent()
+                    .setClassName(context, BROTATO_ACTIVITY)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }
+    }
+
+    /**
+     * Launch and record play stats: increment play count + last-played immediately
+     * (matching XServerDisplayActivity.incrementPlayCount), and mark the session start
+     * so elapsed time can be accumulated when the game exits.
+     */
+    fun launchWithTracking(context: Context) {
+        runCatching {
+            val prefs = context.getSharedPreferences(PLAYTIME_PREFS, Context.MODE_PRIVATE)
+            val key = playtimeKey()
+            val now = System.currentTimeMillis()
+            prefs.edit().apply {
+                putInt("${key}_play_count", prefs.getInt("${key}_play_count", 0) + 1)
+                putLong("${key}_last_played", now)
+                putLong(SESSION_START_KEY, now)
+                apply()
+            }
+            launch(context)
+        }
+    }
+
+    /**
+     * Finalize an active play session: add the elapsed duration to the cumulative
+     * playtime. No-op if no session is active (e.g. app restarted mid-session).
+     */
+    fun finalizeSession(context: Context) {
+        val prefs = context.getSharedPreferences(PLAYTIME_PREFS, Context.MODE_PRIVATE)
+        val start = prefs.getLong(SESSION_START_KEY, 0L)
+        if (start <= 0L) return
+        val elapsed = System.currentTimeMillis() - start
+        val key = playtimeKey()
+        val total = prefs.getLong("${key}_playtime", 0L) + elapsed.coerceAtLeast(0L)
+        prefs.edit().apply {
+            putLong("${key}_playtime", total)
+            remove(SESSION_START_KEY)
+            apply()
+        }
+    }
+
+    /**
+     * Register a one-time lifecycle listener that finalizes the Brotato session when
+     * the Godot activity is destroyed (i.e. the player quit the game). Call once from
+     * the app/activity entry point.
+     */
+    private val registeredApps = mutableSetOf<Application>()
+
+    fun initTracking(application: Application) {
+        if (!registeredApps.add(application)) return
+        application.registerActivityLifecycleCallbacks(
+            object : Application.ActivityLifecycleCallbacks {
+                override fun onActivityCreated(activity: Activity, savedInstanceState: android.os.Bundle?) {}
+
+                override fun onActivityStarted(activity: Activity) {}
+
+                override fun onActivityResumed(activity: Activity) {}
+
+                override fun onActivityPaused(activity: Activity) {}
+
+                override fun onActivityStopped(activity: Activity) {}
+
+                override fun onActivitySaveInstanceState(activity: Activity, outState: android.os.Bundle) {}
+
+                override fun onActivityDestroyed(activity: Activity) {
+                    if (activity.javaClass.name == BROTATO_ACTIVITY) {
+                        finalizeSession(activity.applicationContext)
+                    }
+                }
+            },
+        )
+    }
+
+    /**
+     * Copy the bundled cover art (assets/builtin) into a real file path so the library
+     * artwork maps (which expect file paths) can reference them.
+     * Returns (heroPath, shortcutPath) or null on failure.
+     */
+    fun artPaths(context: Context): Pair<String, String>? =
+        runCatching {
+            val dir = java.io.File(context.filesDir, "builtin_art").also { it.mkdirs() }
+            val hero = java.io.File(dir, "brotato_hero.png")
+            val shortcut = java.io.File(dir, "brotato_shortcut.png")
+            if (!hero.exists()) {
+                context.assets.open("builtin/cover.png").use { it.copyTo(hero.outputStream()) }
+            }
+            if (!shortcut.exists()) {
+                context.assets.open("builtin/shortcut.jpeg").use { it.copyTo(shortcut.outputStream()) }
+            }
+            hero.absolutePath to shortcut.absolutePath
+        }.getOrNull()
+}

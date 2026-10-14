@@ -209,6 +209,7 @@ import com.winlator.cmod.feature.stores.steam.SteamLoginActivity
 import com.winlator.cmod.feature.stores.steam.data.DepotInfo
 import com.winlator.cmod.feature.stores.steam.data.DownloadInfo
 import com.winlator.cmod.feature.stores.steam.data.SteamApp
+import com.winlator.cmod.feature.builtin.BuiltinGames
 import com.winlator.cmod.feature.stores.steam.enums.DownloadPhase
 import com.winlator.cmod.feature.stores.steam.events.AndroidEvent
 import com.winlator.cmod.feature.stores.steam.events.EventDispatcher
@@ -2523,7 +2524,8 @@ internal fun UnifiedActivity.LibraryCarousel(
                 (
                     steamInstalled +
                         customApps.filter { LibraryContentFilters.allows(it.type, contentFilters) } +
-                        mappedEpic + mappedGog
+                        mappedEpic + mappedGog +
+                        listOf(BuiltinGames.brotato)
                 )
                     .distinctBy { it.id }
                     .filterNot { it.id in storeLinks.hiddenLibraryIds }
@@ -2647,21 +2649,30 @@ internal fun UnifiedActivity.LibraryCarousel(
         val customListPath = maps.list
         val customShortcutPath = maps.shortcutCover
 
-        customArtworkPathByAppId = artworkPaths
-        customIconArtworkPathByAppId = iconArtworkPaths
+        val (brotatoHeroPath, brotatoShortcutPath) = BuiltinGames.artPaths(context) ?: (null to null)
+        val brotatoHeroMap =
+            if (brotatoHeroPath != null) mapOf(BuiltinGames.BROTATO_ID to brotatoHeroPath) else emptyMap()
+        val brotatoShortcutMap =
+            if (brotatoShortcutPath != null) mapOf(BuiltinGames.BROTATO_ID to brotatoShortcutPath) else emptyMap()
+
+        // DEFAULT uses customShortcutPathByAppId (portrait poster) for its capsule, while the
+        // wide grid/carousel/list cards read customArtworkPath/iconArtwork — feed those the wide
+        // cover.png so their foreground matches their shape. The hero/background maps also use it.
+        customArtworkPathByAppId = artworkPaths + brotatoHeroMap
+        customIconArtworkPathByAppId = iconArtworkPaths + brotatoHeroMap
         customIconPathByAppId = customIconPaths
-        customHeroArtworkPathByAppId = customHeroPath
+        customHeroArtworkPathByAppId = customHeroPath + brotatoHeroMap
         customCarouselArtworkPathByAppId = customCarouselPath
         customListArtworkPathByAppId = customListPath
-        customShortcutPathByAppId = customShortcutPath
+        customShortcutPathByAppId = customShortcutPath + brotatoShortcutMap
         if (appsSnapshot.isNotEmpty()) {
-            stableCustomArtworkPathByAppId = artworkPaths
-            stableCustomIconArtworkPathByAppId = iconArtworkPaths
+            stableCustomArtworkPathByAppId = artworkPaths + brotatoHeroMap
+            stableCustomIconArtworkPathByAppId = iconArtworkPaths + brotatoHeroMap
             stableCustomIconPathByAppId = customIconPaths
-            stableCustomHeroPathByAppId = customHeroPath
+            stableCustomHeroPathByAppId = customHeroPath + brotatoHeroMap
             stableCustomCarouselPathByAppId = customCarouselPath
             stableCustomListPathByAppId = customListPath
-            stableCustomShortcutPathByAppId = customShortcutPath
+            stableCustomShortcutPathByAppId = customShortcutPath + brotatoShortcutMap
         }
     }
 
@@ -2934,6 +2945,11 @@ internal fun UnifiedActivity.LibraryCarousel(
         onDispose { chasingBordersPaused.value = false }
     }
 
+    // Register built-in game (Brotato) play-time tracking once for the process lifetime.
+    LaunchedEffect(Unit) {
+        BuiltinGames.initTracking(context.applicationContext as android.app.Application)
+    }
+
     LaunchedEffect(layoutMode) {
         currentLibraryLayoutMode = layoutMode
     }
@@ -2967,6 +2983,14 @@ internal fun UnifiedActivity.LibraryCarousel(
 
     // Observe focus index changes from the activity and request focus on the target item
     val focusIndex by (activity?.libraryFocusIndex ?: kotlinx.coroutines.flow.MutableStateFlow(0)).collectAsState()
+
+    // Remember which app is focused so we can re-focus it after the list re-sorts (e.g. after a play
+    // records new playtime and bumps the game to the top). Keyed on focusIndex ONLY: a re-sort changes
+    // displayedApps without moving focus, so we must not overwrite the id with the now-different game.
+    LaunchedEffect(focusIndex) {
+        lastFocusedAppId = displayedApps.getOrNull(focusIndex)?.id
+    }
+
     LaunchedEffect(focusIndex, focusRequesters.size, layoutMode) {
         if (searchQuery.isEmpty() &&
             layoutMode == LibraryLayoutMode.GRID_4 &&
@@ -3057,8 +3081,18 @@ internal fun UnifiedActivity.LibraryCarousel(
                         ?.takeIf { it.isFile }
             }
 
+        // Built-in games (e.g. Brotato) have no container shortcut, so customHeroFile is always
+        // null for them. Fall back to their injected hero artwork so the immersive background shows.
+        val builtinHeroFile =
+            if (BuiltinGames.isBrotato(app.id)) {
+                BuiltinGames.artPaths(context)?.first?.let { java.io.File(it) }?.takeIf { it.isFile }
+            } else {
+                null
+            }
+
         activity?.immersiveBackgroundRef?.value =
             customHeroFile
+                ?: builtinHeroFile
                 ?: run {
                     val ref =
                         StoreArtworkCache.heroRef(app, gogGame, epicGame)

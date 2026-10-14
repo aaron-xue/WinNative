@@ -224,7 +224,11 @@ android {
     }
 
     androidResources {
-        noCompress += ['tzst', 'txz']
+        // Keep Godot's binary resources uncompressed so the engine can mmap them.
+        noCompress += ['tzst', 'txz', 'gdc', 'gd', 'tres', 'tscn', 'stex', 'res', 'sample', 'pck', 'wav', 'ogg', 'mp3']
+        // AAPT2 drops dot-directories by default; Godot stores all imported (compiled)
+        // resources under `assets/.import`, so override the default ignore pattern to keep it.
+        ignoreAssetsPattern '!.git:!.svn:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
 
     testOptions {
@@ -441,6 +445,7 @@ dependencies {
     implementation project(':framegen')
     implementation project(':armsx2')
     implementation project(':dolphin')
+    implementation project(':brotato')
 }
 
 spotless {

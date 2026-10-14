@@ -1,0 +1,53 @@
+plugins {
+    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.kotlinAndroid)
+}
+
+android {
+    namespace "org.godotengine.godot"
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 21
+    }
+
+    // Point at the Godot-exported sources in the standalone brotato project so we don't
+    // duplicate its ~40k asset files. Our own AndroidManifest below overrides the library's.
+    sourceSets {
+        main {
+            manifest.srcFile 'src/main/AndroidManifest.xml'
+            java.srcDirs = ['src/main/java', '../brotato_repo/app/src/main/java', '../brotato_repo/app/src/main/kotlin']
+            res.srcDirs = ['../brotato_repo/app/src/main/res']
+            assets.srcDirs = ['../brotato_repo/app/src/main/assets']
+            jniLibs.srcDirs = ['../brotato_repo/app/src/main/lib']
+        }
+    }
+
+    buildTypes {
+        debug { minifyEnabled false }
+        release { minifyEnabled false }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    buildFeatures { buildConfig = false }
+    aaptOptions { ignoreAssetsPattern '!.git:!.svn:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~' }
+    lintOptions { abortOnError false }
+}
+
+configurations.all {
+    // Avoid duplicate ListenableFuture / JetBrains annotations against WinNative's AndroidX.
+    exclude group: 'com.google.guava', module: 'listenablefuture'
+    exclude group: 'org.jetbrains', module: 'annotations'
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.activity:activity:1.9.0'
+    implementation 'androidx.fragment:fragment:1.6.2'
+    implementation 'androidx.startup:startup-runtime:1.1.1'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.1.10'
+}

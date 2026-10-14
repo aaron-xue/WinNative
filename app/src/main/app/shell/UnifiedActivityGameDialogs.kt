@@ -171,6 +171,7 @@ import com.winlator.cmod.feature.shortcuts.LibraryShortcutArtwork
 import com.winlator.cmod.feature.shortcuts.ShortcutBroadcastReceiver
 import com.winlator.cmod.feature.shortcuts.ShortcutSettingsComposeDialog
 import com.winlator.cmod.feature.shortcuts.ShortcutsFragment
+import com.winlator.cmod.feature.builtin.BuiltinGames
 import com.winlator.cmod.feature.stores.common.InstallStore
 import com.winlator.cmod.feature.stores.common.StoreArtworkCache
 import com.winlator.cmod.feature.stores.epic.data.EpicCredentials
@@ -1830,6 +1831,9 @@ internal fun UnifiedActivity.LibraryGameDetailDialog(
         }
     val heroImageUrl: Any? =
         customHeroImageFile ?: when {
+            BuiltinGames.isBrotato(app.id) -> {
+                BuiltinGames.artPaths(context)?.first?.let { java.io.File(it) }?.takeIf { it.isFile }
+            }
             isGog -> {
                 StoreArtworkCache.imageModel(context, StoreArtworkCache.gogHeroRef(gogGame!!))
             }
@@ -2509,17 +2513,22 @@ internal fun UnifiedActivity.LibraryGameDetailDialog(
                                     },
                                 onBack = onDismissRequest,
                                 onPlay = {
-                                    val containerManager = ContainerManager(context)
-                                    if (isCustom) {
-                                        launchCustomGame(context, containerManager, app.name)
-                                    } else if (isGog) {
-                                        launchGogGame(context, containerManager, gogGame!!)
-                                    } else if (isEpic) {
-                                        epicGame?.let { launchEpicGame(context, containerManager, it) }
+                                    if (BuiltinGames.isBrotato(app.id)) {
+                                        BuiltinGames.launchWithTracking(context)
+                                        onDismissRequest()
                                     } else {
-                                        launchSteamGame(context, containerManager, app)
+                                        val containerManager = ContainerManager(context)
+                                        if (isCustom) {
+                                            launchCustomGame(context, containerManager, app.name)
+                                        } else if (isGog) {
+                                            launchGogGame(context, containerManager, gogGame!!)
+                                        } else if (isEpic) {
+                                            epicGame?.let { launchEpicGame(context, containerManager, it) }
+                                        } else {
+                                            launchSteamGame(context, containerManager, app)
+                                        }
+                                        onDismissRequest()
                                     }
-                                    onDismissRequest()
                                 },
                                 onSettings = {
                                     val shortcut = resolveOrCreateShortcut()
