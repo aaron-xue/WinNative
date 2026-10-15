@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import java.util.Locale
 import com.winlator.cmod.app.shell.LIBRARY_NAME_SANITIZE_REGEX
 import com.winlator.cmod.feature.stores.steam.data.SteamApp
 import com.winlator.cmod.feature.stores.steam.enums.AppType
@@ -25,14 +26,22 @@ object BuiltinGames {
     private const val PLAYTIME_PREFS = "playtime_stats"
     private const val SESSION_START_KEY = "__brotato_session_start"
 
+    /**
+     * Display name for Brotato in the current locale: Chinese shows "土豆兄弟",
+     * every other language shows "Brotato". [BROTATO_NAME] stays the stable
+     * internal identifier (used for playtime keys) so stats survive locale changes.
+     */
+    fun brotatoDisplayName(): String =
+        if (Locale.getDefault().language.startsWith("zh", ignoreCase = true)) "土豆兄弟" else BROTATO_NAME
+
     /** The library entry for Brotato, injected into the merged library list. */
     val brotato: SteamApp
-        get() = SteamApp(id = BROTATO_ID, name = BROTATO_NAME, type = AppType.game)
+        get() = SteamApp(id = BROTATO_ID, name = brotatoDisplayName(), type = AppType.game)
 
     fun isBrotato(appId: Int): Boolean = appId == BROTATO_ID
 
     /** Playtime key, derived identically to the rest of the library UI. */
-    fun playtimeKey(): String = brotato.name.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
+    fun playtimeKey(): String = BROTATO_NAME.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
 
     /** Launch the bundled Godot activity. */
     fun launch(context: Context) {
