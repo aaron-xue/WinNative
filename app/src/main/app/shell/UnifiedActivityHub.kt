@@ -2541,6 +2541,7 @@ internal fun UnifiedActivity.LibraryCarousel(
                     val searchKey =
                         when {
                             app.id < 0 -> "custom_${app.id}"
+                            BuiltinGames.isBuiltin(app.id) -> BuiltinGames.playtimeKey()
                             app.id >= 2000000000 -> app.name
                             else -> app.name.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
                         }
@@ -2728,6 +2729,7 @@ internal fun UnifiedActivity.LibraryCarousel(
                     val searchKey =
                         when {
                             app.id < 0 -> "custom_${app.id}"
+                            BuiltinGames.isBuiltin(app.id) -> BuiltinGames.playtimeKey()
                             app.id >= 2000000000 -> app.name
                             else -> app.name.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
                         }

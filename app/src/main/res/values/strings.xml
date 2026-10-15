@@ -254,6 +254,7 @@
     <string name="library_games_immersive_blur">Blur Background</string>
     <string name="library_games_immersive_blur_description">Apply a blur effect to the immersive background</string>
     <string name="library_games_custom_game">Custom Game</string>
+    <string name="library_games_builtin_game">Built-in Game</string>
     <string name="library_games_play">Play</string>
     <string name="hero_boot_to_desktop_title">Boot to Desktop</string>
     <string name="hero_graphics_tests_title">Graphics Tests</string>

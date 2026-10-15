@@ -161,6 +161,8 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
             focusedGogGame != null -> focusedGogGame.developer
             focusedApp?.id != null && focusedApp.id < 0 ->
                 stringResource(R.string.library_games_custom_game)
+            focusedApp?.let { BuiltinGames.isBuiltin(it.id) } == true ->
+                stringResource(R.string.library_games_builtin_game)
             focusedEpicGame != null -> focusedEpicGame.developer ?: ""
             else ->
                 listOfNotNull(
@@ -175,6 +177,7 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
             focusedApp?.let { app ->
                 when {
                     app.id < 0 -> "custom_${app.id}"
+                    BuiltinGames.isBuiltin(app.id) -> BuiltinGames.playtimeKey()
                     app.id >= 2000000000 -> app.name
                     else -> app.name.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
                 }
@@ -665,6 +668,7 @@ private fun defaultPlaytimeLabel(
     val key =
         when {
             app.id < 0 -> "custom_${app.id}"
+            BuiltinGames.isBuiltin(app.id) -> BuiltinGames.playtimeKey()
             app.id >= 2000000000 -> app.name
             else -> app.name.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
         }

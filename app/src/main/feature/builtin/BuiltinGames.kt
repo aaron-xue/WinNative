@@ -40,6 +40,9 @@ object BuiltinGames {
 
     fun isBrotato(appId: Int): Boolean = appId == BROTATO_ID
 
+    /** True for bundled built-in games (e.g. Brotato) that aren't from a store. */
+    fun isBuiltin(appId: Int): Boolean = appId == BROTATO_ID
+
     /** Playtime key, derived identically to the rest of the library UI. */
     fun playtimeKey(): String = BROTATO_NAME.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
 

@@ -252,6 +252,7 @@
     <string name="library_games_immersive_blur">模糊背景</string>
     <string name="library_games_immersive_blur_description">对沉浸背景应用模糊效果</string>
     <string name="library_games_custom_game">自定义游戏</string>
+    <string name="library_games_builtin_game">内置游戏</string>
     <string name="library_games_play">开始游戏</string>
     <string name="hero_boot_to_desktop_title">启动到桌面</string>
     <string name="hero_graphics_tests_title">图形测试</string>
