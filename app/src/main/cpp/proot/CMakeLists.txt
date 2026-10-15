@@ -2,6 +2,21 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project(PRoot C ASM)
 
+# The NDK CMake toolchain does not propagate the Android target triple to the ASM
+# compiler, so .S files (e.g. src/loader/assembly.S, guarded by #if defined(__aarch64__))
+# are preprocessed for the host instead and emit no code. libproot-loader.so then lacks
+# pokedata_workaround and loader-info.c generation fails. Map the ABI to the triple so we
+# can force it on the assembler below.
+if(ANDROID_ABI STREQUAL "arm64-v8a")
+  set(PROOT_ASM_TARGET aarch64-linux-android)
+elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+  set(PROOT_ASM_TARGET armv7-linux-androideabi)
+elseif(ANDROID_ABI STREQUAL "x86")
+  set(PROOT_ASM_TARGET i686-linux-android)
+elseif(ANDROID_ABI STREQUAL "x86_64")
+  set(PROOT_ASM_TARGET x86_64-linux-android)
+endif()
+
 # termux/proot 4dba3afb with the patches in patches/ applied (see PATCHES.md), built the way its
 # GNUmakefile builds it. The loader is not embedded: it ships beside proot as libproot-loader.so
 # and LinuxRuntime names it in PROOT_LOADER.
@@ -20,8 +35,18 @@ add_executable(libproot-loader.so
 target_include_directories(libproot-loader.so PRIVATE src)
 target_compile_definitions(libproot-loader.so PRIVATE ${PROOT_DEFINES})
 target_compile_options(libproot-loader.so PRIVATE ${PROOT_CFLAGS} -fPIC -ffreestanding -fno-stack-protector)
+# Force the Android target triple on the assembler so __aarch64__ (and friends) are
+# defined when preprocessing assembly.S. See PROOT_ASM_TARGET above.
+if(DEFINED PROOT_ASM_TARGET)
+  target_compile_options(libproot-loader.so PRIVATE
+      $<$<COMPILE_LANGUAGE:ASM>:-target ${PROOT_ASM_TARGET}>)
+endif()
 target_link_options(libproot-loader.so PRIVATE -static -nostdlib -no-pie
-                    -Wl,--build-id=none,-Ttext=0x2000000000,--rosegment,-z,noexecstack)
+                    -Wl,--build-id=none,-Ttext=0x2000000000,--rosegment,-z,noexecstack
+                    # NDK adds --gc-sections by default; pokedata_workaround is intentionally
+                    # unreferenced at link time (the tracee jumps to it via a runtime-computed
+                    # offset), so gc would drop it and loader-info.c generation would fail.
+                    -Wl,--no-gc-sections)
 
 # tracee/mem.c finds the loader's pokedata_workaround stub by its offset from _start.
 set(LOADER_INFO ${CMAKE_CURRENT_BINARY_DIR}/loader-info.c)

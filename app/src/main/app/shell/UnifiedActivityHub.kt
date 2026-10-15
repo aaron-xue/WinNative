@@ -639,6 +639,15 @@ internal fun UnifiedActivity.UnifiedHub() {
 
                 android.view.KeyEvent.KEYCODE_BUTTON_A, android.view.KeyEvent.KEYCODE_DPAD_CENTER -> {
                     if (key == "library" && (selectedSteamAppId != 0 || selectedGogGameId.isNotEmpty())) {
+                        // Built-in bundled games (e.g. Brotato) launch through their own Activity,
+                        // not the container/store paths below. BROTATO_ID (1_900_000_001) satisfies
+                        // none of those branches (not custom, not GOG, not in the epic/steam lists),
+                        // so without this check it is silently unlaunchable from a gamepad A button
+                        // even though the on-screen Play pill (playFocused -> launchWithTracking) works.
+                        if (BuiltinGames.isBuiltin(selectedSteamAppId)) {
+                            BuiltinGames.launchWithTracking(context)
+                            return@collect
+                        }
                         val isCustom = selectedSteamAppId < 0
                         val epicId = if (selectedSteamAppId >= 2000000000) selectedSteamAppId - 2000000000 else 0
                         val containerManager = ContainerManager(context)

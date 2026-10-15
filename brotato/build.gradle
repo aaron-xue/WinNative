@@ -17,6 +17,18 @@ android {
         main {
             manifest.srcFile 'src/main/AndroidManifest.xml'
             java.srcDirs = ['src/main/java', './brotato_repo/app/src/main/java', './brotato_repo/app/src/main/kotlin']
+            // brotato_repo vendors JetBrains' annotation classes (org.intellij.lang.annotations and
+            // org.jetbrains.annotations) as plain .java sources. The main app already pulls the same
+            // classes transitively via org.jetbrains:annotations:23.0.0, so compiling these into
+            // brotato's AAR makes D8 fail with "Type ... is defined multiple times". Drop the vendored
+            // copies from compilation and provide them via compileOnly instead (see dependency block).
+            java.exclude 'org/intellij/lang/annotations/**'
+            java.exclude 'org/jetbrains/annotations/**'
+            // brotato_repo also vendors com.google.common.util.concurrent.ListenableFuture as a
+            // plain .java source; the main app pulls the same class transitively via
+            // com.google.guava:listenablefuture:1.0 (from AndroidX), so compiling it into brotato's
+            // AAR collides at dex time. Drop the vendored copy and provide it via compileOnly below.
+            java.exclude 'com/google/common/util/concurrent/**'
             res.srcDirs = ['./brotato_repo/app/src/main/res']
             assets.srcDirs = ['./brotato_repo/app/src/main/assets']
             jniLibs.srcDirs = ['./brotato_repo/app/src/main/lib']
@@ -38,9 +50,30 @@ android {
     lintOptions { abortOnError false }
 }
 
-configurations.all {
-    // Avoid duplicate ListenableFuture / JetBrains annotations against WinNative's AndroidX.
+// Don't ship com.google.guava:listenablefuture from brotato's own dependency tree: the main app
+// already bundles it (transitively via AndroidX) at the same 1.0 version, so a second copy would
+// collide at dex time. Scope the exclude to the bundling configurations only, leaving compileOnly
+// below free to satisfy brotato's own references to ListenableFuture.
+configurations.implementation {
     exclude group: 'com.google.guava', module: 'listenablefuture'
+}
+configurations.api {
+    exclude group: 'com.google.guava', module: 'listenablefuture'
+}
+configurations.runtimeOnly {
+    exclude group: 'com.google.guava', module: 'listenablefuture'
+}
+// Don't ship JetBrains annotations from brotato's own dependency tree: the main app already
+// bundles org.jetbrains:annotations:23.0.0 (which also owns org.intellij.lang.annotations), so
+// a second copy would collide at dex time. Scope the exclude to the bundling configurations only,
+// leaving compileOnly below free to satisfy brotato's own references.
+configurations.implementation {
+    exclude group: 'org.jetbrains', module: 'annotations'
+}
+configurations.api {
+    exclude group: 'org.jetbrains', module: 'annotations'
+}
+configurations.runtimeOnly {
     exclude group: 'org.jetbrains', module: 'annotations'
 }
 
@@ -50,4 +83,10 @@ dependencies {
     implementation 'androidx.fragment:fragment:1.6.2'
     implementation 'androidx.startup:startup-runtime:1.1.1'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.1.10'
+    // Provided to compile brotato's references to @NotNull/@Nullable/etc. without bundling them:
+    // the single runtime copy comes from the main app's org.jetbrains:annotations:23.0.0.
+    compileOnly 'org.jetbrains:annotations:23.0.0'
+    // Provided to compile brotato's references to ListenableFuture without bundling it: the single
+    // runtime copy comes from the main app's com.google.guava:listenablefuture:1.0 (via AndroidX).
+    compileOnly 'com.google.guava:listenablefuture:1.0'
 }

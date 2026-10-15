@@ -247,3 +247,29 @@
 -keep class org.dolphinemu.dolphinemu.** { *; }
 -keepclassmembers class org.dolphinemu.dolphinemu.** { *; }
 -dontwarn org.dolphinemu.dolphinemu.**
+
+# Godot engine (the brotato game module, namespace org.godotengine.godot +
+# com.godot.game). libgodot_android.so resolves Java classes and methods BY NAME
+# via JNI GetMethodID/FindClass from inside Java_org_godotengine_godot_GodotLib_
+# initialize. R8 renames/optimizes them in the release (minifyEnabled=true) app
+# build, the native lookup fails, and because the native side never clears the
+# pending JNI exception, the next throw aborts the runtime (SIGABRT) instead of
+# raising a catchable NoSuchMethodError — so the whole :brotato process dies on
+# launch / onResume.
+#
+# Crash 2026-10-15, release only (debug has minifyEnabled false):
+#   libgodot_android.so Java_org_godotengine_godot_GodotLib_initialize+124
+#     -> art::JNI::GetMethodID -> ThrowNewExceptionF
+#     -> AssertNoPendingExceptionForNewException -> Runtime aborting (SIGABRT)
+#   at com.godot.game.GodotApp.onResume -> org.godotengine.godot.Godot.U
+#
+# NOTE: the brotato library module sets `release { minifyEnabled false }`, but that
+# only governs a standalone AAR build; the consuming app's R8 still shrinks/renames
+# these classes, so the keep must live here in the app module.
+# [[godot_jni_callbacks]]
+-keep class org.godotengine.godot.** { *; }
+-keepclassmembers class org.godotengine.godot.** { *; }
+-dontwarn org.godotengine.godot.**
+-keep class com.godot.game.** { *; }
+-keepclassmembers class com.godot.game.** { *; }
+-dontwarn com.godot.game.**
