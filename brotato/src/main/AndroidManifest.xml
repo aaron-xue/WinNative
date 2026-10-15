@@ -27,6 +27,24 @@
                 android:value="true" />
         </activity>
 
+        <!-- Same as GodotApp but ignores back / edge-swipe so the game isn't force-quit
+             (which would ProcessPhoenix.killProcess the whole host app). This is what
+             BuiltinGames launches. -->
+        <activity
+            android:name="org.godotengine.godot.WinNativeGodotApp"
+            android:exported="true"
+            android:excludeFromRecents="false"
+            android:launchMode="singleInstancePerTask"
+            android:screenOrientation="userLandscape"
+            android:configChanges="density|smallestScreenSize|screenSize|uiMode|screenLayout|orientation|navigation|keyboardHidden|keyboard"
+            android:resizeableActivity="true"
+            android:enableOnBackInvokedCallback="false"
+            android:theme="@style/GodotAppSplashTheme">
+            <meta-data
+                android:name="com.oculus.vr.focusaware"
+                android:value="true" />
+        </activity>
+
         <meta-data
             android:name="org.godotengine.library.version"
             android:value="3.6.2.stable" />

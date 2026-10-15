@@ -20,7 +20,7 @@ import com.winlator.cmod.feature.stores.steam.enums.AppType
  */
 object BuiltinGames {
     const val BROTATO_ID = 1_900_000_001
-    const val BROTATO_ACTIVITY = "com.godot.game.GodotApp"
+    const val BROTATO_ACTIVITY = "org.godotengine.godot.WinNativeGodotApp"
     const val BROTATO_NAME = "Brotato"
 
     private const val PLAYTIME_PREFS = "playtime_stats"
