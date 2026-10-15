@@ -21,6 +21,7 @@ git clone --recursive https://github.com/WinNative-Emu/WinNative.git
 cd WinNative
 git lfs pull                          # fetches imagefs
 git submodule update --init --recursive
+git submodule update --init --remote # 拉取子模块远端最新代码
 ```
 
 ## 安装 Android 交叉编译目标
