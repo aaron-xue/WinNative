@@ -145,6 +145,7 @@ internal data class LaunchStoreOption(
 @Composable
 internal fun LibraryGameLaunchScreen(
     appName: String,
+    isBuiltin: Boolean = false,
     subtitle: String,
     sourceLabel: String,
     heroImageUrl: Any?,
@@ -360,6 +361,7 @@ internal fun LibraryGameLaunchScreen(
             }
             SourceTag(
                 sourceLabel = sourceLabel,
+                clickable = !isBuiltin,
                 storeOptions = storeOptions,
                 selectedStoreId = selectedStoreId,
                 onSelectStore = onSelectStore,
@@ -487,59 +489,61 @@ internal fun LibraryGameLaunchScreen(
                         onClick = onPlay,
                     )
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(actionIconSpacing),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        LaunchIconActionButton(
-                            icon = Icons.Outlined.Settings,
-                            contentDescription = stringResource(R.string.common_ui_settings),
-                            size = actionIconSize,
-                            onClick = onSettings,
-                        )
-                        if (saveTransferVisible) {
+                    if (!isBuiltin) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(actionIconSpacing),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             LaunchIconActionButton(
-                                icon = Icons.Outlined.SaveAlt,
-                                contentDescription = stringResource(R.string.retro_save_transfer_title),
+                                icon = Icons.Outlined.Settings,
+                                contentDescription = stringResource(R.string.common_ui_settings),
                                 size = actionIconSize,
-                                onClick = { onSaveTransfer?.invoke() },
+                                onClick = onSettings,
                             )
-                        }
-                        LaunchIconActionButton(
-                            icon = Icons.Outlined.CloudSync,
-                            contentDescription = stringResource(R.string.cloud_saves_title),
-                            size = actionIconSize,
-                            onClick = onCloudSaves,
-                        )
-                        if (bootVisible) {
+                            if (saveTransferVisible) {
+                                LaunchIconActionButton(
+                                    icon = Icons.Outlined.SaveAlt,
+                                    contentDescription = stringResource(R.string.retro_save_transfer_title),
+                                    size = actionIconSize,
+                                    onClick = { onSaveTransfer?.invoke() },
+                                )
+                            }
                             LaunchIconActionButton(
-                                icon = Icons.Outlined.DesktopWindows,
-                                contentDescription = stringResource(R.string.hero_boot_to_desktop_title),
+                                icon = Icons.Outlined.CloudSync,
+                                contentDescription = stringResource(R.string.cloud_saves_title),
                                 size = actionIconSize,
-                                onClick = onBootToDesktop,
+                                onClick = onCloudSaves,
                             )
-                        }
-                        Box {
-                            LaunchIconActionButton(
-                                icon = Icons.Outlined.Delete,
-                                contentDescription =
-                                    stringResource(
-                                        if (removalKeepsFiles) R.string.common_ui_remove else R.string.common_ui_uninstall,
-                                    ),
-                                size = actionIconSize,
-                                onClick = { uninstallMenuOpen = true },
-                                tint = LaunchDanger,
-                            )
-                            LaunchUninstallMenu(
-                                expanded = uninstallMenuOpen,
-                                appName = appName,
-                                removalKeepsFiles = removalKeepsFiles,
-                                onDismissRequest = { uninstallMenuOpen = false },
-                                onConfirm = {
-                                    uninstallMenuOpen = false
-                                    onUninstall()
-                                },
-                            )
+                            if (bootVisible) {
+                                LaunchIconActionButton(
+                                    icon = Icons.Outlined.DesktopWindows,
+                                    contentDescription = stringResource(R.string.hero_boot_to_desktop_title),
+                                    size = actionIconSize,
+                                    onClick = onBootToDesktop,
+                                )
+                            }
+                            Box {
+                                LaunchIconActionButton(
+                                    icon = Icons.Outlined.Delete,
+                                    contentDescription =
+                                        stringResource(
+                                            if (removalKeepsFiles) R.string.common_ui_remove else R.string.common_ui_uninstall,
+                                        ),
+                                    size = actionIconSize,
+                                    onClick = { uninstallMenuOpen = true },
+                                    tint = LaunchDanger,
+                                )
+                                LaunchUninstallMenu(
+                                    expanded = uninstallMenuOpen,
+                                    appName = appName,
+                                    removalKeepsFiles = removalKeepsFiles,
+                                    onDismissRequest = { uninstallMenuOpen = false },
+                                    onConfirm = {
+                                        uninstallMenuOpen = false
+                                        onUninstall()
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -948,6 +952,7 @@ private fun LaunchMenuTextAction(
 @Composable
 private fun SourceTag(
     sourceLabel: String,
+    clickable: Boolean = true,
     menuEnabled: Boolean = false,
     showVerifyFiles: Boolean = true,
     showCheckForUpdate: Boolean = true,
@@ -978,7 +983,7 @@ private fun SourceTag(
             modifier =
                 Modifier
                     .onSizeChanged { anchorHeightPx = it.height }
-                    .clickable { menuOpen = true },
+                    .then(if (clickable) Modifier.clickable { menuOpen = true } else Modifier),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -999,12 +1004,14 @@ private fun SourceTag(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Icon(
-                    Icons.Outlined.ArrowDropDown,
-                    contentDescription = stringResource(R.string.store_game_steam_options),
-                    tint = LaunchTextPrimary,
-                    modifier = Modifier.size(18.dp),
-                )
+                if (clickable) {
+                    Icon(
+                        Icons.Outlined.ArrowDropDown,
+                        contentDescription = stringResource(R.string.store_game_steam_options),
+                        tint = LaunchTextPrimary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
         val gapPx = with(LocalDensity.current) { 6.dp.roundToPx() }

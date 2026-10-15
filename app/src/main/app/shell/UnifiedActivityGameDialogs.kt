@@ -1917,6 +1917,7 @@ internal fun UnifiedActivity.LibraryGameDetailDialog(
         when {
             isGog -> "GOG"
             isEpic -> "Epic Games"
+            BuiltinGames.isBuiltin(app.id) -> stringResource(R.string.library_games_builtin_game)
             isCustom ->
                 retroCaps.sourceLabel
                     ?: librarySystemIdHint?.let {
@@ -2470,6 +2471,7 @@ internal fun UnifiedActivity.LibraryGameDetailDialog(
                             }
                             LibraryGameLaunchScreen(
                                 appName = launchAppName,
+                                isBuiltin = BuiltinGames.isBuiltin(app.id),
                                 subtitle = subtitle,
                                 sourceLabel = sourceLabel,
                                 storeOptions = launchStoreOptions,

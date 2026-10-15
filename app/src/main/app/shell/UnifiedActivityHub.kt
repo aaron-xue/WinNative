@@ -3109,7 +3109,8 @@ internal fun UnifiedActivity.LibraryCarousel(
                 }
     }
 
-    val openSettingsForApp: (Int, SteamApp) -> Unit = { index, app ->
+    val openSettingsForApp: (Int, SteamApp) -> Unit = settingsForApp@{ index, app ->
+        if (BuiltinGames.isBuiltin(app.id)) return@settingsForApp
         activity?.libraryFocusIndex?.value = index
         selectedSteamAppId = app.id
         selectedSteamAppName = app.name

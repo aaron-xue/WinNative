@@ -373,10 +373,12 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
                             icon = Icons.Outlined.Info,
                             label = stringResource(R.string.library_games_details),
                         ) { onDetails(safeIndex, focusedApp) }
-                        DefaultActionPill(
-                            icon = Icons.Outlined.Settings,
-                            label = stringResource(R.string.common_ui_settings),
-                        ) { onSettings(safeIndex, focusedApp) }
+                        if (focusedApp == null || !BuiltinGames.isBuiltin(focusedApp.id)) {
+                            DefaultActionPill(
+                                icon = Icons.Outlined.Settings,
+                                label = stringResource(R.string.common_ui_settings),
+                            ) { onSettings(safeIndex, focusedApp) }
+                        }
                     }
                 }
             }
