@@ -1,4 +1,5 @@
 package com.winlator.cmod.runtime.input
+import android.util.Log
 import android.view.InputDevice
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +51,7 @@ object ControllerHelper {
     fun isPlayStationDevice(device: InputDevice): Boolean {
         if (device.vendorId == SONY_VENDOR_ID) return true
         val name = device.name.lowercase()
+        if (name.contains("xbox")) return false
         return name.contains("dualshock") || name.contains("playstation") ||
             name.contains("dualsense") || name.contains("wireless controller")
     }
