@@ -49,11 +49,14 @@ object BuiltinGames {
     /** Launch the bundled Godot activity. */
     fun launch(context: Context) {
         runCatching {
-            context.startActivity(
-                Intent()
-                    .setClassName(context, BROTATO_ACTIVITY)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            )
+            val intent = Intent().setClassName(context, BROTATO_ACTIVITY)
+            // Launch in the same task as the caller (the library) so finishing the game
+            // returns to the library with a smooth in-app pop instead of a cross-task
+            // switch. NEW_TASK is only required when starting from a non-Activity context.
+            if (context !is android.app.Activity) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
         }
     }
 

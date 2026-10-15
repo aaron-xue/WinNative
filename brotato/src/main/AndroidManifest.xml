@@ -34,7 +34,7 @@
             android:name="org.godotengine.godot.WinNativeGodotApp"
             android:exported="true"
             android:excludeFromRecents="false"
-            android:launchMode="singleInstancePerTask"
+            android:launchMode="singleTop"
             android:screenOrientation="userLandscape"
             android:configChanges="density|smallestScreenSize|screenSize|uiMode|screenLayout|orientation|navigation|keyboardHidden|keyboard"
             android:resizeableActivity="true"
