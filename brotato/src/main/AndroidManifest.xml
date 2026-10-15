@@ -29,11 +29,17 @@
 
         <!-- Same as GodotApp but ignores back / edge-swipe so the game isn't force-quit
              (which would ProcessPhoenix.killProcess the whole host app). This is what
-             BuiltinGames launches. -->
+             BuiltinGames launches.
+
+             Runs in its own ":brotato" process so the heavy Godot engine's memory stays
+             out of the library (UnifiedActivity) process. That keeps the stopped library
+             activity from being reclaimed under memory pressure while the game is on top,
+             so finishing the game returns straight to the library instead of rebuilding it. -->
         <activity
             android:name="org.godotengine.godot.WinNativeGodotApp"
             android:exported="true"
             android:excludeFromRecents="false"
+            android:process=":brotato"
             android:launchMode="singleTop"
             android:screenOrientation="userLandscape"
             android:configChanges="density|smallestScreenSize|screenSize|uiMode|screenLayout|orientation|navigation|keyboardHidden|keyboard"

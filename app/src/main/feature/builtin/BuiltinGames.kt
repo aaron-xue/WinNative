@@ -2,8 +2,11 @@ package com.winlator.cmod.feature.builtin
 
 import android.app.Activity
 import android.app.Application
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 import java.util.Locale
 import com.winlator.cmod.app.shell.LIBRARY_NAME_SANITIZE_REGEX
 import com.winlator.cmod.feature.stores.steam.data.SteamApp
@@ -25,6 +28,13 @@ object BuiltinGames {
 
     private const val PLAYTIME_PREFS = "playtime_stats"
     private const val SESSION_START_KEY = "__brotato_session_start"
+
+    /**
+     * Broadcast sent by the ":brotato" process when its activity is destroyed, so the library
+     * process (which never sees that activity's lifecycle now that it runs separately) can
+     * finalize the play session. Must match the literal in WinNativeGodotApp.
+     */
+    const val SESSION_END_ACTION = "com.winlator.cmod.builtin.BROTATO_SESSION_END"
 
     /**
      * Display name for Brotato in the current locale: Chinese shows "土豆兄弟",
@@ -99,14 +109,40 @@ object BuiltinGames {
     }
 
     /**
-     * Register a one-time lifecycle listener that finalizes the Brotato session when
-     * the Godot activity is destroyed (i.e. the player quit the game). Call once from
-     * the app/activity entry point.
+     * Register the play-session finalizer. Because Brotato runs in the separate ":brotato"
+     * process, the library process can't observe its activity lifecycle directly, so we listen
+     * for the [SESSION_END_ACTION] broadcast it sends on destroy and finalize from here. A
+     * same-process lifecycle callback is kept as a harmless fallback. Call once from the
+     * app/activity entry point.
      */
     private val registeredApps = mutableSetOf<Application>()
 
     fun initTracking(application: Application) {
         if (!registeredApps.add(application)) return
+
+        // Brotato now runs in the separate ":brotato" process, so the library process can't
+        // observe its activity lifecycle directly. Listen for the explicit session-end broadcast
+        // it sends on destroy and finalize playtime from here.
+        val sessionEndReceiver =
+            object : BroadcastReceiver() {
+                override fun onReceive(
+                    context: Context?,
+                    intent: Intent?,
+                ) {
+                    if (intent?.action == SESSION_END_ACTION) {
+                        finalizeSession(application.applicationContext)
+                    }
+                }
+            }
+        ContextCompat.registerReceiver(
+            application,
+            sessionEndReceiver,
+            IntentFilter(SESSION_END_ACTION),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+
+        // Keep the lifecycle callback as a same-process fallback (harmless when Brotato is in
+        // its own process; idempotent with the broadcast path).
         application.registerActivityLifecycleCallbacks(
             object : Application.ActivityLifecycleCallbacks {
                 override fun onActivityCreated(activity: Activity, savedInstanceState: android.os.Bundle?) {}

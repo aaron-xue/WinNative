@@ -193,6 +193,7 @@ import com.winlator.cmod.feature.stores.gog.ui.auth.GOGOAuthActivity
 import com.winlator.cmod.feature.stores.steam.SteamLoginActivity
 import com.winlator.cmod.feature.stores.steam.data.DepotInfo
 import com.winlator.cmod.feature.stores.steam.data.DownloadInfo
+import com.winlator.cmod.feature.builtin.BuiltinGames
 import com.winlator.cmod.feature.stores.steam.data.SteamApp
 import com.winlator.cmod.feature.stores.steam.enums.DownloadPhase
 import com.winlator.cmod.feature.stores.steam.events.AndroidEvent
@@ -723,6 +724,13 @@ class UnifiedActivity :
         if (hasCompletedInitialResume) {
             libraryPlaytimeRefreshSignal++
             SteamService.ensureHealthySession()
+            // Finalize a Brotato play session that ended while we were away. The :brotato
+            // process may have been killed without a reliable onDestroy/broadcast, so we
+            // settle here instead — the session start was written (in this process) at
+            // launch, and onResume only fires once the game is actually gone from the stack.
+            // finalizeSession() is a no-op when no session is pending, so it's safe to call
+            // on every resume and alongside the broadcast path (no double counting).
+            BuiltinGames.finalizeSession(this)
         } else {
             hasCompletedInitialResume = true
         }
