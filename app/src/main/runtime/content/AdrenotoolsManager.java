@@ -244,12 +244,17 @@ public class AdrenotoolsManager {
 
         String driverPath = getDriverPath(adrenotoolsDriverId);
         envVars.put("ADRENOTOOLS_DRIVER_PATH", driverPath);
-        // adrenotools requires the hooks path to be the APK's nativeLibraryDir
-        // so that android_dlopen_ext can load the hook libraries within the
-        // app's linker namespace.  Using imagefs/usr/lib causes a silent
-        // fallback to the system GPU driver.
-        String nativeLibDir = mContext.getApplicationInfo().nativeLibraryDir;
-        envVars.put("ADRENOTOOLS_HOOKS_PATH", nativeLibDir);
+        // HOOKS_PATH must point at the imagefs lib dir (where the wrapper's hook
+        // libraries are extracted), NOT the app's nativeLibraryDir.  Exposing the
+        // app's nativeLibraryDir leaks the bundled bionic libcurl into the loader
+        // namespace that adrenotools builds for /system/lib64/libvulkan.so; the
+        // system libgraphicsenv then resolves its libcurl dependency to that broken
+        // copy (curl 7.85 still references ENGINE_ctrl, which Android 17's BoringSSL
+        // removed) and the driver fails to load with -9.  The imagefs lib dir only
+        // holds glibc .so files that the bionic linker ignores, so the system libcurl
+        // is used instead.  The old "silent fallback to the system GPU driver" warning
+        // no longer applies because the hook libraries ship inside imagefs.
+        envVars.put("ADRENOTOOLS_HOOKS_PATH", imagefs.getLibDir().getPath());
         envVars.put("ADRENOTOOLS_DRIVER_NAME", libraryName);
         envVars.put("ADRENOTOOLS_REDIRECT_DIR", SettingsConfig.DEFAULT_WINLATOR_PATH + "/");
     }
