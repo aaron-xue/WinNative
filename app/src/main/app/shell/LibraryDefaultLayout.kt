@@ -236,6 +236,10 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
     BoxWithConstraints(modifier.fillMaxSize()) {
         val rowHeight = (maxHeight * 0.36f).coerceIn(140.dp, 280.dp)
         val cardWidth = rowHeight * 0.70f
+        // Tight vertical space (e.g. landscape phone) shrinks the bottom gaps so the
+        // controller hints stay visible; roomy screens keep the larger 8.dp rhythm.
+        val isTightHeight = maxHeight < 600.dp
+        val bottomGap = if (isTightHeight) 2.dp else 8.dp
 
         // ── Hero backdrop ──
         if (immersiveBackgroundVisible) {
@@ -386,7 +390,7 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
             Spacer(Modifier.weight(1f))
 
             DefaultSectionLabel(count = items.size)
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(bottomGap))
             DefaultGamesRow(
                 items = items,
                 focusIndex = safeIndex,
@@ -408,7 +412,7 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
             )
 
             if (isControllerActive) {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(bottomGap))
                 DefaultControllerHints()
             }
         }
