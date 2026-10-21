@@ -155,6 +155,7 @@ class ContainersFragment : Fragment() {
         startActivity(
             Intent(ctx, XServerDisplayActivity::class.java).apply {
                 putExtra("container_id", container.id)
+                putExtra("return_to_caller", true)
             },
         )
     }

@@ -247,6 +247,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private static final String PREVIOUS_CONTAINER_STEAM_CLIENT_STORE_RELATIVE_PATH = ".wine/.steam-client-store";
     private static final String LEGACY_STEAM_CLIENT_STORE_RELATIVE_PATH = ".wine/drive_c/WinNative/SteamClient";
     public static final String EXTRA_LAUNCHED_FROM_PINNED_SHORTCUT = "launched_from_pinned_shortcut";
+    // Set when launched from in-app navigation (e.g. the Containers screen inside
+    // SettingsActivity) so that exiting the session returns to the caller's task
+    // instead of always hopping to UnifiedActivity's library tab.
+    public static final String EXTRA_RETURN_TO_CALLER = "return_to_caller";
 
     // CEF GPU flags avoid steamwebhelper taking DXVK's dxgi path in FEX.
     private static final String[] STEAM_SYSTEM_REGISTRY_KEYS = new String[] {
@@ -4199,6 +4203,13 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             AppTerminationHelper.exitApplication(this, "shortcut_session_exit");
             return;
         }
+        // Launched from in-app navigation (e.g. the Containers screen). Just finish so the
+        // caller's task (SettingsActivity / Containers) is revealed again instead of bouncing
+        // to UnifiedActivity's library tab.
+        if (getIntent().getBooleanExtra(EXTRA_RETURN_TO_CALLER, false)) {
+            finish();
+            return;
+        }
 
         // ToDo: Find a way to avoid stealing focus from the user without causing crashes, ANRs, or session re-starts when opening the app again
         //  after use 'Exit' in the notification.
@@ -4231,7 +4242,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
     private void startUnifiedActivity() {
         Intent intent = new Intent(this, UnifiedActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        // NEW_TASK so we re-enter the existing UnifiedActivity task (preserving its selected
+        // tab) rather than spinning up a fresh instance that always lands on the library.
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
     }
 
