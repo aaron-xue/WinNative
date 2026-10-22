@@ -164,4 +164,70 @@ object RetroBiosImport {
                 .edit().putString(safe, target.absolutePath).apply()
             safe
         }
+
+    // Citron (Nintendo Switch) firmware: a ZIP archive whose entries are the raw
+    // system `.nca` files. These are extracted into
+    // <userDir>/nand/system/Contents/registered, mirroring Citron's own firmware
+    // installer (MainActivity.getFirmware -> NativeLibrary.initializeSystem). The
+    // firmware is needed by system applets and by games that depend on system
+    // modules / system archives (without it emulation fails with
+    // "system archive not found"). Like the keys flow, the core re-scans this
+    // directory on the next CitronBootstrap.ensure() at game launch.
+    fun switchFirmwareDir(context: Context): File =
+        File(
+            context.getExternalFilesDir(null) ?: context.filesDir,
+            "citron/nand/system/Contents/registered",
+        ).apply { mkdirs() }
+
+    fun installedSwitchFirmwareCount(context: Context): Int =
+        switchFirmwareDir(context).listFiles().orEmpty()
+            .count { it.isFile && it.extension.equals("nca", true) }
+
+    fun isSwitchFirmwareInstalled(context: Context): Boolean =
+        installedSwitchFirmwareCount(context) > 0
+
+    fun deleteSwitchFirmware(context: Context): Int {
+        var removed = 0
+        switchFirmwareDir(context).listFiles().orEmpty().forEach {
+            if (it.isFile && it.extension.equals("nca", true) && it.delete()) removed++
+        }
+        return removed
+    }
+
+    fun importSwitchFirmwareFromUri(
+        context: Context,
+        uri: Uri,
+    ): Result<String> =
+        runCatching {
+            val dir = switchFirmwareDir(context)
+            val imported = mutableListOf<String>()
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                java.util.zip.ZipInputStream(stream.buffered()).use { zin ->
+                    var entry = zin.nextEntry
+                    while (entry != null) {
+                        val name = entry.name
+                        if (!entry.isDirectory && name.endsWith(".nca", true)) {
+                            val base = File(name).name
+                            val target = File(dir, base)
+                            val tmp = File(dir, "$base.tmp")
+                            tmp.outputStream().use { out -> zin.copyTo(out) }
+                            if (!tmp.renameTo(target)) {
+                                target.outputStream().buffered().use { out -> tmp.inputStream().buffered().use { inp -> inp.copyTo(out) } }
+                                tmp.delete()
+                            }
+                            imported.add(base)
+                        }
+                        zin.closeEntry()
+                        entry = zin.nextEntry
+                    }
+                }
+            } ?: throw IllegalStateException("Could not read file")
+
+            if (imported.isEmpty()) {
+                throw IllegalArgumentException(
+                    "No .nca files found in the archive. A Switch firmware ZIP must contain the raw system .nca modules at its root.",
+                )
+            }
+            imported.size.toString()
+        }
 }

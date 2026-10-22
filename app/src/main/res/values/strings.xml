@@ -3292,6 +3292,17 @@ Installed path:
     <string name="retro_scr_no_keys_to_remove">No Switch keys to remove</string>
     <string name="retro_scr_switch_keys_removed">Switch keys removed</string>
     <string name="retro_scr_none_switch_keys">None</string>
+    <string name="retro_scr_nintendo_switch_firmware">Switch Firmware</string>
+    <string name="retro_scr_import_switch_firmware">Import Switch Firmware</string>
+    <string name="retro_scr_importing_switch_firmware">Importing Switch firmware…</string>
+    <string name="retro_scr_remove_switch_firmware">Remove Switch Firmware</string>
+    <string name="retro_scr_switch_firmware_imported">Imported %1$s system modules</string>
+    <string name="retro_scr_invalid_switch_firmware_file">Invalid Switch firmware file</string>
+    <string name="retro_scr_no_firmware_to_remove">No Switch firmware to remove</string>
+    <string name="retro_scr_switch_firmware_removed">Switch firmware removed</string>
+    <string name="retro_scr_no_switch_firmware">Not installed</string>
+    <string name="retro_scr_switch_firmware_installed">Installed %1$d system modules</string>
+    <string name="retro_scr_switch_firmware_keys_warning">Firmware imported, but Switch keys are not installed yet. Install prod.keys for the firmware to decrypt.</string>
     <string name="retro_gs_audio_volume">Audio Volume</string>
     <string name="retro_gs_vsync">VSync</string>
     <string name="retro_gs_vsync_off">Off</string>

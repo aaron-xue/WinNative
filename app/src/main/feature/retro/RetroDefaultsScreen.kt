@@ -45,6 +45,7 @@ import com.winlator.cmod.R
 import com.winlator.cmod.feature.settings.SettingsNavBridge
 import com.winlator.cmod.shared.ui.focus.rememberSettingsContentNav
 import com.winlator.cmod.shared.ui.nav.LocalPaneNav
+import com.winlator.cmod.shared.ui.dialog.WinNativeComposeDialogs
 import com.winlator.cmod.shared.ui.nav.paneNavItem
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -142,6 +143,39 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                     result
                         .onSuccess { Toast.makeText(context, context.getString(R.string.retro_scr_switch_keys_imported, it), Toast.LENGTH_SHORT).show() }
                         .onFailure { Toast.makeText(context, it.message ?: context.getString(R.string.retro_scr_invalid_switch_keys_file), Toast.LENGTH_LONG).show() }
+                    refresh++
+                }
+            }
+        }
+    }
+
+    val importSwitchFirmware = {
+        val activity = context as? android.app.Activity
+        if (activity != null) {
+            com.winlator.cmod.shared.android.DirectoryPickerDialog.showFile(
+                activity = activity,
+                title = context.getString(R.string.retro_scr_import_switch_firmware),
+                allowedExtensions = setOf("zip"),
+            ) { path ->
+                scope.launch {
+                    val loading =
+                        WinNativeComposeDialogs.showLoading(
+                            context,
+                            context.getString(R.string.retro_scr_importing_switch_firmware),
+                        )
+                    val result =
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            RetroBiosImport.importSwitchFirmwareFromUri(context, android.net.Uri.fromFile(File(path)))
+                        }
+                    loading?.dismiss()
+                    result
+                        .onSuccess {
+                            Toast.makeText(context, context.getString(R.string.retro_scr_switch_firmware_imported, it), Toast.LENGTH_SHORT).show()
+                            if (RetroBiosImport.installedSwitchKeys(context).isEmpty()) {
+                                Toast.makeText(context, context.getString(R.string.retro_scr_switch_firmware_keys_warning), Toast.LENGTH_LONG).show()
+                            }
+                        }
+                        .onFailure { Toast.makeText(context, it.message ?: context.getString(R.string.retro_scr_invalid_switch_firmware_file), Toast.LENGTH_LONG).show() }
                     refresh++
                 }
             }
@@ -449,6 +483,75 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                             ),
                 ) {
                     Text(stringResource(R.string.retro_scr_remove_switch_keys))
+                }
+            }
+        }
+
+        RetroSettingGroup {
+            RetroGroupTitle(stringResource(R.string.retro_scr_nintendo_switch_firmware))
+            val fwCount = RetroBiosImport.installedSwitchFirmwareCount(context)
+            RetroInfoRow(
+                stringResource(R.string.retro_scr_installed),
+                if (fwCount == 0) {
+                    stringResource(R.string.retro_scr_no_switch_firmware)
+                } else {
+                    context.getString(R.string.retro_scr_switch_firmware_installed, fwCount)
+                },
+            )
+            Button(
+                onClick = { runCatching { importSwitchFirmware() } },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .paneNavItem(
+                            cornerRadius = 8.dp,
+                            onActivate = { runCatching { importSwitchFirmware() } },
+                            highlightColor = Color(0xFF4FC3F7),
+                            tapToSelect = true,
+                        ),
+            ) {
+                Text(stringResource(R.string.retro_scr_import_switch_firmware))
+            }
+            if (fwCount > 0) {
+                OutlinedButton(
+                    onClick = {
+                        val n = RetroBiosImport.deleteSwitchFirmware(context)
+                        Toast.makeText(
+                            context,
+                            if (n > 0) {
+                                context.getString(R.string.retro_scr_switch_firmware_removed)
+                            } else {
+                                context.getString(R.string.retro_scr_no_firmware_to_remove)
+                            },
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        refresh++
+                    },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                            .paneNavItem(
+                                cornerRadius = 8.dp,
+                                onActivate = {
+                                    val n = RetroBiosImport.deleteSwitchFirmware(context)
+                                    Toast.makeText(
+                                        context,
+                                        if (n > 0) {
+                                            context.getString(R.string.retro_scr_switch_firmware_removed)
+                                        } else {
+                                            context.getString(R.string.retro_scr_no_firmware_to_remove)
+                                        },
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                    refresh++
+                                },
+                                highlightColor = Color(0xFF4FC3F7),
+                                tapToSelect = true,
+                            ),
+                ) {
+                    Text(stringResource(R.string.retro_scr_remove_switch_firmware))
                 }
             }
         }
