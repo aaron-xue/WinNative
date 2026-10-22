@@ -16,12 +16,6 @@ object RetroDefaults {
         optionKey: String,
     ) = "retro_def_var_${systemId}_$optionKey"
 
-    fun romsDir(context: Context): String? =
-        prefs(context).getString("retro_roms_dir", null)?.takeIf { it.isNotBlank() }
-
-    fun setRomsDir(context: Context, value: String?) =
-        prefs(context).edit().putString("retro_roms_dir", value).apply()
-
     fun shader(context: Context, systemId: String): String =
         prefs(context).getString(key("shader", systemId), "default") ?: "default"
 

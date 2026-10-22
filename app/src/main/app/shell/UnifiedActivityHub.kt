@@ -2248,7 +2248,6 @@ internal fun UnifiedActivity.LibraryCarousel(
         val shortcutScanResult =
             runCatching {
                 withContext(Dispatchers.IO) {
-                    runCatching { com.winlator.cmod.feature.retro.RetroRomScanner.scanConfiguredFolder(context) }
                     val cm = ContainerManager(context)
                     cm.upgradeShortcuts {
                         localLibraryRefreshKey++

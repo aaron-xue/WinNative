@@ -2606,15 +2606,7 @@ Installed path:
     <string name="retro_scr_retro_case_art">Retro case art (cartridge / CD case)</string>
     <string name="retro_scr_box_art">Box art</string>
     <string name="retro_scr_box_art_desc">Fetched automatically from thumbnails.libretro.com on import; a custom image always overrides it.</string>
-    <string name="retro_scr_roms_folder">ROMS FOLDER</string>
-    <string name="retro_scr_folder">Folder</string>
-    <string name="retro_scr_roms_not_set">Not set — pick a folder to auto-import games</string>
-    <string name="retro_scr_auto_import">Auto-import</string>
-    <string name="retro_scr_auto_import_desc">New games in this folder are added to your library automatically with the right console detected.</string>
-    <string name="retro_scr_select_roms_folder_title">Select ROMs Folder</string>
-    <string name="retro_scr_select_roms_folder_button">Select ROMs Folder…</string>
-    <string name="retro_scr_change_roms_folder_button">Change ROMs Folder…</string>
-    <string name="retro_scr_scan_now">Scan Now</string>
+
     <string name="retro_scr_console_defaults">CONSOLE DEFAULTS</string>
     <string name="retro_scr_console_defaults_desc">Tap a console to set its default settings.</string>
     <string name="retro_scr_renderer">Renderer</string>
@@ -2868,10 +2860,7 @@ Installed path:
     <string name="retro_tab_sound">Sound</string>
     <string name="retro_tab_controls">Controls</string>
     <string name="retro_tab_system">System</string>
-    <string name="retro_scan_up_to_date">Library up to date</string>
-    <string name="retro_scan_roms">ROMs: %1$s</string>
-    <string name="retro_scan_added">added %1$d</string>
-    <string name="retro_scan_removed">removed %1$d</string>
+
     <string name="retro_scr_shader_default">Default</string>
     <string name="retro_scr_shader_crt">CRT</string>
     <string name="retro_scr_shader_lcd">LCD</string>
@@ -3286,23 +3275,22 @@ Installed path:
     <string name="retro_gpu_driver_system">System (Default)</string>
     <string name="retro_scr_nintendo_switch_keys">Switch Keys (prod.keys)</string>
     <string name="retro_scr_import_switch_keys">Import Switch Keys</string>
-    <string name="retro_scr_remove_switch_keys">Remove Switch Keys</string>
     <string name="retro_scr_switch_keys_imported">Imported %1$s</string>
     <string name="retro_scr_invalid_switch_keys_file">Invalid Switch keys file</string>
-    <string name="retro_scr_no_keys_to_remove">No Switch keys to remove</string>
-    <string name="retro_scr_switch_keys_removed">Switch keys removed</string>
     <string name="retro_scr_none_switch_keys">None</string>
     <string name="retro_scr_nintendo_switch_firmware">Switch Firmware</string>
     <string name="retro_scr_import_switch_firmware">Import Switch Firmware</string>
     <string name="retro_scr_importing_switch_firmware">Importing Switch firmware…</string>
-    <string name="retro_scr_remove_switch_firmware">Remove Switch Firmware</string>
     <string name="retro_scr_switch_firmware_imported">Imported %1$s system modules</string>
     <string name="retro_scr_invalid_switch_firmware_file">Invalid Switch firmware file</string>
-    <string name="retro_scr_no_firmware_to_remove">No Switch firmware to remove</string>
-    <string name="retro_scr_switch_firmware_removed">Switch firmware removed</string>
     <string name="retro_scr_no_switch_firmware">Not installed</string>
     <string name="retro_scr_switch_firmware_installed">Installed %1$d system modules</string>
     <string name="retro_scr_switch_firmware_keys_warning">Firmware imported, but Switch keys are not installed yet. Install prod.keys for the firmware to decrypt.</string>
+    <string name="retro_scr_cat_achievements">Account &amp; Achievements</string>
+    <string name="retro_scr_cat_playstation">PlayStation</string>
+    <string name="retro_scr_cat_switch">Nintendo Switch</string>
+    <string name="retro_scr_cat_library">Library</string>
+    <string name="retro_scr_cat_consoles">Console Bundle</string>
     <string name="retro_gs_audio_volume">Audio Volume</string>
     <string name="retro_gs_vsync">VSync</string>
     <string name="retro_gs_vsync_off">Off</string>

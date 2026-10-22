@@ -2349,15 +2349,7 @@
     <string name="retro_scr_retro_case_art">复古外壳图（卡带 / CD 盒）</string>
     <string name="retro_scr_box_art">封面图</string>
     <string name="retro_scr_box_art_desc">导入时自动从 thumbnails.libretro.com 获取；自定义图片始终会覆盖它。</string>
-    <string name="retro_scr_roms_folder">ROM 文件夹</string>
-    <string name="retro_scr_folder">文件夹</string>
-    <string name="retro_scr_roms_not_set">未设置 — 选择文件夹以自动导入游戏</string>
-    <string name="retro_scr_auto_import">自动导入</string>
-    <string name="retro_scr_auto_import_desc">此文件夹中的新游戏会自动添加到您的库中，并检测出正确的主机。</string>
-    <string name="retro_scr_select_roms_folder_title">选择 ROM 文件夹</string>
-    <string name="retro_scr_select_roms_folder_button">选择 ROM 文件夹…</string>
-    <string name="retro_scr_change_roms_folder_button">更改 ROM 文件夹…</string>
-    <string name="retro_scr_scan_now">立即扫描</string>
+
     <string name="retro_scr_console_defaults">主机默认设置</string>
     <string name="retro_scr_console_defaults_desc">点按主机以设置其默认设置。</string>
     <string name="retro_scr_renderer">渲染器</string>
@@ -2594,10 +2586,7 @@
     <string name="retro_tab_hud">HUD</string>
     <string name="retro_tab_sound">声音</string>
     <string name="retro_tab_controls">控制</string>
-    <string name="retro_scan_up_to_date">库已是最新</string>
-    <string name="retro_scan_roms">ROM：%1$s</string>
-    <string name="retro_scan_added">新增 %1$d</string>
-    <string name="retro_scan_removed">移除 %1$d</string>
+
     <string name="retro_scr_shader_default">默认</string>
     <string name="retro_scr_shader_crt">CRT</string>
     <string name="retro_scr_shader_lcd">LCD</string>
@@ -2979,23 +2968,22 @@
     <!-- Switch keys & firmware -->
     <string name="retro_scr_nintendo_switch_keys">Switch 密钥 (prod.keys)</string>
     <string name="retro_scr_import_switch_keys">导入 Switch 密钥</string>
-    <string name="retro_scr_remove_switch_keys">移除 Switch 密钥</string>
     <string name="retro_scr_switch_keys_imported">已导入 %1$s</string>
     <string name="retro_scr_invalid_switch_keys_file">无效的 Switch 密钥文件</string>
-    <string name="retro_scr_no_keys_to_remove">没有可移除的 Switch 密钥</string>
-    <string name="retro_scr_switch_keys_removed">已移除 Switch 密钥</string>
     <string name="retro_scr_none_switch_keys">无</string>
     <string name="retro_scr_nintendo_switch_firmware">Switch 固件</string>
     <string name="retro_scr_import_switch_firmware">导入 Switch 固件</string>
     <string name="retro_scr_importing_switch_firmware">正在导入 Switch 固件…</string>
-    <string name="retro_scr_remove_switch_firmware">移除 Switch 固件</string>
     <string name="retro_scr_switch_firmware_imported">已导入 %1$s 个系统模块</string>
     <string name="retro_scr_invalid_switch_firmware_file">无效的 Switch 固件文件</string>
-    <string name="retro_scr_no_firmware_to_remove">没有可移除的 Switch 固件</string>
-    <string name="retro_scr_switch_firmware_removed">已移除 Switch 固件</string>
     <string name="retro_scr_no_switch_firmware">未安装</string>
     <string name="retro_scr_switch_firmware_installed">已安装 %1$d 个系统模块</string>
     <string name="retro_scr_switch_firmware_keys_warning">固件已导入，但 Switch 密钥尚未安装。请先安装 prod.keys，固件才能被解密。</string>
+    <string name="retro_scr_cat_achievements">账户与成就</string>
+    <string name="retro_scr_cat_playstation">PlayStation</string>
+    <string name="retro_scr_cat_switch">Nintendo Switch</string>
+    <string name="retro_scr_cat_library">媒体库</string>
+    <string name="retro_scr_cat_consoles">主机组件包</string>
     <!-- PS2 GPU driver selection -->
     <string name="retro_gpu_driver">GPU 驱动</string>
     <string name="retro_gpu_driver_system">系统（默认）</string>
