@@ -79,11 +79,17 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
     var refresh by remember { mutableIntStateOf(0) }
     var confirmHardcore by remember { mutableStateOf(false) }
     var currentScreen by remember { mutableStateOf(RetroMenuScreen.MENU) }
+    var showControllerSettings by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     LaunchedEffect(currentScreen, selectedConsole) {
         listState.scrollToItem(0)
     }
     val contentNav = rememberSettingsContentNav(bridge)
+
+    if (showControllerSettings) {
+        SwitchControllerSettingsScreen(onBack = { showControllerSettings = false })
+        return
+    }
 
     if (confirmHardcore) {
         RetroHardcoreConfirmDialog(
@@ -458,6 +464,29 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                         ),
             ) {
                 Text(stringResource(R.string.retro_scr_manage_switch_saves))
+            }
+        }
+            }
+        }
+
+        if (currentScreen == RetroMenuScreen.SWITCH) {
+            item {
+            RetroSettingGroup {
+            RetroGroupTitle("控制器")
+            Button(
+                onClick = { showControllerSettings = true },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .paneNavItem(
+                            cornerRadius = 8.dp,
+                            onActivate = { showControllerSettings = true },
+                            highlightColor = Color(0xFF4FC3F7),
+                            tapToSelect = true,
+                        ),
+            ) {
+                Text("控制器设置（多玩家 / 按键绑定）")
             }
         }
             }

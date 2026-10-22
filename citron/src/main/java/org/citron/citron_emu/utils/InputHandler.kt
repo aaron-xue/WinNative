@@ -124,18 +124,20 @@ object InputHandler {
         var port = 0
         val inputSettings = NativeConfig.getInputSettings(true)
         deviceIds.forEach { deviceId ->
-            InputDevice.getDevice(deviceId)?.apply {
-                // Verify that the device has gamepad buttons, control sticks, or both.
-                if (isGameController()) {
-                    if (!gameControllerDeviceIds.contains(controllerNumber)) {
-                        gameControllerDeviceIds[controllerNumber] = CitronPhysicalDevice(
-                            this,
-                            port,
-                            inputSettings[port].useSystemVibrator
-                        )
-                    }
-                    port++
+            val dev = InputDevice.getDevice(deviceId) ?: return@forEach
+            // Verify that the device has gamepad buttons, control sticks, or both.
+            if (dev.isGameController()) {
+                val key = dev.controllerNumber
+                if (!gameControllerDeviceIds.contains(key)) {
+                    val useVibrator = inputSettings.getOrNull(port)?.useSystemVibrator ?: false
+                    gameControllerDeviceIds[key] = CitronPhysicalDevice(dev, port, useVibrator)
+                    Log.info(
+                        "WnCitron: gamepad #$key -> port $port: ${dev.name} " +
+                            "(sources=0x${dev.sources.toString(16)}, " +
+                            "axes=[${dev.motionRanges.joinToString { it.axis.toString() }}])",
+                    )
                 }
+                port++
             }
         }
         return gameControllerDeviceIds
@@ -145,6 +147,10 @@ object InputHandler {
         releaseAllInputs()
         NativeInput.clearRegisteredControllers()
         androidControllers = getDevices()
+        Log.info(
+            "WnCitron: detected ${androidControllers.size} physical gamepad(s): " +
+                androidControllers.values.joinToString { "${it.getName()} (port ${it.getPort()})" },
+        )
         androidControllers.forEach {
             NativeInput.registerController(it.value)
         }
@@ -161,9 +167,35 @@ object InputHandler {
 
     fun InputDevice.getGUID(): String = String.format("%016x%016x", productId, vendorId)
 
-    private fun InputDevice.isGameController(): Boolean =
-        sources and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD ||
-            sources and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+    private fun InputDevice.isGameController(): Boolean {
+        if (sources and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD) return true
+        if (sources and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK) return true
+        // OTG adapters / generic HID / keyboard-presenting pads often report only
+        // SOURCE_KEYBOARD or SOURCE_DPAD while still exposing gamepad button
+        // keycodes and analog stick axes. Detect those so they get registered and
+        // routed into the emulated controller.
+        if (hasKeys(
+                KeyEvent.KEYCODE_BUTTON_A,
+                KeyEvent.KEYCODE_BUTTON_B,
+                KeyEvent.KEYCODE_BUTTON_X,
+                KeyEvent.KEYCODE_BUTTON_Y,
+            ).any { it }
+        ) {
+            return true
+        }
+        return motionRanges.any { axis ->
+            when (axis.axis) {
+                MotionEvent.AXIS_X, MotionEvent.AXIS_Y,
+                MotionEvent.AXIS_Z, MotionEvent.AXIS_RZ,
+                MotionEvent.AXIS_RX, MotionEvent.AXIS_RY,
+                MotionEvent.AXIS_HAT_X, MotionEvent.AXIS_HAT_Y,
+                MotionEvent.AXIS_BRAKE, MotionEvent.AXIS_GAS,
+                MotionEvent.AXIS_THROTTLE, MotionEvent.AXIS_RUDDER,
+                MotionEvent.AXIS_LTRIGGER, MotionEvent.AXIS_RTRIGGER -> true
+                else -> false
+            }
+        }
+    }
 
     private class ControllerInputState {
         private var buttonStates = IntArray(256) { UNKNOWN_BUTTON_STATE }

@@ -13,8 +13,10 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import org.citron.citron_emu.NativeLibrary
 import org.citron.citron_emu.features.input.NativeInput
+import org.citron.citron_emu.features.input.model.NativeButton
 import org.citron.citron_emu.overlay.InputOverlay
 import org.citron.citron_emu.utils.InputHandler
+import org.citron.citron_emu.utils.NativeConfig
 import java.io.File
 
 // Embedded Switch emulator host. Runs in the :switch process. The host app
@@ -113,9 +115,16 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         // Only intercept real gamepad sticks/triggers; let the rest fall through.
-        if (event.source and InputDevice.SOURCE_JOYSTICK != InputDevice.SOURCE_JOYSTICK &&
-            event.source and InputDevice.SOURCE_GAMEPAD != InputDevice.SOURCE_GAMEPAD
-        ) {
+        // A device may be registered as a gamepad yet emit motion events whose
+        // `source` lacks the JOYSTICK/GAMEPAD bit (OTG / keyboard-presenting pads),
+        // so also intercept events that originate from a registered controller.
+        val dev = event.device
+        val isGamepadSource = dev != null &&
+            (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK ||
+                event.source and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD)
+        val fromRegisteredPad = dev != null &&
+            InputHandler.androidControllers.containsKey(dev.controllerNumber)
+        if (!isGamepadSource && !fromRegisteredPad) {
             return super.dispatchGenericMotionEvent(event)
         }
         if (menuShown) {
@@ -131,16 +140,22 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         surface = holder.surface
-        NativeLibrary.surfaceChanged(surface)
+        // The core lib (libcitron-android.so) is still loading on the WnCitronInit
+        // thread when the first surface callback fires. Only touch the native
+        // surface once bootstrap has finished, otherwise surfaceChanged throws
+        // UnsatisfiedLinkError and the process dies. maybeRun() re-delivers the
+        // surface (if already created) just before NativeLibrary.run().
+        if (ready.get()) NativeLibrary.surfaceChanged(surface)
         maybeRun()
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        NativeLibrary.surfaceChanged(holder.surface)
+        surface = holder.surface
+        if (ready.get()) NativeLibrary.surfaceChanged(holder.surface)
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        NativeLibrary.surfaceDestroyed()
+        if (ready.get()) NativeLibrary.surfaceDestroyed()
         surface = null
     }
 
@@ -170,6 +185,11 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             return
         }
         CitronHost.applyBootSettings?.invoke(this)
+        // Deliver the Surface to the native renderer now that the core lib is
+        // resident. surfaceCreated may have fired earlier (before bootstrap
+        // finished loading libcitron-android.so) and skipped the native call, so
+        // ensure the renderer has a Surface before emulation starts.
+        surface?.let { NativeLibrary.surfaceChanged(it) }
         Thread({
             try {
                 val siblingUris = intent.getStringArrayListExtra(CitronConsts.EXTRA_ROM_SIBLINGS)
@@ -191,6 +211,11 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
                 runCatching {
                     InputHandler.updateControllerData()
                     Log.i(tag, "registered input devices (physical + overlay)")
+                    // Mirror upstream EmulationActivity: a detected physical controller
+                    // must be auto-mapped to Player 1 (port 0), otherwise the native
+                    // GamePad device exists but the emulated controller never reads
+                    // from it and the gamepad stays dead while the overlay still works.
+                    autoMapFirstController()
                 }.onFailure { Log.e(tag, "InputHandler.updateControllerData failed", it) }
                 Log.i(tag, "starting emulation for $romPath")
                 // frontendInitiated=false mirrors the upstream EmulationFragment call.
@@ -201,6 +226,33 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
                 runOnUiThread { finish() }
             }
         }, "WnCitronRun").start()
+    }
+
+    /**
+     * Binds the first detected physical controller (port 0) to the emulated Player 1,
+     * mirroring upstream EmulationActivity's auto-config. Only runs when Player 1 has no
+     * existing mapping, so it never overwrites a controller setup the user made in the
+     * settings UI (see RetroSwitchControllerSettings). Without it the native GamePad
+     * device exists but Player 1 never reads from it, leaving the external gamepad dead.
+     */
+    private fun autoMapFirstController() {
+        if (InputHandler.androidControllers.isEmpty()) return
+        // Respect an already-configured Player 1 mapping (set via the settings UI).
+        val alreadyBound = runCatching {
+            NativeInput.getButtonParam(0, NativeButton.A).has("engine")
+        }.getOrDefault(false)
+        if (alreadyBound) {
+            Log.i(tag, "Player 1 already has a mapping; skipping auto-map")
+            return
+        }
+        val params = InputHandler.registeredControllers.firstOrNull { it.get("port", -1) == 0 }
+            ?: return
+        val display = params.get("display", "Gamepad")
+        runCatching {
+            NativeInput.updateMappingsWithDefault(0, params, display)
+            NativeConfig.saveGlobalConfig()
+            Log.i(tag, "auto-mapped Player 1 to $display")
+        }.onFailure { Log.e(tag, "auto-map first controller failed", it) }
     }
 
     override fun onPause() {
@@ -216,7 +268,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onDestroy() {
         InputHandler.releaseAllInputs()
-        runCatching { NativeLibrary.stopEmulation() }
+        if (started.get()) runCatching { NativeLibrary.stopEmulation() }
         super.onDestroy()
         // Tear down the process so the next launch starts from a clean state.
         android.os.Process.killProcess(android.os.Process.myPid())
