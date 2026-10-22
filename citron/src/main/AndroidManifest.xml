@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Citron requires Vulkan 1.1; do NOT make it required or we would reject
+         devices that could otherwise run other retro consoles. -->
+    <uses-feature
+        android:name="android.hardware.vulkan.version"
+        android:version="0x401000"
+        android:required="false" />
+
+    <application>
+        <!-- Emulation host. Runs in its own :switch process so it can be torn
+             down with Process.killProcess on exit without affecting the host app. -->
+        <activity
+            android:name="org.citron.citron_emu.wn.WnCitronActivity"
+            android:process=":switch"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+    </application>
+
+</manifest>

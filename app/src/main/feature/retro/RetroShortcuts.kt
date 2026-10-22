@@ -183,11 +183,16 @@ object RetroShortcuts {
         shortcut: Shortcut,
     ) {
         val system = systemForShortcut(shortcut)
-        if (!RetroBundle.requireInstalled(context)) return
+        val needsBundle = system?.needsBundle ?: true
+        if (needsBundle && !RetroBundle.requireInstalled(context)) return
 
         if (system != null && system.isExternal) {
             recordLaunchStats(context, shortcut)
-            launchEmbeddedPs2(context, shortcut)
+            when (system.id) {
+                RetroSystems.PS2.id -> launchEmbeddedPs2(context, shortcut)
+                RetroSystems.SWITCH.id -> CitronEmbedLaunch.launch(context, shortcut)
+                else -> launchEmbeddedPs2(context, shortcut)
+            }
             return
         }
         if (Gen1EmbedLaunch.isEnabled(shortcut)) {

@@ -446,6 +446,7 @@ dependencies {
     implementation project(':armsx2')
     implementation project(':dolphin')
     implementation project(':brotato')
+    implementation project(':citron')
 }
 
 spotless {

@@ -3284,7 +3284,40 @@ Installed path:
     <!-- PS2 GPU driver selection -->
     <string name="retro_gpu_driver">GPU Driver</string>
     <string name="retro_gpu_driver_system">System (Default)</string>
+    <string name="retro_scr_nintendo_switch_keys">Switch Keys (prod.keys)</string>
+    <string name="retro_scr_import_switch_keys">Import Switch Keys</string>
+    <string name="retro_scr_remove_switch_keys">Remove Switch Keys</string>
+    <string name="retro_scr_switch_keys_imported">Imported %1$s</string>
+    <string name="retro_scr_invalid_switch_keys_file">Invalid Switch keys file</string>
+    <string name="retro_scr_no_keys_to_remove">No Switch keys to remove</string>
+    <string name="retro_scr_switch_keys_removed">Switch keys removed</string>
+    <string name="retro_scr_none_switch_keys">None</string>
+    <string name="retro_gs_audio_volume">Audio Volume</string>
+    <string name="retro_gs_vsync">VSync</string>
+    <string name="retro_gs_vsync_off">Off</string>
+    <string name="retro_gs_vsync_on">On</string>
+    <string name="retro_gs_vsync_relaxed">Relaxed</string>
     <string name="retro_gpu_driver_hint">Install Turnip drivers under Settings \u2192 Drivers. The same drivers work for both PC and PS2 games.</string>
+    <!-- Citron (Switch) in-game save data manager -->
+    <string name="retro_scr_switch_saves">Switch Game Saves</string>
+    <string name="retro_scr_switch_saves_hint_title">In-game saves</string>
+    <string name="retro_scr_switch_saves_hint">Games save natively to the emulated NAND. Browse, back up, restore or delete each game\'s save data here.</string>
+    <string name="retro_scr_manage_switch_saves">Manage Switch Game Saves</string>
+    <string name="retro_scr_save_no_saves">No Switch game saves found yet. Play a game first to create one.</string>
+    <string name="retro_scr_save_meta">Size: %1$s \u2022 Modified: %2$s</string>
+    <string name="retro_scr_save_backup">Backup</string>
+    <string name="retro_scr_save_restore">Restore</string>
+    <string name="retro_scr_save_delete">Delete</string>
+    <string name="retro_scr_save_copy_path">Copy Path</string>
+    <string name="retro_scr_save_backed_up">Backed up to: %1$s</string>
+    <string name="retro_scr_save_restored">Save data restored</string>
+    <string name="retro_scr_save_deleted">Save data deleted</string>
+    <string name="retro_scr_save_not_found">Save data not found</string>
+    <string name="retro_scr_save_path_copied">Save path copied to clipboard</string>
+    <string name="retro_scr_save_delete_title">Delete save data?</string>
+    <string name="retro_scr_save_confirm_delete">This will permanently delete this game\'s save data. A backup is recommended first.</string>
+    <string name="retro_scr_save_restore_pick">Select a backup to restore</string>
+    <string name="retro_scr_save_no_backups">No backups for this game yet.</string>
     <!-- PS2 virtual HDD + DNS host hint -->
     <string name="retro_ps2_hdd">PS2 HDD (DEV9)</string>
     <string name="retro_ps2_hdd_subtitle">Virtual internal drive for HDD-based games like Final Fantasy XI. Restarts the game.</string>

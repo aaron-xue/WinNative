@@ -92,4 +92,76 @@ object RetroBiosImport {
                 .edit().putString("bios", target.absolutePath).apply()
             safe
         }
+
+    // Citron (Nintendo Switch) keys: prod.keys and title.keys. They are plain
+    // text key=value files (no fixed magic header), so we only validate the
+    // filename and that the content looks like keys.
+    fun switchKeysDir(context: Context): File =
+        File(context.getExternalFilesDir(null) ?: context.filesDir, "citron/keys").apply { mkdirs() }
+
+    fun installedSwitchKeys(context: Context): List<String> =
+        switchKeysDir(context).listFiles().orEmpty()
+            .filter { it.isFile && (it.name == "prod.keys" || it.name == "title.keys") }
+            .map { it.name }
+            .sorted()
+
+    fun deleteSwitchKeys(context: Context): Int {
+        var removed = 0
+        switchKeysDir(context).listFiles().orEmpty().forEach {
+            if (it.isFile && (it.name == "prod.keys" || it.name == "title.keys") && it.delete()) removed++
+        }
+        context.getSharedPreferences("CITRON", Context.MODE_PRIVATE).edit().clear().apply()
+        return removed
+    }
+
+    fun importSwitchKeysFromUri(
+        context: Context,
+        uri: Uri,
+    ): Result<String> =
+        runCatching {
+            val name =
+                run {
+                    val fromQuery =
+                        if (uri.scheme == "content") {
+                            context.contentResolver.query(
+                                uri,
+                                arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+                                null,
+                                null,
+                                null,
+                            )?.use { if (it.moveToFirst()) it.getString(0) else null }
+                        } else {
+                            null
+                        }
+                    // DirectoryPickerDialog returns a filesystem path wrapped via
+                    // Uri.fromFile(), so for file:// URIs derive the name from the path.
+                    fromQuery ?: uri.lastPathSegment ?: File(uri.path ?: "").name
+                }.takeIf { it.isNotBlank() }
+                    ?: throw IllegalStateException("Could not read file name")
+            val lower = name.lowercase()
+            if (lower != "prod.keys" && lower != "title.keys") {
+                throw IllegalArgumentException("Switch keys must be named prod.keys or title.keys")
+            }
+            val bytes =
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: throw IllegalStateException("Could not read file")
+            if (bytes.size < 64 || bytes.size > 512L * 1024) {
+                throw IllegalArgumentException("This doesn't look like a Citron keys file.")
+            }
+            val text = String(bytes, 0, minOf(bytes.size, 4096), Charsets.UTF_8)
+            if (!text.contains("=") || !text.contains("key", true)) {
+                throw IllegalArgumentException("This doesn't look like a Citron keys file.")
+            }
+            val safe = if (lower == "prod.keys") "prod.keys" else "title.keys"
+            val target = File(switchKeysDir(context), safe)
+            val tmp = File(switchKeysDir(context), "$safe.tmp")
+            tmp.writeBytes(bytes)
+            if (!tmp.renameTo(target)) {
+                target.writeBytes(bytes)
+                tmp.delete()
+            }
+            context.getSharedPreferences("CITRON", Context.MODE_PRIVATE)
+                .edit().putString(safe, target.absolutePath).apply()
+            safe
+        }
 }

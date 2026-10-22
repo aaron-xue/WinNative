@@ -11,6 +11,7 @@ data class RetroSystem(
     val needsBios: Boolean = false,
     val biosFiles: List<String> = emptyList(),
     val badgeLabel: String = shortName,
+    val needsBundle: Boolean = true,
 ) {
     val isExternal: Boolean get() = coreFileName.isBlank()
 }
@@ -115,6 +116,17 @@ object RetroSystems {
             badgeLabel = "PS2",
         )
 
+    val SWITCH =
+        RetroSystem(
+            id = "switch",
+            displayName = "Nintendo Switch",
+            shortName = "Switch",
+            coreFileName = "",
+            extensions = setOf("nsp", "xci", "nca", "nro"),
+            badgeLabel = "Switch",
+            needsBundle = false,
+        )
+
     val GAMECUBE =
         RetroSystem(
             id = "gc",
@@ -138,7 +150,7 @@ object RetroSystems {
     val ALL =
         listOf(
             NES, SNES, GAMEBOY, GAMEBOY_COLOR, GBA, GENESIS, MASTER_SYSTEM, GAME_GEAR,
-            N64, PSX, PS2, GAMECUBE, WII,
+            N64, PSX, PS2, GAMECUBE, WII, SWITCH,
         )
 
     private val PSX_ONLY_EXTENSIONS = setOf("cue", "chd", "pbp", "m3u")

@@ -58,6 +58,10 @@ private val PageSub = Color(0xFF93A6BC)
 private val SHADER_KEYS = listOf("default", "crt", "lcd", "sharp")
 private val UPSCALE_KEYS = listOf("2x", "4x", "native")
 
+// Whether the Citron in-game save manager overlay is shown. File-level (not
+// function-local) so the trailing overlay composable is always in scope.
+private val showSaveManagerState = mutableStateOf(false)
+
 @Composable
 fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
     val context = LocalContext.current
@@ -116,6 +120,28 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                     result
                         .onSuccess { Toast.makeText(context, context.getString(R.string.retro_scr_ps2_bios_imported, it), Toast.LENGTH_SHORT).show() }
                         .onFailure { Toast.makeText(context, it.message ?: context.getString(R.string.retro_scr_invalid_ps2_bios_file), Toast.LENGTH_LONG).show() }
+                    refresh++
+                }
+            }
+        }
+    }
+
+    val importSwitchKeys = {
+        val activity = context as? android.app.Activity
+        if (activity != null) {
+            com.winlator.cmod.shared.android.DirectoryPickerDialog.showFile(
+                activity = activity,
+                title = context.getString(R.string.retro_scr_import_switch_keys),
+                allowedExtensions = setOf("keys"),
+            ) { path ->
+                scope.launch {
+                    val result =
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            RetroBiosImport.importSwitchKeysFromUri(context, android.net.Uri.fromFile(File(path)))
+                        }
+                    result
+                        .onSuccess { Toast.makeText(context, context.getString(R.string.retro_scr_switch_keys_imported, it), Toast.LENGTH_SHORT).show() }
+                        .onFailure { Toast.makeText(context, it.message ?: context.getString(R.string.retro_scr_invalid_switch_keys_file), Toast.LENGTH_LONG).show() }
                     refresh++
                 }
             }
@@ -355,6 +381,138 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                         }
                     }
                 }
+            }
+        }
+
+        RetroSettingGroup {
+            RetroGroupTitle(stringResource(R.string.retro_scr_nintendo_switch_keys))
+            val switchKeys = RetroBiosImport.installedSwitchKeys(context)
+            RetroInfoRow(
+                stringResource(R.string.retro_scr_installed),
+                if (switchKeys.isEmpty()) {
+                    stringResource(R.string.retro_scr_none_switch_keys)
+                } else {
+                    switchKeys.joinToString(", ")
+                },
+            )
+            Button(
+                onClick = { runCatching { importSwitchKeys() } },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .paneNavItem(
+                            cornerRadius = 8.dp,
+                            onActivate = { runCatching { importSwitchKeys() } },
+                            highlightColor = Color(0xFF4FC3F7),
+                            tapToSelect = true,
+                        ),
+            ) {
+                Text(stringResource(R.string.retro_scr_import_switch_keys))
+            }
+            if (switchKeys.isNotEmpty()) {
+                OutlinedButton(
+                    onClick = {
+                        val n = RetroBiosImport.deleteSwitchKeys(context)
+                        Toast.makeText(
+                            context,
+                            if (n > 0) {
+                                context.getString(R.string.retro_scr_switch_keys_removed)
+                            } else {
+                                context.getString(R.string.retro_scr_no_keys_to_remove)
+                            },
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        refresh++
+                    },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                            .paneNavItem(
+                                cornerRadius = 8.dp,
+                                onActivate = {
+                                    val n = RetroBiosImport.deleteSwitchKeys(context)
+                                    Toast.makeText(
+                                        context,
+                                        if (n > 0) {
+                                            context.getString(R.string.retro_scr_switch_keys_removed)
+                                        } else {
+                                            context.getString(R.string.retro_scr_no_keys_to_remove)
+                                        },
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                    refresh++
+                                },
+                                highlightColor = Color(0xFF4FC3F7),
+                                tapToSelect = true,
+                            ),
+                ) {
+                    Text(stringResource(R.string.retro_scr_remove_switch_keys))
+                }
+            }
+        }
+
+        RetroSettingGroup {
+            RetroGroupTitle(stringResource(R.string.retro_gpu_driver))
+            val switchDrivers = remember { com.armsx2.CustomDriver.listInstalled(context) }
+            val citronPrefs = remember { context.getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE) }
+            val driverIds = remember(switchDrivers) { listOf("") + switchDrivers.map { it.id } }
+            val driverLabels = listOf(stringResource(R.string.retro_gpu_driver_system)) + switchDrivers.map { it.name }
+            val curDriver = citronPrefs.getString("wn.switch.driver", "") ?: ""
+            RetroSettingDropdown(
+                stringResource(R.string.retro_gpu_driver),
+                driverLabels,
+                driverIds.indexOf(curDriver).coerceAtLeast(0),
+            ) { idx ->
+                val id = driverIds[idx]
+                if (id.isEmpty()) {
+                    citronPrefs.edit()
+                        .remove("wn.switch.driver")
+                        .remove("wn.switch.driverDir")
+                        .remove("wn.switch.driverName")
+                        .remove("wn.switch.driverRedirect")
+                        .apply()
+                } else {
+                    switchDrivers.firstOrNull { it.id == id }?.let { d ->
+                        citronPrefs.edit()
+                            .putString("wn.switch.driver", id)
+                            .putString("wn.switch.driverDir", d.driverDir.absolutePath + "/")
+                            .putString("wn.switch.driverName", d.libraryName)
+                            .putString("wn.switch.driverRedirect", d.redirectDir.absolutePath + "/")
+                            .apply()
+                    }
+                }
+                refresh++
+            }
+            if (switchDrivers.isEmpty()) {
+                Text(
+                    stringResource(R.string.retro_gpu_driver_hint),
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+
+        RetroSettingGroup {
+            RetroGroupTitle(stringResource(R.string.retro_scr_switch_saves))
+            RetroInfoRow(
+                stringResource(R.string.retro_scr_switch_saves_hint_title),
+                stringResource(R.string.retro_scr_switch_saves_hint),
+            )
+            Button(
+                onClick = { showSaveManagerState.value = true },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .paneNavItem(
+                            cornerRadius = 8.dp,
+                            onActivate = { showSaveManagerState.value = true },
+                            highlightColor = Color(0xFF4FC3F7),
+                            tapToSelect = true,
+                        ),
+            ) {
+                Text(stringResource(R.string.retro_scr_manage_switch_saves))
             }
         }
 
@@ -1191,5 +1349,9 @@ private fun RetroConsoleBundleGroup(
                 }
             }
         }
+    }
+
+    if (showSaveManagerState.value) {
+        CitronSaveManagerScreen(onClose = { showSaveManagerState.value = false })
     }
 }

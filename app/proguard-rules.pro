@@ -248,6 +248,16 @@
 -keepclassmembers class org.dolphinemu.dolphinemu.** { *; }
 -dontwarn org.dolphinemu.dolphinemu.**
 
+# Citron (Nintendo Switch) emulator — libcitron-android.so resolves
+# org.citron.citron_emu.NativeLibrary / .utils.NativeConfig and the WnCitronActivity
+# host by JNI name. R8 renames/optimizes them in release (minifyEnabled=true) and
+# the native lookup fails (release-only NoSuchMethodError / SIGABRT), same root
+# cause as the armsx2 / dolphin / godot keeps above. Keep the whole package.
+# [[citron_jni_callbacks]]
+-keep class org.citron.citron_emu.** { *; }
+-keepclassmembers class org.citron.citron_emu.** { *; }
+-dontwarn org.citron.citron_emu.**
+
 # Godot engine (the brotato game module, namespace org.godotengine.godot +
 # com.godot.game). libgodot_android.so resolves Java classes and methods BY NAME
 # via JNI GetMethodID/FindClass from inside Java_org_godotengine_godot_GodotLib_

@@ -39,7 +39,7 @@ class PluviaApp : Application() {
                     am.runningAppProcesses?.firstOrNull { it.pid == pid }?.processName
                 }.getOrNull()
             }
-        return name?.endsWith(":ps2") == true || name?.endsWith(":gc") == true
+        return name?.endsWith(":ps2") == true || name?.endsWith(":gc") == true || name?.endsWith(":switch") == true
     }
 
     override fun onCreate() {
@@ -72,6 +72,7 @@ class PluviaApp : Application() {
 
         com.winlator.cmod.feature.retro.Ps2GameOverlay.install()
         com.winlator.cmod.feature.retro.DolphinGameOverlay.install()
+        com.winlator.cmod.feature.retro.CitronGameOverlay.install()
         if (isPs2Process()) return
 
         // Cached probe for devices whose native stack still needs system libjpeg preloaded.

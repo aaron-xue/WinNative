@@ -590,9 +590,9 @@ private fun RetroSectionContent(
             ) {
                 when (sections.getOrNull(idx)?.id) {
                     RetroSectionId.GENERAL -> RetroGeneralSection(state, onPickArtwork, onRemoveArtwork, onImportBios)
-                    RetroSectionId.GRAPHICS -> RetroGraphicsSection(state)
+                    RetroSectionId.GRAPHICS -> if (state.system?.id == RetroSystems.SWITCH.id) RetroCitronSettingsSection() else RetroGraphicsSection(state)
                     RetroSectionId.FRAMEGEN -> RetroFrameGenerationGroup(state)
-                    RetroSectionId.PERFORMANCE -> RetroPs2PerformanceSection()
+                    RetroSectionId.PERFORMANCE -> if (state.system?.id == RetroSystems.SWITCH.id) RetroCitronSettingsSection() else RetroPs2PerformanceSection()
                     RetroSectionId.HUD ->
                         if (state.system?.isExternal == true) {
                             RetroPs2HudSection(state)
@@ -600,7 +600,7 @@ private fun RetroSectionContent(
                             RetroLibretroHudSection(state.hud) { state.hud = it }
                         }
                     RetroSectionId.INPUT -> RetroInputSection(state)
-                    RetroSectionId.AUDIO -> RetroAudioSection(state)
+                    RetroSectionId.AUDIO -> if (state.system?.id == RetroSystems.SWITCH.id) RetroCitronSettingsSection() else RetroAudioSection(state)
                     RetroSectionId.ONLINE -> {
                         when {
                             RetroOnlineSupport.supportsDev9(state.system?.id) ->
@@ -1016,6 +1016,7 @@ private fun coreDisplayName(system: RetroSystem?): String =
     when {
         system == null -> ""
         system.id == RetroSystems.PS2.id -> "ARMSX2"
+        system.id == RetroSystems.SWITCH.id -> "CITRON"
         RetroCoreManager.usesDolphinCore(system) -> "Dolphin"
         else -> system.coreFileName
     }
@@ -2026,6 +2027,57 @@ private fun RetroPs2GraphicsSection() {
         ) { putInt("wn.ps2.frameskip", it) }
         RetroSettingSwitch(stringResource(R.string.retro_gs_widescreen_patches), prefs.getBoolean("wn.ps2.widescreen", false)) { putBool("wn.ps2.widescreen", it) }
         RetroSettingSwitch(stringResource(R.string.retro_gs_no_interlace_patches), prefs.getBoolean("wn.ps2.nointerlace", false)) { putBool("wn.ps2.nointerlace", it) }
+    }
+}
+
+// Switch (Citron) settings. Persists to the "CITRON" SharedPreferences; the values
+// are applied to Citron's config.ini by CitronHost.applyBootSettings before run().
+@Composable
+private fun RetroCitronSettingsSection() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember(context) { context.getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE) }
+    var version by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+
+    @Suppress("UNUSED_EXPRESSION") version
+
+    fun putStr(key: String, value: String) { prefs.edit().putString(key, value).apply(); version++ }
+    fun putInt(key: String, value: Int) { prefs.edit().putInt(key, value).apply(); version++ }
+
+    RetroSettingGroup {
+        RetroGroupTitle(stringResource(R.string.retro_gs_group_video))
+        val backends = listOf("Vulkan", "OpenGL")
+        val backendLabels = listOf(
+            stringResource(R.string.retro_gs_renderer_vulkan),
+            stringResource(R.string.retro_gs_renderer_opengl),
+        )
+        RetroSettingDropdown(
+            stringResource(R.string.retro_gs_renderer),
+            backendLabels,
+            backends.indexOf(prefs.getString("wn.switch.renderer", "Vulkan")).coerceAtLeast(0),
+        ) { putStr("wn.switch.renderer", backends[it]) }
+        val scales = listOf(1, 2, 3, 4, 5, 6)
+        RetroSettingDropdown(
+            stringResource(R.string.retro_gs_resolution_scale),
+            scales.map { "${it}x" },
+            scales.indexOf(prefs.getInt("wn.switch.resolution", 1)).coerceAtLeast(0),
+        ) { putInt("wn.switch.resolution", scales[it]) }
+        val vsync = listOf(0, 1, 2)
+        RetroSettingDropdown(
+            stringResource(R.string.retro_gs_vsync),
+            listOf(
+                stringResource(R.string.retro_gs_vsync_off),
+                stringResource(R.string.retro_gs_vsync_on),
+                stringResource(R.string.retro_gs_vsync_relaxed),
+            ),
+            vsync.indexOf(prefs.getInt("wn.switch.vsync", 1)).coerceAtLeast(0),
+        ) { putInt("wn.switch.vsync", vsync[it]) }
+        RetroGroupTitle(stringResource(R.string.retro_gs_group_audio))
+        val vols = listOf(0, 25, 50, 75, 100)
+        RetroSettingDropdown(
+            stringResource(R.string.retro_gs_audio_volume),
+            vols.map { "$it%" },
+            vols.indexOf(prefs.getInt("wn.switch.audio", 100)).coerceAtLeast(0),
+        ) { putInt("wn.switch.audio", vols[it]) }
     }
 }
 
