@@ -28,9 +28,14 @@ android {
         jvmTarget = '17'
     }
 
-    packaging {
-        jniLibs {
-            useLegacyPackaging true
+    // The 12 Switch native libs (libcitron-android + FFmpeg + adrenotools hooks) are
+    // NOT bundled into the APK. They ship inside the Retro-Consoles bundle under
+    // `data/citron/jniLibs/` and are extracted at runtime, then loaded directly via
+    // System.load (see CitronBootstrap). Drop the jniLibs source set so they are no
+    // longer packaged.
+    sourceSets {
+        main {
+            jniLibs.srcDirs = []
         }
     }
 }
