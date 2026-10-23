@@ -66,10 +66,6 @@ private val UPSCALE_KEYS = listOf("2x", "4x", "native")
 // category list; selecting a category reveals only that category's settings.
 private enum class RetroMenuScreen { MENU, ACHIEVEMENTS, SWITCH, LIBRARY, CONSOLES }
 
-// Whether the Citron in-game save manager overlay is shown. File-level (not
-// function-local) so the trailing overlay composable is always in scope.
-private val showSaveManagerState = mutableStateOf(false)
-
 @Composable
 fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
     val context = LocalContext.current
@@ -149,6 +145,9 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                 currentScreen = RetroMenuScreen.MENU
             }
         }
+        if (currentScreen == RetroMenuScreen.SWITCH) {
+            RetroSwitchScreen(onBack = { currentScreen = RetroMenuScreen.MENU })
+        } else {
         LazyColumn(
         state = listState,
         modifier =
@@ -269,15 +268,6 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
             }
 
 
-
-            if (currentScreen == RetroMenuScreen.SWITCH) {
-                stickyHeader {
-                    RetroBackRow { currentScreen = RetroMenuScreen.MENU }
-                }
-                item {
-                    RetroSwitchScreen(onManageSaves = { showSaveManagerState.value = true })
-                }
-            }
 
             if (currentScreen == RetroMenuScreen.LIBRARY) {
                 stickyHeader {
@@ -864,11 +854,9 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                 }
             }
         }
+        }
     }
 
-    if (showSaveManagerState.value) {
-        CitronSaveManagerScreen(onClose = { showSaveManagerState.value = false })
-    }
 }
 
 
