@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      Material3 theme used ONLY to inflate the loading card via ContextThemeWrapper,
+      because WnCitronActivity itself uses a framework fullscreen theme
+      (@android:style/Theme.NoTitleBar.Fullscreen) that lacks the Material attributes
+      MaterialCardView / LinearProgressIndicator need. Colors are pinned to the host
+      app's dark palette so the outlined card matches the rest of the UI.
+    -->
+    <style name="Theme.WnCitronLoading" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#FF4FC3F7</item>
+        <item name="colorSurface">#FF1C232E</item>
+        <item name="colorOnSurface">#FFF0F4FF</item>
+        <item name="colorOnSurfaceVariant">#FF93A6BC</item>
+        <item name="colorOutline">#FF2A3344</item>
+    </style>
+
+</resources>

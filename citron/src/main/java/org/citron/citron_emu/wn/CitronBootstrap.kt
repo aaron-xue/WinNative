@@ -94,6 +94,16 @@ object CitronBootstrap {
         NativeLibrary.setAppDirectory(userDir.absolutePath)
         // 2. load global config (creates default config.ini if absent)
         NativeConfig.initializeGlobalConfig()
+        // 2b. apply host-configured emulated region/language (chosen in the Switch
+        //     settings screen, stored in the "CITRON" prefs). When unset, the default is
+        //     derived from the Android system locale (SwitchLocaleDefaults). Set on the
+        //     in-memory config so the SET HLE services boot with them, and persist.
+        runCatching {
+            val switchPrefs = appCtx.getSharedPreferences("CITRON", Context.MODE_PRIVATE)
+            NativeConfig.setInt("region_index", switchPrefs.getInt("wn.switch.region_index", SwitchLocaleDefaults.defaultRegion()))
+            NativeConfig.setInt("language_index", switchPrefs.getInt("wn.switch.language_index", SwitchLocaleDefaults.defaultLanguage()))
+            NativeConfig.saveGlobalConfig()
+        }.onFailure { Log.w(TAG, "failed to apply region/language", it) }
         // 3. load prod.keys / title.keys (no-op if the user has not supplied them)
         NativeLibrary.reloadKeys()
         // 4. bring up the HLE system / services
@@ -112,6 +122,51 @@ object CitronBootstrap {
         } else {
             NativeLibrary.initializeGpuDriver(nativeLibDir, null, null, null)
         }
+    }
+
+    @Volatile
+    private var metadataNativeLoaded = false
+
+    /**
+     * Prepares the native core in the HOST app process so read-only metadata APIs such
+     * as org.citron.citron_emu.utils.GameMetadata.getTitle/getIcon can be called —
+     * used to scrape a Switch NSP's name + cover art when adding it to the library.
+     *
+     * GameMetadata internally does EmulationSession::GetInstance().System()..., which
+     * dereferences the emulated Core::System; that singleton only exists AFTER
+     * NativeLibrary.initializeSystem(). Skipping it makes getTitle/getIcon segfault
+     * (SIGSEGV at 0x0), which runCatching cannot catch. So we mirror ensure()'s init
+     * (setAppDirectory -> global config -> keys -> initializeSystem) but intentionally
+     * SKIP initializeGpuDriver (no surface here, and not needed to read control data).
+     * Returns true if the core lib is resident and the system is initialized.
+     */
+    fun ensureNativeForMetadata(context: Context): Boolean {
+        if (metadataNativeLoaded) return true
+        val appCtx = context.applicationContext
+        if (!loadNativeLibraries(appCtx)) {
+            Log.e(
+                TAG,
+                "ensureNativeForMetadata: core native libs not loaded — install the " +
+                    "Retro-Consoles bundle (data/citron/jniLibs)",
+            )
+            return false
+        }
+        val ok = runCatching {
+            NativeLibrary.appContext = appCtx
+            val userDir = File(appCtx.getExternalFilesDir(null), USER_DIR_NAME).apply { mkdirs() }
+            NativeLibrary.setAppDirectory(userDir.absolutePath)
+            NativeConfig.initializeGlobalConfig()
+            NativeLibrary.reloadKeys()
+            // Required: brings up EmulationSession's Core::System so GameMetadata's
+            // loader calls have a valid System() to read the control NCA from. Skipping
+            // this is what made selecting an NSP crash with SIGSEGV at 0x0.
+            NativeLibrary.initializeSystem(false)
+        }.onFailure {
+            Log.e(TAG, "ensureNativeForMetadata: native init failed", it)
+        }.isSuccess
+        if (!ok) return false
+        metadataNativeLoaded = true
+        return true
     }
 
     /**

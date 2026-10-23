@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Loading overlay (see layout/wn_citron_loading.xml). -->
+    <string name="wn_loading">Loading</string>
+    <string name="wn_loading_title_fallback">Nintendo Switch</string>
+</resources>

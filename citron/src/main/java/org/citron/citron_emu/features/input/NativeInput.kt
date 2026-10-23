@@ -100,79 +100,53 @@ object NativeInput {
     /** Enumerates connected Android input device ids (as strings). */
     external fun getInputDevices(): Array<String>
 
-    /** Returns the controller style (handheld vs pro/etc.) for the given port index. */
-    external fun getStyleIndex(index: Int): NpadStyleIndex
+    /**
+     * Returns the [NpadStyleIndex] for the given port. The JNI symbol actually exported by
+     * libcitron-android.so (built from the upstream emulator source) is `getStyleIndexImpl`;
+     * the public `getStyleIndex` is a thin Kotlin wrapper. Declaring it directly as `external`
+     * would look for a non-existent `..._getStyleIndex__I` symbol and throw `No implementation
+     * found`.
+     */
+    fun getStyleIndex(playerIndex: Int): NpadStyleIndex =
+        NpadStyleIndex.from(getStyleIndexImpl(playerIndex))
+
+    private external fun getStyleIndexImpl(playerIndex: Int): Int
 
     /** Safe variant for the overlay so a missing native symbol can't crash input. */
     fun getStyleIndexSafe(index: Int): NpadStyleIndex =
         runCatching { getStyleIndex(index) }.getOrDefault(NpadStyleIndex.None)
 
-    // --- Input mapping / configuration (ported from upstream citron so the embedded
-    // launcher can offer full controller setup: device-per-player binding, per-button
-    // and per-stick rebinding, connect/disconnect and reload). These mirror the
-    // Java_org_citron_citron_1emu_features_input_NativeInput_* symbols exported by
-    // libcitron-android.so. ---
-
-    /** Gameplay-free capture path used while binding: send a button by device GUID. */
-    external fun onGamePadButtonEvent(guid: String, port: Int, buttonId: Int, action: Int)
-
-    /** Gameplay-free capture path used while binding: send an axis by device GUID. */
-    external fun onGamePadAxisEvent(guid: String, port: Int, axis: Int, value: Float)
-
-    /** Tells the input subsystem to start listening for inputs to map. */
-    external fun beginMapping(type: Int)
-
-    /** Reads a captured input as a serialized ParamPackage. Call between begin/stopMapping. */
-    external fun getNextInput(): String
-
-    /** Tells the input subsystem to stop listening for inputs to map. */
-    external fun stopMapping()
-
+    /**
+     * Reads a button's current mapping param for a player. Used by the host to detect whether
+     * Player 1 already has a binding (so we don't overwrite a user-configured controller).
+     */
     fun getButtonParam(playerIndex: Int, button: NativeButton): ParamPackage =
         ParamPackage(getButtonParamImpl(playerIndex, button.int))
 
     private external fun getButtonParamImpl(playerIndex: Int, buttonId: Int): String
 
-    fun setButtonParam(playerIndex: Int, button: NativeButton, param: ParamPackage) =
-        setButtonParamImpl(playerIndex, button.int, param.serialize())
+    /**
+     * Auto-maps a player's inputs to the given device. Mirrors upstream citron so a detected
+     * controller (or the on-screen overlay) is actually bound to the emulated Player 1; without
+     * this the native GamePad device exists but the emulated controller has no mapping to read
+     * from, so the gamepad (virtual or physical) is dead until the first input "wakes" it.
+     */
+    fun updateMappingsWithDefault(
+        playerIndex: Int,
+        deviceParams: ParamPackage,
+        displayName: String,
+    ) = updateMappingsWithDefaultImpl(playerIndex, deviceParams.serialize(), displayName)
 
-    private external fun setButtonParamImpl(playerIndex: Int, buttonId: Int, param: String)
-
-    fun getStickParam(playerIndex: Int, stick: NativeAnalog): ParamPackage =
-        ParamPackage(getStickParamImpl(playerIndex, stick.int))
-
-    private external fun getStickParamImpl(playerIndex: Int, stickId: Int): String
-
-    fun setStickParam(playerIndex: Int, stick: NativeAnalog, param: ParamPackage) =
-        setStickParamImpl(playerIndex, stick.int, param.serialize())
-
-    private external fun setStickParamImpl(playerIndex: Int, stickId: Int, param: String)
-
-    fun getButtonName(param: ParamPackage): ButtonName =
-        ButtonName.from(getButtonNameImpl(param.serialize()))
-
-    private external fun getButtonNameImpl(param: String): Int
-
-    fun getSupportedStyleTags(playerIndex: Int): List<NpadStyleIndex> =
-        getSupportedStyleTagsImpl(playerIndex).map { NpadStyleIndex.from(it) }
-
-    private external fun getSupportedStyleTagsImpl(playerIndex: Int): IntArray
-
-    fun setStyleIndex(playerIndex: Int, style: NpadStyleIndex) =
-        setStyleIndexImpl(playerIndex, style.int)
-
-    private external fun setStyleIndexImpl(playerIndex: Int, styleIndex: Int)
-
-    fun isController(params: ParamPackage): Boolean = isControllerImpl(params.serialize())
-
-    private external fun isControllerImpl(params: String): Boolean
-
-    external fun getIsConnected(playerIndex: Int): Boolean
+    private external fun updateMappingsWithDefaultImpl(
+        playerIndex: Int,
+        deviceParams: String,
+        displayName: String,
+    )
 
     /**
-     * Connects/disconnects a controller and keeps connection order intact. Mirrors
-     * upstream: connecting player N also connects players 0..N; disconnecting N
-     * keeps players 0..N-1 connected.
+     * Connects/disconnects a controller and keeps connection order intact. Mirrors upstream:
+     * connecting player N also connects players 0..N; disconnecting N keeps players 0..N-1
+     * connected. Used here to ensure Player 1 is live immediately after auto-mapping.
      */
     fun connectControllers(playerIndex: Int, connected: Boolean = true) {
         val connectedControllers = mutableListOf<Boolean>().apply {
@@ -186,9 +160,4 @@ object NativeInput {
     }
 
     private external fun connectControllersImpl(connected: BooleanArray)
-
-    external fun resetControllerMappings(playerIndex: Int)
-
-    /** Reloads all input devices from Settings::values.players into HID Core. */
-    external fun reloadInputDevices()
 }

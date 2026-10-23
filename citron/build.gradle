@@ -44,4 +44,5 @@ dependencies {
     implementation libs.coreKtx
     implementation libs.appcompat
     implementation libs.activityKtx
+    implementation libs.material
 }
