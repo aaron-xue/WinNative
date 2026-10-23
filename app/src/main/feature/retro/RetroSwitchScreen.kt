@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.winlator.cmod.R
+import org.citron.citron_emu.wn.SwitchLocaleDefaults
 import com.winlator.cmod.shared.android.DirectoryPickerDialog
 import com.winlator.cmod.shared.ui.dialog.WinNativeComposeDialogs
 import com.winlator.cmod.shared.ui.nav.paneNavItem
@@ -221,6 +222,59 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
                             fontSize = 11.sp,
                             modifier = Modifier.padding(top = 8.dp),
                         )
+                    }
+                }
+            }
+            item {
+                RetroSettingGroup {
+                    RetroGroupTitle(stringResource(R.string.retro_scr_emulated_system))
+                    val citronPrefs = remember { context.getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE) }
+                    // region_index / language_index values are the emulator's own enum
+                    // indices (see emulator res regionValues/languageValues); the lists are
+                    // ordered by value so the dropdown index equals the stored setting value.
+                    val regionLabels = listOf(
+                        stringResource(R.string.retro_scr_region_japan),
+                        stringResource(R.string.retro_scr_region_usa),
+                        stringResource(R.string.retro_scr_region_europe),
+                        stringResource(R.string.retro_scr_region_australia),
+                        stringResource(R.string.retro_scr_region_china),
+                        stringResource(R.string.retro_scr_region_korea),
+                        stringResource(R.string.retro_scr_region_taiwan),
+                    )
+                    val languageLabels = listOf(
+                        stringResource(R.string.retro_scr_lang_japanese),
+                        stringResource(R.string.retro_scr_lang_english),
+                        stringResource(R.string.retro_scr_lang_french),
+                        stringResource(R.string.retro_scr_lang_german),
+                        stringResource(R.string.retro_scr_lang_italian),
+                        stringResource(R.string.retro_scr_lang_spanish),
+                        stringResource(R.string.retro_scr_lang_chinese),
+                        stringResource(R.string.retro_scr_lang_korean),
+                        stringResource(R.string.retro_scr_lang_dutch),
+                        stringResource(R.string.retro_scr_lang_portuguese),
+                        stringResource(R.string.retro_scr_lang_russian),
+                        stringResource(R.string.retro_scr_lang_taiwanese),
+                        stringResource(R.string.retro_scr_lang_british_english),
+                        stringResource(R.string.retro_scr_lang_canadian_french),
+                        stringResource(R.string.retro_scr_lang_latin_american_spanish),
+                        stringResource(R.string.retro_scr_lang_simplified_chinese),
+                        stringResource(R.string.retro_scr_lang_traditional_chinese),
+                        stringResource(R.string.retro_scr_lang_brazilian_portuguese),
+                    )
+                    // Hold the selection in Compose state so the choice is reflected
+                    // immediately after picking. Relying on refresh++ + re-reading
+                    // SharedPreferences during composition didn't reliably update the
+                    // visible selection until the screen was re-entered. We still write
+                    // the pref so the value survives re-entry and is read at game launch.
+                    var curRegion by remember { mutableIntStateOf(citronPrefs.getInt("wn.switch.region_index", SwitchLocaleDefaults.defaultRegion()).coerceIn(regionLabels.indices)) }
+                    var curLanguage by remember { mutableIntStateOf(citronPrefs.getInt("wn.switch.language_index", SwitchLocaleDefaults.defaultLanguage()).coerceIn(languageLabels.indices)) }
+                    RetroSettingDropdown(stringResource(R.string.retro_scr_emulated_region), regionLabels, curRegion) { idx ->
+                        curRegion = idx
+                        citronPrefs.edit().putInt("wn.switch.region_index", idx).apply()
+                    }
+                    RetroSettingDropdown(stringResource(R.string.retro_scr_emulated_language), languageLabels, curLanguage) { idx ->
+                        curLanguage = idx
+                        citronPrefs.edit().putInt("wn.switch.language_index", idx).apply()
                     }
                 }
             }

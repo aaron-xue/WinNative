@@ -94,6 +94,16 @@ object CitronBootstrap {
         NativeLibrary.setAppDirectory(userDir.absolutePath)
         // 2. load global config (creates default config.ini if absent)
         NativeConfig.initializeGlobalConfig()
+        // 2b. apply host-configured emulated region/language (chosen in the Switch
+        //     settings screen, stored in the "CITRON" prefs). When unset, the default is
+        //     derived from the Android system locale (SwitchLocaleDefaults). Set on the
+        //     in-memory config so the SET HLE services boot with them, and persist.
+        runCatching {
+            val switchPrefs = appCtx.getSharedPreferences("CITRON", Context.MODE_PRIVATE)
+            NativeConfig.setInt("region_index", switchPrefs.getInt("wn.switch.region_index", SwitchLocaleDefaults.defaultRegion()))
+            NativeConfig.setInt("language_index", switchPrefs.getInt("wn.switch.language_index", SwitchLocaleDefaults.defaultLanguage()))
+            NativeConfig.saveGlobalConfig()
+        }.onFailure { Log.w(TAG, "failed to apply region/language", it) }
         // 3. load prod.keys / title.keys (no-op if the user has not supplied them)
         NativeLibrary.reloadKeys()
         // 4. bring up the HLE system / services
