@@ -1,6 +1,8 @@
 package org.citron.citron_emu.wn
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.InputDevice
 import android.view.KeyEvent
@@ -8,10 +10,14 @@ import android.view.MotionEvent
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.View
 import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import org.citron.citron_emu.NativeLibrary
+import org.citron.citron_emu.R
 import org.citron.citron_emu.features.input.NativeInput
 import org.citron.citron_emu.features.input.model.NativeButton
 import org.citron.citron_emu.overlay.InputOverlay
@@ -34,6 +40,23 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val ready = java.util.concurrent.atomic.AtomicBoolean(false)
     private var menuShown = false
 
+    // Loading overlay (game title + spinner + "Loading…") shown over the SurfaceView while
+    // the NSP installs and the core boots; dismissed once NativeLibrary.isRunning() is true
+    // (mirrors citron's EmulationFragment loading indicator).
+    private var loadingOverlay: View? = null
+    private val overlaysAttached = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val pollRunning = object : Runnable {
+        override fun run() {
+            if (runCatching { NativeLibrary.isRunning() }.getOrDefault(false)) {
+                loadingOverlay?.visibility = View.GONE
+                attachGameOverlays()
+            } else {
+                mainHandler.postDelayed(this, 100)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -49,6 +72,22 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             )
         }
         setContentView(root)
+
+        // Loading overlay on top of the SurfaceView while the NSP installs and the core
+        // boots. Dismissed by the isRunning() poll in maybeRun(); the host overlay and the
+        // on-screen gamepad are attached then too (see attachGameOverlays) so they never
+        // float above the loading screen.
+        loadingOverlay = buildLoadingOverlay(
+            intent.getStringExtra(CitronConsts.EXTRA_GAME_NAME),
+            intent.getStringExtra(CitronConsts.EXTRA_GAME_ICON),
+        )
+        root.addView(
+            loadingOverlay,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
 
         // Native-side hooks. Save/load/fast-forward have no native API yet, so they
         // are implemented as user-visible no-ops until P2 wires the backend.
@@ -66,21 +105,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             }
             runOnUiThread {
                 ready.set(true)
-                // Attach the host overlay after layout settles (mirrors PS2's postDelayed).
-                window.decorView.postDelayed({
-                    CitronHost.attachOverlay?.invoke(this@WnCitronActivity)
-                    // Add the on-screen gamepad overlay ABOVE the host's overlay so it
-                    // actually receives touch events; otherwise the host Compose overlay
-                    // intercepts every touch and our controls stay dead.
-                    inputOverlay = InputOverlay(this@WnCitronActivity)
-                    window.addContentView(
-                        inputOverlay,
-                        FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                        ),
-                    )
-                }, 50)
+                // Overlays (host Compose menu + on-screen gamepad) are attached in
+                // attachGameOverlays() once emulation is actually running, so they don't
+                // appear above the loading screen.
                 maybeRun()
             }
         }, "WnCitronInit").start()
@@ -172,6 +199,8 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             return
         }
         CitronHost.applyBootSettings?.invoke(this)
+        // Dismiss the loading overlay once the core reports it is running.
+        mainHandler.post(pollRunning)
         Thread({
             try {
                 val siblingUris = intent.getStringArrayListExtra(CitronConsts.EXTRA_ROM_SIBLINGS)
@@ -243,6 +272,55 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
         }.onFailure { Log.e(tag, "auto-map first controller failed", it) }
     }
 
+    /**
+     * Attaches the host Compose overlay and the on-screen gamepad exactly once, after the
+     * core reports it is running. Deferring this from onCreate keeps them from floating
+     * above the loading screen. The gamepad is added ABOVE the host overlay so it receives
+     * touch events (otherwise the host Compose overlay intercepts every touch).
+     */
+    private fun attachGameOverlays() {
+        if (!overlaysAttached.compareAndSet(false, true)) return
+        window.decorView.post {
+            CitronHost.attachOverlay?.invoke(this)
+            inputOverlay = InputOverlay(this)
+            window.addContentView(
+                inputOverlay,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                ),
+            )
+        }
+    }
+
+    /**
+     * Inflates the loading overlay (R.layout.wn_citron_loading) shown while the game
+     * installs/boots: an outlined MaterialCardView centered on a dark backdrop, with the
+     * cover art on the left and (title + "Loading" + indeterminate LinearProgressIndicator)
+     * on the right — mirroring the emulator's fragment_emulation.xml loading_indicator.
+     *
+     * The card is inflated with a Material3 ContextThemeWrapper because WnCitronActivity
+     * uses a framework fullscreen theme that lacks the Material attributes the widgets need.
+     */
+    private fun buildLoadingOverlay(gameName: String?, coverPath: String?): View {
+        val themed = android.view.ContextThemeWrapper(this, R.style.Theme_WnCitronLoading)
+        val view = android.view.LayoutInflater.from(themed).inflate(R.layout.wn_citron_loading, null)
+
+        view.findViewById<TextView>(R.id.wn_loading_title)?.text =
+            gameName?.takeIf { it.isNotBlank() } ?: getString(R.string.wn_loading_title_fallback)
+
+        val cover = view.findViewById<ImageView>(R.id.wn_loading_image)
+        val bmp = runCatching {
+            coverPath?.takeIf { it.isNotBlank() }?.let { android.graphics.BitmapFactory.decodeFile(it) }
+        }.getOrNull()
+        if (bmp != null) {
+            cover?.setImageBitmap(bmp)
+        } else {
+            cover?.visibility = View.GONE
+        }
+        return view
+    }
+
     override fun onPause() {
         super.onPause()
         InputHandler.releaseAllInputs()
@@ -255,6 +333,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun onDestroy() {
+        mainHandler.removeCallbacks(pollRunning)
         InputHandler.releaseAllInputs()
         runCatching { NativeLibrary.stopEmulation() }
         super.onDestroy()

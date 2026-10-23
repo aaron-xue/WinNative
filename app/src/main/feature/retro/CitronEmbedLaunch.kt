@@ -114,6 +114,7 @@ object CitronEmbedLaunch {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
             putExtra(CitronConsts.EXTRA_ROM_PATH, rom.absolutePath)
             putExtra(CitronConsts.EXTRA_GAME_NAME, shortcut.getExtra("custom_name", shortcut.name))
+            putExtra(CitronConsts.EXTRA_GAME_ICON, shortcut.getExtra("customCoverArtPath", ""))
             putExtra(CitronConsts.EXTRA_SHORTCUT_PATH, shortcut.file.absolutePath)
             putExtra(CitronConsts.EXTRA_CONTAINER_ID, shortcut.container.id)
             putStringArrayListExtra(CitronConsts.EXTRA_ROM_SIBLINGS, ArrayList(siblingUris))
