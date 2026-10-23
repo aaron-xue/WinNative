@@ -105,6 +105,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             }
             runOnUiThread {
                 ready.set(true)
+                // The SurfaceView surface may have been created before the .so finished
+                // loading; apply it now that the native side is live.
+                if (surface != null) runCatching { NativeLibrary.surfaceChanged(surface) }
                 // Overlays (host Compose menu + on-screen gamepad) are attached in
                 // attachGameOverlays() once emulation is actually running, so they don't
                 // appear above the loading screen.
@@ -152,7 +155,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
         }
         window.decorView.requestUnbufferedDispatch(event.source)
         if (event.action == MotionEvent.ACTION_CANCEL) {
-            InputHandler.releaseAllInputs()
+            runCatching { InputHandler.releaseAllInputs() }
             return true
         }
         return InputHandler.dispatchGenericMotionEvent(event)
@@ -160,16 +163,20 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         surface = holder.surface
-        NativeLibrary.surfaceChanged(surface)
+        // Only touch the native surface once CitronBootstrap.ensure() has loaded the .so
+        // (ready==true). surfaceCreated fires on the SurfaceView's first preDraw, which
+        // can beat the bootstrap thread and used to throw UnsatisfiedLinkError; if not
+        // ready yet, the bootstrap completion applies the surface instead.
+        if (ready.get()) runCatching { NativeLibrary.surfaceChanged(surface) }
         maybeRun()
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        NativeLibrary.surfaceChanged(holder.surface)
+        if (ready.get()) runCatching { NativeLibrary.surfaceChanged(holder.surface) }
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        NativeLibrary.surfaceDestroyed()
+        if (ready.get()) runCatching { NativeLibrary.surfaceDestroyed() }
         surface = null
     }
 
@@ -323,7 +330,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onPause() {
         super.onPause()
-        InputHandler.releaseAllInputs()
+        runCatching { InputHandler.releaseAllInputs() }
         if (started.get() && !menuShown) runCatching { NativeLibrary.pauseEmulation() }
     }
 
@@ -334,7 +341,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onDestroy() {
         mainHandler.removeCallbacks(pollRunning)
-        InputHandler.releaseAllInputs()
+        runCatching { InputHandler.releaseAllInputs() }
         runCatching { NativeLibrary.stopEmulation() }
         super.onDestroy()
         // Tear down the process so the next launch starts from a clean state.
