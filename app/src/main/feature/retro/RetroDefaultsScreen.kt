@@ -48,7 +48,6 @@ import com.winlator.cmod.R
 import com.winlator.cmod.feature.settings.SettingsNavBridge
 import com.winlator.cmod.shared.ui.focus.rememberSettingsContentNav
 import com.winlator.cmod.shared.ui.nav.LocalPaneNav
-import com.winlator.cmod.shared.ui.dialog.WinNativeComposeDialogs
 import com.winlator.cmod.shared.ui.nav.paneNavItem
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -56,9 +55,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.activity.compose.BackHandler
 
-private val PageBg = Color(0xFF101018)
-private val PageText = Color(0xFFF0F4FF)
-private val PageSub = Color(0xFF93A6BC)
+internal val PageBg = Color(0xFF101018)
+internal val PageText = Color(0xFFF0F4FF)
+internal val PageSub = Color(0xFF93A6BC)
 
 private val SHADER_KEYS = listOf("default", "crt", "lcd", "sharp")
 private val UPSCALE_KEYS = listOf("2x", "4x", "native")
@@ -134,61 +133,6 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                     result
                     .onSuccess { Toast.makeText(context, context.getString(R.string.retro_scr_ps2_bios_imported, it), Toast.LENGTH_SHORT).show() }
                     .onFailure { Toast.makeText(context, it.message ?: context.getString(R.string.retro_scr_invalid_ps2_bios_file), Toast.LENGTH_LONG).show() }
-                    refresh++
-                }
-            }
-        }
-    }
-
-    val importSwitchKeys = {
-        val activity = context as? android.app.Activity
-        if (activity != null) {
-            com.winlator.cmod.shared.android.DirectoryPickerDialog.showFile(
-            activity = activity,
-            title = context.getString(R.string.retro_scr_import_switch_keys),
-            allowedExtensions = setOf("keys"),
-            ) { path ->
-                scope.launch {
-                    val result =
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        RetroBiosImport.importSwitchKeysFromUri(context, android.net.Uri.fromFile(File(path)))
-                    }
-                    result
-                    .onSuccess { Toast.makeText(context, context.getString(R.string.retro_scr_switch_keys_imported, it), Toast.LENGTH_SHORT).show() }
-                    .onFailure { Toast.makeText(context, it.message ?: context.getString(R.string.retro_scr_invalid_switch_keys_file), Toast.LENGTH_LONG).show() }
-                    refresh++
-                }
-            }
-        }
-    }
-
-    val importSwitchFirmware = {
-        val activity = context as? android.app.Activity
-        if (activity != null) {
-            com.winlator.cmod.shared.android.DirectoryPickerDialog.showFile(
-            activity = activity,
-            title = context.getString(R.string.retro_scr_import_switch_firmware),
-            allowedExtensions = setOf("zip"),
-            ) { path ->
-                scope.launch {
-                    val loading =
-                    WinNativeComposeDialogs.showLoading(
-                    context,
-                    context.getString(R.string.retro_scr_importing_switch_firmware),
-                    )
-                    val result =
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        RetroBiosImport.importSwitchFirmwareFromUri(context, android.net.Uri.fromFile(File(path)))
-                    }
-                    loading?.dismiss()
-                    result
-                    .onSuccess {
-                        Toast.makeText(context, context.getString(R.string.retro_scr_switch_firmware_imported, it), Toast.LENGTH_SHORT).show()
-                        if (RetroBiosImport.installedSwitchKeys(context).isEmpty()) {
-                            Toast.makeText(context, context.getString(R.string.retro_scr_switch_firmware_keys_warning), Toast.LENGTH_LONG).show()
-                        }
-                    }
-                    .onFailure { Toast.makeText(context, it.message ?: context.getString(R.string.retro_scr_invalid_switch_firmware_file), Toast.LENGTH_LONG).show() }
                     refresh++
                 }
             }
@@ -331,137 +275,7 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                     RetroBackRow { currentScreen = RetroMenuScreen.MENU }
                 }
                 item {
-                    RetroSettingGroup {
-                        RetroGroupTitle(stringResource(R.string.retro_scr_nintendo_switch_keys))
-                        val switchKeys = RetroBiosImport.installedSwitchKeys(context)
-                        RetroInfoRow(
-                        stringResource(R.string.retro_scr_installed),
-                        if (switchKeys.isEmpty()) {
-                            stringResource(R.string.retro_scr_none_switch_keys)
-                        } else {
-                            switchKeys.joinToString(", ")
-                        },
-                        )
-                        Button(
-                        onClick = { runCatching { importSwitchKeys() } },
-                        modifier =
-                        Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                        .paneNavItem(
-                        cornerRadius = 8.dp,
-                        onActivate = { runCatching { importSwitchKeys() } },
-                        highlightColor = Color(0xFF4FC3F7),
-                        tapToSelect = true,
-                        ),
-                        ) {
-                            Text(stringResource(R.string.retro_scr_import_switch_keys))
-                        }
-                    }
-                }
-            }
-
-            if (currentScreen == RetroMenuScreen.SWITCH) {
-                item {
-                    RetroSettingGroup {
-                        RetroGroupTitle(stringResource(R.string.retro_scr_nintendo_switch_firmware))
-                        val fwCount = RetroBiosImport.installedSwitchFirmwareCount(context)
-                        RetroInfoRow(
-                        stringResource(R.string.retro_scr_installed),
-                        if (fwCount == 0) {
-                            stringResource(R.string.retro_scr_no_switch_firmware)
-                        } else {
-                            context.getString(R.string.retro_scr_switch_firmware_installed, fwCount)
-                        },
-                        )
-                        Button(
-                        onClick = { runCatching { importSwitchFirmware() } },
-                        modifier =
-                        Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                        .paneNavItem(
-                        cornerRadius = 8.dp,
-                        onActivate = { runCatching { importSwitchFirmware() } },
-                        highlightColor = Color(0xFF4FC3F7),
-                        tapToSelect = true,
-                        ),
-                        ) {
-                            Text(stringResource(R.string.retro_scr_import_switch_firmware))
-                        }
-                    }
-                }
-            }
-
-            if (currentScreen == RetroMenuScreen.SWITCH) {
-                item {
-                    RetroSettingGroup {
-                        val switchDrivers = remember { com.armsx2.CustomDriver.listInstalled(context) }
-                        val citronPrefs = remember { context.getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE) }
-                        val driverIds = remember(switchDrivers) { listOf("") + switchDrivers.map { it.id } }
-                        val driverLabels = listOf(stringResource(R.string.retro_gpu_driver_system)) + switchDrivers.map { it.name }
-                        val curDriver = citronPrefs.getString("wn.switch.driver", "") ?: ""
-                        RetroSettingDropdown(
-                        stringResource(R.string.retro_gpu_driver),
-                        driverLabels,
-                        driverIds.indexOf(curDriver).coerceAtLeast(0),
-                        ) { idx ->
-                            val id = driverIds[idx]
-                            if (id.isEmpty()) {
-                                citronPrefs.edit()
-                                .remove("wn.switch.driver")
-                                .remove("wn.switch.driverDir")
-                                .remove("wn.switch.driverName")
-                                .remove("wn.switch.driverRedirect")
-                                .apply()
-                            } else {
-                                switchDrivers.firstOrNull { it.id == id }?.let { d ->
-                                    citronPrefs.edit()
-                                    .putString("wn.switch.driver", id)
-                                    .putString("wn.switch.driverDir", d.driverDir.absolutePath + "/")
-                                    .putString("wn.switch.driverName", d.libraryName)
-                                    .putString("wn.switch.driverRedirect", d.redirectDir.absolutePath + "/")
-                                    .apply()
-                                }
-                            }
-                            refresh++
-                        }
-                        if (switchDrivers.isEmpty()) {
-                            Text(
-                            stringResource(R.string.retro_gpu_driver_hint),
-                            color = PageSub,
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(top = 8.dp),
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (currentScreen == RetroMenuScreen.SWITCH) {
-                item {
-                    RetroSettingGroup {
-                        RetroGroupTitle(stringResource(R.string.retro_scr_switch_saves))
-                        RetroInfoRow(
-                        stringResource(R.string.retro_scr_switch_saves_hint_title),
-                        stringResource(R.string.retro_scr_switch_saves_hint),
-                        )
-                        Button(
-                        onClick = { showSaveManagerState.value = true },
-                        modifier =
-                        Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                        .paneNavItem(
-                        cornerRadius = 8.dp,
-                        onActivate = { showSaveManagerState.value = true },
-                        highlightColor = Color(0xFF4FC3F7),
-                        tapToSelect = true,
-                        ),
-                        ) {
-                            Text(stringResource(R.string.retro_scr_manage_switch_saves))
-                        }
-                    }
+                    RetroSwitchScreen(onManageSaves = { showSaveManagerState.value = true })
                 }
             }
 
@@ -1383,7 +1197,7 @@ onClick: () -> Unit,
 }
 
 @Composable
-private fun RetroBackRow(onBack: () -> Unit) {
+internal fun RetroBackRow(onBack: () -> Unit) {
     Box(
     modifier =
     Modifier
