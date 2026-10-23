@@ -9,6 +9,7 @@ package org.citron.citron_emu.features.input
 import org.citron.citron_emu.features.input.model.NativeAnalog
 import org.citron.citron_emu.features.input.model.NativeButton
 import org.citron.citron_emu.features.input.model.NpadStyleIndex
+import org.citron.citron_emu.utils.ParamPackage
 
 object NativeInput {
     object ButtonState {
@@ -79,10 +80,64 @@ object NativeInput {
     /** Enumerates connected Android input device ids (as strings). */
     external fun getInputDevices(): Array<String>
 
-    /** Returns the controller style (handheld vs pro/etc.) for the given port index. */
-    external fun getStyleIndex(index: Int): NpadStyleIndex
+    /**
+     * Returns the [NpadStyleIndex] for the given port. The JNI symbol actually exported by
+     * libcitron-android.so (built from the upstream emulator source) is `getStyleIndexImpl`;
+     * the public `getStyleIndex` is a thin Kotlin wrapper. Declaring it directly as `external`
+     * would look for a non-existent `..._getStyleIndex__I` symbol and throw `No implementation
+     * found`.
+     */
+    fun getStyleIndex(playerIndex: Int): NpadStyleIndex =
+        NpadStyleIndex.from(getStyleIndexImpl(playerIndex))
+
+    private external fun getStyleIndexImpl(playerIndex: Int): Int
 
     /** Safe variant for the overlay so a missing native symbol can't crash input. */
     fun getStyleIndexSafe(index: Int): NpadStyleIndex =
         runCatching { getStyleIndex(index) }.getOrDefault(NpadStyleIndex.None)
+
+    /**
+     * Reads a button's current mapping param for a player. Used by the host to detect whether
+     * Player 1 already has a binding (so we don't overwrite a user-configured controller).
+     */
+    fun getButtonParam(playerIndex: Int, button: NativeButton): ParamPackage =
+        ParamPackage(getButtonParamImpl(playerIndex, button.int))
+
+    private external fun getButtonParamImpl(playerIndex: Int, buttonId: Int): String
+
+    /**
+     * Auto-maps a player's inputs to the given device. Mirrors upstream citron so a detected
+     * controller (or the on-screen overlay) is actually bound to the emulated Player 1; without
+     * this the native GamePad device exists but the emulated controller has no mapping to read
+     * from, so the gamepad (virtual or physical) is dead until the first input "wakes" it.
+     */
+    fun updateMappingsWithDefault(
+        playerIndex: Int,
+        deviceParams: ParamPackage,
+        displayName: String,
+    ) = updateMappingsWithDefaultImpl(playerIndex, deviceParams.serialize(), displayName)
+
+    private external fun updateMappingsWithDefaultImpl(
+        playerIndex: Int,
+        deviceParams: String,
+        displayName: String,
+    )
+
+    /**
+     * Connects/disconnects a controller and keeps connection order intact. Mirrors upstream:
+     * connecting player N also connects players 0..N; disconnecting N keeps players 0..N-1
+     * connected. Used here to ensure Player 1 is live immediately after auto-mapping.
+     */
+    fun connectControllers(playerIndex: Int, connected: Boolean = true) {
+        val connectedControllers = mutableListOf<Boolean>().apply {
+            if (connected) {
+                for (i in 0 until 8) add(i <= playerIndex)
+            } else {
+                for (i in 0 until 8) add(i < playerIndex)
+            }
+        }
+        connectControllersImpl(connectedControllers.toBooleanArray())
+    }
+
+    private external fun connectControllersImpl(connected: BooleanArray)
 }
