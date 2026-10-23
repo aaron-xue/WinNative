@@ -429,6 +429,8 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                         if (switchDrivers.isEmpty()) {
                             Text(
                             stringResource(R.string.retro_gpu_driver_hint),
+                            color = PageSub,
+                            fontSize = 11.sp,
                             modifier = Modifier.padding(top = 8.dp),
                             )
                         }
