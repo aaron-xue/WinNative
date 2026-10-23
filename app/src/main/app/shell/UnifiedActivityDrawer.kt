@@ -963,6 +963,47 @@ internal fun UnifiedActivity.AddCustomGameDialog(
                     LibraryShortcutUtils.suggestCustomGameName(path)
                 }
         }
+
+        // Switch NSP/XCI/NCA/NRO: scrape the real title + cover art directly from the
+        // file via the native GameMetadata bridge (reads control.nacp + icon_*.dat).
+        // Without this the game would only get the raw filename and no artwork.
+        if (detectedRetro?.id == com.winlator.cmod.feature.retro.RetroSystems.SWITCH.id) {
+            val autoName = gameName
+            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                val scraped = runCatching {
+                    if (!org.citron.citron_emu.wn.CitronBootstrap.ensureNativeForMetadata(context)) {
+                        return@runCatching null
+                    }
+                    if (!org.citron.citron_emu.utils.GameMetadata.getIsValid(path)) {
+                        return@runCatching null
+                    }
+                    val title = runCatching {
+                        org.citron.citron_emu.utils.GameMetadata.getTitle(path)
+                    }.getOrNull()?.takeIf { it.isNotBlank() }
+                    val coverFile = runCatching {
+                        val bytes = org.citron.citron_emu.utils.GameMetadata.getIcon(path)
+                        if (bytes.isEmpty()) {
+                            null
+                        } else {
+                            val artworkDir =
+                                java.io.File(context.filesDir, "artwork").apply { mkdirs() }
+                            java.io.File(artworkDir, "switch_${path.hashCode()}.jpg")
+                                .apply { writeBytes(bytes) }
+                        }
+                    }.getOrNull()
+                    title to coverFile
+                }.getOrNull()
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    if (scraped != null) {
+                        val (title, coverFile) = scraped
+                        // Only replace the auto-derived filename if the user hasn't typed
+                        // a custom name, and only fill cover art if none was set yet.
+                        if (title != null && gameName == autoName) gameName = title
+                        if (coverFile != null && coverArtFile == null) coverArtFile = coverFile
+                    }
+                }
+            }
+        }
     }
 
     val defaultDensity = LocalDensity.current
