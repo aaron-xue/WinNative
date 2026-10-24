@@ -196,7 +196,10 @@ object CitronGameOverlay {
                         "resolution_scale" to resolution.toString(),
                         "vsync_mode" to vsync.toString(),
                     ),
-                    "Audio" to mapOf("output_volume" to audio.toString()),
+                    "Audio" to mapOf(
+                        "volume" to audio.toString(),
+                        "output_engine" to "cubeb",
+                    ),
                 ),
             )
         }

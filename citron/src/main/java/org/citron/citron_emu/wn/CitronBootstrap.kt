@@ -92,8 +92,10 @@ object CitronBootstrap {
 
         // 1. point the core at its writable data root
         NativeLibrary.setAppDirectory(userDir.absolutePath)
+        Log.i(TAG, "setAppDirectory -> $userDir")
         // 2. load global config (creates default config.ini if absent)
         NativeConfig.initializeGlobalConfig()
+        Log.i(TAG, "initializeGlobalConfig done")
         // 2b. apply host-configured emulated region/language (chosen in the Switch
         //     settings screen, stored in the "CITRON" prefs). When unset, the default is
         //     derived from the Android system locale (SwitchLocaleDefaults). Set on the
@@ -103,12 +105,21 @@ object CitronBootstrap {
             NativeConfig.setInt("region_index", switchPrefs.getInt("wn.switch.region_index", SwitchLocaleDefaults.defaultRegion()))
             NativeConfig.setInt("language_index", switchPrefs.getInt("wn.switch.language_index", SwitchLocaleDefaults.defaultLanguage()))
             NativeConfig.saveGlobalConfig()
+            Log.i(TAG, "region=$switchPrefs.getInt(\"wn.switch.region_index\", -1) " +
+                "lang=$switchPrefs.getInt(\"wn.switch.language_index\", -1)")
         }.onFailure { Log.w(TAG, "failed to apply region/language", it) }
-        // 3. load prod.keys / title.keys (no-op if the user has not supplied them)
+        // 3. set log_filter BEFORE initializeSystem, because Common::Log::Initialize()
+        //    (called inside initializeSystem) reads Settings::values.log_filter once
+        //    and locks it forever — changing it afterwards has no effect.
+        NativeConfig.setString("log_filter", "*:Info")
+        NativeConfig.saveGlobalConfig()
+        // 4. load prod.keys / title.keys (no-op if the user has not supplied them)
         NativeLibrary.reloadKeys()
-        // 4. bring up the HLE system / services
+        Log.i(TAG, "reloadKeys done – calling initializeSystem(false)...")
+        // 5. bring up the HLE system / services
         NativeLibrary.initializeSystem(false)
-        // 5. GPU driver. Pass the native library dir so adrenotools can find its
+        Log.i(TAG, "initializeSystem(false) returned")
+        // 6. GPU driver. Pass the native library dir so adrenotools can find its
         //    hook .so files. A custom (Turnip) driver is selected in the host
         //    settings UI and stored as resolved paths in the "CITRON" prefs; nulls
         //    => use the system Vulkan driver.

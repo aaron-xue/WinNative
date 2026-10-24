@@ -213,6 +213,12 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             return
         }
         CitronHost.applyBootSettings?.invoke(this)
+        // Reload global config from the .ini file so any modifications made by
+        // applyBootSettings (renderer backend, resolution scale, vsync, audio volume)
+        // take effect before launching the emulator. Without this the in-memory
+        // settings from initializeGlobalConfig() are used instead.
+        runCatching { NativeConfig.reloadGlobalConfig() }
+            .onFailure { Log.e(tag, "reloadGlobalConfig failed", it) }
         // Dismiss the loading overlay once the core reports it is running.
         mainHandler.post(pollRunning)
         Thread({
@@ -250,8 +256,14 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
                 // event "wakes" the player connection.
                 autoMapFirstController()
                 Log.i(tag, "starting emulation for $romPath")
-                // frontendInitiated=false mirrors the upstream EmulationFragment call.
-                NativeLibrary.run(romPath, 0, false)
+                // Use Cubeb (1) audio backend instead of Oboe (4).
+                // Oboe/OpenSLES produces no audio output in the :switch process,
+                // while Cubeb works correctly on all tested devices.
+                NativeConfig.setInt("output_engine", 1)
+                NativeConfig.saveGlobalConfig()
+                // frontendInitiated=true matches the upstream EmulationActivity call, ensuring
+                // the audio system path is correctly initialized for the multi-process setup.
+                NativeLibrary.run(romPath, 0, true)
             } catch (t: Throwable) {
                 Log.e(tag, "run failed", t)
             } finally {

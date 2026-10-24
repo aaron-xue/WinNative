@@ -35,6 +35,22 @@ object NativeInput {
         action: Int,
     )
 
+    /**
+     * Handles button input events during input mapping (controller configuration dialog).
+     * Uses GUID+port for device identification; the input mapper validates the GUID
+     * against registered controllers before accepting the mapping.
+     * @param guid 32 character hexadecimal string consisting of the controller's PID+VID.
+     * @param port Port determined by controller connection order.
+     * @param buttonId The Android Keycode corresponding to this event.
+     * @param action Mask identifying which action is happening (button pressed down, or button released).
+     */
+    external fun onGamePadButtonEvent(
+        guid: String,
+        port: Int,
+        buttonId: Int,
+        action: Int,
+    )
+
     // axes/values are parallel arrays of Android MotionEvent axis ids + floats.
     external fun onGamePadAxisEventByPort(
         port: Int,
@@ -42,6 +58,17 @@ object NativeInput {
         values: FloatArray,
         count: Int,
     )
+
+    /**
+     * Handles axis movement events during input mapping (controller configuration dialog).
+     * Uses GUID+port for device identification; the input mapper validates the GUID
+     * against registered controllers before accepting the mapping.
+     * @param guid 32 character hexadecimal string consisting of the controller's PID+VID.
+     * @param port Port determined by controller connection order.
+     * @param axis The axis ID.
+     * @param value Value along the given axis.
+     */
+    external fun onGamePadAxisEvent(guid: String, port: Int, axis: Int, value: Float)
 
     external fun resetGamePadInputState()
 
@@ -65,6 +92,37 @@ object NativeInput {
     external fun registerController(device: CitronInputDevice)
 
     external fun clearRegisteredControllers()
+
+    /**
+     * Reloads all input devices from the currently loaded Settings::values.players into HID Core.
+     * Must be called after [setButtonParam] / [setStickParam] so the native HID driver
+     * re-reads the updated button/stick mappings.
+     */
+    external fun reloadInputDevices()
+
+    /**
+     * Checks if a controller is connected.
+     * @param playerIndex Index of the player to check.
+     * @return Whether the player is connected.
+     */
+    external fun getIsConnected(playerIndex: Int): Boolean
+
+    /**
+     * Tells the input subsystem to start listening for inputs to map.
+     * @param type Type of input to map as shown by the int property in each [InputType].
+     */
+    external fun beginMapping(type: Int)
+
+    /**
+     * Gets an input's [ParamPackage] as a serialized string. Used for input verification before mapping.
+     * Must be run after [beginMapping] and before [stopMapping].
+     */
+    external fun getNextInput(): String
+
+    /**
+     * Tells the input subsystem to stop listening for inputs to map.
+     */
+    external fun stopMapping()
 
     /**
      * Auto-maps a player's inputs to the given device (mirrors upstream citron so a
@@ -126,22 +184,37 @@ object NativeInput {
     private external fun getButtonParamImpl(playerIndex: Int, buttonId: Int): String
 
     /**
-     * Auto-maps a player's inputs to the given device. Mirrors upstream citron so a detected
-     * controller (or the on-screen overlay) is actually bound to the emulated Player 1; without
-     * this the native GamePad device exists but the emulated controller has no mapping to read
-     * from, so the gamepad (virtual or physical) is dead until the first input "wakes" it.
+     * Sets the mapping param for a specific button.
+     * @param playerIndex Index of the player to set params for.
+     * @param button The [NativeButton] to set params for.
+     * @param param A [ParamPackage] to set.
      */
-    fun updateMappingsWithDefault(
-        playerIndex: Int,
-        deviceParams: ParamPackage,
-        displayName: String,
-    ) = updateMappingsWithDefaultImpl(playerIndex, deviceParams.serialize(), displayName)
+    fun setButtonParam(playerIndex: Int, button: NativeButton, param: ParamPackage) =
+        setButtonParamImpl(playerIndex, button.int, param.serialize())
 
-    private external fun updateMappingsWithDefaultImpl(
-        playerIndex: Int,
-        deviceParams: String,
-        displayName: String,
-    )
+    private external fun setButtonParamImpl(playerIndex: Int, buttonId: Int, param: String)
+
+    /**
+     * Gets the params for a specific stick.
+     * @param playerIndex Index of the player to get params from.
+     * @param stick The [NativeAnalog] to get params for.
+     * @return A [ParamPackage] representing a player's specific stick.
+     */
+    fun getStickParam(playerIndex: Int, stick: NativeAnalog): ParamPackage =
+        ParamPackage(getStickParamImpl(playerIndex, stick.int))
+
+    private external fun getStickParamImpl(playerIndex: Int, stickId: Int): String
+
+    /**
+     * Sets the params for a specific stick.
+     * @param playerIndex Index of the player to set params for.
+     * @param stick The [NativeAnalog] to set params for.
+     * @param param A [ParamPackage] to set.
+     */
+    fun setStickParam(playerIndex: Int, stick: NativeAnalog, param: ParamPackage) =
+        setStickParamImpl(playerIndex, stick.int, param.serialize())
+
+    private external fun setStickParamImpl(playerIndex: Int, stickId: Int, param: String)
 
     /**
      * Connects/disconnects a controller and keeps connection order intact. Mirrors upstream:

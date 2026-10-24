@@ -27,9 +27,11 @@ object CitronInstaller {
         val skipped: Int,
     )
 
-    // Core InstallResult enum: Success = 0, Overwrite = 1, Failure = 2.
-    // Only 0 and 1 mean the content ended up registered in the NAND.
-    private fun isSuccess(rc: Int): Boolean = rc == 0 || rc == 1
+    // Core InstallResult enum: Success = 0, Overwrite = 1, Failure = 2, BaseInstallAttempted = 3.
+    // rc=3 means the core refused to install a base game NSP (title_id == base title && version == 0).
+    // This is harmless — the base game is still loaded via the external content provider path,
+    // and emulation proceeds normally. Treat it as success rather than failure.
+    private fun isSuccess(rc: Int): Boolean = rc in 0..1 || rc == 3
 
     fun install(targets: List<String>): Result {
         Log.i(TAG, "install request: ${targets.size} target(s)")

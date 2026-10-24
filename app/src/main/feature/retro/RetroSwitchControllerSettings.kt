@@ -50,9 +50,8 @@ private fun realDevices(): List<ParamPackage> =
     NativeInput.getInputDevices().map { ParamPackage(it) }
         .filter { it.get("guid", "") != OVERLAY_GUID }
 
-private val PageBg = Color(0xFF101018)
-private val PageText = Color(0xFFF0F4FF)
-private val PageSub = Color(0xFF93A6BC)
+// Color constants (PageBg/PageText/PageSub) are defined in RetroDefaultsScreen.kt as
+// internal vals shared across the retro package.
 private val CardBg = Color(0xFF1A2030)
 private val Accent = Color(0xFF4F8CFF)
 
