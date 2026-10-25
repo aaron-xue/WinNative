@@ -6,12 +6,15 @@
 // WinNative does not have, so the controller-mapping plumbing is adapted to call
 // NativeInput directly, but the capture flow (beginMapping -> onGamePadButtonEvent /
 // onGamePadAxisEvent -> getNextInput -> stopMapping, deriving GUID/port from the event's
-// own device) and the dialog structure are copied as-is.
+// own device), the dialog structure, and the animated button/stick indicators are
+// copied as-is from the upstream.
 
 package org.citron.citron_emu.wn
 
-import android.app.AlertDialog
 import android.app.Dialog
+import android.graphics.drawable.Animatable2
+import android.graphics.drawable.AnimatedVectorDrawable
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.InputDevice
 import android.view.KeyEvent
@@ -19,7 +22,9 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
+import org.citron.citron_emu.R
 import org.citron.citron_emu.features.input.NativeInput
 import org.citron.citron_emu.features.input.model.InputType
 import org.citron.citron_emu.features.input.model.NativeAnalog
@@ -36,7 +41,7 @@ class InputDialogFragment : DialogFragment() {
     private var analogDirection: String? = null
     private var dialogTitle = ""
     private var onSaved: (() -> Unit)? = null
-    private lateinit var hostView: View
+    private var rootView: View? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,36 +56,77 @@ class InputDialogFragment : DialogFragment() {
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val ctx = requireContext()
-        // Focusable host view that receives generic motion (analog stick) events. It is
-        // invisible; the dialog's title/message come from the builder below.
-        hostView = View(ctx).apply {
-            isFocusable = true
-            isFocusableInTouchMode = true
+        val themedCtx = android.view.ContextThemeWrapper(requireContext(), R.style.Theme_WnCitronLoading)
+        val view: View = LayoutInflater.from(themedCtx).inflate(R.layout.dialog_mapping, null)
+        rootView = view
+
+        val playAnimation = { twoDirections: Boolean ->
+            val stickAnim: AnimatedVectorDrawable
+            val buttonAnim: AnimatedVectorDrawable
+            view.findViewById<View>(R.id.image_stick_animation).apply {
+                val res = if (twoDirections) {
+                    R.drawable.stick_two_direction_anim
+                } else {
+                    R.drawable.stick_one_direction_anim
+                }
+                setBackgroundResource(res)
+                stickAnim = background as AnimatedVectorDrawable
+            }
+            view.findViewById<View>(R.id.image_button_animation).apply {
+                setBackgroundResource(R.drawable.button_anim)
+                buttonAnim = background as AnimatedVectorDrawable
+            }
+            stickAnim.registerAnimationCallback(object : Animatable2.AnimationCallback() {
+                override fun onAnimationEnd(drawable: Drawable?) {
+                    buttonAnim.start()
+                }
+            })
+            buttonAnim.registerAnimationCallback(object : Animatable2.AnimationCallback() {
+                override fun onAnimationEnd(drawable: Drawable?) {
+                    stickAnim.start()
+                }
+            })
+            stickAnim.start()
         }
-        val message = if (analog != null) {
-            "推动摇杆，或按方向键 / 手柄按键…"
-        } else {
-            "按下手柄按键 / 推动摇杆…"
+
+        val builder = AlertDialog.Builder(themedCtx)
+            .setPositiveButton(android.R.string.cancel) { _, _ -> NativeInput.stopMapping() }
+            .setView(view)
+
+        when {
+            analog != null -> {
+                builder.setTitle(getString(R.string.map_control, dialogTitle))
+                    .setMessage(R.string.stick_map_description)
+                playAnimation(true)
+            }
+            button != null -> {
+                if (button == NativeButton.DUp || button == NativeButton.DDown ||
+                    button == NativeButton.DLeft || button == NativeButton.DRight
+                ) {
+                    builder.setTitle(getString(R.string.map_dpad_direction, dialogTitle))
+                } else {
+                    builder.setTitle(getString(R.string.map_control, dialogTitle))
+                }
+                builder.setMessage(R.string.button_map_description)
+                playAnimation(false)
+            }
         }
-        return AlertDialog.Builder(ctx)
-            .setTitle(dialogTitle)
-            .setMessage(message)
-            .setNegativeButton(android.R.string.cancel) { _, _ -> NativeInput.stopMapping() }
-            .setView(hostView)
-            .create()
+
+        return builder.create()
     }
 
-    override fun onStart() {
-        super.onStart()
-        val d = dialog ?: return
-        // Mirror upstream: keep focus on the host view so it never loses gamepad input,
-        // route key events through the dialog's key listener and motion events through
-        // the focused host view.
-        hostView.requestFocus()
-        hostView.setOnFocusChangeListener { v, hasFocus -> if (!hasFocus) v.requestFocus() }
-        d.setOnKeyListener { _, _, keyEvent -> onKeyEvent(keyEvent) }
-        hostView.setOnGenericMotionListener { _, motionEvent -> onMotionEvent(motionEvent) }
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View? = rootView
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        view.requestFocus()
+        view.setOnFocusChangeListener { v, hasFocus -> if (!hasFocus) v.requestFocus() }
+        dialog?.setOnKeyListener { _, _, keyEvent -> onKeyEvent(keyEvent) }
+        view.setOnGenericMotionListener { _, motionEvent -> onMotionEvent(motionEvent) }
         NativeInput.beginMapping(if (analog != null) InputType.Stick.int else InputType.Button.int)
     }
 
@@ -148,7 +194,6 @@ class InputDialogFragment : DialogFragment() {
                 NativeInput.setStickParam(playerIndex, analog!!, analogParam)
             }
             button != null -> {
-                // Invert DPad up and left bindings by default (matches upstream).
                 if ((button == NativeButton.DUp || button == NativeButton.DLeft) &&
                     params.has("axis")
                 ) {
@@ -168,12 +213,9 @@ class InputDialogFragment : DialogFragment() {
         analogParam: ParamPackage,
         buttonName: String,
     ): ParamPackage {
-        // The poller returned a complete axis, so set all the buttons.
         if (inputParam.has("axis_x") && inputParam.has("axis_y")) {
             return inputParam
         }
-        // Check if the current configuration has either no engine or an axis binding.
-        // Clears out the old binding and adds one with analog_from_button.
         if (!analogParam.has("engine") || analogParam.has("axis_x") || analogParam.has("axis_y")) {
             analogParam.clear()
             analogParam.set("engine", "analog_from_button")
@@ -183,8 +225,6 @@ class InputDialogFragment : DialogFragment() {
     }
 
     private fun isInputAcceptable(params: ParamPackage): Boolean {
-        // Capture derives GUID/port from the device that was actually pressed, so any
-        // engine-bearing input is valid (no need to match a preselected device).
         return params.has("engine")
     }
 

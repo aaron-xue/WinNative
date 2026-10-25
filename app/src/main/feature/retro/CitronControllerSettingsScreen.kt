@@ -1,6 +1,7 @@
 package com.winlator.cmod.feature.retro
 
 import android.widget.Toast
+import android.hardware.input.InputManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -64,6 +66,8 @@ internal fun CitronControllerSettingsScreen(onBack: () -> Unit) {
 
     LaunchedEffect(Unit) {
         CitronBootstrap.ensure(context)
+        runCatching { InputHandler.updateControllerData() }
+        refresh++
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -185,7 +189,29 @@ private fun PlayerDetailScreen(
     val activity = context as? FragmentActivity
     val listState = rememberLazyListState()
 
-    LaunchedEffect(Unit) { runCatching { InputHandler.updateControllerData() } }
+    LaunchedEffect(Unit) {
+        runCatching { InputHandler.updateControllerData() }
+        onRefresh()
+    }
+
+    // Listen for physical controller plug / unplug events so the auto-map
+    // dropdown and connection status stay in sync in real time.
+    fun rescan() {
+        runCatching { InputHandler.updateControllerData() }
+        onRefresh()
+    }
+
+    DisposableEffect(context) {
+        val inputManager =
+            context.getSystemService(android.content.Context.INPUT_SERVICE) as? InputManager
+        val listener = object : InputManager.InputDeviceListener {
+            override fun onInputDeviceAdded(deviceId: Int) { rescan() }
+            override fun onInputDeviceChanged(deviceId: Int) { rescan() }
+            override fun onInputDeviceRemoved(deviceId: Int) { rescan() }
+        }
+        inputManager?.registerInputDeviceListener(listener, null)
+        onDispose { inputManager?.unregisterInputDeviceListener(listener) }
+    }
 
     val connected = remember(refresh) {
         runCatching { NativeInput.getIsConnected(playerIndex) }.getOrDefault(false)
@@ -197,7 +223,7 @@ private fun PlayerDetailScreen(
         runCatching { NativeInput.getSupportedStyleTags(playerIndex) }
             .getOrDefault(listOf(NpadStyleIndex.Fullkey))
     }
-    val devices = remember { InputHandler.androidControllers.values.toList() }
+    val devices = remember(refresh) { InputHandler.androidControllers.values.toList() }
     val profileNames = remember {
         runCatching {
             NativeInput.loadInputProfiles()
@@ -232,7 +258,33 @@ private fun PlayerDetailScreen(
     }
 
     fun toggleConnected() {
-        NativeInput.connectControllers(playerIndex, !connected)
+        val connecting = !connected
+        NativeInput.connectControllers(playerIndex, connecting)
+
+        // When connecting, auto-bind the first available physical controller
+        // so the button/stick list immediately shows real mappings instead of
+        // "未设置". Skip if the player already has a manual mapping.
+        if (connecting) {
+            val physical = InputHandler.androidControllers.values.firstOrNull()
+            if (physical != null) {
+                val alreadyBound = runCatching {
+                    NativeInput.getButtonParam(playerIndex, NativeButton.A).has("engine")
+                }.getOrDefault(false)
+                if (!alreadyBound) {
+                    val port = physical.getPort()
+                    val params = InputHandler.registeredControllers.firstOrNull {
+                        it.get("port", -1) == port
+                    }
+                    if (params != null) {
+                        NativeInput.updateMappingsWithDefault(
+                            playerIndex, params,
+                            params.get("display", physical.getName())
+                        )
+                    }
+                }
+            }
+        }
+
         NativeConfig.saveGlobalConfig()
         NativeInput.reloadInputDevices()
         onRefresh()
@@ -276,22 +328,12 @@ private fun PlayerDetailScreen(
                 RetroSettingGroup {
                     RetroGroupTitle("玩家 ${playerIndex + 1} 设置")
 
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { toggleConnected() }
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("连接", color = Color.White, fontSize = 14.sp)
-                        }
-                        Text(
-                            if (connected) "已连接" else "未连接",
-                            color = PageSub,
-                            fontSize = 13.sp,
-                        )
-                    }
+                    RetroSettingSwitch(
+                        label = "连接",
+                        checked = connected,
+                        subtitle = if (connected) "已连接" else "未连接",
+                        onCheckedChange = { toggleConnected() },
+                    )
 
                     val styleLabels = supportedStyles.map { styleLabel(it) }
                     RetroSettingDropdown(
@@ -311,20 +353,25 @@ private fun PlayerDetailScreen(
                             physicalDevices.map { dev -> "手柄 ${dev.getName()} (端口 ${dev.getPort()})" }
                         RetroSettingDropdown("自动映射", devLabels, 0) { idx ->
                             val dev = physicalDevices[idx]
-                            // Build a complete ParamPackage with guid + port; the native
-                            // GetButtonMappingForDevice() requires both or returns an empty
-                            // mapping (which is why the dropdown selection did nothing before).
-                            val pkg = ParamPackage(
-                                listOf(
-                                    "guid" to dev.getGUID(),
-                                    "port" to dev.getPort().toString(),
-                                    "display" to dev.getName(),
+                            val port = dev.getPort()
+                            // Use the full ParamPackage from native-side registeredControllers
+                            // (populated by getInputDevices() during updateControllerData).
+                            // A manually constructed ParamPackage with just guid+port misses
+                            // critical keys (axis declarations, button bitmasks, etc.) that
+                            // GetButtonMappingForDevice needs to compute the default mapping,
+                            // causing all buttons to stay "未设置".
+                            val params = InputHandler.registeredControllers.firstOrNull {
+                                it.get("port", -1) == port
+                            }
+                            if (params != null) {
+                                NativeInput.updateMappingsWithDefault(
+                                    playerIndex, params,
+                                    params.get("display", dev.getName())
                                 )
-                            )
-                            NativeInput.updateMappingsWithDefault(playerIndex, pkg, dev.getName())
-                            NativeConfig.saveGlobalConfig()
-                            NativeInput.reloadInputDevices()
-                            onRefresh()
+                                NativeConfig.saveGlobalConfig()
+                                NativeInput.reloadInputDevices()
+                                onRefresh()
+                            }
                         }
                     }
 
@@ -367,38 +414,18 @@ private fun PlayerDetailScreen(
             item {
                 RetroSettingGroup {
                     RetroGroupTitle("振动")
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { toggleVibration() }
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("启用振动", color = Color.White, fontSize = 14.sp)
-                        }
-                        Text(
-                            if (vibrationEnabled) "开" else "关",
-                            color = PageSub,
-                            fontSize = 13.sp,
-                        )
-                    }
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable { toggleSystemVibrator() }
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("使用系统振动器", color = Color.White, fontSize = 14.sp)
-                        }
-                        Text(
-                            if (useSystemVibrator) "开" else "关",
-                            color = PageSub,
-                            fontSize = 13.sp,
-                        )
-                    }
+                    RetroSettingSwitch(
+                        label = "启用振动",
+                        checked = vibrationEnabled,
+                        subtitle = if (vibrationEnabled) "开" else "关",
+                        onCheckedChange = { toggleVibration() },
+                    )
+                    RetroSettingSwitch(
+                        label = "使用系统振动器",
+                        checked = useSystemVibrator,
+                        subtitle = if (useSystemVibrator) "开" else "关",
+                        onCheckedChange = { toggleSystemVibrator() },
+                    )
                 }
             }
 

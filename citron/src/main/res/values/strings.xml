@@ -3,4 +3,9 @@
     <!-- Loading overlay (see layout/wn_citron_loading.xml). -->
     <string name="wn_loading">Loading</string>
     <string name="wn_loading_title_fallback">Nintendo Switch</string>
+
+    <string name="stick_map_description">Move a stick left and then up or press a button</string>
+    <string name="button_map_description">Press a button or move a trigger/stick</string>
+    <string name="map_dpad_direction">Map to D-Pad %1$s</string>
+    <string name="map_control">Map to %1$s</string>
 </resources>
