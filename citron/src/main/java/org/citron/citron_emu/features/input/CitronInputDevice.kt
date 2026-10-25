@@ -52,6 +52,8 @@ class CitronPhysicalDevice(
         return port
     }
 
+    fun getDeviceId(): Int = device.id
+
     override fun getSupportsVibration(): Boolean {
         return vibrator.supportsVibration()
     }

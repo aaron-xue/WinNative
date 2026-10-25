@@ -54,6 +54,7 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     var refresh by remember { mutableIntStateOf(0) }
     var showSaveManager by remember { mutableStateOf(false) }
+    var showControllerSettings by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     val importSwitchKeys = {
@@ -329,12 +330,35 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
                     }
                 }
             }
+            item {
+                RetroSettingGroup {
+                    RetroGroupTitle("外接控制器")
+                    Button(
+                        onClick = { showControllerSettings = true },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp)
+                                .paneNavItem(
+                                    cornerRadius = 8.dp,
+                                    onActivate = { showControllerSettings = true },
+                                    highlightColor = Color(0xFF4FC3F7),
+                                    tapToSelect = true,
+                                ),
+                    ) {
+                        Text("控制器设置")
+                    }
+                }
+            }
         }
         // Full-screen save-manager overlay. Rendered as a sibling of the scrolling list
         // inside the root Box so it covers the whole screen (the Box fills the viewport
         // because RetroSwitchScreen is shown as its own layer, not as a list item).
         if (showSaveManager) {
             CitronSaveManagerScreen(onClose = { showSaveManager = false })
+        }
+        if (showControllerSettings) {
+            CitronControllerSettingsScreen(onBack = { showControllerSettings = false })
         }
     }
 }

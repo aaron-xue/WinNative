@@ -12,6 +12,9 @@ import org.citron.citron_emu.features.input.model.NativeAnalog
 import org.citron.citron_emu.features.input.model.NativeButton
 import org.citron.citron_emu.features.input.model.NpadStyleIndex
 import org.citron.citron_emu.utils.ParamPackage
+import android.content.Context
+import android.util.Log
+import java.io.File
 
 object NativeInput {
     object ButtonState {
@@ -233,4 +236,101 @@ object NativeInput {
     }
 
     private external fun connectControllersImpl(connected: BooleanArray)
+
+    const val Player2Device = 1
+    const val Player3Device = 2
+    const val Player4Device = 3
+    const val Player5Device = 4
+    const val Player6Device = 5
+    const val Player7Device = 6
+    const val Player8Device = 7
+    const val ConsoleDevice = 8
+
+    fun getSupportedStyleTags(playerIndex: Int): List<NpadStyleIndex> =
+        getSupportedStyleTagsImpl(playerIndex).map { NpadStyleIndex.from(it) }
+
+    private external fun getSupportedStyleTagsImpl(playerIndex: Int): IntArray
+
+    fun setStyleIndex(playerIndex: Int, style: NpadStyleIndex) =
+        setStyleIndexImpl(playerIndex, style.int)
+
+    private external fun setStyleIndexImpl(playerIndex: Int, styleIndex: Int)
+
+    fun isController(params: ParamPackage): Boolean = isControllerImpl(params.serialize())
+
+    private external fun isControllerImpl(params: String): Boolean
+
+    fun getButtonName(param: ParamPackage): ButtonName =
+        ButtonName.from(getButtonNameImpl(param.serialize()))
+
+    private external fun getButtonNameImpl(param: String): Int
+
+    external fun loadInputProfiles()
+
+    external fun getInputProfileNames(): Array<String>
+
+    external fun isProfileNameValid(name: String): Boolean
+
+    external fun createProfile(name: String, playerIndex: Int): Boolean
+
+    external fun deleteProfile(name: String, playerIndex: Int): Boolean
+
+    external fun loadProfile(name: String, playerIndex: Int): Boolean
+
+    external fun saveProfile(name: String, playerIndex: Int): Boolean
+
+    external fun resetControllerMappings(playerIndex: Int)
+
+    /**
+     * Binds libcitron-android.so into this object's ClassLoader so the external
+     * methods above resolve. The core lib is loaded by CitronBootstrap into the
+     * host ClassLoader; if NativeInput lives in a different (feature/plugin)
+     * ClassLoader, those externals would throw "No implementation found" without
+     * this explicit binding.
+     */
+    fun loadSelf(context: Context) {
+        val dir = findLibDir(context)
+        val file = File(dir, "libcitron-android.so")
+        if (!file.exists()) {
+            Log.w("NativeInput", "loadSelf: $file missing - NativeInput JNI will not resolve")
+            return
+        }
+        file.setReadable(true)
+        file.setExecutable(true)
+        val path = file.absolutePath
+        val loader = NativeInput::class.java.classLoader
+        Log.i("NativeInput", "loadSelf: binding core lib into loader=$loader")
+        runCatching {
+            val runtime = Runtime.getRuntime()
+            val m = Runtime::class.java.getDeclaredMethod(
+                "load0", ClassLoader::class.java, String::class.java
+            ).also { it.isAccessible = true }
+            m.invoke(runtime, loader, path)
+            Log.i("NativeInput", "loadSelf: load0 succeeded - NativeInput CL now owns the lib")
+        }.onFailure { e ->
+            Log.w("NativeInput", "loadSelf: load0 failed ($e), trying System.load", e)
+            runCatching { System.load(path) }
+                .onSuccess { Log.i("NativeInput", "loadSelf: System.load fallback succeeded") }
+                .onFailure { Log.e("NativeInput", "loadSelf: System.load fallback also failed", it) }
+        }
+    }
+
+    private fun findLibDir(context: Context): File {
+        val root = File(context.filesDir, "retro/bundle")
+        val candidates = listOf(
+            File(root, "data/citron/jniLibs"),
+            File(root, "citron/jniLibs"),
+            File(root, "data/citron/lib"),
+        )
+        for (c in candidates) {
+            if (File(c, "libcitron-android.so").exists()) return c
+        }
+        if (root.isDirectory) {
+            root.walkTopDown().maxDepth(5)
+                .firstOrNull { it.name == "libcitron-android.so" }
+                ?.parentFile
+                ?.let { return it }
+        }
+        return File(context.applicationInfo.nativeLibraryDir)
+    }
 }

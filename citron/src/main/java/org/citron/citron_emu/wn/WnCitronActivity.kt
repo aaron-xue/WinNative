@@ -23,6 +23,7 @@ import org.citron.citron_emu.features.input.model.NativeButton
 import org.citron.citron_emu.overlay.InputOverlay
 import org.citron.citron_emu.utils.InputHandler
 import org.citron.citron_emu.utils.NativeConfig
+import org.citron.citron_emu.utils.ParamPackage
 import java.io.File
 
 // Embedded Switch emulator host. Runs in the :switch process. The host app
@@ -242,17 +243,14 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
                 runCatching {
                     InputHandler.updateControllerData()
                     Log.i(tag, "registered input devices (physical + overlay)")
-                    // Mirror upstream EmulationActivity: a detected physical controller
-                    // must be auto-mapped to Player 1 (port 0), otherwise the native
-                    // GamePad device exists but the emulated controller never reads
-                    // from it and the gamepad stays dead while the overlay still works.
-                    autoMapFirstController()
                 }.onFailure { Log.e(tag, "InputHandler.updateControllerData failed", it) }
-                // Bind the emulated Player 1 to the first available input device so the
-                // gamepad is live immediately. Mirrors EmulationActivity.onCreate's
-                // auto-config, but also handles the virtual-gamepad-only case (no physical
-                // controller present) by falling back to the on-screen overlay, which
-                // upstream skips. Without this, buttons do nothing until the first input
+                // Mirror upstream EmulationActivity: a detected physical controller
+                // must be auto-mapped to Player 1 (port 0), otherwise the native
+                // GamePad device exists but the emulated controller never reads
+                // from it and the gamepad stays dead while the overlay still works.
+                // Also handles the virtual-gamepad-only case (no physical controller
+                // present) by falling back to the on-screen overlay, which upstream
+                // skips. Without this, buttons do nothing until the first input
                 // event "wakes" the player connection.
                 autoMapFirstController()
                 Log.i(tag, "starting emulation for $romPath")
@@ -281,26 +279,43 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
      * "wakes" the player connection.
      */
     private fun autoMapFirstController() {
-        if (InputHandler.registeredControllers.isEmpty()) return
+        // Mirror upstream EmulationActivity: use native-side registeredControllers
+        // ParamPackages (from getInputDevices()) which contain all the fields the
+        // native input driver needs (engine, guid, port, display, etc.). Manually
+        // constructing a partial ParamPackage misses critical keys like the axis
+        // declarations and button bitmasks, causing GetButtonMappingForDevice to
+        // return an empty map and the gamepad to be completely dead.
+        val physical = InputHandler.androidControllers.values.toList()
+        if (physical.isEmpty()) return
         // Don't clobber a controller the user already set up in the settings UI.
         val alreadyBound = runCatching {
             NativeInput.getButtonParam(0, NativeButton.A).has("engine")
         }.getOrDefault(false)
         if (alreadyBound) {
             Log.i(tag, "Player 1 already has a mapping; skipping auto-map")
-            return
+        } else {
+            runCatching {
+                physical.forEach { dev ->
+                    val port = dev.getPort()
+                    // Find the native-side ParamPackage for this port (populated by
+                    // getInputDevices() during updateControllerData).
+                    val params = InputHandler.registeredControllers.firstOrNull {
+                        it.get("port", -1) == port
+                    }
+                    if (params != null) {
+                        NativeInput.updateMappingsWithDefault(
+                            port, params,
+                            params.get("display", dev.getName())
+                        )
+                    }
+                }
+                // connectControllers(n) connects players 0..n (mirrors upstream).
+                val maxPort = physical.maxOf { it.getPort() }
+                NativeInput.connectControllers(maxPort)
+                NativeConfig.saveGlobalConfig()
+                Log.i(tag, "auto-mapped ${physical.size} physical controller(s) ports=${physical.map { it.getPort() }}")
+            }.onFailure { Log.e(tag, "auto-map first controller failed", it) }
         }
-        // Prefer the device registered at port 0 (a physical gamepad); otherwise bind the
-        // on-screen overlay so the virtual buttons work out of the box.
-        val params = InputHandler.registeredControllers.firstOrNull { it.get("port", -1) == 0 }
-            ?: InputHandler.registeredControllers.firstOrNull() ?: return
-        val display = params.get("display", "Gamepad")
-        runCatching {
-            NativeInput.updateMappingsWithDefault(0, params, display)
-            NativeInput.connectControllers(0)
-            NativeConfig.saveGlobalConfig()
-            Log.i(tag, "auto-mapped Player 1 to $display")
-        }.onFailure { Log.e(tag, "auto-map first controller failed", it) }
     }
 
     /**

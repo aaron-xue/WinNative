@@ -3,6 +3,7 @@ package org.citron.citron_emu.wn
 import android.content.Context
 import android.util.Log
 import org.citron.citron_emu.NativeLibrary
+import org.citron.citron_emu.features.input.NativeInput
 import org.citron.citron_emu.utils.NativeConfig
 import java.io.File
 
@@ -201,7 +202,10 @@ object CitronBootstrap {
                 file.setReadable(true)
                 file.setExecutable(true)
                 System.load(file.absolutePath)
-                if (name == "citron-android") coreLoaded = true
+                if (name == "citron-android") {
+                    coreLoaded = true
+                    NativeInput.loadSelf(context)
+                }
                 Log.i(TAG, "loaded native lib ${file.absolutePath}")
             }.onFailure { e ->
                 Log.e(TAG, "failed to load native lib ${file.absolutePath}", e)
