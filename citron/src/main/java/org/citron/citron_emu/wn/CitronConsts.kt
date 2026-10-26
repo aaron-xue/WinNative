@@ -17,6 +17,11 @@ object CitronConsts {
     // DLC / update content as external content before boot. Supplied by CitronEmbedLaunch.
     const val EXTRA_ROM_SIBLINGS = "wn_citron_rom_siblings"
 
+    // Whether the per-shortcut performance HUD is enabled (mirrors the "retro_hud" shortcut
+    // extra set by the host app's Switch settings). When true, WnCitronActivity shows the
+    // in-game performance overlay.
+    const val EXTRA_HUD = "wn_citron_hud"
+
     // Authority of the host app's FileProvider (the same `tileprovider` PS2 uses).
     const val FILE_PROVIDER_AUTHORITY_SUFFIX = ".tileprovider"
 }

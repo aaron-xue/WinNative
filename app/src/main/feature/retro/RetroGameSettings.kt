@@ -2017,6 +2017,16 @@ private fun RetroPs2HudSection(state: RetroSettingsState) {
         RetroGroupTitle(stringResource(R.string.retro_gs_group_performance_hud))
         RetroSettingSwitch(stringResource(R.string.retro_lr_performance_hud), hudOn) {
             state.hud = it
+            // For the embedded Switch (citron) core, mirror the HUD toggle into the shared
+            // "CITRON" prefs — the same store the :switch process reads for graphics/audio — so
+            // the in-game overlay reliably picks it up regardless of shortcut-extra plumbing.
+            if (state.system?.id == RetroSystems.SWITCH.id) {
+                context
+                    .getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("wn.switch.hud", it)
+                    .apply()
+            }
             version++
         }
         if (hudOn) {

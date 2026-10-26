@@ -46,6 +46,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     // the NSP installs and the core boots; dismissed once NativeLibrary.isRunning() is true
     // (mirrors citron's EmulationFragment loading indicator).
     private var loadingOverlay: View? = null
+    private var perfHud: SwitchPerfHudController? = null
     private val overlaysAttached = java.util.concurrent.atomic.AtomicBoolean(false)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val pollRunning = object : Runnable {
@@ -90,6 +91,30 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
                 FrameLayout.LayoutParams.MATCH_PARENT,
             ),
         )
+
+        // In-game performance HUD (FPS / GPU / CPU / RAM / battery). Driven entirely by
+        // device-level metrics + NativeLibrary.getPerfStats(); the toggle lives in the Switch
+        // settings (writes the "retro_hud" extra into the shortcut's .desktop file via saveData()).
+        //
+        // We read that flag straight from the .desktop file (path supplied as EXTRA_SHORTCUT_PATH)
+        // rather than trusting the intent extra or a cross-process "CITRON" pref, both of which
+        // proved unreliable. The other two sources are kept as belt-and-suspenders fallbacks.
+        val hudFromShortcut = isHudEnabledFromShortcut(intent)
+        val hudFromExtra = intent.getBooleanExtra(CitronConsts.EXTRA_HUD, false)
+        val hudFromCitron = runCatching {
+            getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE)
+                .getBoolean("wn.switch.hud", false)
+        }.getOrDefault(false)
+        val hudEnabled = hudFromShortcut || hudFromExtra || hudFromCitron
+        Log.i(
+            tag,
+            "HUD enable: total=$hudEnabled | shortcutFile=$hudFromShortcut extra=$hudFromExtra " +
+                "citronPref=$hudFromCitron | shortcutPath=" +
+                intent.getStringExtra(CitronConsts.EXTRA_SHORTCUT_PATH),
+        )
+        if (hudEnabled) {
+            perfHud = SwitchPerfHudController(this, root).also { it.start() }
+        }
 
         // Native-side hooks. Save/load/fast-forward have no native API yet, so they
         // are implemented as user-visible no-ops until P2 wires the backend.
@@ -375,6 +400,35 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     /**
+     * Reads the "retro_hud" flag straight from the shortcut's .desktop file. This is the
+     * authoritative, process-safe source: the host app writes it there (via Shortcut.saveData())
+     * when the user toggles the Switch performance-HUD switch, and the :switch process reads the
+     * same file — no intent extra or cross-process SharedPreferences involved.
+     */
+    private fun isHudEnabledFromShortcut(intent: android.content.Intent): Boolean {
+        val path = intent.getStringExtra(CitronConsts.EXTRA_SHORTCUT_PATH) ?: return false
+        val file = java.io.File(path)
+        if (!file.isFile) return false
+        return try {
+            var inExtraData = false
+            for (raw in file.readLines()) {
+                val line = raw.trim()
+                if (line.isEmpty() || line.startsWith("#")) continue
+                if (line.startsWith("[")) {
+                    inExtraData = line.equals("[Extra Data]", ignoreCase = true)
+                    continue
+                }
+                if (inExtraData && line.startsWith("retro_hud=")) {
+                    return line.substringAfter("=").trim() == "1"
+                }
+            }
+            false
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
      * Inflates the loading overlay (R.layout.wn_citron_loading) shown while the game
      * installs/boots: an outlined MaterialCardView centered on a dark backdrop, with the
      * cover art on the left and (title + "Loading" + indeterminate LinearProgressIndicator)
@@ -414,6 +468,8 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun onDestroy() {
+        perfHud?.stop()
+        perfHud = null
         mainHandler.removeCallbacks(pollRunning)
         runCatching { InputHandler.releaseAllInputs() }
         runCatching { NativeLibrary.stopEmulation() }

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import com.winlator.cmod.feature.retro.RetroShortcuts
 import com.winlator.cmod.runtime.container.Shortcut
 import org.citron.citron_emu.wn.CitronConsts
 import java.io.File
@@ -118,6 +119,10 @@ object CitronEmbedLaunch {
             putExtra(CitronConsts.EXTRA_SHORTCUT_PATH, shortcut.file.absolutePath)
             putExtra(CitronConsts.EXTRA_CONTAINER_ID, shortcut.container.id)
             putStringArrayListExtra(CitronConsts.EXTRA_ROM_SIBLINGS, ArrayList(siblingUris))
+            putExtra(
+                CitronConsts.EXTRA_HUD,
+                shortcut.getExtra(RetroShortcuts.KEY_HUD, "0") == "1",
+            )
             RetroFrameGen.writeInto(context, this, shortcut, RetroSystems.SWITCH.id)
         }
 
