@@ -63,6 +63,17 @@ object CitronBootstrap {
         return null
     }
 
+    /**
+     * True when the Retro-Consoles bundle is installed AND its extracted jniLibs actually
+     * contains the full Switch native runtime (libcitron-android.so + its 11 deps). Pure
+     * file check — nothing is loaded — so it is cheap/safe to call from the UI, e.g. to gate
+     * the Switch settings entry and the NAND user-directory bootstrap.
+     */
+    fun areSwitchLibsAvailable(context: Context): Boolean {
+        val dir = findNativeLibDir(context) ?: return false
+        return NATIVE_LIBS.all { File(dir, "lib$it.so").exists() }
+    }
+
     @Volatile
     private var initialized = false
 

@@ -316,7 +316,21 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                     Spacer(Modifier.height(8.dp))
                     RetroMenuRow(
                     label = stringResource(R.string.retro_scr_cat_switch),
-                    onClick = { selectedConsole = null; currentScreen = RetroMenuScreen.SWITCH },
+                    onClick = {
+                        selectedConsole = null
+                        // Gate on the core bundle being installed AND the Switch native
+                        // runtime actually being present in it — otherwise the Switch
+                        // screen could not run anything.
+                        when {
+                            !RetroBundle.isInstalled(context) -> {
+                                Toast.makeText(context, R.string.retro_bundle_required, Toast.LENGTH_LONG).show()
+                            }
+                            !org.citron.citron_emu.wn.CitronBootstrap.areSwitchLibsAvailable(context) -> {
+                                Toast.makeText(context, R.string.retro_scr_switch_runtime_missing, Toast.LENGTH_LONG).show()
+                            }
+                            else -> currentScreen = RetroMenuScreen.SWITCH
+                        }
+                    },
                     )
                 }
             }
@@ -1080,8 +1094,14 @@ onChanged: () -> Unit,
                             // right after an app reinstall, when the NAND was wiped).
                             scope.launch(Dispatchers.IO) {
                                 runCatching {
-                                    org.citron.citron_emu.wn.CitronBootstrap
-                                        .ensureSwitchUserDirectory(context)
+                                    // Only bring up the NAND profile when the installed
+                                    // bundle really carries the Switch runtime libs.
+                                    if (org.citron.citron_emu.wn.CitronBootstrap
+                                        .areSwitchLibsAvailable(context)
+                                    ) {
+                                        org.citron.citron_emu.wn.CitronBootstrap
+                                            .ensureSwitchUserDirectory(context)
+                                    }
                                 }
                             }
                         }

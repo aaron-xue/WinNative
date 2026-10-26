@@ -852,7 +852,28 @@ internal fun UnifiedActivity.AddCustomGameDialog(
     val addEnabled =
         selectedExePath != null && gameName.isNotBlank() && !isAdding &&
             (retroSystem != null || linuxApp || gameFolder != null)
-    val doAdd: () -> Unit = {
+    val doAdd: () -> Unit = addGate@{
+        // Retro games need the console-cores bundle; Switch games additionally need the
+        // Switch native runtime inside it. Block the add with a hint when either is missing.
+        val gateRetro = retroSystem
+        val blockReason: Int? =
+            when {
+                gateRetro != null &&
+                    !com.winlator.cmod.feature.retro.RetroBundle.isInstalled(context) ->
+                    R.string.retro_bundle_required
+                gateRetro?.id == com.winlator.cmod.feature.retro.RetroSystems.SWITCH.id &&
+                    !org.citron.citron_emu.wn.CitronBootstrap.areSwitchLibsAvailable(context) ->
+                    R.string.retro_scr_switch_runtime_missing
+                else -> null
+            }
+        if (blockReason != null) {
+            com.winlator.cmod.shared.ui.toast.WinToast.show(
+                context,
+                context.getString(blockReason),
+                android.widget.Toast.LENGTH_LONG,
+            )
+            return@addGate
+        }
         isAdding = true
         val chosenRetro = retroSystem
         val chosenType = itemType

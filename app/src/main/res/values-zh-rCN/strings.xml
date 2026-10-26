@@ -3229,6 +3229,7 @@
     <string name="cloud_saves_history_delete_failed">无法删除云存档</string>
     <string name="cloud_saves_history_delete_success">云存档已删除</string>
     <string name="retro_bundle_required">请先下载主机核心 — 设置 › 复古</string>
+    <string name="retro_scr_switch_runtime_missing">已安装的主机核心缺少 Switch 运行库，请重新安装主机核心后重试。</string>
     <string name="retro_ps2_device_unsupported">此设备无法运行 PS2 模拟 — 需要 OpenGL ES 3.1 或更高版本。</string>
     <string name="retro_scr_consoles_check">检查更新</string>
     <string name="retro_scr_consoles_install_file">安装核心</string>

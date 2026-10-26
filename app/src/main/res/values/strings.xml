@@ -2557,6 +2557,7 @@ Installed path:
     <string name="retro_scr_retro_defaults">RETRO DEFAULTS</string>
     <string name="retro_scr_retro_defaults_desc">Defaults applied to each console\'s games unless overridden in a game\'s own settings.</string>
     <string name="retro_bundle_required">Download the console cores first — Settings › Retro</string>
+    <string name="retro_scr_switch_runtime_missing">The installed console cores are missing the Switch runtime. Reinstall the console cores and try again.</string>
     <string name="retro_scr_consoles_group">Console Cores</string>
     <string name="retro_scr_consoles_state">Status</string>
     <string name="retro_scr_consoles_installed">Installed — build %1$s</string>
