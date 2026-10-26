@@ -1072,6 +1072,18 @@ onChanged: () -> Unit,
                         if (result.isFailure) {
                             installError = result.exceptionOrNull()?.let { it.message ?: it.toString() }
                             ?: context.getString(R.string.retro_scr_consoles_install_failed)
+                        } else {
+                            // Core bundle installed: bring up the emulated NAND now so the
+                            // default Switch profile (random user id) and its save directory
+                            // already exist — that lets the save manager list/restore saves
+                            // without having to launch a game first (and makes restore work
+                            // right after an app reinstall, when the NAND was wiped).
+                            scope.launch(Dispatchers.IO) {
+                                runCatching {
+                                    org.citron.citron_emu.wn.CitronBootstrap
+                                        .ensureSwitchUserDirectory(context)
+                                }
+                            }
                         }
                         onChanged()
                     }

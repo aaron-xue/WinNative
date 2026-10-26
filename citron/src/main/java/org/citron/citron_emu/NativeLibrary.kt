@@ -143,6 +143,21 @@ object NativeLibrary {
 
     external fun initializeSystem(reload: Boolean)
 
+    /**
+     * Creates the default profile's save directory
+     * (nand/user/save/<space id>/<user id>/) if it does not exist, creating the default
+     * user (a random UUID, username "citron") when the NAND has no profile yet. Requires the
+     * emulated system to be initialized first (see [initializeSystem]).
+     */
+    external fun initializeEmptyUserDirectory()
+
+    /**
+     * VFS-relative root of the default profile's game saves, e.g.
+     * "/user/save/0000000000000000/<user id>" (or "/user/save/account/<user id>" when
+     * [future] is true). The path is relative to the NAND directory.
+     */
+    external fun getDefaultProfileSaveDataRoot(future: Boolean): String
+
     external fun run(path: String?, programIndex: Int, frontendInitiated: Boolean)
 
     external fun surfaceChanged(surf: android.view.Surface?)

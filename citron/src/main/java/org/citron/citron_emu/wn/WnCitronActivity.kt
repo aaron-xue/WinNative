@@ -21,6 +21,7 @@ import org.citron.citron_emu.R
 import org.citron.citron_emu.features.input.NativeInput
 import org.citron.citron_emu.features.input.model.NativeButton
 import org.citron.citron_emu.overlay.InputOverlay
+import org.citron.citron_emu.utils.GameMetadata
 import org.citron.citron_emu.utils.InputHandler
 import org.citron.citron_emu.utils.NativeConfig
 import org.citron.citron_emu.utils.ParamPackage
@@ -225,6 +226,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
         Thread({
             try {
                 val siblingUris = intent.getStringArrayListExtra(CitronConsts.EXTRA_ROM_SIBLINGS)
+                // Persist this game's titleId -> name so the save manager can label saves
+                // by game name, and keep that mapping across app reinstalls.
+                persistGameName(romPath)
                 // Install the base game into NAND so the title is registered and Add-On
                 // Content resolution can find the sibling DLC / update files below.
                 Log.i(tag, "installing NSP to NAND: $romPath")
@@ -268,6 +272,37 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
                 runOnUiThread { finish() }
             }
         }, "WnCitronRun").start()
+    }
+
+    /**
+     * Resolves the running game's title + titleId via the native GameMetadata (works here
+     * because CitronBootstrap.ensure() already initialized the core) and merges
+     * { titleId : name } into WinNative/saves/switch/names.json. The main-process save
+     * manager reads that file to label saves by game name; since the file lives in public
+     * storage and the titleId is intrinsic to the game, the mapping survives reinstalls.
+     */
+    private fun persistGameName(romPath: String) {
+        runCatching {
+            val name = GameMetadata.getTitle(romPath)
+            if (name.isBlank()) return
+            val programId = GameMetadata.getProgramId(romPath).toULongOrNull() ?: return
+            val titleId = programId.toString(16).uppercase().padStart(16, '0')
+            val dir = File(
+                android.os.Environment.getExternalStorageDirectory(),
+                "WinNative/saves/switch",
+            ).apply { mkdirs() }
+            val namesFile = File(dir, "names.json")
+            val obj = if (namesFile.isFile) {
+                runCatching { org.json.JSONObject(namesFile.readText()) }.getOrNull() ?: org.json.JSONObject()
+            } else {
+                org.json.JSONObject()
+            }
+            if (obj.optString(titleId) != name) {
+                obj.put(titleId, name)
+                namesFile.writeText(obj.toString())
+                Log.i(tag, "persisted game name for $titleId: $name")
+            }
+        }.onFailure { Log.w(tag, "persist game name failed", it) }
     }
 
     /**

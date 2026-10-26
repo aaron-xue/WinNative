@@ -53,18 +53,18 @@ import java.io.File
 fun CitronSaveManagerScreen(onClose: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var entries by remember { mutableStateOf<List<CitronSaveManager.CitronSaveEntry>>(emptyList()) }
+    var rows by remember { mutableStateOf<List<SaveRow>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var restoreTarget by remember { mutableStateOf<CitronSaveManager.CitronSaveEntry?>(null) }
     var deleteTarget by remember { mutableStateOf<CitronSaveManager.CitronSaveEntry?>(null) }
 
     fun refresh() {
-        scope.launch(Dispatchers.IO) { entries = CitronSaveManager.listSaves(context) }
+        scope.launch(Dispatchers.IO) { rows = loadSaveRows(context) }
     }
 
     LaunchedEffect(Unit) {
         loading = true
-        entries = withContext(Dispatchers.IO) { CitronSaveManager.listSaves(context) }
+        rows = withContext(Dispatchers.IO) { loadSaveRows(context) }
         loading = false
     }
 
@@ -90,7 +90,7 @@ fun CitronSaveManagerScreen(onClose: () -> Unit) {
                 loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color(0xFF4FC3F7))
                 }
-                entries.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                rows.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         stringResource(R.string.retro_scr_save_no_saves),
                         color = Color(0xFF93A6BC),
@@ -102,29 +102,50 @@ fun CitronSaveManagerScreen(onClose: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     contentPadding = PaddingValues(vertical = 12.dp),
                 ) {
-                    items(entries) { entry ->
+                    items(rows) { row ->
                         SaveCard(
-                            entry = entry,
+                            entry = row.entry,
+                            displayName = row.name,
                             onBackup = {
-                                scope.launch(Dispatchers.IO) {
-                                    val dest = CitronSaveManager.backup(context, entry.titleId)
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(
-                                            context,
-                                            if (dest != null) {
-                                                context.getString(R.string.retro_scr_save_backed_up, dest.absolutePath)
-                                            } else {
-                                                context.getString(R.string.retro_scr_save_not_found)
-                                            },
-                                            if (dest != null) Toast.LENGTH_LONG else Toast.LENGTH_SHORT,
-                                        ).show()
+                                // Backups go to the public Download folder, which needs
+                                // All-files access on Android 11+. Request it if missing.
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R &&
+                                    !android.os.Environment.isExternalStorageManager()
+                                ) {
+                                    Toast.makeText(
+                                        context,
+                                        R.string.common_ui_grant_all_files_access,
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                                    runCatching {
+                                        (context as? android.app.Activity)?.startActivity(
+                                            android.content.Intent(
+                                                android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                                android.net.Uri.parse("package:${context.packageName}"),
+                                            ),
+                                        )
                                     }
-                                    entries = CitronSaveManager.listSaves(context)
+                                } else {
+                                    scope.launch(Dispatchers.IO) {
+                                        val dest = CitronSaveManager.backup(context, row.entry.titleId, row.name)
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(
+                                                context,
+                                                if (dest != null) {
+                                                    context.getString(R.string.retro_scr_save_backed_up, dest.absolutePath)
+                                                } else {
+                                                    context.getString(R.string.retro_scr_save_not_found)
+                                                },
+                                                if (dest != null) Toast.LENGTH_LONG else Toast.LENGTH_SHORT,
+                                            ).show()
+                                        }
+                                        rows = loadSaveRows(context)
+                                    }
                                 }
                             },
-                            onRestore = { restoreTarget = entry },
-                            onDelete = { deleteTarget = entry },
-                            onCopyPath = { copyPath(context, entry.folder.absolutePath) },
+                            onRestore = { restoreTarget = row.entry },
+                            onDelete = { deleteTarget = row.entry },
+                            onCopyPath = { copyPath(context, row.entry.folder.absolutePath) },
                         )
                     }
                 }
@@ -147,7 +168,7 @@ fun CitronSaveManagerScreen(onClose: () -> Unit) {
                         Toast.LENGTH_SHORT,
                     ).show()
                 }
-                entries = CitronSaveManager.listSaves(context)
+                rows = loadSaveRows(context)
                 restoreTarget = null
             }
         }
@@ -169,7 +190,7 @@ fun CitronSaveManagerScreen(onClose: () -> Unit) {
                                 Toast.LENGTH_SHORT,
                             ).show()
                         }
-                        entries = CitronSaveManager.listSaves(context)
+                        rows = loadSaveRows(context)
                         deleteTarget = null
                     }
                 }) { Text(stringResource(R.string.retro_scr_save_delete)) }
@@ -186,6 +207,7 @@ fun CitronSaveManagerScreen(onClose: () -> Unit) {
 @Composable
 private fun SaveCard(
     entry: CitronSaveManager.CitronSaveEntry,
+    displayName: String,
     onBackup: () -> Unit,
     onRestore: () -> Unit,
     onDelete: () -> Unit,
@@ -197,7 +219,8 @@ private fun SaveCard(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(entry.titleId, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text(displayName, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text(entry.titleId, color = Color(0xFF7F8FA6), fontSize = 11.sp)
         Text(
             stringResource(
                 R.string.retro_scr_save_meta,
@@ -245,7 +268,8 @@ private fun RestoreDialog(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     backups.forEach { b ->
                         OutlinedButton(onClick = { onRestore(b) }, Modifier.fillMaxWidth()) {
-                            Text(b.name)
+                            val nm = CitronSaveManager.readBackupName(b) ?: titleId
+                            Text("$nm  (${b.nameWithoutExtension.substringAfter('_')})")
                         }
                     }
                 }
@@ -262,3 +286,15 @@ private fun copyPath(context: Context, path: String) {
     cm?.setPrimaryClip(ClipData.newPlainText("save_path", path))
     Toast.makeText(context, R.string.retro_scr_save_path_copied, Toast.LENGTH_SHORT).show()
 }
+
+/** A save entry paired with its resolved display name (game name, or titleId as fallback). */
+private data class SaveRow(
+    val entry: CitronSaveManager.CitronSaveEntry,
+    val name: String,
+)
+
+/** Loads all saves with their resolved display names (NAND + Download metadata; run off main). */
+private fun loadSaveRows(context: Context): List<SaveRow> =
+    CitronSaveManager.listSaves(context).map {
+        SaveRow(it, CitronSaveManager.gameNameFor(context, it.titleId))
+    }
