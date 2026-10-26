@@ -57,15 +57,20 @@ corresponding source for every copyleft component is available from the projects
   [Eden Emulator Project](https://git.eden-emu.dev/eden-emu/eden) (GPL-3.0-or-later) — the Vulkan
   port of that chain that WinNative's frame generation is derived from.
   See [what came from Camille LaVey's Eden port](#frame-generation--what-came-from-camille-laveys-eden-port)
-- **OpenFlow frame generation** (DIS optical flow) by **qwertypower**
-  ([DEVAR Entertainment LLC](https://devar.ai/)) (GPL-3.0) — a complete open-source implementation
+- **WFG** (WinNative/Winlator Frame Generator; DIS optical flow) by **qwertypower**
+  ([DEVAR Entertainment LLC](https://devar.ai/)) (MIT) — a complete open-source implementation
   of a Dense Inverse Search frame generator, the second frame generation engine in WinNative and
   the one that needs no shaders from anywhere else.
-  See [the fully open-source engine](#dis-frame-generation--the-fully-open-source-engine)
-- **DIS optical flow** — the algorithm and its reference implementation come from
+  See [the fully open-source engine](#wfg-winnativewinlator-frame-generator--the-fully-open-source-engine)
+- **DIS optical flow** — implemented in WFG by **qwertypower** (DEVAR Entertainment LLC) as Vulkan
+  compute shaders; the algorithm and its reference implementation come from
   [OpenCV](https://github.com/opencv/opencv) (`DISOpticalFlow`,
   [LICENSE](https://github.com/opencv/opencv/blob/5.x/LICENSE)), which adopted Till Kroeger's
   original [OF_DIS](https://github.com/tikroeger/OF_DIS)
+- **Farneback optical flow** — implemented in WFG by **qwertypower** (DEVAR Entertainment LLC) as
+  the coarse levels of its hybrid estimator; Gunnar Farnebäck's polynomial-expansion method, ported
+  from OpenCV's `calcOpticalFlowFarneback` (`optflowgf.cpp`,
+  [LICENSE](https://github.com/opencv/opencv/blob/5.x/LICENSE))
 - **DXVK** by [Philip Rebohle and contributors](https://github.com/doitsujin/dxvk) (zlib/libpng) —
   the `dxbc` shader translator, vendored at `app/src/main/cpp/thirdparty/dxbc` to convert the
   frame generation shaders to SPIR-V
@@ -119,32 +124,41 @@ of a user's own Lossless Scaling install (`lsfg_dll.*`), translating them when o
 available (`lsfg_dxbc.*`), the JNI surface (`lsfg_jni.*`), driver probing (`lsfg_probe.*`), and
 wiring the chain into WinNative's compositor and swapchain (`vkr_lsfg.*`).
 
-## OpenFlow frame generation — the fully open-source engine
+## WFG (WinNative/Winlator Frame Generator) — the fully open-source engine
 
 WinNative's second frame generator is a complete open-source implementation of **Dense Inverse
-Search** optical flow, contributed by **qwertypower** (DEVAR Entertainment LLC) under GPL-3.0.
+Search** optical flow, contributed by **qwertypower** (DEVAR Entertainment LLC) under the MIT
+license (`app/src/main/cpp/wfg/LICENSE`); the rest of WinNative, including the compositor code that
+calls it, stays GPL-3.0.
 
 Unlike the Lossless Scaling path it depends on nothing the user has to own or install. The whole
-chain ships with the APK as fourteen compute shaders and runs in the same Vulkan compositor, so
+chain ships with the APK as twenty-two compute shaders and runs in the same Vulkan compositor, so
 frame generation is available on a fresh install with no Steam account and no `Lossless.dll`.
 
-The algorithm is DIS, and its reference implementation is OpenCV's `DISOpticalFlow`
+The flow estimator is a hybrid of two published methods. The fine levels are DIS, whose reference
+implementation is OpenCV's `DISOpticalFlow`
 ([OpenCV LICENSE](https://github.com/opencv/opencv/blob/5.x/LICENSE)). OpenCV in turn adopted
-Till Kroeger's original [OF_DIS](https://github.com/tikroeger/OF_DIS). What is original here is
-the Vulkan compute realisation of it — the pyramid, the descriptor and barrier layout, the
-sparse-to-dense step and the pacing — built to run inside a mobile compositor at frame rate.
+Till Kroeger's original [OF_DIS](https://github.com/tikroeger/OF_DIS). The coarse levels are
+Gunnar Farnebäck's polynomial-expansion flow, ported from OpenCV's `calcOpticalFlowFarneback`.
+What is original here, by **qwertypower**, is the Vulkan compute realisation of both and the hybrid
+itself — the pyramid, the descriptor and barrier layout, the sparse-to-dense step, the
+interpolation (occlusion handling, forward splatting, acceleration) and the pacing — built to run
+inside a mobile compositor at frame rate.
 
 | Stage | Shaders |
 | --- | --- |
-| Pyramid and gradients | `dis_gradient` |
-| Patch inverse search, coarse to fine | `dis_inverse_search`, `dis_propagate` |
+| Luminance pyramid and gradients | `dis_luma_r16`, `dis_luma_r32`, `dis_gradient` |
+| Farneback on the coarse levels | `dis_fb_poly`, `dis_fb_hsum`, `dis_fb_vsolve` |
+| Patch inverse search on the fine levels | `dis_inverse_search`, `dis_propagate` |
 | Sparse grid to dense flow | `dis_densify` |
 | Variational refinement | `dis_vr_prep`, `dis_vr_d1`, `dis_vr_d2`, `dis_vr_w`, `dis_vr_coef`, `dis_vr_sor`, `dis_vr_add` |
+| Packed field, occlusion fill, acceleration | `dis_flow_pack`, `dis_fill` |
+| Overlay history, occlusion side, splat | `dis_hist`, `dis_side`, `dis_splat` |
 | Warp to the in-between frame | `dis_interpolate` |
 
-The engine sits behind its own settings — a Fast / Balance / Quality flow resolution and an
-optional target frame rate — kept separate from the Lossless Scaling ones, and the two engines
-are mutually exclusive because the compositor drives one interpolator per frame.
+The engine sits behind its own settings — a Fast / Balance flow resolution and an optional target
+frame rate — kept separate from the Lossless Scaling ones, and the two engines are mutually
+exclusive because the compositor drives one interpolator per frame.
 
 ## DirectAudio — what came from The412Banner's driver
 

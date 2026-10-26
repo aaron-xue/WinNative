@@ -135,8 +135,8 @@ endforeach()
 
 add_custom_target(winlator_shaders DEPENDS ${SHADER_HEADERS})
 
-# OpenFlow frame generator (DIS optical flow + interpolation), linked by libwinlator and libwnwayland.
-add_subdirectory(openflow)
+# WFG frame generator (DIS optical flow + interpolation), linked by libwinlator and libwnwayland.
+add_subdirectory(wfg)
 
 # ----------------------------------------------------------------------------
 # Winlator native library (X-server, AHB, Vulkan compositor, helpers)
@@ -189,7 +189,7 @@ target_include_directories(winlator PRIVATE
 target_compile_features(winlator PRIVATE cxx_std_17)
 
 target_link_libraries(winlator
-        openflow
+        wfg
         log
         android
         mediandk

@@ -55,6 +55,7 @@ import com.winlator.cmod.feature.stores.steam.enums.Marker;
 import com.winlator.cmod.feature.stores.steam.utils.MarkerUtils;
 import com.winlator.cmod.feature.stores.steam.utils.PrefManager;
 import com.winlator.cmod.feature.stores.steam.utils.SteamUtils;
+import com.winlator.cmod.feature.stores.steam.workshop.WorkshopModsGenerator;
 
 import androidx.preference.PreferenceManager;
 import com.winlator.cmod.R;
@@ -532,7 +533,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private Thread waylandRendererThread;
     /* The process behind the window the compositor is showing, from the compositor itself. */
     private volatile int waylandGamePid;
-    private static final int[] DIS_FLOW_MIN_SIDES = {180, 252, 360};
+    private static final int[] DIS_FLOW_MIN_SIDES = {180, 252};
     private static final int DIS_FRAME_GEN_SCALE_DEFAULT = 180;
 
     private int disFrameGenScale = DIS_FRAME_GEN_SCALE_DEFAULT;
@@ -7812,6 +7813,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                             .installSteampipeBridgeIntoApp(this, gameDir);
                     com.winlator.cmod.feature.stores.steam.utils.SteamUtils
                             .invalidateInstallScan(this, appId, gameDir);
+                    setupSteamSettingsForAllDirs(gameDir, appId, language, isOfflineMode,
+                            useSteamInput, ticketBase64);
+                    SteamUtils.enrichSteamSettings(this, appId,
+                            new File(gameInstallPath, "steam_settings"));
                     Log.d("XServerDisplayActivity",
                             "Bionic Steam: " + steampipeSwapped
                             + " steam_api*.dll(s) replaced with steampipe bridge");
@@ -8456,8 +8461,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             if (DirectAudioDriver.INSTANCE.shouldExposeMic(this, micRequested)) {
                 envVars.put(DirectAudioDriver.ENV_MIC, "1");
             }
-            Log.d("XServerDisplayActivity", "DirectAudio: micRequested=" + micRequested +
-                    " micExposed=" + envVars.has(DirectAudioDriver.ENV_MIC));
+            if (LogManager.isDebugEnabled()) {
+                LogManager.log(TAG, "DirectAudio: micRequested=" + micRequested +
+                        " micExposed=" + envVars.has(DirectAudioDriver.ENV_MIC));
+            }
         }
 
         // Wine cannot enumerate Android network interfaces; Steam treats that as offline.
@@ -12516,6 +12523,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
         if (hasSteamDll) {
             SteamUtils.writeCompleteSettingsDir(dir, appId, language, isOffline, useSteamInput, ticketBase64);
+            WorkshopModsGenerator.INSTANCE.generate(this, appId, new File(dir, "steam_settings"));
         }
 
         for (File file : files) {
@@ -13710,6 +13718,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 }
             }
 
+            WorkshopModsGenerator.INSTANCE.syncToSteamLibrary(this, appId, steamappsDir);
+
             ensureSteamLibraryFoldersConfig(steamDir, steamappsDir);
 
             File steamworksAcf = new File(steamappsDir, "appmanifest_228980.acf");
@@ -14199,8 +14209,15 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (directAudioAvailable != null) return directAudioAvailable;
         String wineIdentifier =
                 wineInfo != null ? wineInfo.identifier() : container.getWineVersion();
-        directAudioAvailable = DirectAudioDriver.INSTANCE.install(this, imageFs, wineIdentifier);
-        Log.d("XServerDisplayActivity", "DirectAudio install for wine '" + wineIdentifier
+        LogManager.log(TAG, "DirectAudio: install start, wine='" + wineIdentifier + "'");
+        try {
+            directAudioAvailable = DirectAudioDriver.INSTANCE.install(this, imageFs, wineIdentifier);
+        } catch (Throwable t) {
+            LogManager.logE(TAG,
+                    "DirectAudio: install threw for '" + wineIdentifier + "' — onCreate dies here", t);
+            directAudioAvailable = false;
+        }
+        LogManager.log(TAG, "DirectAudio install for wine '" + wineIdentifier
                 + "' available=" + directAudioAvailable);
         return directAudioAvailable;
     }
@@ -14213,7 +14230,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         try {
             DirectAudioHost.stage(this, LinuxRuntime.rootDir(this));
         } catch (IOException e) {
-            Log.w("XServerDisplayActivity", "DirectAudio could not be staged for the Linux session", e);
+            LogManager.logW(TAG, "DirectAudio could not be staged for the Linux session", e);
             runOnUiThread(() -> android.widget.Toast.makeText(
                     this, R.string.directaudio_unavailable, android.widget.Toast.LENGTH_LONG).show());
             return;
@@ -14227,13 +14244,26 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (micExposed) guest.add(DirectAudioDriver.ENV_MIC + "=1");
         environment.addComponent(
                 new DirectAudioHost(socket, micExposed));
+
+        // pathLen is not paranoia: nativeStart in wn_aaudio_host.c returns JNI_FALSE when the path
+        // is ≥ sizeof(sun_path) (108 bytes), and rootPath + SOCKET_PATH is app-relative — long 
+        // container names can trip it. The host then never listens, while the guest still gets WN_DIRECTAUDIO=1.
+        LogManager.log(TAG,
+                "DirectAudio: host socket=" + socket.getPath()
+                        + "\n pathLen=" + socket.getPath().length()
+                        + "\n mic=" + micExposed);
     }
 
     private void resolveAudioDriver() {
         // A Linux session stages its own build of the driver, see setupLinuxSession().
-        if (gamescopeMode || !DirectAudioDriver.INSTANCE.isSelected(audioDriver)) return;
+        if (gamescopeMode || !DirectAudioDriver.INSTANCE.isSelected(audioDriver)) {
+            LogManager.log(TAG, "DirectAudio: gamescopeMode: " + gamescopeMode + "\n"
+                    + "isSelected: " + DirectAudioDriver.INSTANCE.isSelected(audioDriver) + "\n"
+                    + "resolveAudioDriver first return.");
+            return;
+        }
         if (ensureDirectAudioInstalled()) return;
-        Log.w("XServerDisplayActivity", "DirectAudio is unavailable for this container; falling back to "
+        LogManager.logW(TAG, "DirectAudio is unavailable for this container; falling back to "
                 + Container.DEFAULT_AUDIO_DRIVER + " so mmdevapi keeps a loadable backend");
         audioDriver = Container.DEFAULT_AUDIO_DRIVER;
         runOnUiThread(() -> android.widget.Toast.makeText(
