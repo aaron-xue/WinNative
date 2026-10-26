@@ -55,6 +55,7 @@ import com.winlator.cmod.feature.stores.steam.enums.Marker;
 import com.winlator.cmod.feature.stores.steam.utils.MarkerUtils;
 import com.winlator.cmod.feature.stores.steam.utils.PrefManager;
 import com.winlator.cmod.feature.stores.steam.utils.SteamUtils;
+import com.winlator.cmod.feature.stores.steam.workshop.WorkshopModsGenerator;
 
 import androidx.preference.PreferenceManager;
 import com.winlator.cmod.R;
@@ -247,6 +248,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private static final String PREVIOUS_CONTAINER_STEAM_CLIENT_STORE_RELATIVE_PATH = ".wine/.steam-client-store";
     private static final String LEGACY_STEAM_CLIENT_STORE_RELATIVE_PATH = ".wine/drive_c/WinNative/SteamClient";
     public static final String EXTRA_LAUNCHED_FROM_PINNED_SHORTCUT = "launched_from_pinned_shortcut";
+    // Set when launched from in-app navigation (e.g. the Containers screen inside
+    // SettingsActivity) so that exiting the session returns to the caller's task
+    // instead of always hopping to UnifiedActivity's library tab.
+    public static final String EXTRA_RETURN_TO_CALLER = "return_to_caller";
 
     // CEF GPU flags avoid steamwebhelper taking DXVK's dxgi path in FEX.
     private static final String[] STEAM_SYSTEM_REGISTRY_KEYS = new String[] {
@@ -528,7 +533,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private Thread waylandRendererThread;
     /* The process behind the window the compositor is showing, from the compositor itself. */
     private volatile int waylandGamePid;
-    private static final int[] DIS_FLOW_MIN_SIDES = {180, 252, 360};
+    private static final int[] DIS_FLOW_MIN_SIDES = {180, 252};
     private static final int DIS_FRAME_GEN_SCALE_DEFAULT = 180;
 
     private int disFrameGenScale = DIS_FRAME_GEN_SCALE_DEFAULT;
@@ -4199,6 +4204,13 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             AppTerminationHelper.exitApplication(this, "shortcut_session_exit");
             return;
         }
+        // Launched from in-app navigation (e.g. the Containers screen). Just finish so the
+        // caller's task (SettingsActivity / Containers) is revealed again instead of bouncing
+        // to UnifiedActivity's library tab.
+        if (getIntent().getBooleanExtra(EXTRA_RETURN_TO_CALLER, false)) {
+            finish();
+            return;
+        }
 
         // ToDo: Find a way to avoid stealing focus from the user without causing crashes, ANRs, or session re-starts when opening the app again
         //  after use 'Exit' in the notification.
@@ -4231,7 +4243,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
     private void startUnifiedActivity() {
         Intent intent = new Intent(this, UnifiedActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        // NEW_TASK so we re-enter the existing UnifiedActivity task (preserving its selected
+        // tab) rather than spinning up a fresh instance that always lands on the library.
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
     }
 
@@ -7799,6 +7813,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                             .installSteampipeBridgeIntoApp(this, gameDir);
                     com.winlator.cmod.feature.stores.steam.utils.SteamUtils
                             .invalidateInstallScan(this, appId, gameDir);
+                    setupSteamSettingsForAllDirs(gameDir, appId, language, isOfflineMode,
+                            useSteamInput, ticketBase64);
+                    SteamUtils.enrichSteamSettings(this, appId,
+                            new File(gameInstallPath, "steam_settings"));
                     Log.d("XServerDisplayActivity",
                             "Bionic Steam: " + steampipeSwapped
                             + " steam_api*.dll(s) replaced with steampipe bridge");
@@ -8443,8 +8461,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             if (DirectAudioDriver.INSTANCE.shouldExposeMic(this, micRequested)) {
                 envVars.put(DirectAudioDriver.ENV_MIC, "1");
             }
-            Log.d("XServerDisplayActivity", "DirectAudio: micRequested=" + micRequested +
-                    " micExposed=" + envVars.has(DirectAudioDriver.ENV_MIC));
+            if (LogManager.isDebugEnabled()) {
+                LogManager.log(TAG, "DirectAudio: micRequested=" + micRequested +
+                        " micExposed=" + envVars.has(DirectAudioDriver.ENV_MIC));
+            }
         }
 
         // Wine cannot enumerate Android network interfaces; Steam treats that as offline.
@@ -12503,6 +12523,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
         if (hasSteamDll) {
             SteamUtils.writeCompleteSettingsDir(dir, appId, language, isOffline, useSteamInput, ticketBase64);
+            WorkshopModsGenerator.INSTANCE.generate(this, appId, new File(dir, "steam_settings"));
         }
 
         for (File file : files) {
@@ -13697,6 +13718,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 }
             }
 
+            WorkshopModsGenerator.INSTANCE.syncToSteamLibrary(this, appId, steamappsDir);
+
             ensureSteamLibraryFoldersConfig(steamDir, steamappsDir);
 
             File steamworksAcf = new File(steamappsDir, "appmanifest_228980.acf");
@@ -14186,8 +14209,15 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (directAudioAvailable != null) return directAudioAvailable;
         String wineIdentifier =
                 wineInfo != null ? wineInfo.identifier() : container.getWineVersion();
-        directAudioAvailable = DirectAudioDriver.INSTANCE.install(this, imageFs, wineIdentifier);
-        Log.d("XServerDisplayActivity", "DirectAudio install for wine '" + wineIdentifier
+        LogManager.log(TAG, "DirectAudio: install start, wine='" + wineIdentifier + "'");
+        try {
+            directAudioAvailable = DirectAudioDriver.INSTANCE.install(this, imageFs, wineIdentifier);
+        } catch (Throwable t) {
+            LogManager.logE(TAG,
+                    "DirectAudio: install threw for '" + wineIdentifier + "' — onCreate dies here", t);
+            directAudioAvailable = false;
+        }
+        LogManager.log(TAG, "DirectAudio install for wine '" + wineIdentifier
                 + "' available=" + directAudioAvailable);
         return directAudioAvailable;
     }
@@ -14200,7 +14230,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         try {
             DirectAudioHost.stage(this, LinuxRuntime.rootDir(this));
         } catch (IOException e) {
-            Log.w("XServerDisplayActivity", "DirectAudio could not be staged for the Linux session", e);
+            LogManager.logW(TAG, "DirectAudio could not be staged for the Linux session", e);
             runOnUiThread(() -> android.widget.Toast.makeText(
                     this, R.string.directaudio_unavailable, android.widget.Toast.LENGTH_LONG).show());
             return;
@@ -14214,13 +14244,26 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (micExposed) guest.add(DirectAudioDriver.ENV_MIC + "=1");
         environment.addComponent(
                 new DirectAudioHost(socket, micExposed));
+
+        // pathLen is not paranoia: nativeStart in wn_aaudio_host.c returns JNI_FALSE when the path
+        // is ≥ sizeof(sun_path) (108 bytes), and rootPath + SOCKET_PATH is app-relative — long 
+        // container names can trip it. The host then never listens, while the guest still gets WN_DIRECTAUDIO=1.
+        LogManager.log(TAG,
+                "DirectAudio: host socket=" + socket.getPath()
+                        + "\n pathLen=" + socket.getPath().length()
+                        + "\n mic=" + micExposed);
     }
 
     private void resolveAudioDriver() {
         // A Linux session stages its own build of the driver, see setupLinuxSession().
-        if (gamescopeMode || !DirectAudioDriver.INSTANCE.isSelected(audioDriver)) return;
+        if (gamescopeMode || !DirectAudioDriver.INSTANCE.isSelected(audioDriver)) {
+            LogManager.log(TAG, "DirectAudio: gamescopeMode: " + gamescopeMode + "\n"
+                    + "isSelected: " + DirectAudioDriver.INSTANCE.isSelected(audioDriver) + "\n"
+                    + "resolveAudioDriver first return.");
+            return;
+        }
         if (ensureDirectAudioInstalled()) return;
-        Log.w("XServerDisplayActivity", "DirectAudio is unavailable for this container; falling back to "
+        LogManager.logW(TAG, "DirectAudio is unavailable for this container; falling back to "
                 + Container.DEFAULT_AUDIO_DRIVER + " so mmdevapi keeps a loadable backend");
         audioDriver = Container.DEFAULT_AUDIO_DRIVER;
         runOnUiThread(() -> android.widget.Toast.makeText(
