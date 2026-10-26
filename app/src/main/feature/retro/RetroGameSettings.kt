@@ -279,7 +279,7 @@ class RetroSettingsState(
     }
 }
 
-private enum class RetroSectionId {
+enum class RetroSectionId {
     GENERAL,
     GRAPHICS,
     FRAMEGEN,
@@ -291,13 +291,16 @@ private enum class RetroSectionId {
     CHEATS,
 }
 
-private data class RetroSection(
+internal data class RetroSection(
     val id: RetroSectionId,
     val icon: ImageVector,
     val labelRes: Int,
 )
 
-private fun buildRetroSections(state: RetroSettingsState): List<RetroSection> {
+private fun buildRetroSections(
+    state: RetroSettingsState,
+    onlySections: Set<RetroSectionId>?,
+): List<RetroSection> {
     val sections = mutableListOf<RetroSection>()
     val systemId = state.system?.id
     sections += RetroSection(RetroSectionId.GENERAL, Icons.Outlined.Tune, R.string.retro_gs_section_general)
@@ -322,7 +325,8 @@ private fun buildRetroSections(state: RetroSettingsState): List<RetroSection> {
     if (state.system?.isExternal == true) {
         sections += RetroSection(RetroSectionId.CHEATS, Icons.Outlined.Code, R.string.retro_gs_group_cheats)
     }
-    return sections
+    // A caller (e.g. the Switch-specific dialog) may restrict the tab list.
+    return if (onlySections == null) sections else sections.filter { it.id in onlySections }
 }
 
 @Composable
@@ -334,8 +338,9 @@ fun RetroGameSettingsContent(
     onImportBios: (() -> Unit)? = null,
     onSave: () -> Unit,
     onCancel: () -> Unit,
+    onlySections: Set<RetroSectionId>? = null,
 ) {
-    val sections = remember(state) { buildRetroSections(state) }
+    val sections = remember(state) { buildRetroSections(state, onlySections) }
     val selectedIdx = state.currentSection
 
     if (nav != null) {
@@ -360,6 +365,7 @@ fun RetroGameSettingsContent(
             Box(modifier = contentModifier.background(ContentBg)) {
                 RetroSectionContent(
                     sectionIndex = selectedIdx,
+                    sections = sections,
                     state = state,
                     nav = nav,
                     onPickArtwork = onPickArtwork,
@@ -549,6 +555,7 @@ private fun RetroPortraitHeader(
 @Composable
 private fun RetroSectionContent(
     sectionIndex: Int,
+    sections: List<RetroSection>,
     state: RetroSettingsState,
     nav: GameSettingsNav? = null,
     onPickArtwork: ((LibraryShortcutArtwork.LibraryArtworkSlot) -> Unit)? = null,
@@ -579,7 +586,6 @@ private fun RetroSectionContent(
                 if (isCurrent) contentNav.reset()
             }
         }
-        val sections = remember(state) { buildRetroSections(state) }
         val sectionBody: @Composable () -> Unit = {
             Column(
                 modifier =
@@ -590,9 +596,9 @@ private fun RetroSectionContent(
             ) {
                 when (sections.getOrNull(idx)?.id) {
                     RetroSectionId.GENERAL -> RetroGeneralSection(state, onPickArtwork, onRemoveArtwork, onImportBios)
-                    RetroSectionId.GRAPHICS -> if (state.system?.id == RetroSystems.SWITCH.id) RetroCitronSettingsSection() else RetroGraphicsSection(state)
+                    RetroSectionId.GRAPHICS -> if (state.system?.id == RetroSystems.SWITCH.id) RetroCitronGraphicsSection() else RetroGraphicsSection(state)
                     RetroSectionId.FRAMEGEN -> RetroFrameGenerationGroup(state)
-                    RetroSectionId.PERFORMANCE -> if (state.system?.id == RetroSystems.SWITCH.id) RetroCitronSettingsSection() else RetroPs2PerformanceSection()
+                    RetroSectionId.PERFORMANCE -> if (state.system?.id == RetroSystems.SWITCH.id) RetroCitronPerformanceSection() else RetroPs2PerformanceSection()
                     RetroSectionId.HUD ->
                         if (state.system?.isExternal == true) {
                             RetroPs2HudSection(state)
@@ -1022,63 +1028,6 @@ private fun coreDisplayName(system: RetroSystem?): String =
     }
 
 @Composable
-private fun RetroConsoleEditPen(onClick: () -> Unit) {
-    val green = Color(0xFF3FB950)
-    Box(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(9.dp))
-                .background(green.copy(alpha = 0.12f))
-                .border(1.dp, green.copy(alpha = 0.55f), RoundedCornerShape(9.dp))
-                .clickable { onClick() }
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            Icons.Outlined.Edit,
-            contentDescription = stringResource(R.string.retro_gs_change_console),
-            tint = green,
-            modifier = Modifier.size(16.dp),
-        )
-    }
-}
-
-@Composable
-private fun RetroConsolePickerDialog(
-    current: RetroSystem?,
-    onDismiss: () -> Unit,
-    onPick: (RetroSystem) -> Unit,
-) {
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.retro_gs_identify_as)) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                RetroSystems.ALL.sortedBy { it.displayName }.forEach { sys ->
-                    val selected = sys.id == current?.id
-                    Text(
-                        sys.displayName,
-                        color = if (selected) GameSettingsStyle.AccentBlue else GameSettingsStyle.TextPrimary,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable { onPick(sys) }
-                                .padding(vertical = 12.dp),
-                    )
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.retro_gs_cancel))
-            }
-        },
-    )
-}
-
-@Composable
 private fun RetroGeneralSection(
     state: RetroSettingsState,
     onPickArtwork: ((LibraryShortcutArtwork.LibraryArtworkSlot) -> Unit)? = null,
@@ -1087,7 +1036,6 @@ private fun RetroGeneralSection(
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     var currentSystem by remember { mutableStateOf(state.system) }
-    var showConsolePicker by remember { mutableStateOf(false) }
     SharedSettingGroup {
         SharedGroupTitle(stringResource(R.string.retro_gs_group_game))
         SharedInfoRow(stringResource(R.string.retro_gs_label_name), state.name)
@@ -1095,7 +1043,6 @@ private fun RetroGeneralSection(
             Box(Modifier.weight(1f)) {
                 SharedInfoRow(stringResource(R.string.retro_gs_label_system), currentSystem?.displayName ?: "")
             }
-            RetroConsoleEditPen { showConsolePicker = true }
         }
         SharedInfoRow(
             stringResource(R.string.retro_gs_label_emulator_core),
@@ -1107,34 +1054,14 @@ private fun RetroGeneralSection(
             state.romPath,
             singleLineValue = true,
         )
-        if (currentSystem?.isExternal == true) {
+        // 快速启动只对 PS2 有效（写入 ARMSX2 的 wn.ps2.fastboot，仅 Ps2GameOverlay 读取）；
+        // Switch/citron 不读取该键，故对 Switch 隐藏此开关。
+        if (currentSystem?.isExternal == true && currentSystem?.id != RetroSystems.SWITCH.id) {
             val ps2Prefs = remember(ctx) { ctx.getSharedPreferences("ARMSX2", android.content.Context.MODE_PRIVATE) }
             var version by remember { androidx.compose.runtime.mutableIntStateOf(0) }
             @Suppress("UNUSED_EXPRESSION") version
             SharedSettingSwitch(stringResource(R.string.retro_gs_fast_boot), ps2Prefs.getBoolean("wn.ps2.fastboot", true)) {
                 ps2Prefs.edit().putBoolean("wn.ps2.fastboot", it).apply(); version++
-            }
-        }
-    }
-    if (showConsolePicker) {
-        RetroConsolePickerDialog(
-            current = currentSystem,
-            onDismiss = { showConsolePicker = false },
-        ) { picked ->
-            showConsolePicker = false
-            if (picked.id != currentSystem?.id) {
-                currentSystem = picked
-                kotlin.concurrent.thread {
-                    runCatching {
-                        state.shortcut.putExtra(RetroShortcuts.KEY_SYSTEM, picked.id)
-                        state.shortcut.saveData()
-                    }
-                }
-                android.widget.Toast.makeText(
-                    ctx,
-                    ctx.getString(R.string.retro_gs_console_changed, picked.displayName),
-                    android.widget.Toast.LENGTH_SHORT,
-                ).show()
             }
         }
     }
@@ -2027,57 +1954,6 @@ private fun RetroPs2GraphicsSection() {
         ) { putInt("wn.ps2.frameskip", it) }
         RetroSettingSwitch(stringResource(R.string.retro_gs_widescreen_patches), prefs.getBoolean("wn.ps2.widescreen", false)) { putBool("wn.ps2.widescreen", it) }
         RetroSettingSwitch(stringResource(R.string.retro_gs_no_interlace_patches), prefs.getBoolean("wn.ps2.nointerlace", false)) { putBool("wn.ps2.nointerlace", it) }
-    }
-}
-
-// Switch (Citron) settings. Persists to the "CITRON" SharedPreferences; the values
-// are applied to Citron's config.ini by CitronHost.applyBootSettings before run().
-@Composable
-private fun RetroCitronSettingsSection() {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val prefs = remember(context) { context.getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE) }
-    var version by remember { androidx.compose.runtime.mutableIntStateOf(0) }
-
-    @Suppress("UNUSED_EXPRESSION") version
-
-    fun putStr(key: String, value: String) { prefs.edit().putString(key, value).apply(); version++ }
-    fun putInt(key: String, value: Int) { prefs.edit().putInt(key, value).apply(); version++ }
-
-    RetroSettingGroup {
-        RetroGroupTitle(stringResource(R.string.retro_gs_group_video))
-        val backends = listOf("Vulkan", "OpenGL")
-        val backendLabels = listOf(
-            stringResource(R.string.retro_gs_renderer_vulkan),
-            stringResource(R.string.retro_gs_renderer_opengl),
-        )
-        RetroSettingDropdown(
-            stringResource(R.string.retro_gs_renderer),
-            backendLabels,
-            backends.indexOf(prefs.getString("wn.switch.renderer", "Vulkan")).coerceAtLeast(0),
-        ) { putStr("wn.switch.renderer", backends[it]) }
-        val scales = listOf(1, 2, 3, 4, 5, 6)
-        RetroSettingDropdown(
-            stringResource(R.string.retro_gs_resolution_scale),
-            scales.map { "${it}x" },
-            scales.indexOf(prefs.getInt("wn.switch.resolution", 1)).coerceAtLeast(0),
-        ) { putInt("wn.switch.resolution", scales[it]) }
-        val vsync = listOf(0, 1, 2)
-        RetroSettingDropdown(
-            stringResource(R.string.retro_gs_vsync),
-            listOf(
-                stringResource(R.string.retro_gs_vsync_off),
-                stringResource(R.string.retro_gs_vsync_on),
-                stringResource(R.string.retro_gs_vsync_relaxed),
-            ),
-            vsync.indexOf(prefs.getInt("wn.switch.vsync", 1)).coerceAtLeast(0),
-        ) { putInt("wn.switch.vsync", vsync[it]) }
-        RetroGroupTitle(stringResource(R.string.retro_gs_group_audio))
-        val vols = listOf(0, 25, 50, 75, 100)
-        RetroSettingDropdown(
-            stringResource(R.string.retro_gs_audio_volume),
-            vols.map { "$it%" },
-            vols.indexOf(prefs.getInt("wn.switch.audio", 100)).coerceAtLeast(0),
-        ) { putInt("wn.switch.audio", vols[it]) }
     }
 }
 

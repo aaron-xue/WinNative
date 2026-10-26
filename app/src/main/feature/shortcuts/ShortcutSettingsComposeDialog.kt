@@ -2618,9 +2618,18 @@ class ShortcutSettingsComposeDialog private constructor(
 
     fun show() {
         if (com.winlator.cmod.feature.retro.RetroShortcuts.isRetroShortcut(shortcut)) {
-            com.winlator.cmod.feature.retro
-                .RetroSettingsDialog(activity, shortcut)
-                .show()
+            // Switch gets its own settings dialog (same style, but only the sections that
+            // apply to the citron core); every other retro system keeps the shared one.
+            val isSwitch =
+                com.winlator.cmod.feature.retro.RetroShortcuts.systemForShortcut(shortcut)?.id ==
+                    com.winlator.cmod.feature.retro.RetroSystems.SWITCH.id
+            val dialog =
+                if (isSwitch) {
+                    com.winlator.cmod.feature.retro.RetroSwitchSettingsDialog(activity, shortcut)
+                } else {
+                    com.winlator.cmod.feature.retro.RetroSettingsDialog(activity, shortcut)
+                }
+            dialog.show()
             return
         }
         dialog.show()

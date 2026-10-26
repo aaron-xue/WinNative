@@ -32,9 +32,10 @@ import com.winlator.cmod.shared.ui.nav.PaneNavWindowHandlers
 import com.winlator.cmod.shared.ui.nav.bindPaneNav
 import com.winlator.cmod.shared.ui.toast.WinToast
 
-class RetroSettingsDialog(
+open class RetroSettingsDialog(
     private val activity: Activity,
     private val shortcut: Shortcut,
+    private val onlySections: Set<RetroSectionId>? = null,
 ) {
     private val state = RetroSettingsState(shortcut, activity)
     private val nav = GameSettingsNav()
@@ -226,6 +227,7 @@ class RetroSettingsDialog(
                                     dialog.dismiss()
                                 },
                                 onCancel = { dialog.dismiss() },
+                                onlySections = onlySections,
                             )
                         }
                     }
