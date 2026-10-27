@@ -123,15 +123,14 @@ fun PerformanceHudOverlay(modifier: Modifier = Modifier) {
             sublabelColor = if (s.tempC >= 0) tempColor(s.tempC) else HudSub,
         ))
     }
-    val showRenderer = s.enabled.getOrElse(1) { false } && s.renderer.isNotEmpty()
+    // The "主机" (renderer) element (index 1) is removed globally, so it is never shown here.
     Box(
         modifier = modifier.fillMaxSize().background(Color(0xF00A0D13)),
     ) {
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(horizontal = 16.dp)
-                .padding(bottom = if (showRenderer) 48.dp else 0.dp),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -140,21 +139,6 @@ fun PerformanceHudOverlay(modifier: Modifier = Modifier) {
                     rowGauges.forEach { g -> HudGauge(g.label, g.value, g.fraction, g.color, g.sublabel, g.sublabelColor) }
                 }
             }
-        }
-        if (showRenderer) {
-            // Pinned just above the bottom edge so it is never clipped, regardless of gauge count.
-            Text(
-                s.renderer,
-                color = HudAccent,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 18.dp)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(Color(0x1A1A9FFF))
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-            )
         }
     }
 }

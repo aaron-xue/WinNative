@@ -58,21 +58,33 @@ class SwitchPerfHudView(context: Context) :
 
     @Volatile private var surfaceReady = false
 
-    // ── FrameRating palette ──
-    private val C_VALUE = 0xFFFFFFFF.toInt()
-    private val C_CPU = 0xFFFF8200.toInt()
-    private val C_RAM = 0xFF26C6DA.toInt()
-    private val C_BAT = 0xFFE03A94.toInt()
-    private val C_TEMP = 0xFFE53935.toInt()
-    private val C_GPU = 0xFFE040FB.toInt()
-    private val C_FPS_OK = 0xFF76FF03.toInt()
-    private val C_FPS_GEN = 0xFF00E5FF.toInt()
-    private val C_WARM = 0xFFFFC107.toInt()
-    private val C_HOT = 0xFFFF1744.toInt()
-    private val LABEL_COLOR = 0xFF9AA0A6.toInt()
+    // ── FrameRating palette (matched so the HUD looks like FrameRating) ──
+    private val C_FPS = 0xFF76FF03.toInt()   // green
+    private val C_GPU = 0xFFE040FB.toInt()   // purple
+    private val C_CPU = 0xFFEEEEEE.toInt()   // white
+    private val C_RAM = 0xFF90CAF9.toInt()   // blue
+    private val C_BAT = 0xFFEF5350.toInt()   // red
+    private val C_TEMP = 0xFFFFAB91.toInt()  // orange
+    private val C_TIME = 0xFF0092FF.toInt()  // blue
+    private val C_SEP = 0xFFFFFFFF.toInt()   // separator " | " / labels (white)
     private val BACKDROP_BASE_COLOR = 0xA6000000.toInt()
+    private val SEP = " | "
 
-    // display modes: 0/1 = horizontal (no backdrop / backdrop), 2/3 = vertical (no / with)
+    // Shared paints for the horizontal strip: 10sp bold monospace with a black shadow, like FrameRating.
+    private val stripPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = dp(10f)
+        typeface = Typeface.MONOSPACE
+        setShadowLayer(1f, 1f, 1f, 0xFF000000.toInt())
+    }
+    private val sepPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = dp(10f)
+        typeface = Typeface.MONOSPACE
+        color = C_SEP
+        setShadowLayer(1f, 1f, 1f, 0xFF000000.toInt())
+    }
+
+    // display modes cycle like FrameRating: 0 = horizontal, 1 = horizontal + backdrop,
+    // 2 = vertical, 3 = vertical + backdrop. Tapping the HUD advances through all four.
     private var displayMode = 1
     private val MODE_COUNT = 4
 
@@ -330,60 +342,85 @@ class SwitchPerfHudView(context: Context) :
     // Integer-dp convenience overload so call sites read dp(6) instead of dp(6f).
     private fun dp(v: Int): Float = dp(v.toFloat())
 
-    private data class Block(val w: Int, val h: Int, val draw: (Canvas, Int, Int) -> Unit)
-
-    private fun computeLayout(): Pair<Int, Int> {
-        val blocks = blocksSpec()
-        val pad = dp(6).toInt()
-        val gap = dp(6).toInt()
-        return if (displayMode == 0 || displayMode == 1) {
-            val totalW = pad * 2 + blocks.sumOf { it.w } + gap * (blocks.size - 1)
-            val maxH = blocks.maxOf { it.h }
-            Pair(totalW, pad * 2 + maxH)
-        } else {
-            val totalH = pad * 2 + blocks.sumOf { it.h } + gap * (blocks.size - 1)
-            val maxW = blocks.maxOf { it.w }
-            Pair(pad * 2 + maxW, totalH)
-        }
+    private sealed class Seg {
+        data class Text(val label: String, val value: String, val color: Int) : Seg()
+        object Graph : Seg()
     }
 
-    private fun blocksSpec(): List<Block> {
-        val bigW = dp(56).toInt()
-        val normW = dp(52).toInt()
-        val bh = dp(40).toInt()
-        val gw = dp(92).toInt()
-        val gh = dp(34).toInt()
-        val list = mutableListOf<Block>()
-        if (hudElements[0]) list.add(Block(bigW, bh) { c, x, y -> drawFps(c, x, y, bigW, bh) })
-        if (hudElements[2]) list.add(Block(normW, bh) { c, x, y -> drawMetric(c, x, y, normW, bh, "GPU", gpuText(), C_GPU) })
-        if (hudElements[3]) list.add(Block(normW, bh) { c, x, y -> drawMetric(c, x, y, normW, bh, "CPU", cpuText(), C_CPU) })
-        if (hudElements[4]) list.add(Block(normW, bh) { c, x, y -> drawMetric(c, x, y, normW, bh, "RAM", ramText(), C_RAM) })
-        if (hudElements[5]) list.add(
-            Block(normW, bh) { c, x, y ->
-                drawMetric(
-                    c, x, y, normW, bh,
-                    if (hudElements[6] && tempC >= 0) "BAT ${tempC}°" else "BAT", batText(), batColor(),
-                )
-            },
-        )
-        if (hudElements[1]) list.add(Block(normW, bh) { c, x, y -> drawMetric(c, x, y, normW, bh, "API", renderer, C_VALUE) })
-        if (hudElements[0]) list.add(Block(normW, bh) { c, x, y -> drawMetric(c, x, y, normW, bh, "TIME", timeText(), C_VALUE) })
-        if (hudElements[7]) list.add(Block(gw, gh) { c, x, y -> drawGraph(c, x, y, gw, gh) })
-        if (list.isEmpty()) {
-            // Never render a zero-size badge; fall back to FPS only.
-            list.add(Block(bigW, bh) { c, x, y -> drawFps(c, x, y, bigW, bh) })
-        }
+    // Build the horizontal strip items in priority order. Each metric becomes "LABEL value" on one
+    // line; "主机" (index 1) is intentionally omitted (removed from settings globally).
+    private fun buildSegs(): List<Seg> {
+        val list = mutableListOf<Seg>()
+        if (hudElements[0]) list.add(Seg.Text("FPS", fps.toInt().toString(), C_FPS))
+        if (hudElements[2]) list.add(Seg.Text("GPU", gpuText(), C_GPU))
+        if (hudElements[3]) list.add(Seg.Text("CPU", cpuText(), C_CPU))
+        if (hudElements[4]) list.add(Seg.Text("RAM", ramText(), C_RAM))
+        if (hudElements[5]) list.add(Seg.Text("BAT", batText(), C_BAT))
+        if (hudElements[6] && tempC >= 0) list.add(Seg.Text("TEMP", "${tempC}°", C_TEMP))
+        if (hudElements[0]) list.add(Seg.Text("TIME", timeText(), C_TIME))
+        if (hudElements[7]) list.add(Seg.Graph)
+        if (list.isEmpty()) list.add(Seg.Text("FPS", fps.toInt().toString(), C_FPS))
         return list
+    }
+
+    private fun isHorizontal() = displayMode == 0 || displayMode == 1
+
+    // Sizing for both orientations. Horizontal: a single row of "LABEL value" tokens joined by
+    // " | " separators. Vertical: each token on its own row (separators hidden, like FrameRating).
+    private fun computeLayout(): Pair<Int, Int> {
+        val segs = buildSegs()
+        val pad = dp(4).toInt()
+        val sepW = sepPaint.measureText(SEP).toInt() + dp(2).toInt()
+        val graphW = dp(50).toInt()
+        val textH = dp(14).toInt()
+        val rowGap = dp(2).toInt()
+        if (isHorizontal()) {
+            var w = pad * 2
+            var first = true
+            for (s in segs) {
+                if (!first) w += sepW
+                first = false
+                w += when (s) {
+                    is Seg.Graph -> graphW
+                    is Seg.Text -> sepPaint.measureText(s.label).toInt() + dp(2).toInt() +
+                        stripPaint.measureText(s.value).toInt() + dp(2).toInt()
+                }
+            }
+            return Pair(w, pad * 2 + textH)
+        }
+        var maxW = 0
+        var h = pad * 2
+        var first = true
+        for (s in segs) {
+            if (!first) h += rowGap
+            first = false
+            val wSeg = when (s) {
+                is Seg.Graph -> graphW
+                is Seg.Text -> sepPaint.measureText(s.label).toInt() + dp(2).toInt() +
+                    stripPaint.measureText(s.value).toInt()
+            }
+            maxW = maxOf(maxW, wSeg)
+            h += textH
+        }
+        return Pair(pad * 2 + maxW, h)
     }
 
     private fun drawHud() {
         if (!surfaceReady) return
         val canvas = try { holder.lockCanvas() } catch (_: Exception) { null } ?: return
         try {
-            canvas.drawColor(0) // transparent: let the game show through
+            // Clear with CLEAR blend (not the default SRC), so the alpha channel is fully reset on
+            // every buffer of the double-buffered translucent surface. A plain drawColor(0) leaves
+            // stale pixels in the second buffer on some GPU drivers, which makes the fast-changing
+            // FPS value bleed through as faint "ghost" numbers under the current one.
+            @Suppress("DEPRECATION")
+            canvas.drawColor(0, android.graphics.PorterDuff.Mode.CLEAR)
             if (canvas.width <= 0 || canvas.height <= 0) return
-            val pad = dp(6)
-            val gap = dp(6)
+            val segs = buildSegs()
+            val pad = dp(4)
+            val sepW = sepPaint.measureText(SEP).toInt() + dp(2).toInt()
+            val graphW = dp(50).toInt()
+            val textH = dp(14)
             if (displayMode == 1 || displayMode == 3) {
                 val bg = Paint().apply { color = backdropColor; style = Paint.Style.FILL }
                 canvas.drawRoundRect(
@@ -391,20 +428,52 @@ class SwitchPerfHudView(context: Context) :
                     dp(8), dp(8), bg,
                 )
             }
-            val blocks = blocksSpec()
-            if (displayMode == 0 || displayMode == 1) {
+            val fm = stripPaint.fontMetrics
+            val textHeight = fm.descent - fm.ascent
+            if (isHorizontal()) {
+                val baseY = pad + (textH - textHeight) / 2f - fm.ascent
+                val graphY = pad + (textH - dp(14)) / 2f
                 var x = pad
-                val maxH = blocks.maxOf { it.h }
-                for (b in blocks) {
-                    b.draw(canvas, x.toInt(), (pad + (maxH - b.h) / 2).toInt())
-                    x += b.w + gap
+                var first = true
+                for (s in segs) {
+                    if (!first) {
+                        canvas.drawText(SEP, x, baseY, sepPaint)
+                        x += sepW
+                    }
+                    first = false
+                    when (s) {
+                        is Seg.Text -> {
+                            // White label, then the colored value, on the same line: "GPU 99%".
+                            canvas.drawText(s.label, x, baseY, sepPaint)
+                            x += sepPaint.measureText(s.label).toInt() + dp(2).toInt()
+                            stripPaint.color = s.color
+                            canvas.drawText(s.value, x, baseY, stripPaint)
+                            x += stripPaint.measureText(s.value).toInt() + dp(2).toInt()
+                        }
+                        is Seg.Graph -> {
+                            drawGraph(canvas, x.toInt(), graphY.toInt(), graphW, dp(14).toInt())
+                            x += graphW
+                        }
+                    }
                 }
             } else {
+                // Vertical: each token on its own row, separators hidden (like FrameRating).
+                val rowH = textH + dp(2)
                 var y = pad
-                val maxW = blocks.maxOf { it.w }
-                for (b in blocks) {
-                    b.draw(canvas, (pad + (maxW - b.w) / 2).toInt(), y.toInt())
-                    y += b.h + gap
+                for (s in segs) {
+                    when (s) {
+                        is Seg.Text -> {
+                            val baseY = y + (textH - textHeight) / 2f - fm.ascent
+                            canvas.drawText(s.label, pad, baseY, sepPaint)
+                            val labelW = sepPaint.measureText(s.label).toInt() + dp(2).toInt()
+                            stripPaint.color = s.color
+                            canvas.drawText(s.value, pad + labelW, baseY, stripPaint)
+                        }
+                        is Seg.Graph -> {
+                            drawGraph(canvas, pad.toInt(), y.toInt(), graphW, dp(14).toInt())
+                        }
+                    }
+                    y += rowH
                 }
             }
             if (drawCount < 8) {
@@ -416,42 +485,6 @@ class SwitchPerfHudView(context: Context) :
         }
     }
 
-    private fun drawFps(c: Canvas, x: Int, y: Int, w: Int, h: Int) {
-        val valueColor = if (outputFps > 0f) C_FPS_GEN else C_FPS_OK
-        val labelP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = LABEL_COLOR; textSize = dp(9); textAlign = Paint.Align.CENTER
-        }
-        val valP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = valueColor; textSize = dp(20); textAlign = Paint.Align.CENTER
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        val cx = x + w / 2f
-        c.drawText("FPS", cx, y + dp(11), labelP)
-        c.drawText(fps.toInt().toString(), cx, y + h - dp(6), valP)
-    }
-
-    private fun drawMetric(
-        c: Canvas,
-        x: Int,
-        y: Int,
-        w: Int,
-        h: Int,
-        label: String,
-        value: String,
-        valueColor: Int,
-    ) {
-        val labelP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = LABEL_COLOR; textSize = dp(9); textAlign = Paint.Align.CENTER
-        }
-        val valP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = valueColor; textSize = dp(14); textAlign = Paint.Align.CENTER
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        val cx = x + w / 2f
-        c.drawText(label, cx, y + dp(11), labelP)
-        c.drawText(value, cx, y + h - dp(8), valP)
-    }
-
     private fun drawGraph(c: Canvas, x: Int, y: Int, w: Int, h: Int) {
         val bg = Paint().apply { color = 0x22000000.toInt(); style = Paint.Style.FILL }
         c.drawRoundRect(
@@ -460,7 +493,7 @@ class SwitchPerfHudView(context: Context) :
         )
         if (fpsHistoryCount > 1) {
             val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = C_FPS_OK; strokeWidth = dp(1.5f); style = Paint.Style.STROKE
+                color = C_FPS; strokeWidth = dp(1.5f); style = Paint.Style.STROKE
             }
             val maxFps = 120f
             val n = fpsHistoryCount
@@ -482,11 +515,6 @@ class SwitchPerfHudView(context: Context) :
     private fun ramText() = if (ramPercent >= 0) "$ramPercent%" else "N/A"
     private fun batText() =
         if (batteryWatts >= 0f) "%.1fW".format(if (dualBattery) batteryWatts * 2f else batteryWatts) else "N/A"
-    private fun batColor(): Int = when {
-        tempC >= 45 -> C_HOT
-        tempC >= 40 -> C_WARM
-        else -> C_BAT
-    }
     private fun timeText(): String =
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 

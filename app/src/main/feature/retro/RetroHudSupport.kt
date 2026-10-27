@@ -28,7 +28,11 @@ object RetroHudSupport {
             R.string.retro_lr_hud_cpu_temp,
         )
 
-    val ELEMENT_ORDER = intArrayOf(1, 2, 3, 8, 4, 5, 6, 0, 7)
+    // NOTE: the "主机" (host/renderer) element (old index 1) has been removed globally. The
+    // underlying data slot is intentionally left in place (so existing saved arrays keep their
+    // shape) but is never surfaced — it is dropped from this display order and forced off in
+    // applyToFrameRating / PerformanceHud.
+    val ELEMENT_ORDER = intArrayOf(2, 3, 8, 4, 5, 6, 0, 7)
 
     const val PS2_HUD_PREF = "wn.ps2.hud"
     private const val PS2_ELEMENTS_PREF = "wn.ps2.hud.elements"
@@ -147,7 +151,12 @@ object RetroHudSupport {
         rating.setHudScale(style.scale)
         rating.setFrametimeNumericMode(style.frametimeNumeric)
         rating.setDualSeriesBattery(style.dualBattery)
-        elements.forEachIndexed { index, enabled -> rating.toggleElement(index, enabled) }
+        elements.forEachIndexed { index, enabled ->
+            // The "主机"/renderer element (index 1) is removed globally; never surface it.
+            if (index == 1) return@forEachIndexed
+            rating.toggleElement(index, enabled)
+        }
+        rating.toggleElement(1, false) // belt-and-suspenders: keep the renderer line hidden
     }
 
     fun loadGlobalHudElements(context: Context): BooleanArray {
