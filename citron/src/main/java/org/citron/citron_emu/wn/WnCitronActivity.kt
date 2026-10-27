@@ -103,7 +103,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
                     if (menuShown) {
-                        if (switchMenu?.isDrawerLocked() != true) closeMenu()
+                        closeMenu()
                     } else {
                         openMenu()
                     }
@@ -189,8 +189,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
         if (event.keyCode == KeyEvent.KEYCODE_BACK) {
             if (event.action == KeyEvent.ACTION_UP) {
                 if (menuShown) {
-                    // "Lock Drawer" (mirrors the reference menu) keeps the menu open on back.
-                    if (switchMenu?.isDrawerLocked() != true) closeMenu()
+                    closeMenu()
                 } else {
                     openMenu()
                 }

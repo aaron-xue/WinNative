@@ -1,26 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="wn_loading">正在加载…</string>
+    <!-- Loading overlay -->
+    <string name="wn_loading">加载中</string>
     <string name="wn_loading_title_fallback">Nintendo Switch</string>
 
-    <string name="stick_map_description">向左推动摇杆再向上，或按下按键</string>
-    <string name="button_map_description">按下按键、推动扳机或摇杆</string>
-    <string name="map_dpad_direction">映射到十字键%1$s</string>
-    <string name="map_control">映射到%1$s</string>
+    <string name="stick_map_description">移动摇杆向左然后向上，或按下按钮</string>
+    <string name="button_map_description">按下按钮或移动扳机/摇杆</string>
+    <string name="map_dpad_direction">映射到十字键 %1$s</string>
+    <string name="map_control">映射到 %1$s</string>
 
-    <!-- 模拟器内侧边菜单 (SwitchMenuView)，顺序对应 res/menu/menu_in_game.xml。 -->
+    <!-- In-emulator side menu -->
     <string name="menu_resume">继续</string>
     <string name="menu_pause">暂停</string>
     <string name="menu_settings">设置</string>
-    <string name="menu_per_game_settings">单游戏设置</string>
-    <string name="menu_controls">控制器</string>
-    <string name="menu_input_overlay">触屏按键</string>
-    <string name="menu_cheats">金手指</string>
+    <string name="menu_per_game_settings">游戏专属设置</string>
+    <string name="menu_controls">控制</string>
+    <string name="menu_show_controller">显示控制器</string>
+    <string name="menu_hide_controller">隐藏控制器</string>
     <string name="menu_amiibo">Amiibo</string>
-    <string name="menu_multiplayer_room">联机房间</string>
-    <string name="menu_lock_drawer">锁定菜单</string>
+    <string name="menu_multiplayer_room">多人游戏房间</string>
     <string name="menu_exit">退出</string>
-    <string name="menu_not_supported">当前模式暂不支持</string>
-    <string name="menu_locked">菜单已锁定</string>
-    <string name="menu_unlocked">菜单已解锁</string>
+    <string name="menu_not_supported">当前模式不支持</string>
 </resources>

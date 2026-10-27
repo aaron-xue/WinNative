@@ -15,13 +15,10 @@
     <string name="menu_settings">Settings</string>
     <string name="menu_per_game_settings">Per-Game Settings</string>
     <string name="menu_controls">Controls</string>
-    <string name="menu_input_overlay">Input Overlay</string>
-    <string name="menu_cheats">Cheats</string>
+    <string name="menu_show_controller">Show Controller</string>
+    <string name="menu_hide_controller">Hide Controller</string>
     <string name="menu_amiibo">Amiibo</string>
     <string name="menu_multiplayer_room">Multiplayer Room</string>
-    <string name="menu_lock_drawer">Lock Menu</string>
     <string name="menu_exit">Exit</string>
     <string name="menu_not_supported">Not supported in this mode</string>
-    <string name="menu_locked">Menu locked</string>
-    <string name="menu_unlocked">Menu unlocked</string>
 </resources>

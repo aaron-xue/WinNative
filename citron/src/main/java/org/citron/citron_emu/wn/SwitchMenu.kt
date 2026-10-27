@@ -5,10 +5,10 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.Context
-import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PixelFormat
+import android.graphics.PorterDuff
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.util.TypedValue
@@ -24,6 +24,8 @@ import android.view.WindowInsets
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.AccelerateInterpolator
 import android.widget.Toast
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.drawable.DrawableCompat
 import kotlin.math.abs
 import org.citron.citron_emu.NativeLibrary
 import org.citron.citron_emu.R
@@ -45,6 +47,7 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
     data class Item(
         val label: String,
         val danger: Boolean = false,
+        val iconResId: Int = 0,
         var run: () -> Unit = {},
     )
 
@@ -56,7 +59,10 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
     // The menu opens while emulation is paused, so the Pause entry shows "Resume" (matching the
     // reference, whose menu_pause_emulation label flips to Resume when running).
     private var paused = true
-    var drawerLocked = false
+
+    // Tracks whether the on-screen controller overlay is currently visible, so the menu
+    // can show the matching icon (ic_controller_off / ic_controller) and label.
+    var inputOverlayVisible = true
 
     // Slide animation: 0 = panel at rest, -1 = fully off-screen to the left.
     private var slideOffset = 0f
@@ -79,16 +85,14 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
 
     // Items, in the exact order of res/menu/menu_in_game.xml. Labels come from strings.xml.
     private val items = listOf(
-        Item(context.getString(R.string.menu_resume)),        // menu_pause_emulation
-        Item(context.getString(R.string.menu_settings)),      // menu_settings
-        Item(context.getString(R.string.menu_per_game_settings)), // menu_settings_per_game
-        Item(context.getString(R.string.menu_controls)),      // menu_controls
-        Item(context.getString(R.string.menu_input_overlay)), // menu_overlay_controls
-        Item(context.getString(R.string.menu_cheats)),        // menu_cheats
-        Item(context.getString(R.string.menu_amiibo)),        // menu_amiibo
-        Item(context.getString(R.string.menu_multiplayer_room)), // menu_multiplayer_room
-        Item(context.getString(R.string.menu_lock_drawer)),   // menu_lock_drawer
-        Item(context.getString(R.string.menu_exit), danger = true), // menu_exit
+        Item(context.getString(R.string.menu_resume), iconResId = R.drawable.ic_pause),        // menu_pause_emulation
+        Item(context.getString(R.string.menu_settings), iconResId = R.drawable.ic_settings),      // menu_settings
+        Item(context.getString(R.string.menu_per_game_settings), iconResId = R.drawable.ic_settings_outline), // menu_settings_per_game
+        Item(context.getString(R.string.menu_controls), iconResId = R.drawable.ic_controller),      // menu_controls
+        Item(context.getString(R.string.menu_show_controller), iconResId = R.drawable.ic_controller), // menu_overlay_controls
+        Item(context.getString(R.string.menu_amiibo), iconResId = R.drawable.ic_nfc),        // menu_amiibo
+        Item(context.getString(R.string.menu_multiplayer_room), iconResId = R.drawable.ic_share), // menu_multiplayer_room
+        Item(context.getString(R.string.menu_exit), danger = true, iconResId = R.drawable.ic_exit), // menu_exit
     )
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD }
@@ -148,9 +152,8 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
                             postDelayed(clearPressRunnable, 120)
                         }
                     } else {
-                        // Tap outside the panel closes the drawer, unless it is locked
-                        // (mirrors the reference emulator's locked-drawer behaviour).
-                        if (!drawerLocked) onRequestClose?.invoke()
+                        // Tap outside the panel closes the drawer.
+                        onRequestClose?.invoke()
                     }
                 }
                 true
@@ -168,29 +171,22 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
         isFocusable = false
         setOnTouchListener(touchListener)
 
-        // Pause/Resume, Input Overlay (toggles the on-screen gamepad) and Lock Drawer/Exit are
+        // Pause/Resume, Input Overlay (toggles the on-screen gamepad) and Exit are
         // functional in the embedded shell. The remaining items mirror the reference menu but have
         // no equivalent host UI here, so they surface a hint toast.
         items[0].run = { togglePause() }
-        items[4].run = { onToggleInputOverlay?.invoke() ?: notSupported() }
-        items[8].run = {
-            drawerLocked = !drawerLocked
-            toast(
-                context.getString(
-                    if (drawerLocked) R.string.menu_locked else R.string.menu_unlocked
-                )
-            )
+        items[4].run = {
+            inputOverlayVisible = !inputOverlayVisible
+            onToggleInputOverlay?.invoke() ?: notSupported()
         }
-        items[9].run = { onRequestClose?.invoke(); activity.finish() }
-        for (i in 1..7) if (i != 4) items[i].run = notSupported
+        items[7].run = { onRequestClose?.invoke(); activity.finish() }
+        for (i in 1..6) if (i != 4) items[i].run = notSupported
     }
 
     fun setGameTitle(title: String?) {
         gameTitle = title?.takeIf { it.isNotBlank() }
         drawMenu()
     }
-
-    fun isDrawerLocked() = drawerLocked
 
     private fun dp(v: Float) =
         android.util.TypedValue.applyDimension(
@@ -494,6 +490,8 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
                 if (rowTop + rh < top || rowTop > h) continue
                 val label = if (i == 0) {
                     context.getString(if (paused) R.string.menu_resume else R.string.menu_pause)
+                } else if (i == 4) {
+                    context.getString(if (inputOverlayVisible) R.string.menu_hide_controller else R.string.menu_show_controller)
                 } else {
                     items[i].label
                 }
@@ -509,8 +507,21 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
                     items[i].danger -> pal.danger
                     else -> pal.text
                 }
+                val iconRes = when {
+                    i == 0 && paused -> R.drawable.ic_play
+                    i == 4 && inputOverlayVisible -> R.drawable.ic_controller_off
+                    else -> items[i].iconResId
+                }
+                val iconD = getIconDrawable(iconRes, paint.color)
+                if (iconD != null) {
+                    val ix = left + offset + dp(16f)
+                    val iy = rowTop + (rh - iconSize) / 2f
+                    iconD.setBounds(ix.toInt(), iy.toInt(), (ix + iconSize).toInt(), (iy + iconSize).toInt())
+                    iconD.draw(canvas)
+                }
+                val textX = if (iconD != null) left + offset + dp(16f) + iconSize + iconGap else left + offset + dp(16f)
                 val base = rowTop + (rh - textH) / 2f - fm.ascent
-                canvas.drawText(label, left + offset + dp(16f), base, paint)
+                canvas.drawText(label, textX, base, paint)
             }
             canvas.restore()
         } finally {
@@ -538,6 +549,28 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
     // Transient "pressed" highlight index (cleared shortly after a tap/confirm), so the menu
     // shows click feedback instead of a permanently fixed selection.
     private var pressedIdx = -1
+    // Cache drawable ConstantState per icon resource so we can cheaply obtain fresh,
+    // independently tintable instances without re-inflating vector XML each frame.
+    private val iconStates = mutableMapOf<Int, android.graphics.drawable.Drawable.ConstantState>()
+    private val iconSize = dp(24f).toInt()
+    private val iconGap = dp(12f)
+
+    private fun getIconDrawable(resId: Int, color: Int): android.graphics.drawable.Drawable? {
+        if (resId == 0) return null
+        var state = iconStates[resId]
+        if (state == null) {
+            val cs = AppCompatResources.getDrawable(context, resId)?.constantState
+            if (cs != null) {
+                iconStates[resId] = cs
+                state = cs
+            }
+        }
+        state ?: return null
+        val d = state.newDrawable().mutate()
+        DrawableCompat.setTint(d, color)
+        return d
+    }
+
     private val clearPressRunnable = Runnable {
         pressedIdx = -1
         if (visible) drawMenu()
