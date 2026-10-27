@@ -8,4 +8,20 @@
     <string name="button_map_description">Press a button or move a trigger/stick</string>
     <string name="map_dpad_direction">Map to D-Pad %1$s</string>
     <string name="map_control">Map to %1$s</string>
+
+    <!-- In-emulator side menu (SwitchMenuView), mirrors res/menu/menu_in_game.xml order. -->
+    <string name="menu_resume">Resume</string>
+    <string name="menu_pause">Pause</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_per_game_settings">Per-Game Settings</string>
+    <string name="menu_controls">Controls</string>
+    <string name="menu_input_overlay">Input Overlay</string>
+    <string name="menu_cheats">Cheats</string>
+    <string name="menu_amiibo">Amiibo</string>
+    <string name="menu_multiplayer_room">Multiplayer Room</string>
+    <string name="menu_lock_drawer">Lock Menu</string>
+    <string name="menu_exit">Exit</string>
+    <string name="menu_not_supported">Not supported in this mode</string>
+    <string name="menu_locked">Menu locked</string>
+    <string name="menu_unlocked">Menu unlocked</string>
 </resources>

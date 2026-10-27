@@ -1,5 +1,6 @@
 package org.citron.citron_emu.wn
 
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -11,11 +12,14 @@ import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
+import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import org.citron.citron_emu.NativeLibrary
 import org.citron.citron_emu.R
 import org.citron.citron_emu.features.input.NativeInput
@@ -47,6 +51,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     // (mirrors citron's EmulationFragment loading indicator).
     private var loadingOverlay: View? = null
     private var perfHud: SwitchPerfHudController? = null
+    private var switchMenu: SwitchMenuView? = null
     private val overlaysAttached = java.util.concurrent.atomic.AtomicBoolean(false)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val pollRunning = object : Runnable {
@@ -75,6 +80,29 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             )
         }
         setContentView(root)
+
+        // Let content run edge-to-edge so the side menu (and the game surface) sit flush against
+        // the screen edges; we then manually avoid the camera/notch via the menu's safe inset.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+
+        // Tapping the system / gamepad BACK now toggles the in-emulator side menu (mirrors PS2's
+        // RetroActivity) instead of closing the game. This covers gesture navigation; KEYCODE_BACK
+        // from a hardware/3-button back is also consumed in dispatchKeyEvent below.
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (menuShown) {
+                        if (switchMenu?.isDrawerLocked() != true) closeMenu()
+                    } else {
+                        openMenu()
+                    }
+                }
+            },
+        )
 
         // Loading overlay on top of the SurfaceView while the NSP installs and the core
         // boots. Dismissed by the isRunning() poll in maybeRun(); the host overlay and the
@@ -148,19 +176,26 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (menuShown) {
-            val handled = CitronHost.menuKeyHandler?.invoke(event) ?: false
-            if (event.keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
-                menuShown = false
-                runCatching { NativeLibrary.unpauseEmulation() }
+        // System / gamepad BACK toggles the in-emulator side menu (mirrors PS2 RetroActivity)
+        // instead of finishing the activity. Consumed on ACTION_UP so a single press toggles once.
+        if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.action == KeyEvent.ACTION_UP) {
+                if (menuShown) {
+                    // "Lock Drawer" (mirrors the reference menu) keeps the menu open on back.
+                    if (switchMenu?.isDrawerLocked() != true) closeMenu()
+                } else {
+                    openMenu()
+                }
             }
-            return handled || event.keyCode == KeyEvent.KEYCODE_BACK
+            return true
         }
-        // BUTTON_MODE (the controller "guide" button) toggles the in-emulator menu.
+        if (menuShown) {
+            // While the menu is open, route navigation keys (dpad/stick) into it.
+            return CitronHost.menuKeyHandler?.invoke(event) ?: false
+        }
+        // BUTTON_MODE (the controller "guide" button) opens the in-emulator menu.
         if (event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE && event.action == KeyEvent.ACTION_DOWN) {
-            menuShown = true
-            CitronHost.openMenu?.invoke()
-            runCatching { NativeLibrary.pauseEmulation() }
+            openMenu()
             return true
         }
         // Route physical gamepad keys into the emulated controller.
@@ -168,6 +203,24 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    // Open the in-emulator side menu (same RetroDrawerMenu PS2 uses) and pause emulation.
+    private fun openMenu() {
+        if (menuShown) return
+        // Only once emulation is actually running, like PS2's `if (retroReady)` guard.
+        if (!runCatching { NativeLibrary.isRunning() }.getOrDefault(false)) return
+        menuShown = true
+        CitronHost.openMenu?.invoke()
+        runCatching { NativeLibrary.pauseEmulation() }
+    }
+
+    // Close the side menu and resume emulation.
+    private fun closeMenu() {
+        if (!menuShown) return
+        menuShown = false
+        CitronHost.closeMenu?.invoke()
+        runCatching { NativeLibrary.unpauseEmulation() }
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
@@ -185,7 +238,12 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             return super.dispatchGenericMotionEvent(event)
         }
         if (menuShown) {
-            return super.dispatchGenericMotionEvent(event)
+            // Feed analog sticks into the open menu for navigation.
+            CitronHost.menuAxisHandler?.invoke(
+                event.getAxisValue(MotionEvent.AXIS_X),
+                event.getAxisValue(MotionEvent.AXIS_Y),
+            )
+            return true
         }
         window.decorView.requestUnbufferedDispatch(event.source)
         if (event.action == MotionEvent.ACTION_CANCEL) {
@@ -396,6 +454,37 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
                     FrameLayout.LayoutParams.MATCH_PARENT,
                 ),
             )
+            // Switch-specific SurfaceView side menu. The Compose RetroDrawerMenu does not
+            // reliably appear over the emulated game's SurfaceView, so we render our own menu
+            // here (same reliable-visibility approach as SwitchPerfHud). This overrides the
+            // (inert) Compose menu slots wired by CitronGameOverlay.
+            val menu = SwitchMenuView(this, this)
+            (window.decorView as ViewGroup).addView(
+                menu,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ),
+            )
+            switchMenu = menu
+            menu.setGameTitle(intent.getStringExtra(CitronConsts.EXTRA_GAME_NAME))
+            menu.onRequestClose = { closeMenu() }
+            menu.onToggleInputOverlay = {
+                val ov = inputOverlay
+                if (ov != null) {
+                    ov.visibility = if (ov.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+                    Toast.makeText(
+                        this,
+                        if (ov.visibility == View.VISIBLE) "已显示触屏按键" else "已隐藏触屏按键",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            }
+            CitronHost.openMenu = { menu.open() }
+            CitronHost.closeMenu = { menu.close() }
+            CitronHost.isMenuOpen = { menu.visible }
+            CitronHost.menuKeyHandler = { ev -> menu.handleKey(ev.keyCode, ev.action) }
+            CitronHost.menuAxisHandler = { x, y -> menu.handleAxis(x, y) }
         }
     }
 
