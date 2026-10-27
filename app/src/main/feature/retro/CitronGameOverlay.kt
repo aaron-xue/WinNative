@@ -1,7 +1,6 @@
 package com.winlator.cmod.feature.retro
 
 import android.content.Context
-import java.io.File
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.ViewGroup
@@ -26,6 +25,7 @@ import androidx.compose.material.icons.outlined.Save
 import org.citron.citron_emu.NativeLibrary
 import org.citron.citron_emu.features.input.NativeInput
 import org.citron.citron_emu.wn.CitronHost
+import org.citron.citron_emu.utils.NativeConfig
 
 // Host-side overlay for the embedded Nintendo Switch emulator. Mirrors the role of
 // Ps2GameOverlay: it builds the Compose overlay (touch controls + drawer menu) and
@@ -174,67 +174,40 @@ object CitronGameOverlay {
 
     private fun inputUp(): Boolean = runCatching { NativeLibrary.isRunning() }.getOrDefault(false)
 
-    // Applies the host's Switch settings (renderer/resolution/vsync/audio) to Citron's
-    // config.ini before emulation starts. CitronBootstrap sets the app directory to
-    // <extFiles>/citron, so config.ini lives at <extFiles>/citron/config/config.ini.
-    // The ini keys mirror yuzu/Citron's config schema (backend is the RendererBackend
-    // enum: 0=OpenGL, 1=Vulkan, 2=Null). Values absent from the file are appended.
+    // Applies all host-side Switch graphics settings via NativeConfig before emulation
+    // starts. Keys are read from the "CITRON" SharedPreferences and written directly to
+    // Citron's native config store using NativeConfig.setInt() / setBoolean().
     private fun applyCitronBootSettings(context: Context) {
         val prefs = context.getSharedPreferences("CITRON", Context.MODE_PRIVATE)
-        val ini = File(context.getExternalFilesDir(null), "citron/config/config.ini")
-        if (!ini.exists()) return
-        val backend = if ((prefs.getString("wn.switch.renderer", "Vulkan") ?: "Vulkan") == "Vulkan") 1 else 0
-        val resolution = prefs.getInt("wn.switch.resolution", 1).coerceAtLeast(1)
-        val vsync = prefs.getInt("wn.switch.vsync", 1).coerceIn(0, 2)
-        val audio = prefs.getInt("wn.switch.audio", 100).coerceIn(0, 100)
-        runCatching {
-            updateIni(
-                ini,
-                mapOf(
-                    "Renderer" to mapOf(
-                        "backend" to backend.toString(),
-                        "resolution_scale" to resolution.toString(),
-                        "vsync_mode" to vsync.toString(),
-                    ),
-                    "Audio" to mapOf(
-                        "volume" to audio.toString(),
-                        "output_engine" to "cubeb",
-                    ),
-                ),
-            )
-        }
-    }
 
-    private fun updateIni(file: File, sections: Map<String, Map<String, String>>) {
-        val lines = file.readLines().toMutableList()
-        val presentSections = mutableSetOf<String>()
-        val handled = mutableSetOf<String>()
-        var curSection: String? = null
-        for (i in lines.indices) {
-            val line = lines[i]
-            val sect = Regex("^\\[(.+)]$").find(line)?.groupValues?.get(1)
-            if (sect != null) {
-                curSection = sect
-                presentSections.add(sect)
+        val intMap = mapOf(
+            "gpu_accuracy" to 0,
+            "resolution_setup" to 3,
+            "use_vsync" to 2,
+            "scaling_filter" to 1,
+            "anti_aliasing" to 0,
+            "max_anisotropy" to 0,
+            "screen_layout" to 0,
+            "aspect_ratio" to 0,
+            "vertical_alignment" to 0,
+            "fsr_sharpening_slider" to 25,
+            "fsr2_quality_mode" to 1,
+        )
+        val boolMap = mapOf(
+            "use_disk_shader_cache" to true,
+            "force_max_clock" to false,
+            "use_asynchronous_shaders" to false,
+            "use_reactive_flushing" to false,
+            "picture_in_picture" to false,
+        )
+        runCatching {
+            for ((key, default) in intMap) {
+                NativeConfig.setInt(key, prefs.getInt(key, default))
             }
-            val m = Regex("^\\s*([\\w.]+)\\s*=\\s*(.*)$").find(line)
-            if (curSection != null && m != null) {
-                val key = m.groupValues[1]
-                val target = sections[curSection]?.get(key)
-                if (target != null) {
-                    lines[i] = "$key = $target"
-                    handled.add("${curSection}/$key")
-                }
+            for ((key, default) in boolMap) {
+                NativeConfig.setBoolean(key, prefs.getBoolean(key, default))
             }
+            NativeConfig.setInt("audio_volume", prefs.getInt("wn.switch.audio", 100))
         }
-        val sb = StringBuilder()
-        sb.append(lines.joinToString("\n"))
-        for ((sect, kv) in sections) {
-            val missing = kv.filter { (k, _) -> !handled.contains("$sect/$k") }
-            if (missing.isEmpty()) continue
-            sb.append(if (!presentSections.contains(sect)) "\n\n[$sect]\n" else "\n")
-            for ((k, v) in missing) sb.append("$k = $v\n")
-        }
-        file.writeText(sb.toString())
     }
 }
