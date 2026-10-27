@@ -40,6 +40,12 @@ object FrameGen {
     val generating: Boolean
         @Synchronized get() = generatingEnabled
 
+    val nativeHandle: Long
+        @Synchronized get() = handle
+
+    val displayRefreshRate: Float
+        @Synchronized get() = refreshRate
+
     val multiplier: Int
         @Synchronized get() = options.multiplier
 
@@ -57,6 +63,14 @@ object FrameGen {
         options = source
         generatingEnabled = true
         if (options.usable) FrameGenNative.ensureLoaded()
+        synchronized(this) {
+            if (refreshRate <= 0f) {
+                refreshRate = when {
+                    options.targetRate > 0 -> options.targetRate.toFloat()
+                    else -> 120f
+                }
+            }
+        }
         notifyState()
     }
 

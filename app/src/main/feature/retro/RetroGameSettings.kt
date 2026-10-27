@@ -1366,12 +1366,6 @@ private fun RetroFrameGenerationGroup(state: RetroSettingsState) {
                 else -> stringResource(R.string.settings_frame_generation_not_found)
             },
         )
-        if (gpuSupported && shaderState != FRAMEGEN_SHADERS_NOT_OWNED) {
-            RetroFrameGenLocateButton(context) { result, name ->
-                sourceName = name
-                shaderState = retroFrameGenStateFor(result)
-            }
-        }
         if (enabled) {
             RetroSettingDropdown(
                 label = stringResource(R.string.session_drawer_frame_generation_target),
@@ -1412,69 +1406,6 @@ private fun RetroFrameGenerationGroup(state: RetroSettingsState) {
             )
             RetroSettingNote(stringResource(R.string.session_drawer_frame_generation_note))
         }
-    }
-}
-
-@Composable
-private fun RetroFrameGenLocateButton(
-    context: android.content.Context,
-    onImported: (Int, String) -> Unit,
-) {
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
-    OutlinedButton(
-        onClick = {
-            val activity = context.findActivity() ?: return@OutlinedButton
-            val imagefsRoot = com.winlator.cmod.runtime.display.environment.ImageFs.find(context).rootDir
-            com.winlator.cmod.shared.android.DirectoryPickerDialog.showFile(
-                activity = activity,
-                title = context.getString(R.string.settings_frame_generation_locate),
-                allowedExtensions = setOf("dll"),
-                extraRoots =
-                    listOf(
-                        com.winlator.cmod.shared.android.DirectoryPickerDialog.ManagedRoot(
-                            "C:",
-                            java.io.File(imagefsRoot, "home").absolutePath,
-                        ),
-                        com.winlator.cmod.shared.android.DirectoryPickerDialog.ManagedRoot(
-                            "D:",
-                            android.os.Environment
-                                .getExternalStoragePublicDirectory(
-                                    android.os.Environment.DIRECTORY_DOWNLOADS,
-                                ).absolutePath,
-                        ),
-                        com.winlator.cmod.shared.android.DirectoryPickerDialog.ManagedRoot(
-                            "Internal",
-                            android.os.Environment.getExternalStorageDirectory().absolutePath,
-                        ),
-                    ),
-            ) { pickedPath ->
-                scope.launch {
-                    val outcome =
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            com.winlator.cmod.feature.library.LosslessAutoImport.importFrom(
-                                context,
-                                java.io.File(pickedPath),
-                            )
-                        }
-                    onImported(outcome.result, outcome.sourceName)
-                }
-            }
-        },
-        modifier = Modifier.fillMaxWidth().height(40.dp),
-        shape = RoundedCornerShape(FieldCorner),
-        border = BorderStroke(1.dp, InputBorder),
-        colors =
-            ButtonDefaults.outlinedButtonColors(
-                containerColor = InputSurface,
-                contentColor = TextPrimary,
-            ),
-    ) {
-        Text(
-            stringResource(R.string.settings_frame_generation_locate),
-            fontSize = ValueSize,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 

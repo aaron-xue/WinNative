@@ -36,6 +36,7 @@ import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
 import org.citron.citron_emu.NativeLibrary
+import com.winlator.cmod.shared.framegen.FrameGen
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -60,6 +61,7 @@ class SwitchPerfHudView(context: Context) :
 
     // ── FrameRating palette (matched so the HUD looks like FrameRating) ──
     private val C_FPS = 0xFF76FF03.toInt()   // green
+    private val C_FPS_GEN = 0xFF00E5FF.toInt()  // cyan (matches FrameRating's C_FPS_GEN)
     private val C_GPU = 0xFFE040FB.toInt()   // purple
     private val C_CPU = 0xFFEEEEEE.toInt()   // white
     private val C_RAM = 0xFF90CAF9.toInt()   // blue
@@ -101,7 +103,6 @@ class SwitchPerfHudView(context: Context) :
     private var currentAnchor = ANCHOR_TOP_CENTER
 
     private val prefs: SharedPreferences
-    private var drawCount = 0
 
     // live metrics
     private var fps = 0f
@@ -112,7 +113,8 @@ class SwitchPerfHudView(context: Context) :
     private var batteryWatts = -1f
     private var tempC = -1
     private var renderer = "Vulkan"
-    private var outputFps = 0f
+    private var frameGenOutputFps = 0f
+    private var frameGenActive = false
 
     // HUD toggles/style mirrored from the SAME stores the Switch (citron) settings dialog writes.
     // For the embedded Switch core the HUD tab is RetroPs2HudSection, which persists:
@@ -278,7 +280,8 @@ class SwitchPerfHudView(context: Context) :
         batteryWatts: Float,
         tempC: Int,
         renderer: String,
-        outputFps: Float,
+        frameGenOutputFps: Float,
+        frameGenActive: Boolean,
     ) {
         this.fps = fps
         this.frametimeMs = frametimeMs
@@ -288,7 +291,8 @@ class SwitchPerfHudView(context: Context) :
         this.batteryWatts = batteryWatts
         this.tempC = tempC
         this.renderer = renderer
-        this.outputFps = outputFps
+        this.frameGenOutputFps = frameGenOutputFps
+        this.frameGenActive = frameGenActive
         fpsHistory[fpsHistoryPos] = fps
         fpsHistoryPos = (fpsHistoryPos + 1) % fpsHistory.size
         if (fpsHistoryCount < fpsHistory.size) fpsHistoryCount++
@@ -343,7 +347,13 @@ class SwitchPerfHudView(context: Context) :
     private fun dp(v: Int): Float = dp(v.toFloat())
 
     private sealed class Seg {
-        data class Text(val label: String, val value: String, val color: Int) : Seg()
+        data class Text(
+            val label: String,
+            val value: String,
+            val color: Int,
+            val valueColor: Int = color,
+            val valuePart2: String? = null,
+        ) : Seg()
         object Graph : Seg()
     }
 
@@ -351,7 +361,16 @@ class SwitchPerfHudView(context: Context) :
     // line; "主机" (index 1) is intentionally omitted (removed from settings globally).
     private fun buildSegs(): List<Seg> {
         val list = mutableListOf<Seg>()
-        if (hudElements[0]) list.add(Seg.Text("FPS", fps.toInt().toString(), C_FPS))
+        if (hudElements[0]) {
+            val showGen = frameGenActive && frameGenOutputFps > 0f && frameGenOutputFps > fps + 1f
+            list.add(
+                if (showGen) {
+                    Seg.Text("FPS", fps.toInt().toString(), C_FPS, C_FPS_GEN, frameGenOutputFps.toInt().toString())
+                } else {
+                    Seg.Text("FPS", fps.toInt().toString(), C_FPS)
+                },
+            )
+        }
         if (hudElements[2]) list.add(Seg.Text("GPU", gpuText(), C_GPU))
         if (hudElements[3]) list.add(Seg.Text("CPU", cpuText(), C_CPU))
         if (hudElements[4]) list.add(Seg.Text("RAM", ramText(), C_RAM))
@@ -382,8 +401,15 @@ class SwitchPerfHudView(context: Context) :
                 first = false
                 w += when (s) {
                     is Seg.Graph -> graphW
-                    is Seg.Text -> sepPaint.measureText(s.label).toInt() + dp(2).toInt() +
-                        stripPaint.measureText(s.value).toInt() + dp(2).toInt()
+                    is Seg.Text -> {
+                        var tw = sepPaint.measureText(s.label).toInt() + dp(2).toInt() +
+                            stripPaint.measureText(s.value).toInt()
+                        val part2 = s.valuePart2
+                        if (part2 != null) {
+                            tw += sepPaint.measureText(" → ").toInt() + stripPaint.measureText(part2).toInt()
+                        }
+                        tw + dp(2).toInt()
+                    }
                 }
             }
             return Pair(w, pad * 2 + textH)
@@ -396,8 +422,15 @@ class SwitchPerfHudView(context: Context) :
             first = false
             val wSeg = when (s) {
                 is Seg.Graph -> graphW
-                is Seg.Text -> sepPaint.measureText(s.label).toInt() + dp(2).toInt() +
-                    stripPaint.measureText(s.value).toInt()
+                is Seg.Text -> {
+                    var tw = sepPaint.measureText(s.label).toInt() + dp(2).toInt() +
+                        stripPaint.measureText(s.value).toInt()
+                    val part2 = s.valuePart2
+                    if (part2 != null) {
+                        tw += sepPaint.measureText(" → ").toInt() + stripPaint.measureText(part2).toInt()
+                    }
+                    tw
+                }
             }
             maxW = maxOf(maxW, wSeg)
             h += textH
@@ -448,7 +481,17 @@ class SwitchPerfHudView(context: Context) :
                             x += sepPaint.measureText(s.label).toInt() + dp(2).toInt()
                             stripPaint.color = s.color
                             canvas.drawText(s.value, x, baseY, stripPaint)
-                            x += stripPaint.measureText(s.value).toInt() + dp(2).toInt()
+                            x += stripPaint.measureText(s.value).toInt()
+                            val part2 = s.valuePart2
+                            if (part2 != null) {
+                                // "FPS 60 → 120": arrow in separator color, output fps in cyan.
+                                canvas.drawText(" → ", x, baseY, sepPaint)
+                                x += sepPaint.measureText(" → ").toInt()
+                                stripPaint.color = s.valueColor
+                                canvas.drawText(part2, x, baseY, stripPaint)
+                                x += stripPaint.measureText(part2).toInt()
+                            }
+                            x += dp(2).toInt()
                         }
                         is Seg.Graph -> {
                             drawGraph(canvas, x.toInt(), graphY.toInt(), graphW, dp(14).toInt())
@@ -465,9 +508,17 @@ class SwitchPerfHudView(context: Context) :
                         is Seg.Text -> {
                             val baseY = y + (textH - textHeight) / 2f - fm.ascent
                             canvas.drawText(s.label, pad, baseY, sepPaint)
-                            val labelW = sepPaint.measureText(s.label).toInt() + dp(2).toInt()
+                            var labelW = sepPaint.measureText(s.label).toInt() + dp(2).toInt()
                             stripPaint.color = s.color
                             canvas.drawText(s.value, pad + labelW, baseY, stripPaint)
+                            labelW += stripPaint.measureText(s.value).toInt()
+                            val part2 = s.valuePart2
+                            if (part2 != null) {
+                                canvas.drawText(" → ", pad + labelW, baseY, sepPaint)
+                                labelW += sepPaint.measureText(" → ").toInt()
+                                stripPaint.color = s.valueColor
+                                canvas.drawText(part2, pad + labelW, baseY, stripPaint)
+                            }
                         }
                         is Seg.Graph -> {
                             drawGraph(canvas, pad.toInt(), y.toInt(), graphW, dp(14).toInt())
@@ -475,10 +526,6 @@ class SwitchPerfHudView(context: Context) :
                     }
                     y += rowH
                 }
-            }
-            if (drawCount < 8) {
-                drawCount++
-                Log.i("SwitchPerfHud", "drawHud #$drawCount w=${canvas.width} h=${canvas.height} mode=$displayMode")
             }
         } finally {
             try { holder.unlockCanvasAndPost(canvas) } catch (_: Exception) {}
@@ -669,12 +716,15 @@ class SwitchPerfHudController(private val context: Context, private val root: Vi
     private var currentUa = Int.MIN_VALUE
     private var tempTenths = 0
 
-    private var sampleCount = 0
-    private var diagnosed = false
+    // Frame generation output FPS tracking (mirrors RetroHudSupport.frameGenOutputSource).
+    private var lastPresentedFrames = -1L
+    private var lastOutputSampleNanos = 0L
 
     fun start() {
         if (active) return
         active = true
+        lastPresentedFrames = -1L
+        lastOutputSampleNanos = 0L
         view.layoutParams = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT,
             FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -712,57 +762,39 @@ class SwitchPerfHudController(private val context: Context, private val root: Vi
     }
 
     private fun sample() {
-        diagnoseOnce()
         val running = runCatching { NativeLibrary.isRunning() }.getOrDefault(false)
         val stats = runCatching { NativeLibrary.getPerfStats() }.getOrDefault(DoubleArray(0))
         val fps = if (running && stats.size >= 4) stats[1].toFloat() else 0f
         val frametime = if (running && stats.size >= 4) stats[2].toFloat() else 0f
-        val outputFps = if (running && stats.size >= 4) stats[0].toFloat() else 0f
         val gpu = if (running) readGpuLoad() else -1
         val cpu = if (running) readCpuPercent() else -1
         val ram = readRamPercent()
         val batteryW = computeBatteryWatts()
         val temp = if (tempTenths > 0) tempTenths / 10 else -1
+
+        // Query FrameGen for true output FPS (presented = real + generated).
+        var fgOutputFps = 0f
+        var fgActive = false
+        runCatching {
+            val fgReal = FrameGen.realFrames()
+            val fgGen = FrameGen.generatedFrames()
+            val presented = fgReal + fgGen
+            val now = SystemClock.elapsedRealtimeNanos()
+            if (lastPresentedFrames >= 0 && presented > lastPresentedFrames && lastOutputSampleNanos > 0) {
+                val elapsed = now - lastOutputSampleNanos
+                if (elapsed > 0) {
+                    fgOutputFps = (presented - lastPresentedFrames) * 1_000_000_000f / elapsed
+                    fgActive = FrameGen.active && FrameGen.generating
+                }
+            }
+            lastPresentedFrames = presented
+            lastOutputSampleNanos = now
+        }
+
         // Only show once emulation is live; before that the loading screen owns the foreground.
-        // View mutations must run on the UI thread — sample() executes on the sampler HandlerThread,
-        // so the visibility toggle is posted via the attached view's handler.
         val visible = running
         view.post { view.visibility = if (visible) View.VISIBLE else View.GONE }
-        if (sampleCount < 20) {
-            sampleCount++
-            Log.i(
-                "SwitchPerfHud",
-                "sample#$sampleCount running=$running visible=$visible fps=$fps gpu=$gpu cpu=$cpu ram=$ram " +
-                    "bat=${"%.2f".format(batteryW)}W temp=$temp viewVis=${view.visibility}",
-            )
-        }
-        view.setData(fps, frametime, gpu, cpu, ram, batteryW, temp, "Vulkan", outputFps)
-    }
-
-    // One-time probe of every candidate GPU sysfs node so a still-missing reading is easy to diagnose
-    // (e.g. the emulator process living in a namespace that hides host /sys nodes).
-    private fun diagnoseOnce() {
-        if (diagnosed) return
-        diagnosed = true
-        val paths = listOf(
-            "/sys/class/kgsl/kgsl-3d0/gpubusy",
-            "/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage",
-            "/sys/class/kgsl/kgsl-3d0/devfreq/gpu_load",
-            "/sys/class/misc/mali0/device/utilisation",
-            "/sys/class/mali0/device/utilisation",
-            "/sys/kernel/gpu/gpu_busy",
-            "/proc/mtk_mali/utilization",
-        )
-        for (p in paths) {
-            try {
-                val f = File(p)
-                val content = runCatching { f.bufferedReader().use { it.readLine() } }.getOrNull()
-                Log.i("SwitchPerfHud", "gpuPath $p exists=${f.exists()} readable=${f.canRead()} content=${content ?: "<none>"}")
-            } catch (e: Exception) {
-                Log.i("SwitchPerfHud", "gpuPath $p err=${e.message}")
-            }
-        }
-        Log.i("SwitchPerfHud", "cpu cores=$totalCores clkPerSec=$clkTicksPerSec uid=${Process.myUid()} battery vMv=$voltageMv ua=$currentUa tempT=$tempTenths")
+        view.setData(fps, frametime, gpu, cpu, ram, batteryW, temp, "Vulkan", fgOutputFps, fgActive)
     }
 
     // ── GPU load (sysfs, same paths citron/yuzu HUDs use) ──────────────────────────────

@@ -20,6 +20,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
+import com.winlator.cmod.shared.framegen.FrameGen
 import org.citron.citron_emu.NativeLibrary
 import org.citron.citron_emu.R
 import org.citron.citron_emu.features.input.NativeInput
@@ -41,6 +42,8 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val tag = "WnCitron"
     private var surfaceView: SurfaceView? = null
     private var surface: Surface? = null
+    private var surfaceW = 0
+    private var surfaceH = 0
     private var inputOverlay: InputOverlay? = null
     private val started = java.util.concurrent.atomic.AtomicBoolean(false)
     private val ready = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -80,6 +83,10 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             )
         }
         setContentView(root)
+
+        // Frame generation (LSFG) — read per-game settings from the launch Intent so
+        // surfaceCreated/surfaceChanged can wrap the output Surface with interpolation.
+        FrameGen.installFromIntent(this, intent)
 
         // Let content run edge-to-edge so the side menu (and the game surface) sit flush against
         // the screen edges; we then manually avoid the camera/notch via the menu's safe inset.
@@ -161,8 +168,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             runOnUiThread {
                 ready.set(true)
                 // The SurfaceView surface may have been created before the .so finished
-                // loading; apply it now that the native side is live.
-                if (surface != null) runCatching { NativeLibrary.surfaceChanged(surface) }
+                // loading; apply it now that the native side is live. applySurface()
+                // wraps it through FrameGen if the user enabled frame generation.
+                if (surface != null) applySurface()
                 // Overlays (host Compose menu + on-screen gamepad) are attached in
                 // attachGameOverlays() once emulation is actually running, so they don't
                 // appear above the loading screen.
@@ -255,21 +263,40 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         surface = holder.surface
+        val frame = holder.surfaceFrame
+        surfaceW = frame.width()
+        surfaceH = frame.height()
         // Only touch the native surface once CitronBootstrap.ensure() has loaded the .so
         // (ready==true). surfaceCreated fires on the SurfaceView's first preDraw, which
         // can beat the bootstrap thread and used to throw UnsatisfiedLinkError; if not
         // ready yet, the bootstrap completion applies the surface instead.
-        if (ready.get()) runCatching { NativeLibrary.surfaceChanged(surface) }
+        if (ready.get()) applySurface()
         maybeRun()
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        if (ready.get()) runCatching { NativeLibrary.surfaceChanged(holder.surface) }
+        surface = holder.surface
+        surfaceW = width
+        surfaceH = height
+        if (ready.get()) applySurface()
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         if (ready.get()) runCatching { NativeLibrary.surfaceDestroyed() }
         surface = null
+        FrameGen.release()
+    }
+
+    private fun applySurface() {
+        val raw = surface ?: return
+        val wrapped = FrameGen.wrap(raw, surfaceW, surfaceH)
+        val final = wrapped ?: raw
+        Log.i(
+            tag,
+            "applySurface ${surfaceW}x${surfaceH} requested=${FrameGen.requested} mult=${FrameGen.multiplier} " +
+                "target=${FrameGen.targetRate} active=${FrameGen.active} generating=${FrameGen.generating}",
+        )
+        runCatching { NativeLibrary.surfaceChanged(final) }
     }
 
     // Run exactly once, after both bootstrap and a live Surface are available.

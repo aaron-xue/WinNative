@@ -41,6 +41,7 @@ android {
 }
 
 dependencies {
+    implementation project(':framegen')
     implementation libs.coreKtx
     implementation libs.appcompat
     implementation libs.activityKtx
