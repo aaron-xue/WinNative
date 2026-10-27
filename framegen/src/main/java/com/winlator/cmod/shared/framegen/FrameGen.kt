@@ -84,7 +84,7 @@ object FrameGen {
     fun wrap(output: Surface?, width: Int, height: Int): Surface? {
         if (output == null || !output.isValid) return output
         if (!options.usable || width <= 0 || height <= 0) return output
-        if (handle != 0L && boundOutput === output && boundWidth == width && boundHeight == height) {
+        if (handle != 0L && boundOutput === output && boundOutput!!.isValid && boundWidth == width && boundHeight == height) {
             return producer ?: output
         }
 

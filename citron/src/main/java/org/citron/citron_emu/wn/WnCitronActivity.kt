@@ -574,12 +574,11 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     override fun onPause() {
         super.onPause()
         runCatching { InputHandler.releaseAllInputs() }
-        if (started.get() && !menuShown) runCatching { NativeLibrary.pauseEmulation() }
+        if (started.get()) runCatching { NativeLibrary.pauseEmulation() }
     }
 
     override fun onResume() {
         super.onResume()
-        if (started.get() && !menuShown) runCatching { NativeLibrary.unpauseEmulation() }
     }
 
     override fun onDestroy() {
