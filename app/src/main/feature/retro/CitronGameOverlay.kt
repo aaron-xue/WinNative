@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Save
 import com.winlator.cmod.runtime.container.ContainerManager
 import com.winlator.cmod.runtime.container.Shortcut
+import com.winlator.cmod.shared.framegen.FrameGen
 import org.citron.citron_emu.NativeLibrary
 import org.citron.citron_emu.features.input.NativeInput
 import org.citron.citron_emu.wn.CitronHost
@@ -211,8 +212,39 @@ object CitronGameOverlay {
         dialog.onDismissed = {
             applyCitronBootSettings(activity)
             runCatching { NativeLibrary.applySettings() }
+            applyFrameGenSettings(activity, shortcut)
         }
         dialog.show()
+    }
+
+    // Applies FrameGen settings from the shortcut to the running FrameGen singleton.
+    // When FrameGen is already active (surface was wrapped at boot) parameter changes
+    // take effect immediately via reconfigure / setGenerating.  Enabling FrameGen from a
+    // cold (non-wrapped) boot state requires a game restart.
+    private fun applyFrameGenSettings(context: Context, shortcut: Shortcut) {
+        val enabled = RetroFrameGen.enabled(context, shortcut, RetroSystems.SWITCH.id)
+        if (FrameGen.active) {
+            if (enabled) {
+                FrameGen.setGenerating(true)
+                FrameGen.reconfigure(
+                    RetroFrameGen.multiplier(context, shortcut, RetroSystems.SWITCH.id),
+                    RetroFrameGen.targetRate(context, shortcut, RetroSystems.SWITCH.id),
+                    RetroFrameGen.flowScale(context, shortcut, RetroSystems.SWITCH.id),
+                )
+            } else {
+                FrameGen.setGenerating(false)
+            }
+        } else if (enabled) {
+            FrameGen.install(
+                context,
+                RetroFrameGen.liveOptions(
+                    context,
+                    RetroFrameGen.multiplier(context, shortcut, RetroSystems.SWITCH.id),
+                    RetroFrameGen.targetRate(context, shortcut, RetroSystems.SWITCH.id),
+                    RetroFrameGen.flowScale(context, shortcut, RetroSystems.SWITCH.id),
+                ),
+            )
+        }
     }
 
     // Applies all host-side Switch graphics settings via NativeConfig before emulation
