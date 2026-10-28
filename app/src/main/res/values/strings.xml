@@ -3356,11 +3356,19 @@ Installed path:
     <string name="retro_scr_cat_consoles">Console Bundle</string>
     <string name="retro_gs_audio_volume">Audio Volume</string>
     <string name="retro_gpu_driver_hint">Install Turnip drivers under Settings \u2192 Drivers. The same drivers work for both PC and PS2 games.</string>
-    <!-- Citron (Switch) in-game save data manager -->
-    <string name="retro_scr_switch_saves">Switch Game Saves</string>
-    <string name="retro_scr_switch_saves_hint_title">In-game saves</string>
-    <string name="retro_scr_switch_saves_hint">Games save natively to the emulated NAND. Browse, back up, restore or delete each game\'s save data here.</string>
-    <string name="retro_scr_manage_switch_saves">Manage Switch Game Saves</string>
+    <!-- Citron (Switch) save data export / import -->
+    <string name="retro_scr_switch_saves">Switch Saves</string>
+    <string name="retro_scr_switch_saves_hint_title">Import / Export</string>
+    <string name="retro_scr_switch_saves_hint">Export all Switch game saves as a ZIP archive or import a previously exported one.</string>
+    <string name="retro_scr_export_switch_saves">Export</string>
+    <string name="retro_scr_import_switch_saves">Import</string>
+    <string name="retro_scr_exporting_switch_saves">Exporting Switch saves…</string>
+    <string name="retro_scr_importing_switch_saves">Importing Switch saves…</string>
+    <string name="retro_scr_switch_saves_exported">Switch saves exported to %1$s</string>
+    <string name="retro_scr_switch_saves_exported_failed">No saves to export or export failed</string>
+    <string name="retro_scr_switch_saves_imported">Imported %1$d game save(s)</string>
+    <string name="retro_scr_switch_saves_imported_failed">No valid Switch saves found in the selected file</string>
+    <string name="retro_scr_manage_switch_saves">Manage Save Data</string>
     <string name="retro_scr_emulated_system">Emulated System</string>
     <string name="retro_scr_emulated_region">Emulated Region</string>
     <string name="retro_scr_emulated_language">Emulated Language</string>
@@ -3389,21 +3397,6 @@ Installed path:
     <string name="retro_scr_lang_simplified_chinese">Simplified Chinese</string>
     <string name="retro_scr_lang_traditional_chinese">Traditional Chinese</string>
     <string name="retro_scr_lang_brazilian_portuguese">Brazilian Portuguese</string>
-    <string name="retro_scr_save_no_saves">No Switch game saves found yet. Play a game first to create one.</string>
-    <string name="retro_scr_save_meta">Size: %1$s \u2022 Modified: %2$s</string>
-    <string name="retro_scr_save_backup">Backup</string>
-    <string name="retro_scr_save_restore">Restore</string>
-    <string name="retro_scr_save_delete">Delete</string>
-    <string name="retro_scr_save_copy_path">Copy Path</string>
-    <string name="retro_scr_save_backed_up">Backed up to: %1$s</string>
-    <string name="retro_scr_save_restored">Save data restored</string>
-    <string name="retro_scr_save_deleted">Save data deleted</string>
-    <string name="retro_scr_save_not_found">Save data not found</string>
-    <string name="retro_scr_save_path_copied">Save path copied to clipboard</string>
-    <string name="retro_scr_save_delete_title">Delete save data?</string>
-    <string name="retro_scr_save_confirm_delete">This will permanently delete this game\'s save data. A backup is recommended first.</string>
-    <string name="retro_scr_save_restore_pick">Select a backup to restore</string>
-    <string name="retro_scr_save_no_backups">No backups for this game yet.</string>
     <!-- PS2 virtual HDD + DNS host hint -->
     <string name="retro_ps2_hdd">PS2 HDD (DEV9)</string>
     <string name="retro_ps2_hdd_subtitle">Virtual internal drive for HDD-based games like Final Fantasy XI. Restarts the game.</string>

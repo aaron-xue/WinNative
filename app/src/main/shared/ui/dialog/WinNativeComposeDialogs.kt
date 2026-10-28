@@ -583,7 +583,7 @@ private fun WinNativeLoadingDialog(message: String) {
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.BottomCenter
+            contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier

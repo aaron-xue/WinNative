@@ -42,9 +42,9 @@ import kotlinx.coroutines.launch
 /**
  * The "Nintendo Switch" settings sub-screen, extracted from RetroDefaultsScreen so that
  * file stays small. Rendered as a full-screen layer (NOT inside the outer LazyColumn) so
- * its own scrolling list and the full-screen Citron save-manager overlay both resolve
- * fillMaxSize against the viewport. Owns its refresh state, the Switch key/firmware
- * importers, and the save-manager overlay.
+ * its own scrolling list resolves fillMaxSize against the viewport. Owns its refresh
+ * state, the Switch key/firmware importers, GPU driver picker, locale settings, bulk
+ * save export/import, and controller settings.
  *
  * @param onBack returns to the landing MENU.
  */
@@ -53,7 +53,6 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var refresh by remember { mutableIntStateOf(0) }
-    var showSaveManager by remember { mutableStateOf(false) }
     var showControllerSettings by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
@@ -313,20 +312,79 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
                         stringResource(R.string.retro_scr_switch_saves_hint_title),
                         stringResource(R.string.retro_scr_switch_saves_hint),
                     )
-                    Button(
-                        onClick = { showSaveManager = true },
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(top = 4.dp)
-                                .paneNavItem(
-                                    cornerRadius = 8.dp,
-                                    onActivate = { showSaveManager = true },
-                                    highlightColor = Color(0xFF4FC3F7),
-                                    tapToSelect = true,
-                                ),
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(stringResource(R.string.retro_scr_manage_switch_saves))
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    val loading = WinNativeComposeDialogs.showLoading(
+                                        context,
+                                        context.getString(R.string.retro_scr_exporting_switch_saves),
+                                    )
+                                    val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                        CitronSaveManager.exportAllSaves(context)
+                                    }
+                                    loading?.dismiss()
+                                    if (result != null) {
+                                        Toast.makeText(context, context.getString(R.string.retro_scr_switch_saves_exported, result.absolutePath), Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, context.getString(R.string.retro_scr_switch_saves_exported_failed), Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            },
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .paneNavItem(
+                                        cornerRadius = 8.dp,
+                                        onActivate = { /* activated via onClick */ },
+                                        highlightColor = Color(0xFF4FC3F7),
+                                        tapToSelect = true,
+                                    ),
+                        ) {
+                            Text(stringResource(R.string.retro_scr_export_switch_saves))
+                        }
+                        Button(
+                            onClick = {
+                                val activity = context as? android.app.Activity
+                                if (activity != null) {
+                                    DirectoryPickerDialog.showFile(
+                                        activity = activity,
+                                        title = context.getString(R.string.retro_scr_import_switch_saves),
+                                        allowedExtensions = setOf("zip"),
+                                    ) { path ->
+                                        scope.launch {
+                                            val loading = WinNativeComposeDialogs.showLoading(
+                                                context,
+                                                context.getString(R.string.retro_scr_importing_switch_saves),
+                                            )
+                                            val count = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                                CitronSaveManager.importAllSaves(context, File(path))
+                                            }
+                                            loading?.dismiss()
+                                            if (count > 0) {
+                                                Toast.makeText(context, context.getString(R.string.retro_scr_switch_saves_imported, count), Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, context.getString(R.string.retro_scr_switch_saves_imported_failed), Toast.LENGTH_LONG).show()
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .paneNavItem(
+                                        cornerRadius = 8.dp,
+                                        onActivate = { /* activated via onClick */ },
+                                        highlightColor = Color(0xFF4FC3F7),
+                                        tapToSelect = true,
+                                    ),
+                        ) {
+                            Text(stringResource(R.string.retro_scr_import_switch_saves))
+                        }
                     }
                 }
             }
@@ -350,12 +408,6 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
                     }
                 }
             }
-        }
-        // Full-screen save-manager overlay. Rendered as a sibling of the scrolling list
-        // inside the root Box so it covers the whole screen (the Box fills the viewport
-        // because RetroSwitchScreen is shown as its own layer, not as a list item).
-        if (showSaveManager) {
-            CitronSaveManagerScreen(onClose = { showSaveManager = false })
         }
         if (showControllerSettings) {
             CitronControllerSettingsScreen(onBack = { showControllerSettings = false })

@@ -309,6 +309,81 @@ object CitronSaveManager {
             true
         }.getOrDefault(false)
 
+    /**
+     * Exports all Switch saves as a single combined ZIP to WinNative/saves/switch/.
+     * Each game's save is stored in its own folder named by titleId, with a wn_game.json
+     * per game carrying the human-readable name. Returns the zip file, or null if there
+     * are no saves to export or the output directory cannot be created.
+     */
+    fun exportAllSaves(context: Context): File? {
+        val saves = listSaves(context)
+        if (saves.isEmpty()) return null
+        val root = backupRoot(context)
+        if (!root.mkdirs() && !root.isDirectory) return null
+        val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ROOT).format(Date())
+        val dest = File(root, "switch_saves_$stamp.zip")
+        return if (runCatching {
+            ZipOutputStream(dest.outputStream().buffered()).use { zos ->
+                saves.forEach { save ->
+                    val name = gameNameFor(context, save.titleId)
+                    val prefix = "${save.titleId}/"
+                    val meta = JSONObject().put("titleId", save.titleId).put("name", name).toString()
+                    zos.putNextEntry(ZipEntry(prefix + META_ENTRY))
+                    zos.write(meta.toByteArray(Charsets.UTF_8))
+                    zos.closeEntry()
+                    save.folder.walkTopDown().filter { it.isFile }.forEach { f ->
+                        zos.putNextEntry(ZipEntry(prefix + f.relativeTo(save.folder).path.replace('\\', '/')))
+                        f.inputStream().buffered().use { it.copyTo(zos) }
+                        zos.closeEntry()
+                    }
+                }
+            }
+            true
+        }.getOrDefault(false)) dest else null
+    }
+
+    /**
+     * Imports all saves from a combined ZIP archive produced by [exportAllSaves].
+     * Each top-level folder whose name matches a 16-char hex titleId is restored as
+     * that game's save under the current NAND profile. Returns the count of
+     * successfully imported games.
+     */
+    fun importAllSaves(context: Context, zipFile: File): Int {
+        val byTitle = mutableMapOf<String, MutableList<Pair<String, ByteArray>>>()
+        runCatching {
+            ZipInputStream(zipFile.inputStream().buffered()).use { zis ->
+                var ze = zis.nextEntry
+                while (ze != null) {
+                    if (!ze.isDirectory) {
+                        val parts = ze.name.split('/', limit = 2)
+                        if (parts.size >= 2 && TITLE_ID_RE.matches(parts[0])) {
+                            val tid = parts[0].uppercase(Locale.ROOT)
+                            val rel = parts[1]
+                            if (rel != META_ENTRY) {
+                                byTitle.getOrPut(tid) { mutableListOf() }.add(rel to zis.readBytes())
+                            }
+                        }
+                    }
+                    zis.closeEntry()
+                    ze = zis.nextEntry
+                }
+            }
+        }
+        var count = 0
+        byTitle.forEach { (titleId, files) ->
+            val target = createSaveFolder(context, titleId) ?: return@forEach
+            runCatching {
+                files.forEach { (path, data) ->
+                    val out = File(target, path)
+                    out.parentFile?.mkdirs()
+                    out.writeBytes(data)
+                }
+                count++
+            }
+        }
+        return count
+    }
+
     fun formatSize(bytes: Long): String {
         if (bytes < 1024) return "$bytes B"
         val units = arrayOf("KB", "MB", "GB", "TB")

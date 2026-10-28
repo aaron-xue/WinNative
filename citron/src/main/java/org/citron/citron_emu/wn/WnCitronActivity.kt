@@ -10,6 +10,7 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.Surface
 import android.view.SurfaceHolder
+import android.graphics.PixelFormat
 import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
@@ -48,6 +49,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val started = java.util.concurrent.atomic.AtomicBoolean(false)
     private val ready = java.util.concurrent.atomic.AtomicBoolean(false)
     private var menuShown = false
+    private var lifecyclePaused = false
+
+    private var pauseDimOverlay: View? = null
 
     // Loading overlay (game title + spinner + "Loading…") shown over the SurfaceView while
     // the NSP installs and the core boots; dismissed once NativeLibrary.isRunning() is true
@@ -102,7 +106,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    if (menuShown) {
+                    if (lifecyclePaused) {
+                        resumeFromLifecyclePause()
+                    } else if (menuShown) {
                         closeMenu()
                     } else {
                         openMenu()
@@ -126,6 +132,71 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
                 FrameLayout.LayoutParams.MATCH_PARENT,
             ),
         )
+
+        val pauseOverlay = object : SurfaceView(this), SurfaceHolder.Callback {
+            private var surfaceReady = false
+
+            init {
+                holder.addCallback(this)
+                holder.setFormat(PixelFormat.TRANSLUCENT)
+                setZOrderOnTop(true)
+                visibility = View.GONE
+                setOnClickListener {
+                    if (menuShown) closeMenu()
+                    if (lifecyclePaused) resumeFromLifecyclePause()
+                }
+            }
+
+            override fun surfaceCreated(holder: SurfaceHolder) {
+                surfaceReady = true
+                redraw()
+            }
+
+            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) = redraw()
+
+            override fun surfaceDestroyed(holder: SurfaceHolder) {
+                surfaceReady = false
+            }
+
+            fun redraw() {
+                if (!surfaceReady) return
+                val canvas = try { holder.lockCanvas() } catch (_: Exception) { null } ?: return
+                try {
+                    canvas.drawColor(0x80000000.toInt())
+
+                    val playIcon = resources.getDrawable(R.drawable.ic_play, theme)
+                    val circleBg = resources.getDrawable(R.drawable.circle_white, theme)
+                    val cx = width / 2f
+                    val cy = height / 2f
+                    val iconSize = 64f * resources.displayMetrics.density
+                    val half = iconSize / 2f
+
+                    circleBg.setBounds(
+                        (cx - half).toInt(), (cy - half).toInt(),
+                        (cx + half).toInt(), (cy + half).toInt()
+                    )
+                    circleBg.draw(canvas)
+
+                    val pad = 14f * resources.displayMetrics.density
+                    playIcon.setTint(android.graphics.Color.BLACK)
+                    playIcon.setBounds(
+                        (cx - half + pad).toInt(), (cy - half + pad).toInt(),
+                        (cx + half - pad).toInt(), (cy + half - pad).toInt()
+                    )
+                    playIcon.draw(canvas)
+                } finally {
+                    try { holder.unlockCanvasAndPost(canvas) } catch (_: Exception) {}
+                }
+            }
+        }
+        root.addView(
+            pauseOverlay,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        pauseDimOverlay = pauseOverlay
 
         // In-game performance HUD (FPS / GPU / CPU / RAM / battery). Driven entirely by
         // device-level metrics + NativeLibrary.getPerfStats(); the toggle lives in the Switch
@@ -188,7 +259,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
         // instead of finishing the activity. Consumed on ACTION_UP so a single press toggles once.
         if (event.keyCode == KeyEvent.KEYCODE_BACK) {
             if (event.action == KeyEvent.ACTION_UP) {
-                if (menuShown) {
+                if (lifecyclePaused) {
+                    resumeFromLifecyclePause()
+                } else if (menuShown) {
                     closeMenu()
                 } else {
                     openMenu()
@@ -202,7 +275,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
         }
         // BUTTON_MODE (the controller "guide" button) opens the in-emulator menu.
         if (event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE && event.action == KeyEvent.ACTION_DOWN) {
-            openMenu()
+            if (lifecyclePaused) resumeFromLifecyclePause() else openMenu()
             return true
         }
         // Route physical gamepad keys into the emulated controller.
@@ -214,20 +287,22 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     // Open the in-emulator side menu (same RetroDrawerMenu PS2 uses) and pause emulation.
     private fun openMenu() {
-        if (menuShown) return
-        // Only once emulation is actually running, like PS2's `if (retroReady)` guard.
+        if (menuShown || lifecyclePaused) return
         if (!runCatching { NativeLibrary.isRunning() }.getOrDefault(false)) return
         menuShown = true
+        pauseDimOverlay?.visibility = View.VISIBLE
         CitronHost.openMenu?.invoke()
         runCatching { NativeLibrary.pauseEmulation() }
     }
 
-    // Close the side menu and resume emulation.
     private fun closeMenu() {
         if (!menuShown) return
         menuShown = false
+        if (!lifecyclePaused) {
+            pauseDimOverlay?.visibility = View.GONE
+            runCatching { NativeLibrary.unpauseEmulation() }
+        }
         CitronHost.closeMenu?.invoke()
-        runCatching { NativeLibrary.unpauseEmulation() }
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
@@ -574,11 +649,26 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     override fun onPause() {
         super.onPause()
         runCatching { InputHandler.releaseAllInputs() }
-        if (started.get()) runCatching { NativeLibrary.pauseEmulation() }
+        if (started.get()) {
+            runCatching { NativeLibrary.pauseEmulation() }
+            if (menuShown) {
+                CitronHost.closeMenu?.invoke()
+                menuShown = false
+            }
+            lifecyclePaused = true
+            pauseDimOverlay?.visibility = View.VISIBLE
+        }
     }
 
     override fun onResume() {
         super.onResume()
+    }
+
+    private fun resumeFromLifecyclePause() {
+        if (!lifecyclePaused) return
+        lifecyclePaused = false
+        pauseDimOverlay?.visibility = View.GONE
+        runCatching { NativeLibrary.unpauseEmulation() }
     }
 
     override fun onDestroy() {
