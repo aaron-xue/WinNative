@@ -3090,6 +3090,8 @@
     <string name="retro_scr_import_switch_saves">导入</string>
     <string name="retro_scr_exporting_switch_saves">正在导出 Switch 存档…</string>
     <string name="retro_scr_importing_switch_saves">正在导入 Switch 存档…</string>
+    <string name="retro_scr_external_controller">外接控制器</string>
+    <string name="retro_scr_controller_settings">控制器设置</string>
     <string name="retro_scr_switch_saves_exported">Switch 存档已导出到 %1$s</string>
     <string name="retro_scr_switch_saves_exported_failed">没有可导出的存档或导出失败</string>
     <string name="retro_scr_switch_saves_imported">已导入 %1$d 个游戏存档</string>

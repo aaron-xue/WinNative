@@ -3366,6 +3366,8 @@ Installed path:
     <string name="retro_scr_import_switch_saves">Import</string>
     <string name="retro_scr_exporting_switch_saves">Exporting Switch saves…</string>
     <string name="retro_scr_importing_switch_saves">Importing Switch saves…</string>
+    <string name="retro_scr_external_controller">External Controller</string>
+    <string name="retro_scr_controller_settings">Controller Settings</string>
     <string name="retro_scr_switch_saves_exported">Switch saves exported to %1$s</string>
     <string name="retro_scr_switch_saves_exported_failed">No saves to export or export failed</string>
     <string name="retro_scr_switch_saves_imported">Imported %1$d game save(s)</string>

@@ -390,7 +390,7 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
             }
             item {
                 RetroSettingGroup {
-                    RetroGroupTitle("外接控制器")
+                    RetroGroupTitle(stringResource(R.string.retro_scr_external_controller))
                     Button(
                         onClick = { showControllerSettings = true },
                         modifier =
@@ -404,7 +404,7 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
                                     tapToSelect = true,
                                 ),
                     ) {
-                        Text("控制器设置")
+                        Text(stringResource(R.string.retro_scr_controller_settings))
                     }
                 }
             }
