@@ -295,7 +295,6 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
         if (menuShown || lifecyclePaused) return
         if (!runCatching { NativeLibrary.isRunning() }.getOrDefault(false)) return
         menuShown = true
-        pauseDimOverlay?.visibility = View.VISIBLE
         CitronHost.openMenu?.invoke()
         runCatching { NativeLibrary.pauseEmulation() }
     }
