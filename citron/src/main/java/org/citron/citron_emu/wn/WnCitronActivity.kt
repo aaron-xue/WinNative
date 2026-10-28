@@ -227,6 +227,17 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             perfHud = SwitchPerfHudController(this, root).also { it.start() }
         }
 
+        // HUD FrameGen column width is pre-reserved based on in-game settings changes.
+        CitronHost.onFrameGenReservedChanged = { reserved ->
+            perfHud?.applyFrameGenReserved(reserved)
+        }
+
+        // Reserve the FrameGen column on initial boot so the layout never jumps
+        // when the FG FPS data stream starts producing values a few frames later.
+        if (FrameGen.requested) {
+            perfHud?.applyFrameGenReserved(true)
+        }
+
         // Native-side hooks. Save/load/fast-forward have no native API yet, so they
         // are implemented as user-visible no-ops until P2 wires the backend.
         CitronHost.saveState = { slot -> toast("Save state slot $slot not available yet") }

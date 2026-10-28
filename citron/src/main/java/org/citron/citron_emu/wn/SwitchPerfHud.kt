@@ -115,6 +115,7 @@ class SwitchPerfHudView(context: Context) :
     private var renderer = "Vulkan"
     private var frameGenOutputFps = 0f
     private var frameGenActive = false
+    private var frameGenReserved = false
 
     // HUD toggles/style mirrored from the SAME stores the Switch (citron) settings dialog writes.
     // For the embedded Switch core the HUD tab is RetroPs2HudSection, which persists:
@@ -299,6 +300,15 @@ class SwitchPerfHudView(context: Context) :
         drawHud()
     }
 
+    // Pre-reserves (or releases) the width for the FrameGen FPS column so the HUD
+    // layout does not jump when FrameGen is toggled from the in-game settings dialog.
+    // Must be called on the main thread.
+    fun setFrameGenReserved(reserved: Boolean) {
+        if (frameGenReserved == reserved) return
+        frameGenReserved = reserved
+        requestLayout()
+    }
+
     // Mirror the Switch HUD settings the way RetroPs2HudSection persists them:
     // element flags + style live in the "ARMSX2" prefs; frametimeNumeric/dualBattery in the
     // global default prefs. We fall back to the global "retro_hud_*" keys for resilience.
@@ -365,14 +375,16 @@ class SwitchPerfHudView(context: Context) :
         if (hudElements[0]) {
             val showGen = frameGenActive && frameGenOutputFps > 0f && frameGenOutputFps > fps + 1f
             val fpsVal = fps.toInt().toString().padEnd(3, ' ')
-            list.add(
-                if (showGen) {
-                    val fgVal = frameGenOutputFps.toInt().toString().padEnd(3, ' ')
-                    Seg.Text("FPS", fpsVal, C_FPS, C_FPS_GEN, fgVal)
+            if (showGen || frameGenReserved) {
+                val fgVal = if (showGen) {
+                    frameGenOutputFps.toInt().toString().padEnd(3, ' ')
                 } else {
-                    Seg.Text("FPS", fpsVal, C_FPS)
-                },
-            )
+                    " ".padEnd(3, ' ')
+                }
+                list.add(Seg.Text("FPS", fpsVal, C_FPS, C_FPS_GEN, fgVal))
+            } else {
+                list.add(Seg.Text("FPS", fpsVal, C_FPS))
+            }
         }
         if (hudElements[2]) list.add(Seg.Text("GPU", gpuText(), C_GPU))
         if (hudElements[3]) list.add(Seg.Text("CPU", cpuText(), C_CPU))
@@ -761,6 +773,10 @@ class SwitchPerfHudController(private val context: Context, private val root: Vi
         thread.quitSafely()
         unregisterBattery()
         runCatching { (view.parent as? ViewGroup)?.removeView(view) }
+    }
+
+    fun applyFrameGenReserved(reserved: Boolean) {
+        view.post { view.setFrameGenReserved(reserved) }
     }
 
     private fun sample() {

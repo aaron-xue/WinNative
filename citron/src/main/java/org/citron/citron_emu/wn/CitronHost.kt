@@ -27,6 +27,9 @@ object CitronHost {
     // Open the native Switch settings dialog on top of the running emulator.
     var openSettings: ((Activity) -> Unit)? = null
 
+    // Called after settings are saved, so the HUD can pre-reserve FrameGen column width.
+    var onFrameGenReservedChanged: ((Boolean) -> Unit)? = null
+
     // Menu navigation, fed by the Activity's key/motion dispatch.
     var menuKeyHandler: ((KeyEvent) -> Boolean)? = null
     var menuAxisHandler: ((Float, Float) -> Boolean)? = null

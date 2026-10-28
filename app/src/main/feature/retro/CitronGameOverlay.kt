@@ -213,6 +213,8 @@ object CitronGameOverlay {
             applyCitronBootSettings(activity)
             runCatching { NativeLibrary.applySettings() }
             applyFrameGenSettings(activity, shortcut)
+            val fgEnabled = RetroFrameGen.enabled(activity, shortcut, RetroSystems.SWITCH.id)
+            CitronHost.onFrameGenReservedChanged?.invoke(fgEnabled)
         }
         dialog.show()
     }
