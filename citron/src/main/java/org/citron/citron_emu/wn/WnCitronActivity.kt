@@ -141,9 +141,14 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
                 holder.setFormat(PixelFormat.TRANSLUCENT)
                 setZOrderOnTop(true)
                 visibility = View.GONE
-                setOnClickListener {
-                    if (menuShown) closeMenu()
-                    if (lifecyclePaused) resumeFromLifecyclePause()
+                isClickable = true
+                isFocusable = true
+                setOnTouchListener { _, event ->
+                    if (event.action == MotionEvent.ACTION_UP) {
+                        if (menuShown) closeMenu()
+                        if (lifecyclePaused) resumeFromLifecyclePause()
+                    }
+                    true
                 }
             }
 
@@ -189,7 +194,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
                 }
             }
         }
-        root.addView(
+        (window.decorView as ViewGroup).addView(
             pauseOverlay,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
