@@ -42,6 +42,9 @@ open class RetroSettingsDialog(
     private var restorePaneNav: (() -> Unit)? = null
     private var pendingArtworkSlot = LibraryShortcutArtwork.LibraryArtworkSlot.GAME_CARD
 
+    // Invoked after the dialog is dismissed (regardless of save/cancel).
+    var onDismissed: (() -> Unit)? = null
+
     private val artworkPickerLauncher: ActivityResultLauncher<Array<String>>? =
         (activity as? ComponentActivity)?.activityResultRegistry?.register(
             "retro_artwork_picker",
@@ -184,6 +187,7 @@ open class RetroSettingsDialog(
             setOnDismissListener {
                 restorePaneNav?.invoke()
                 restorePaneNav = null
+                onDismissed?.invoke()
             }
         }
 

@@ -24,6 +24,9 @@ object CitronHost {
     var closeMenu: (() -> Unit)? = null
     var isMenuOpen: (() -> Boolean)? = null
 
+    // Open the native Switch settings dialog on top of the running emulator.
+    var openSettings: ((Activity) -> Unit)? = null
+
     // Menu navigation, fed by the Activity's key/motion dispatch.
     var menuKeyHandler: ((KeyEvent) -> Boolean)? = null
     var menuAxisHandler: ((Float, Float) -> Boolean)? = null

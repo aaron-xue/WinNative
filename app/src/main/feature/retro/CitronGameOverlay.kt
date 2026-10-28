@@ -22,10 +22,14 @@ import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Save
+import com.winlator.cmod.runtime.container.ContainerManager
+import com.winlator.cmod.runtime.container.Shortcut
 import org.citron.citron_emu.NativeLibrary
 import org.citron.citron_emu.features.input.NativeInput
 import org.citron.citron_emu.wn.CitronHost
+import org.citron.citron_emu.wn.CitronConsts
 import org.citron.citron_emu.utils.NativeConfig
+import java.io.File
 
 // Host-side overlay for the embedded Nintendo Switch emulator. Mirrors the role of
 // Ps2GameOverlay: it builds the Compose overlay (touch controls + drawer menu) and
@@ -108,6 +112,9 @@ object CitronGameOverlay {
         CitronHost.menuKeyHandler = { ev -> menu.handleKey(ev.keyCode, ev.action) }
         CitronHost.menuAxisHandler = { x, y -> menu.handleAxis(x, y) }
         CitronHost.applyBootSettings = { ctx -> applyCitronBootSettings(ctx) }
+        CitronHost.openSettings = { activity ->
+            openSwitchSettings(activity)
+        }
 
         val overlay = ComposeView(activity).apply {
             setContent {
@@ -173,6 +180,40 @@ object CitronGameOverlay {
     }
 
     private fun inputUp(): Boolean = runCatching { NativeLibrary.isRunning() }.getOrDefault(false)
+
+    // Opens the native Switch settings dialog on top of the running game.
+    // Settings saved in the dialog are immediately applied to the running emulator.
+    private fun openSwitchSettings(activity: Activity) {
+        val intent = activity.intent
+        val shortcutPath = intent.getStringExtra(CitronConsts.EXTRA_SHORTCUT_PATH)
+        val containerId = intent.getIntExtra(CitronConsts.EXTRA_CONTAINER_ID, -1)
+        if (shortcutPath == null || containerId == -1) {
+            Toast.makeText(activity, "Settings unavailable", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val cm = ContainerManager(activity)
+        val container = if (containerId == ContainerManager.RETRO_CONTAINER_ID) {
+            cm.retroContainer
+        } else {
+            cm.getContainerById(containerId)
+        }
+        if (container == null) {
+            Toast.makeText(activity, "Settings unavailable", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val file = File(shortcutPath)
+        if (!file.isFile) {
+            Toast.makeText(activity, "Settings unavailable", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val shortcut = Shortcut(container, file)
+        val dialog = RetroSwitchSettingsDialog(activity, shortcut)
+        dialog.onDismissed = {
+            applyCitronBootSettings(activity)
+            runCatching { NativeLibrary.applySettings() }
+        }
+        dialog.show()
+    }
 
     // Applies all host-side Switch graphics settings via NativeConfig before emulation
     // starts. Keys are read from the "CITRON" SharedPreferences and written directly to

@@ -87,7 +87,6 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
     private val items = listOf(
         Item(context.getString(R.string.menu_resume), iconResId = R.drawable.ic_pause),        // menu_pause_emulation
         Item(context.getString(R.string.menu_settings), iconResId = R.drawable.ic_settings),      // menu_settings
-        Item(context.getString(R.string.menu_per_game_settings), iconResId = R.drawable.ic_settings_outline), // menu_settings_per_game
         Item(context.getString(R.string.menu_controls), iconResId = R.drawable.ic_controller),      // menu_controls
         Item(context.getString(R.string.menu_show_controller), iconResId = R.drawable.ic_controller), // menu_overlay_controls
         Item(context.getString(R.string.menu_amiibo), iconResId = R.drawable.ic_nfc),        // menu_amiibo
@@ -175,12 +174,15 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
         // functional in the embedded shell. The remaining items mirror the reference menu but have
         // no equivalent host UI here, so they surface a hint toast.
         items[0].run = { togglePause() }
-        items[4].run = {
+        items[1].run = { CitronHost.openSettings?.invoke(activity) }
+        items[3].run = {
             inputOverlayVisible = !inputOverlayVisible
             onToggleInputOverlay?.invoke() ?: notSupported()
         }
-        items[7].run = { onRequestClose?.invoke(); activity.finish() }
-        for (i in 1..6) if (i != 4) items[i].run = notSupported
+        items[6].run = { onRequestClose?.invoke(); activity.finish() }
+        items[2].run = notSupported
+        items[4].run = notSupported
+        items[5].run = notSupported
     }
 
     fun setGameTitle(title: String?) {
