@@ -2268,6 +2268,8 @@
     <string name="retro_gs_hud_version">版本</string>
     <string name="retro_gs_hud_input_display">输入显示</string>
     <string name="retro_gs_fast_boot">快速启动</string>
+    <string name="retro_gs_airplane_mode">飞行模式</string>
+    <string name="retro_gs_airplane_mode_desc">在模拟的 Switch 中禁用无线通信</string>
     <string name="retro_gs_gpu_accuracy">GPU 精度</string>
     <string name="retro_gs_accuracy_low">低</string>
     <string name="retro_gs_accuracy_normal">正常</string>

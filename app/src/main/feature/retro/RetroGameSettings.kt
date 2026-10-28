@@ -1064,6 +1064,19 @@ private fun RetroGeneralSection(
                 ps2Prefs.edit().putBoolean("wn.ps2.fastboot", it).apply(); version++
             }
         }
+        // Airplane Mode — only for Switch/citron (mirrors eden's BooleanSetting.AIRPLANE_MODE).
+        if (currentSystem?.id == RetroSystems.SWITCH.id) {
+            val citronPrefs = remember(ctx) { ctx.getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE) }
+            var version by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+            @Suppress("UNUSED_EXPRESSION") version
+            SharedSettingSwitch(
+                stringResource(R.string.retro_gs_airplane_mode),
+                citronPrefs.getBoolean("airplane_mode", false),
+                subtitle = stringResource(R.string.retro_gs_airplane_mode_desc),
+            ) {
+                citronPrefs.edit().putBoolean("airplane_mode", it).apply(); version++
+            }
+        }
     }
     val biosSystem = currentSystem
     if (biosSystem?.needsBios == true && onImportBios != null) {

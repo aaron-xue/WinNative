@@ -2429,6 +2429,8 @@ Installed path:
     <string name="retro_gs_hud_version">Version</string>
     <string name="retro_gs_hud_input_display">Input Display</string>
     <string name="retro_gs_fast_boot">Fast Boot</string>
+    <string name="retro_gs_airplane_mode">Airplane Mode</string>
+    <string name="retro_gs_airplane_mode_desc">Disables wireless communication in the emulated Switch</string>
     <string name="retro_gs_gpu_accuracy">GPU Accuracy</string>
     <string name="retro_gs_accuracy_low">Low</string>
     <string name="retro_gs_accuracy_normal">Normal</string>

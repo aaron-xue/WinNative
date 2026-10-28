@@ -274,6 +274,7 @@ object CitronGameOverlay {
             "use_asynchronous_shaders" to false,
             "use_reactive_flushing" to false,
             "picture_in_picture" to false,
+            "airplane_mode" to false,
         )
         runCatching {
             for ((key, default) in intMap) {
