@@ -353,6 +353,7 @@ class SwitchPerfHudView(context: Context) :
             val color: Int,
             val valueColor: Int = color,
             val valuePart2: String? = null,
+            val reservedWidth: Int = 0,
         ) : Seg()
         object Graph : Seg()
     }
@@ -363,11 +364,13 @@ class SwitchPerfHudView(context: Context) :
         val list = mutableListOf<Seg>()
         if (hudElements[0]) {
             val showGen = frameGenActive && frameGenOutputFps > 0f && frameGenOutputFps > fps + 1f
+            val fpsVal = fps.toInt().toString().padEnd(3, ' ')
             list.add(
                 if (showGen) {
-                    Seg.Text("FPS", fps.toInt().toString(), C_FPS, C_FPS_GEN, frameGenOutputFps.toInt().toString())
+                    val fgVal = frameGenOutputFps.toInt().toString().padEnd(3, ' ')
+                    Seg.Text("FPS", fpsVal, C_FPS, C_FPS_GEN, fgVal)
                 } else {
-                    Seg.Text("FPS", fps.toInt().toString(), C_FPS)
+                    Seg.Text("FPS", fpsVal, C_FPS)
                 },
             )
         }
@@ -408,7 +411,7 @@ class SwitchPerfHudView(context: Context) :
                         if (part2 != null) {
                             tw += sepPaint.measureText(" → ").toInt() + stripPaint.measureText(part2).toInt()
                         }
-                        tw + dp(2).toInt()
+                        tw + s.reservedWidth + dp(2).toInt()
                     }
                 }
             }
@@ -429,7 +432,7 @@ class SwitchPerfHudView(context: Context) :
                     if (part2 != null) {
                         tw += sepPaint.measureText(" → ").toInt() + stripPaint.measureText(part2).toInt()
                     }
-                    tw
+                    tw + s.reservedWidth
                 }
             }
             maxW = maxOf(maxW, wSeg)
@@ -484,14 +487,13 @@ class SwitchPerfHudView(context: Context) :
                             x += stripPaint.measureText(s.value).toInt()
                             val part2 = s.valuePart2
                             if (part2 != null) {
-                                // "FPS 60 → 120": arrow in separator color, output fps in cyan.
                                 canvas.drawText(" → ", x, baseY, sepPaint)
                                 x += sepPaint.measureText(" → ").toInt()
                                 stripPaint.color = s.valueColor
                                 canvas.drawText(part2, x, baseY, stripPaint)
                                 x += stripPaint.measureText(part2).toInt()
                             }
-                            x += dp(2).toInt()
+                            x += s.reservedWidth + dp(2).toInt()
                         }
                         is Seg.Graph -> {
                             drawGraph(canvas, x.toInt(), graphY.toInt(), graphW, dp(14).toInt())
