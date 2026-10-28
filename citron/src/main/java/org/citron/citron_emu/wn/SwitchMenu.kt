@@ -90,7 +90,6 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
         Item(context.getString(R.string.menu_controls), iconResId = R.drawable.ic_controller),      // menu_controls
         Item(context.getString(R.string.menu_show_controller), iconResId = R.drawable.ic_controller), // menu_overlay_controls
         Item(context.getString(R.string.menu_amiibo), iconResId = R.drawable.ic_nfc),        // menu_amiibo
-        Item(context.getString(R.string.menu_multiplayer_room), iconResId = R.drawable.ic_share), // menu_multiplayer_room
         Item(context.getString(R.string.menu_exit), danger = true, iconResId = R.drawable.ic_exit), // menu_exit
     )
 
@@ -179,10 +178,9 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
             inputOverlayVisible = !inputOverlayVisible
             onToggleInputOverlay?.invoke() ?: notSupported()
         }
-        items[6].run = { onRequestClose?.invoke(); activity.finish() }
+        items[5].run = { onRequestClose?.invoke(); activity.finish() }
         items[2].run = notSupported
         items[4].run = notSupported
-        items[5].run = notSupported
     }
 
     fun setGameTitle(title: String?) {

@@ -54,6 +54,8 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     var refresh by remember { mutableIntStateOf(0) }
     var showControllerSettings by remember { mutableStateOf(false) }
+    var showCitronHostRoom by remember { mutableStateOf(false) }
+    var showCitronConnectRoom by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     val importSwitchKeys = {
@@ -390,6 +392,88 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
             }
             item {
                 RetroSettingGroup {
+                    RetroGroupTitle(stringResource(R.string.retro_scr_multiplayer))
+                    RetroInfoRow(
+                        stringResource(R.string.retro_scr_multiplayer_status),
+                        if (CitronMultiplayerLobby.snapshot.isConnected)
+                            stringResource(R.string.retro_scr_multiplayer_connected)
+                        else if (CitronMultiplayerLobby.snapshot.isHosting)
+                            stringResource(R.string.retro_scr_multiplayer_hosting)
+                        else
+                            stringResource(R.string.retro_scr_multiplayer_disconnected),
+                    )
+                    val snap = CitronMultiplayerLobby.snapshot
+                    if (snap.roomName != null) {
+                        RetroInfoRow(
+                            stringResource(R.string.retro_scr_multiplayer_room_name),
+                            snap.roomName,
+                        )
+                    }
+                    if (snap.roomIp != null) {
+                        RetroInfoRow(
+                            "IP",
+                            snap.roomIp,
+                        )
+                    }
+                    val inRoom = snap.isConnected || snap.isHosting
+                    if (!inRoom) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Button(
+                                onClick = { showCitronHostRoom = true },
+                                modifier =
+                                    Modifier
+                                        .weight(1f)
+                                        .paneNavItem(
+                                            cornerRadius = 8.dp,
+                                            onActivate = { showCitronHostRoom = true },
+                                            highlightColor = Color(0xFF4FC3F7),
+                                            tapToSelect = true,
+                                        ),
+                            ) {
+                                Text(stringResource(R.string.retro_scr_multiplayer_create_room))
+                            }
+                            Button(
+                                onClick = { showCitronConnectRoom = true },
+                                modifier =
+                                    Modifier
+                                        .weight(1f)
+                                        .paneNavItem(
+                                            cornerRadius = 8.dp,
+                                            onActivate = { showCitronConnectRoom = true },
+                                            highlightColor = Color(0xFF4FC3F7),
+                                            tapToSelect = true,
+                                        ),
+                            ) {
+                                Text(stringResource(R.string.retro_scr_multiplayer_join_room))
+                            }
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    CitronMultiplayerLobby.leaveOrClose(snap.isHosting)
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp)
+                                .paneNavItem(
+                                    cornerRadius = 8.dp,
+                                    onActivate = { },
+                                    highlightColor = Color(0xFFFF5252),
+                                    tapToSelect = true,
+                                ),
+                        ) {
+                            Text(stringResource(R.string.retro_scr_multiplayer_leave))
+                        }
+                    }
+                }
+            }
+            item {
+                RetroSettingGroup {
                     RetroGroupTitle(stringResource(R.string.retro_scr_external_controller))
                     Button(
                         onClick = { showControllerSettings = true },
@@ -411,6 +495,12 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
         }
         if (showControllerSettings) {
             CitronControllerSettingsScreen(onBack = { showControllerSettings = false })
+        }
+        if (showCitronHostRoom) {
+            CitronHostRoomSheet(onBack = { showCitronHostRoom = false })
+        }
+        if (showCitronConnectRoom) {
+            CitronDirectConnectSheet(onBack = { showCitronConnectRoom = false })
         }
     }
 }
