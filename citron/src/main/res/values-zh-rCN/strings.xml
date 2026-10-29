@@ -21,4 +21,11 @@
     <string name="menu_multiplayer_room">多人游戏房间</string>
     <string name="menu_exit">退出</string>
     <string name="menu_not_supported">当前模式不支持</string>
+
+    <!-- Software Keyboard -->
+    <string name="swkbd_ok">确定</string>
+    <string name="swkbd_cancel">取消</string>
+    <string name="swkbd_title">输入</string>
+    <string name="swkbd_hint">请输入</string>
+    <string name="swkbd_min_length_error">至少输入 %d 个字符</string>
 </resources>

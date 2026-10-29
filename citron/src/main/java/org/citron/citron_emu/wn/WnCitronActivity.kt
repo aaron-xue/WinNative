@@ -24,6 +24,7 @@ import androidx.activity.OnBackPressedCallback
 import com.winlator.cmod.shared.framegen.FrameGen
 import org.citron.citron_emu.NativeLibrary
 import org.citron.citron_emu.R
+import org.citron.citron_emu.applets.keyboard.SoftwareKeyboard
 import org.citron.citron_emu.features.input.NativeInput
 import org.citron.citron_emu.features.input.model.NativeButton
 import org.citron.citron_emu.overlay.InputOverlay
@@ -74,6 +75,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NativeLibrary.setEmulationActivity(this)
 
         val root = FrameLayout(this)
         surfaceView = SurfaceView(this).also {
@@ -106,7 +108,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    if (lifecyclePaused) {
+                    if (SoftwareKeyboard.isNormalActive) {
+                        SoftwareKeyboard.cancelNormal()
+                    } else if (lifecyclePaused) {
                         resumeFromLifecyclePause()
                     } else if (menuShown) {
                         closeMenu()
@@ -275,7 +279,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
         // instead of finishing the activity. Consumed on ACTION_UP so a single press toggles once.
         if (event.keyCode == KeyEvent.KEYCODE_BACK) {
             if (event.action == KeyEvent.ACTION_UP) {
-                if (lifecyclePaused) {
+                if (SoftwareKeyboard.isNormalActive) {
+                    SoftwareKeyboard.cancelNormal()
+                } else if (lifecyclePaused) {
                     resumeFromLifecyclePause()
                 } else if (menuShown) {
                     closeMenu()
@@ -299,6 +305,28 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
             return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        val inlineActive = org.citron.citron_emu.applets.keyboard.SoftwareKeyboard.isInlineActive
+        if (inlineActive && event.action == KeyEvent.ACTION_DOWN) {
+            if (keyCode == KeyEvent.KEYCODE_ENTER) {
+                NativeLibrary.submitInlineKeyboardInput(keyCode)
+                val imm =
+                    getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(window.decorView.windowToken, 0)
+                return true
+            } else {
+                val textChar = event.unicodeChar
+                if (textChar == 0) {
+                    NativeLibrary.submitInlineKeyboardInput(keyCode)
+                } else {
+                    NativeLibrary.submitInlineKeyboardText(textChar.toChar().toString())
+                }
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     // Open the in-emulator side menu (same RetroDrawerMenu PS2 uses) and pause emulation.
@@ -687,6 +715,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun onDestroy() {
+        NativeLibrary.clearEmulationActivity()
         perfHud?.stop()
         perfHud = null
         mainHandler.removeCallbacks(pollRunning)

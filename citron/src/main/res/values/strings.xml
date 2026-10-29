@@ -21,4 +21,11 @@
     <string name="menu_multiplayer_room">Multiplayer Room</string>
     <string name="menu_exit">Exit</string>
     <string name="menu_not_supported">Not supported in this mode</string>
+
+    <!-- Software Keyboard -->
+    <string name="swkbd_ok">OK</string>
+    <string name="swkbd_cancel">Cancel</string>
+    <string name="swkbd_title">Input</string>
+    <string name="swkbd_hint">Enter text</string>
+    <string name="swkbd_min_length_error">Minimum %d characters required</string>
 </resources>
