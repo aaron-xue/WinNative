@@ -3082,6 +3082,60 @@
     <string name="retro_scr_lang_traditional_chinese">繁体中文</string>
     <string name="retro_scr_lang_brazilian_portuguese">巴西葡萄牙语</string>
     <string name="retro_gs_audio_volume">音频音量</string>
+
+    <!-- Citron Zep Zone (performance) settings -->
+    <string name="retro_ps_group_memory_layout">内存布局</string>
+    <string name="retro_ps_group_astc">ASTC 设置</string>
+    <string name="retro_ps_group_advanced_graphics">高级图形</string>
+    <string name="retro_ps_group_frame_skipping">跳帧</string>
+
+    <string name="retro_ps_memory_layout">内存布局</string>
+    <string name="retro_ps_memory_layout_desc">将模拟内存从 Switch 零售版的 4GB 增加到开发者套件的 8/6GB。此选项不会提升稳定性或性能，仅用于让大型纹理 MOD 能容纳在模拟内存中。启用后将增加内存使用量，除非特定游戏需要纹理 MOD，否则不建议启用。</string>
+    <string name="retro_ps_mem_4gb">4GB DRAM (默认)</string>
+    <string name="retro_ps_mem_6gb">6GB DRAM (不安全)</string>
+    <string name="retro_ps_mem_8gb">8GB DRAM (不安全)</string>
+    <string name="retro_ps_mem_10gb">10GB DRAM (不安全)</string>
+    <string name="retro_ps_mem_12gb">12GB DRAM (不安全)</string>
+    <string name="retro_ps_mem_14gb">14GB DRAM (不安全)</string>
+    <string name="retro_ps_mem_16gb">16GB DRAM (不安全)</string>
+
+    <string name="retro_ps_astc_decode_mode">ASTC 解码模式</string>
+    <string name="retro_ps_astc_decode_mode_desc">控制 ASTC 纹理的解码方式。GPU 解码更快，但在某些设备上可能导致问题。</string>
+    <string name="retro_ps_astc_decode_cpu">CPU</string>
+    <string name="retro_ps_astc_decode_gpu">GPU</string>
+    <string name="retro_ps_astc_decode_cpu_async">CPU 异步</string>
+
+    <string name="retro_ps_astc_recompression">ASTC 重压缩</string>
+    <string name="retro_ps_astc_recompression_desc">当 GPU 不原生支持 ASTC 纹理时，控制其重压缩方式。</string>
+    <string name="retro_ps_astc_recomp_uncompressed">不压缩</string>
+    <string name="retro_ps_astc_recomp_bc1">BC1</string>
+    <string name="retro_ps_astc_recomp_bc3">BC3</string>
+
+    <string name="retro_ps_extended_dynamic_state">扩展动态状态</string>
+    <string name="retro_ps_extended_dynamic_state_desc">控制启用哪些 Vulkan 扩展动态状态功能。EDS3 (默认) 启用所有功能以获得最大兼容性。EDS2/EDS1 限制部分功能用于排查图形问题。禁用将关闭所有 EDS 功能。如遇渲染问题可尝试降低设置。</string>
+    <string name="retro_ps_eds_disabled">禁用</string>
+    <string name="retro_ps_eds1">EDS1</string>
+    <string name="retro_ps_eds2">EDS2</string>
+    <string name="retro_ps_eds3">EDS3</string>
+
+    <string name="retro_ps_vertex_input">顶点输入动态状态 (VIDS)</string>
+    <string name="retro_ps_vertex_input_desc">在启用 EDS3 时使用动态顶点输入。部分 GPU 驱动出现 3D 画面缺失、灰屏或花屏时，可关闭此项进行排查。</string>
+
+    <string name="retro_ps_conditional_rendering">使用条件渲染</string>
+    <string name="retro_ps_conditional_rendering_desc">基于查询结果启用条件渲染。禁用此项可以修复某些游戏中物体闪烁的问题，但可能影响性能。如果看到物体快速闪烁，请尝试禁用。</string>
+
+    <string name="retro_ps_register_guards">ARM64 驱动寄存器保护</string>
+    <string name="retro_ps_register_guards_desc">保护模拟器状态免受受影响 Android GPU 驱动中寄存器损坏的影响。仅在诊断时关闭。</string>
+
+    <string name="retro_ps_frame_skipping">跳帧</string>
+    <string name="retro_ps_frame_skipping_desc">当系统无法跟上目标帧率时，通过跳帧来维持性能。</string>
+    <string name="retro_ps_frame_skipping_disabled">禁用</string>
+    <string name="retro_ps_frame_skipping_enabled">启用</string>
+
+    <string name="retro_ps_frame_skipping_mode">跳帧模式</string>
+    <string name="retro_ps_frame_skipping_mode_desc">自适应模式根据性能动态跳帧，固定模式跳过固定数量的帧。</string>
+    <string name="retro_ps_frame_skipping_mode_adaptive">自适应</string>
+    <string name="retro_ps_frame_skipping_mode_fixed">固定</string>
     <string name="retro_scr_manage_switch_saves">管理存档数据</string>
     <string name="retro_scr_switch_saves">Switch 存档</string>
     <string name="retro_scr_switch_saves_hint_title">导入 / 导出</string>

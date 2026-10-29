@@ -3357,6 +3357,60 @@ Installed path:
     <string name="retro_scr_cat_library">Library</string>
     <string name="retro_scr_cat_consoles">Console Bundle</string>
     <string name="retro_gs_audio_volume">Audio Volume</string>
+
+    <!-- Citron Zep Zone (performance) settings -->
+    <string name="retro_ps_group_memory_layout">Memory Layout</string>
+    <string name="retro_ps_group_astc">ASTC Settings</string>
+    <string name="retro_ps_group_advanced_graphics">Advanced Graphics</string>
+    <string name="retro_ps_group_frame_skipping">Frame Skipping</string>
+
+    <string name="retro_ps_memory_layout">Memory Layout</string>
+    <string name="retro_ps_memory_layout_desc">Increases the amount of emulated RAM from the stock 4GB of the retail Switch to the developer kit\'s 8/6GB. It doesn\'t improve stability or performance and is intended to let big texture mods fit in emulated RAM. Enabling it will increase memory use. It is not recommended to enable unless a specific game with a texture mod needs it.</string>
+    <string name="retro_ps_mem_4gb">4GB DRAM (Default)</string>
+    <string name="retro_ps_mem_6gb">6GB DRAM (Unsafe)</string>
+    <string name="retro_ps_mem_8gb">8GB DRAM (Unsafe)</string>
+    <string name="retro_ps_mem_10gb">10GB DRAM (Unsafe)</string>
+    <string name="retro_ps_mem_12gb">12GB DRAM (Unsafe)</string>
+    <string name="retro_ps_mem_14gb">14GB DRAM (Unsafe)</string>
+    <string name="retro_ps_mem_16gb">16GB DRAM (Unsafe)</string>
+
+    <string name="retro_ps_astc_decode_mode">ASTC Decode Mode</string>
+    <string name="retro_ps_astc_decode_mode_desc">Controls how ASTC textures are decoded. GPU decoding is faster but may cause issues on some devices.</string>
+    <string name="retro_ps_astc_decode_cpu">CPU</string>
+    <string name="retro_ps_astc_decode_gpu">GPU</string>
+    <string name="retro_ps_astc_decode_cpu_async">CPU Asynchronous</string>
+
+    <string name="retro_ps_astc_recompression">ASTC Recompression</string>
+    <string name="retro_ps_astc_recompression_desc">Controls how ASTC textures are recompressed when GPU doesn\'t support them natively.</string>
+    <string name="retro_ps_astc_recomp_uncompressed">Uncompressed</string>
+    <string name="retro_ps_astc_recomp_bc1">BC1</string>
+    <string name="retro_ps_astc_recomp_bc3">BC3</string>
+
+    <string name="retro_ps_extended_dynamic_state">Extended Dynamic State</string>
+    <string name="retro_ps_extended_dynamic_state_desc">Controls which Vulkan Extended Dynamic State features are enabled. EDS3 (default) enables all features for maximum compatibility. EDS2/EDS1 limit features for troubleshooting graphics issues. Disabled turns off all EDS features. Try lower settings if you experience rendering problems in some games.</string>
+    <string name="retro_ps_eds_disabled">Disabled</string>
+    <string name="retro_ps_eds1">EDS1</string>
+    <string name="retro_ps_eds2">EDS2</string>
+    <string name="retro_ps_eds3">EDS3</string>
+
+    <string name="retro_ps_vertex_input">Vertex Input Dynamic State (VIDS)</string>
+    <string name="retro_ps_vertex_input_desc">Uses dynamic vertex input while EDS3 is enabled. Disable this to troubleshoot missing, gray, or corrupted 3D rendering on some GPU drivers.</string>
+
+    <string name="retro_ps_conditional_rendering">Use Conditional Rendering</string>
+    <string name="retro_ps_conditional_rendering_desc">Enables conditional rendering based on query results. Disabling this can fix flickering objects in some games but may impact performance. Try disabling if you see objects appearing and disappearing rapidly.</string>
+
+    <string name="retro_ps_register_guards">ARM64 Driver Register Guards</string>
+    <string name="retro_ps_register_guards_desc">Protects emulator state from register corruption in affected Android GPU drivers. Disable only for diagnostics.</string>
+
+    <string name="retro_ps_frame_skipping">Frame Skipping</string>
+    <string name="retro_ps_frame_skipping_desc">Skips frames to maintain performance when the system cannot keep up with the target frame rate.</string>
+    <string name="retro_ps_frame_skipping_disabled">Disabled</string>
+    <string name="retro_ps_frame_skipping_enabled">Enabled</string>
+
+    <string name="retro_ps_frame_skipping_mode">Frame Skipping Mode</string>
+    <string name="retro_ps_frame_skipping_mode_desc">Adaptive mode skips frames based on performance, while Fixed mode skips a specific number of frames.</string>
+    <string name="retro_ps_frame_skipping_mode_adaptive">Adaptive</string>
+    <string name="retro_ps_frame_skipping_mode_fixed">Fixed</string>
     <string name="retro_gpu_driver_hint">Install Turnip drivers under Settings \u2192 Drivers. The same drivers work for both PC and PS2 games.</string>
     <!-- Citron (Switch) save data export / import -->
     <string name="retro_scr_switch_saves">Switch Saves</string>

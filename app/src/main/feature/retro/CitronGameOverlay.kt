@@ -267,6 +267,13 @@ object CitronGameOverlay {
             "vertical_alignment" to 0,
             "fsr_sharpening_slider" to 25,
             "fsr2_quality_mode" to 1,
+            // Zep Zone
+            "memory_layout_mode" to 0,
+            "accelerate_astc" to 0,
+            "astc_recompression" to 0,
+            "extended_dynamic_state" to 3,
+            "frame_skipping" to 0,
+            "frame_skipping_mode" to 0,
         )
         val boolMap = mapOf(
             "use_disk_shader_cache" to true,
@@ -275,6 +282,10 @@ object CitronGameOverlay {
             "use_reactive_flushing" to false,
             "picture_in_picture" to false,
             "airplane_mode" to false,
+            // Zep Zone
+            "vertex_input_dynamic_state" to true,
+            "use_conditional_rendering" to false,
+            "android_arm64_register_guards" to false,
         )
         runCatching {
             for ((key, default) in intMap) {

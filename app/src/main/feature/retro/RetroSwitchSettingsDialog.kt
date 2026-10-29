@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.winlator.cmod.R
 import com.winlator.cmod.runtime.container.Shortcut
+import com.winlator.cmod.shared.theme.GameSettingsStyle
 
 /**
  * Switch-specific per-game settings dialog.
@@ -49,6 +50,10 @@ class RetroSwitchSettingsDialog(
                 RetroSectionId.PERFORMANCE,
                 RetroSectionId.HUD,
             )
+
+        /** Set to true inside [CitronGameOverlay.openSwitchSettings] so the
+         *  composable sections can hide restart-only Zep Zone groups. */
+        var isInGame = false
     }
 }
 
@@ -276,7 +281,7 @@ internal fun RetroCitronGraphicsSection() {
     }
 }
 
-// "Performance" tab: audio output level.
+// "Performance" tab: audio output level + Zep Zone settings.
 @Composable
 internal fun RetroCitronPerformanceSection() {
     val context = LocalContext.current
@@ -286,6 +291,9 @@ internal fun RetroCitronPerformanceSection() {
     @Suppress("UNUSED_EXPRESSION") version
 
     fun putInt(key: String, value: Int) { prefs.edit().putInt(key, value).apply(); version++ }
+    fun putBool(key: String, value: Boolean) { prefs.edit().putBoolean(key, value).apply(); version++ }
+    fun getInt(key: String, def: Int) = prefs.getInt(key, def)
+    fun getBool(key: String, def: Boolean) = prefs.getBoolean(key, def)
 
     RetroSettingGroup {
         RetroGroupTitle(stringResource(R.string.retro_gs_group_audio))
@@ -295,6 +303,162 @@ internal fun RetroCitronPerformanceSection() {
             vols.map { "$it%" },
             vols.indexOf(prefs.getInt("wn.switch.audio", 100)).coerceAtLeast(0),
         ) { putInt("wn.switch.audio", vols[it]) }
+    }
+
+    Spacer(Modifier.height(8.dp))
+
+    // -- Zep Zone: Memory Layout (restart required, hide in-game) --
+    if (!RetroSwitchSettingsDialog.isInGame) {
+        RetroSettingGroup {
+            RetroGroupTitle(stringResource(R.string.retro_ps_group_memory_layout))
+            val memValues = (0..6).toList()
+            RetroSettingDropdown(
+                stringResource(R.string.retro_ps_memory_layout),
+                listOf(
+                    stringResource(R.string.retro_ps_mem_4gb),
+                    stringResource(R.string.retro_ps_mem_6gb),
+                    stringResource(R.string.retro_ps_mem_8gb),
+                    stringResource(R.string.retro_ps_mem_10gb),
+                    stringResource(R.string.retro_ps_mem_12gb),
+                    stringResource(R.string.retro_ps_mem_14gb),
+                    stringResource(R.string.retro_ps_mem_16gb),
+                ),
+                memValues.indexOf(getInt("memory_layout_mode", 0)).coerceAtLeast(0),
+            ) { putInt("memory_layout_mode", memValues[it]) }
+            Text(
+                text = stringResource(R.string.retro_ps_memory_layout_desc),
+                color = GameSettingsStyle.TextSecondary,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(top = 4.dp, start = 8.dp),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+
+    // -- Zep Zone: ASTC Settings (restart required, hide in-game) --
+    if (!RetroSwitchSettingsDialog.isInGame) {
+        RetroSettingGroup {
+            RetroGroupTitle(stringResource(R.string.retro_ps_group_astc))
+
+            val astcDecodeValues = listOf(0, 1, 2)
+            RetroSettingDropdown(
+                stringResource(R.string.retro_ps_astc_decode_mode),
+                listOf(
+                    stringResource(R.string.retro_ps_astc_decode_cpu),
+                    stringResource(R.string.retro_ps_astc_decode_gpu),
+                    stringResource(R.string.retro_ps_astc_decode_cpu_async),
+                ),
+                astcDecodeValues.indexOf(getInt("accelerate_astc", 0)).coerceAtLeast(0),
+            ) { putInt("accelerate_astc", astcDecodeValues[it]) }
+            Text(
+                text = stringResource(R.string.retro_ps_astc_decode_mode_desc),
+                color = GameSettingsStyle.TextSecondary,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(top = 4.dp, start = 8.dp),
+            )
+
+            val astcRecompValues = listOf(0, 1, 2)
+            RetroSettingDropdown(
+                stringResource(R.string.retro_ps_astc_recompression),
+                listOf(
+                    stringResource(R.string.retro_ps_astc_recomp_uncompressed),
+                    stringResource(R.string.retro_ps_astc_recomp_bc1),
+                    stringResource(R.string.retro_ps_astc_recomp_bc3),
+                ),
+                astcRecompValues.indexOf(getInt("astc_recompression", 0)).coerceAtLeast(0),
+            ) { putInt("astc_recompression", astcRecompValues[it]) }
+            Text(
+                text = stringResource(R.string.retro_ps_astc_recompression_desc),
+                color = GameSettingsStyle.TextSecondary,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(top = 4.dp, start = 8.dp),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+
+    // -- Zep Zone: Advanced Graphics (restart required, hide in-game) --
+    if (!RetroSwitchSettingsDialog.isInGame) {
+        RetroSettingGroup {
+            RetroGroupTitle(stringResource(R.string.retro_ps_group_advanced_graphics))
+
+            val edsValues = listOf(0, 1, 2, 3)
+            RetroSettingDropdown(
+                stringResource(R.string.retro_ps_extended_dynamic_state),
+                listOf(
+                    stringResource(R.string.retro_ps_eds_disabled),
+                    stringResource(R.string.retro_ps_eds1),
+                    stringResource(R.string.retro_ps_eds2),
+                    stringResource(R.string.retro_ps_eds3),
+                ),
+                edsValues.indexOf(getInt("extended_dynamic_state", 3)).coerceAtLeast(0),
+            ) { putInt("extended_dynamic_state", edsValues[it]) }
+            Text(
+                text = stringResource(R.string.retro_ps_extended_dynamic_state_desc),
+                color = GameSettingsStyle.TextSecondary,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(top = 4.dp, start = 8.dp),
+            )
+
+            // VIDS only shown when EDS is set to 3
+            if (getInt("extended_dynamic_state", 3) == 3) {
+                RetroSettingSwitch(
+                    stringResource(R.string.retro_ps_vertex_input),
+                    getBool("vertex_input_dynamic_state", true),
+                    subtitle = stringResource(R.string.retro_ps_vertex_input_desc),
+                ) { putBool("vertex_input_dynamic_state", it) }
+            }
+
+            RetroSettingSwitch(
+                stringResource(R.string.retro_ps_conditional_rendering),
+                getBool("use_conditional_rendering", false),
+                subtitle = stringResource(R.string.retro_ps_conditional_rendering_desc),
+            ) { putBool("use_conditional_rendering", it) }
+
+            RetroSettingSwitch(
+                stringResource(R.string.retro_ps_register_guards),
+                getBool("android_arm64_register_guards", false),
+                subtitle = stringResource(R.string.retro_ps_register_guards_desc),
+            ) { putBool("android_arm64_register_guards", it) }
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+
+    // -- Zep Zone: Frame Skipping --
+    RetroSettingGroup {
+        RetroGroupTitle(stringResource(R.string.retro_ps_group_frame_skipping))
+
+        val fsValues = listOf(0, 1)
+        RetroSettingDropdown(
+            stringResource(R.string.retro_ps_frame_skipping),
+            listOf(
+                stringResource(R.string.retro_ps_frame_skipping_disabled),
+                stringResource(R.string.retro_ps_frame_skipping_enabled),
+            ),
+            fsValues.indexOf(getInt("frame_skipping", 0)).coerceAtLeast(0),
+        ) { putInt("frame_skipping", fsValues[it]) }
+        Text(
+            text = stringResource(R.string.retro_ps_frame_skipping_desc),
+            color = GameSettingsStyle.TextSecondary,
+            fontSize = 11.sp,
+            modifier = Modifier.padding(top = 4.dp, start = 8.dp),
+        )
+
+        val fsModeValues = listOf(0, 1)
+        RetroSettingDropdown(
+            stringResource(R.string.retro_ps_frame_skipping_mode),
+            listOf(
+                stringResource(R.string.retro_ps_frame_skipping_mode_adaptive),
+                stringResource(R.string.retro_ps_frame_skipping_mode_fixed),
+            ),
+            fsModeValues.indexOf(getInt("frame_skipping_mode", 0)).coerceAtLeast(0),
+        ) { putInt("frame_skipping_mode", fsModeValues[it]) }
+        Text(
+            text = stringResource(R.string.retro_ps_frame_skipping_mode_desc),
+            color = GameSettingsStyle.TextSecondary,
+            fontSize = 11.sp,
+            modifier = Modifier.padding(top = 4.dp, start = 8.dp),
+        )
     }
 }
 
