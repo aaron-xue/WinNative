@@ -87,7 +87,6 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
     private val items = listOf(
         Item(context.getString(R.string.menu_resume), iconResId = R.drawable.ic_pause),        // menu_pause_emulation
         Item(context.getString(R.string.menu_settings), iconResId = R.drawable.ic_settings),      // menu_settings
-        Item(context.getString(R.string.menu_controls), iconResId = R.drawable.ic_controller),      // menu_controls
         Item(context.getString(R.string.menu_show_controller), iconResId = R.drawable.ic_controller), // menu_overlay_controls
         Item(context.getString(R.string.menu_amiibo), iconResId = R.drawable.ic_nfc),        // menu_amiibo
         Item(context.getString(R.string.menu_exit), danger = true, iconResId = R.drawable.ic_exit), // menu_exit
@@ -174,13 +173,12 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
         // no equivalent host UI here, so they surface a hint toast.
         items[0].run = { togglePause() }
         items[1].run = { CitronHost.openSettings?.invoke(activity) }
-        items[3].run = {
+        items[2].run = {
             inputOverlayVisible = !inputOverlayVisible
             onToggleInputOverlay?.invoke() ?: notSupported()
         }
-        items[5].run = { onRequestClose?.invoke(); activity.finish() }
-        items[2].run = notSupported
-        items[4].run = notSupported
+        items[4].run = { onRequestClose?.invoke(); activity.finish() }
+        items[3].run = notSupported
     }
 
     fun setGameTitle(title: String?) {
@@ -490,7 +488,7 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
                 if (rowTop + rh < top || rowTop > h) continue
                 val label = if (i == 0) {
                     context.getString(if (paused) R.string.menu_resume else R.string.menu_pause)
-                } else if (i == 3) {
+                } else if (i == 2) {
                     context.getString(if (inputOverlayVisible) R.string.menu_hide_controller else R.string.menu_show_controller)
                 } else {
                     items[i].label
@@ -509,7 +507,7 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
                 }
                 val iconRes = when {
                     i == 0 && paused -> R.drawable.ic_play
-                    i == 3 && inputOverlayVisible -> R.drawable.ic_controller_off
+                    i == 2 && inputOverlayVisible -> R.drawable.ic_controller_off
                     else -> items[i].iconResId
                 }
                 val iconD = getIconDrawable(iconRes, paint.color)
