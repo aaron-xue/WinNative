@@ -11,6 +11,10 @@ import android.view.MotionEvent
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.graphics.PixelFormat
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
@@ -39,7 +43,7 @@ import java.io.File
 // absolute path as EXTRA_ROM_PATH). All rendering/audio/input happens in
 // libcitron-android.so; this Activity only wires up the Surface, lifecycle, and
 // routes menu hotkeys to the host-provided CitronHost slots.
-class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
+class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEventListener {
 
     private val tag = "WnCitron"
     private var surfaceView: SurfaceView? = null
@@ -51,6 +55,12 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     private val ready = java.util.concurrent.atomic.AtomicBoolean(false)
     private var menuShown = false
     private var lifecyclePaused = false
+
+    // Motion sensor state for gyroscope + accelerometer passthrough
+    private val gyro = FloatArray(3)
+    private val accel = FloatArray(3)
+    private var motionTimestamp: Long = 0
+    private var flipMotionOrientation: Boolean = false
 
     private var pauseDimOverlay: View? = null
 
@@ -691,6 +701,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onPause() {
         super.onPause()
+        stopMotionSensorListener()
         runCatching { InputHandler.releaseAllInputs() }
         if (started.get()) {
             runCatching { NativeLibrary.pauseEmulation() }
@@ -705,6 +716,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     override fun onResume() {
         super.onResume()
+        startMotionSensorListener()
     }
 
     private fun resumeFromLifecyclePause() {
@@ -715,6 +727,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
     }
 
     override fun onDestroy() {
+        stopMotionSensorListener()
         NativeLibrary.clearEmulationActivity()
         perfHud?.stop()
         perfHud = null
@@ -724,5 +737,87 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback {
         super.onDestroy()
         // Tear down the process so the next launch starts from a clean state.
         android.os.Process.killProcess(android.os.Process.myPid())
+    }
+
+    // --- SensorEventListener (gyroscope + accelerometer) ---
+
+    override fun onSensorChanged(event: SensorEvent) {
+        val rotation = this.display?.rotation
+        if (rotation == Surface.ROTATION_90) {
+            flipMotionOrientation = true
+        }
+        if (rotation == Surface.ROTATION_270) {
+            flipMotionOrientation = false
+        }
+
+        if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
+            if (flipMotionOrientation) {
+                accel[0] = event.values[1] / SensorManager.GRAVITY_EARTH
+                accel[1] = -event.values[0] / SensorManager.GRAVITY_EARTH
+            } else {
+                accel[0] = -event.values[1] / SensorManager.GRAVITY_EARTH
+                accel[1] = event.values[0] / SensorManager.GRAVITY_EARTH
+            }
+            accel[2] = -event.values[2] / SensorManager.GRAVITY_EARTH
+        }
+        if (event.sensor.type == Sensor.TYPE_GYROSCOPE) {
+            if (flipMotionOrientation) {
+                gyro[0] = -event.values[1] / 6.0f
+                gyro[1] = event.values[0] / 6.0f
+            } else {
+                gyro[0] = event.values[1] / 6.0f
+                gyro[1] = -event.values[0] / 6.0f
+            }
+            gyro[2] = event.values[2] / 6.0f
+        }
+
+        // Only update state on accelerometer data
+        if (event.sensor.type != Sensor.TYPE_ACCELEROMETER) {
+            return
+        }
+        val deltaTimestamp = (event.timestamp - motionTimestamp) / 1000
+        motionTimestamp = event.timestamp
+        NativeInput.onDeviceMotionEvent(
+            NativeInput.Player1Device,
+            deltaTimestamp,
+            gyro[0],
+            gyro[1],
+            gyro[2],
+            accel[0],
+            accel[1],
+            accel[2],
+        )
+        NativeInput.onDeviceMotionEvent(
+            NativeInput.ConsoleDevice,
+            deltaTimestamp,
+            gyro[0],
+            gyro[1],
+            gyro[2],
+            accel[0],
+            accel[1],
+            accel[2],
+        )
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor, i: Int) {}
+
+    private fun startMotionSensorListener() {
+        val sensorManager = this.getSystemService(android.content.Context.SENSOR_SERVICE) as SensorManager
+        val gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+        val accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        sensorManager.registerListener(this, gyroSensor, SensorManager.SENSOR_DELAY_GAME)
+        sensorManager.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_GAME)
+    }
+
+    private fun stopMotionSensorListener() {
+        val sensorManager = this.getSystemService(android.content.Context.SENSOR_SERVICE) as SensorManager
+        val gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+        val accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        if (gyroSensor != null) {
+            sensorManager.unregisterListener(this, gyroSensor)
+        }
+        if (accelSensor != null) {
+            sensorManager.unregisterListener(this, accelSensor)
+        }
     }
 }

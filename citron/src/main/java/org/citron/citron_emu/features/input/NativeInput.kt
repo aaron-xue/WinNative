@@ -73,6 +73,43 @@ object NativeInput {
      */
     external fun onGamePadAxisEvent(guid: String, port: Int, axis: Int, value: Float)
 
+    /**
+     * Handles motion events from the phone's own sensors (gyroscope + accelerometer).
+     * @param port Port determined by controller connection order
+     * @param deltaTimestamp Time delta in microseconds since last event
+     * @param xGyro The value of the x-axis for the gyroscope.
+     * @param yGyro The value of the y-axis for the gyroscope.
+     * @param zGyro The value of the z-axis for the gyroscope.
+     * @param xAccel The value of the x-axis for the accelerometer.
+     * @param yAccel The value of the y-axis for the accelerometer.
+     * @param zAccel The value of the z-axis for the accelerometer.
+     */
+    external fun onDeviceMotionEvent(
+        port: Int,
+        deltaTimestamp: Long,
+        xGyro: Float,
+        yGyro: Float,
+        zGyro: Float,
+        xAccel: Float,
+        yAccel: Float,
+        zAccel: Float,
+    )
+
+    /**
+     * Handles motion events from a physical gamepad's built-in sensors.
+     */
+    external fun onGamePadMotionEvent(
+        guid: String,
+        port: Int,
+        deltaTimestamp: Long,
+        xGyro: Float,
+        yGyro: Float,
+        zGyro: Float,
+        xAccel: Float,
+        yAccel: Float,
+        zAccel: Float,
+    )
+
     external fun resetGamePadInputState()
 
     // --- Raw touchscreen passthrough (mechanism B) ---
