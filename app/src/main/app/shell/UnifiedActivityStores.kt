@@ -455,6 +455,19 @@ internal fun UnifiedActivity.GameCapsule(
         }
     }
 
+    // Artwork model used to sample the platform badge's gradient color (mirrors ArtContent).
+    val badgeArtModel: Any? =
+        when {
+            artworkToBeUsed != null -> java.io.File(artworkToBeUsed)
+            isCustom -> customIconPath?.let { path -> java.io.File(path).takeIf { it.isFile } }
+            else -> {
+                val preferWide = !useLibraryCapsule && !listMode && DeviceProfileSettings.preferWideArtwork(context)
+                val primaryRef =
+                    StoreArtworkCache.primaryRef(app, gogGame, epicGame, useLibraryCapsule, listMode, preferWide)
+                remember(primaryRef, artworkCacheRefreshKey) { StoreArtworkCache.imageModel(context, primaryRef) }
+            }
+        }
+
     if (listMode) {
         // Horizontal row card with hero background
         val heroRef = if (!isCustom && gogGame == null && !isEpic) StoreArtworkCache.heroRef(app, null, null) else null
@@ -538,7 +551,7 @@ internal fun UnifiedActivity.GameCapsule(
                 ) {
                     ArtContent(Modifier.fillMaxSize())
                     libraryBadgeLabel(app.id, isCustom)?.let { badge ->
-                        RetroConsoleRibbon(badge, Modifier.align(Alignment.TopStart))
+                        RetroConsoleRibbon(badge, badgeArtModel, Modifier.align(Alignment.TopStart))
                     }
                 }
 
@@ -590,7 +603,7 @@ internal fun UnifiedActivity.GameCapsule(
             ) {
                 ArtContent(Modifier.fillMaxSize())
                 libraryBadgeLabel(app.id, isCustom)?.let { badge ->
-                    RetroConsoleRibbon(badge, Modifier.align(Alignment.TopStart))
+                    RetroConsoleRibbon(badge, badgeArtModel, Modifier.align(Alignment.TopStart))
                 }
             }
 
