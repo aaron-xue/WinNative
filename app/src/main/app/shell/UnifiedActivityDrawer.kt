@@ -426,12 +426,6 @@ internal fun UnifiedActivity.DrawerContent(
                     modifier = Modifier.weight(1f),
                     fontSize = 11.sp,
                 ) { if (it) onLibraryLayoutSelected(LibraryLayoutMode.CAROUSEL) }
-                DrawerFilterButton(
-                    label = stringResource(R.string.library_games_layout_list),
-                    checked = libraryLayoutMode == LibraryLayoutMode.LIST,
-                    modifier = Modifier.weight(1f),
-                    fontSize = 11.sp,
-                ) { if (it) onLibraryLayoutSelected(LibraryLayoutMode.LIST) }
             }
 
             Spacer(Modifier.height(16.dp))

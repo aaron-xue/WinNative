@@ -255,8 +255,7 @@ import com.winlator.cmod.shared.ui.nav.PaneNavRegistry
 import com.winlator.cmod.shared.ui.nav.paneNavItem
 import com.winlator.cmod.shared.ui.FourByTwoGridView
 import com.winlator.cmod.shared.ui.JoystickGridScroll
-import com.winlator.cmod.shared.ui.JoystickListScroll
-import com.winlator.cmod.shared.ui.ListView
+
 import com.winlator.cmod.shared.ui.widget.chasingBorder
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -3282,40 +3281,37 @@ internal fun UnifiedActivity.LibraryCarousel(
             }
 
             LibraryLayoutMode.LIST -> {
-                val listViewState = rememberLazyListState()
-                ListView(
+                FourByTwoGridView(
                     items = displayedApps,
                     modifier = Modifier.tabScreenPadding(),
-                    listState = listViewState,
-                    contentPadding = TabListContentPadding,
-                    selectedIndex = focusIndex,
-                    onSelectedIndexChanged = { newIdx ->
-                        activity?.libraryFocusIndex?.value = newIdx
-                    },
+                    gridState = gridState,
+                    contentPadding = TabGridContentPadding,
+                    clipContent = false,
                     keyOf = { it.id },
-                ) { app, index, isSelected ->
+                ) { app, index, rowHeight ->
                     GameCapsule(
                         app = app,
                         gogGame = visibleGogByPseudoId[app.id],
                         epicGame = visibleEpicByPseudoId[app.id],
                         iconRefreshKey = iconRefreshKey,
                         artworkCacheRefreshKey = artworkCacheRefreshKey,
-                        isFocusedOverride = isSelected,
+                        isFocusedOverride = index == focusIndex,
                         isControllerActive = isControllerConnected,
                         customArtworkPath = visibleCustomIconArtworkPathByAppId[app.id] ?: visibleCustomArtworkPathByAppId[app.id],
                         customIconPath = visibleCustomIconPathByAppId[app.id],
                         customListPath = visibleCustomListPathByAppId[app.id],
                         customHeroPath = visibleCustomHeroPathByAppId[app.id],
                         onClick = {
-                            // Keeps the immersive background on the opened game after backing out.
                             activity?.libraryFocusIndex?.value = index
                             detailGogGame = visibleGogByPseudoId[app.id]
                             detailApp = app
                         },
-                        onLongClick = { openSettingsForApp(index, app) },
-                        listMode = true,
+                        onLongClick = {
+                            openSettingsForApp(index, app)
+                        },
                         modifier =
                             Modifier
+                                .height(rowHeight)
                                 .then(
                                     if (index in focusRequesters.indices) {
                                         Modifier.focusRequester(focusRequesters[index])
@@ -3325,13 +3321,6 @@ internal fun UnifiedActivity.LibraryCarousel(
                                 ),
                     )
                 }
-                JoystickListScroll(
-                    listState = listViewState,
-                    stickFlow = activity?.rightStickScrollState,
-                    minSpeed = 2.5f,
-                    maxSpeed = 16f,
-                    quadratic = true,
-                )
             }
         }
     }

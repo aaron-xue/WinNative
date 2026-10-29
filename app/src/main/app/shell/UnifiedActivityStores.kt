@@ -68,7 +68,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -231,8 +231,7 @@ import com.winlator.cmod.shared.ui.nav.PaneNavRegistry
 import com.winlator.cmod.shared.ui.nav.paneNavItem
 import com.winlator.cmod.shared.ui.FourByTwoGridView
 import com.winlator.cmod.shared.ui.JoystickGridScroll
-import com.winlator.cmod.shared.ui.JoystickListScroll
-import com.winlator.cmod.shared.ui.ListView
+
 import com.winlator.cmod.shared.ui.widget.chasingBorder
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -685,27 +684,7 @@ internal fun UnifiedActivity.EpicStoreTab(
         }
     }
 
-    if (layoutMode == LibraryLayoutMode.LIST) {
-        val listViewState = rememberLazyListState()
-        JoystickListScroll(listViewState, activity?.rightStickScrollState)
-        ListView(
-            items = displayedApps,
-            modifier = Modifier.tabScreenPadding(),
-            listState = listViewState,
-            contentPadding = TabListContentPadding,
-            keyOf = { it.id },
-        ) { app, _, _ ->
-            EpicStoreCapsule(
-                app,
-                isInstalled = installStateById[app.id] == true,
-                listMode = true,
-                isControllerActive = ControllerHelper.isControllerConnected(),
-            ) {
-                selectedAppId.value =
-                    app.id
-            }
-        }
-    } else {
+
         val focusIndex by (activity?.storeFocusIndex ?: kotlinx.coroutines.flow.MutableStateFlow(0)).collectAsState()
         val focusRequesters =
             remember(displayedApps.size) {
@@ -747,7 +726,6 @@ internal fun UnifiedActivity.EpicStoreTab(
                 }
             }
         }
-    }
 
     val selectedApp = epicApps.find { it.id == selectedAppId.value }
     if (selectedApp != null) {
@@ -1413,65 +1391,7 @@ internal fun UnifiedActivity.GOGStoreTab(
     val isControllerActive = ControllerHelper.isControllerConnected()
     val gogBorderColor = if (isControllerActive) CardBorder else Color.Transparent
 
-    if (layoutMode == LibraryLayoutMode.LIST) {
-        val listViewState = rememberLazyListState()
-        ListView(
-            items = displayedApps,
-            modifier = Modifier.tabScreenPadding(),
-            listState = listViewState,
-            contentPadding = TabListContentPadding,
-            keyOf = { it.id },
-        ) { app, _, _ ->
-            val isInstalled = installStateById[app.id] == true
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .border(1.dp, gogBorderColor, RoundedCornerShape(14.dp))
-                        .background(CardDark, RoundedCornerShape(14.dp))
-                        .clickable { selectedGameId.value = app.id }
-                        .padding(horizontal = 14.dp, vertical = 11.dp),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Box(
-                    Modifier
-                        .height(52.dp)
-                        .aspectRatio(462f / 174f)
-                        .clip(RoundedCornerShape(8.dp)),
-                ) {
-                    AsyncImage(
-                        model =
-                            ImageRequest
-                                .Builder(LocalContext.current)
-                                .data(app.imageUrl.ifEmpty { app.iconUrl })
-                                .crossfade(300)
-                                .build(),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                    if (isInstalled) {
-                        StoreInstalledBadge(
-                            modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp),
-                            compact = true,
-                        )
-                    }
-                }
-                Spacer(Modifier.width(14.dp))
-                Text(
-                    text = app.title,
-                    modifier = Modifier.weight(1f),
-                    color = TextPrimary,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    } else {
+
         val focusIndex by (activity?.storeFocusIndex ?: kotlinx.coroutines.flow.MutableStateFlow(0)).collectAsState()
         val focusRequesters =
             remember(displayedApps.size) {
@@ -1547,7 +1467,6 @@ internal fun UnifiedActivity.GOGStoreTab(
                 )
             }
         }
-    }
 
     selectedGameId.value?.let { gameId ->
         val app = gogApps.firstOrNull { it.id == gameId }
@@ -2065,28 +1984,7 @@ internal fun UnifiedActivity.SteamStoreTab(
         }
     }
 
-    if (layoutMode == LibraryLayoutMode.LIST) {
-        val listViewState = rememberLazyListState()
-        JoystickListScroll(listViewState, activity?.rightStickScrollState, minSpeed = 2.5f, maxSpeed = 16f, quadratic = true)
-        ListView(
-            items = displayedApps,
-            modifier = Modifier.tabScreenPadding(),
-            listState = listViewState,
-            contentPadding = TabListContentPadding,
-            keyOf = { it.id },
-        ) { app, _, _ ->
-            SteamStoreCapsule(
-                app,
-                isInstalled = installStateById[app.id] == true,
-                listMode = true,
-                isControllerActive = ControllerHelper.isControllerConnected(),
-                onClick = {
-                    selectedAppForDialog =
-                        app
-                },
-            )
-        }
-    } else {
+
         val focusIndex by (activity?.storeFocusIndex ?: kotlinx.coroutines.flow.MutableStateFlow(0)).collectAsState()
         val focusRequesters =
             remember(displayedApps.size) {
@@ -2134,7 +2032,6 @@ internal fun UnifiedActivity.SteamStoreTab(
                 )
             }
         }
-    }
 
     if (selectedAppForDialog != null) {
         GameManagerDialog(
