@@ -490,7 +490,7 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
                 if (rowTop + rh < top || rowTop > h) continue
                 val label = if (i == 0) {
                     context.getString(if (paused) R.string.menu_resume else R.string.menu_pause)
-                } else if (i == 4) {
+                } else if (i == 3) {
                     context.getString(if (inputOverlayVisible) R.string.menu_hide_controller else R.string.menu_show_controller)
                 } else {
                     items[i].label
@@ -509,7 +509,7 @@ class SwitchMenuView(context: Context, private val activity: Activity) :
                 }
                 val iconRes = when {
                     i == 0 && paused -> R.drawable.ic_play
-                    i == 4 && inputOverlayVisible -> R.drawable.ic_controller_off
+                    i == 3 && inputOverlayVisible -> R.drawable.ic_controller_off
                     else -> items[i].iconResId
                 }
                 val iconD = getIconDrawable(iconRes, paint.color)
