@@ -31,9 +31,14 @@ android {
         jvmTarget = '17'
     }
 
-    packaging {
-        jniLibs {
-            useLegacyPackaging true
+    // All native .so files for the PS2 core are NOT bundled into the APK.
+    // They ship inside the Retro-Consoles bundle under `data/armsx2/jniLibs/`
+    // and are extracted at runtime, then loaded directly via System.load
+    // (see Armsx2Bootstrap). Drop the jniLibs source set so they are no
+    // longer packaged.
+    sourceSets {
+        main {
+            jniLibs.srcDirs = []
         }
     }
 

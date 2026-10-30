@@ -50,7 +50,7 @@ object Ps2CheatStaging {
             runCatching { patchFile.writeText(PatchRepo.buildPnach(serial, patchByName.values.toList())) }
         }
         val enabledPatches = (stagedPatches.map { it.name } + dnas.filter { it.enabledByDefault }.map { it.name }).distinct()
-        runCatching { NativeApp.setEnabledPatches(false, patchByName.keys.toTypedArray(), enabledPatches.toTypedArray()) }
+        runCatching { NativeApp.setEnabledPatches(false, patchByName.keys.toTypedArray(), enabledPatches.toTypedArray(), serial) }
 
         val stagedCheats = read(ctx, serial, false)
         val cheatFile = File(dir(ctx, false), "$serial$suffix.pnach")
@@ -64,7 +64,7 @@ object Ps2CheatStaging {
             }
         }
         val cheatNames = stagedCheats.map { it.name }.toTypedArray()
-        runCatching { NativeApp.setEnabledPatches(true, cheatNames, cheatNames) }
+        runCatching { NativeApp.setEnabledPatches(true, cheatNames, cheatNames, serial) }
 
         runCatching { NativeApp.reloadPatches() }
     }

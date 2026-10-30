@@ -385,7 +385,8 @@ data class Settings(
         NativeApp.osdShowVersion(osdShowVersion)
         NativeApp.osdShowSettings(osdShowSettings)
         NativeApp.osdShowInputs(osdShowInputs)
-        NativeApp.usbSetKeyboardEnabled(0, usbKeyboard)
+        NativeApp.setSetting("USB1", "Type", "string", if (usbKeyboard) "hidkbd" else "None")
+        NativeApp.usbApplyPorts()
         NativeApp.commitSettings()
     }
 

@@ -24,32 +24,41 @@ import java.io.File;
 import java.lang.ref.WeakReference;
 
 public class NativeApp {
-	private static final String BUNDLE_CORES = "retro/bundle/cores";
-
 	private static boolean loadAttempted;
 
+	/**
+	 * Delegates to Armsx2Bootstrap which loads all native libs from the
+	 * Retro-Consoles bundle path data/armsx2/jniLibs instead of bundling
+	 * .so files in the APK.
+	 */
 	public static synchronized void ensureLoaded(Context context) {
 		if (loadAttempted) return;
 		loadAttempted = true;
-		String libraryName = selectNativeLibraryName();
-		File bundled = new File(context.getFilesDir(), BUNDLE_CORES + "/lib" + libraryName + ".so");
-		try {
-			try {
-				System.loadLibrary("librashader_capi");
-			} catch (Throwable e) {
-				android.util.Log.w("ARMSX2", "librashader preload failed", e);
-			}
-			System.load(bundled.getAbsolutePath());
+		if (com.armsx2.wn.Armsx2Bootstrap.INSTANCE.ensure(context)) {
 			hasNoNativeBinary = false;
-			System.out.println("PCSX2_LOAD " + libraryName + " pageSize=" + getRuntimePageSize());
-		} catch (Throwable e) {
+			android.util.Log.i("ARMSX2", "PCSX2_LOAD " + selectNativeLibraryName()
+					+ " pageSize=" + getRuntimePageSize());
+		} else {
 			hasNoNativeBinary = true;
-			android.util.Log.e("ARMSX2", "PCSX2_LOAD_FAILED " + libraryName
-					+ " pageSize=" + getRuntimePageSize(), e);
+			android.util.Log.e("ARMSX2", "PCSX2_LOAD_FAILED pageSize=" + getRuntimePageSize());
 		}
 	}
 
 	public static boolean hasNoNativeBinary = true;
+
+	/**
+	 * Called by Armsx2Bootstrap when the emucore .so loads successfully.
+	 */
+	public static void markNativeBinaryAvailable() {
+		hasNoNativeBinary = false;
+	}
+
+	/**
+	 * Called by Armsx2Bootstrap when the emucore .so fails to load.
+	 */
+	public static void markNativeBinaryAbsent() {
+		hasNoNativeBinary = true;
+	}
 
 	private static long getRuntimePageSize() {
 		try {
@@ -62,6 +71,14 @@ public class NativeApp {
 
 	private static String selectNativeLibraryName() {
 		return getRuntimePageSize() >= 16384 ? "emucore_16k" : "emucore_4k";
+	}
+
+	/**
+	 * Public variant for Armsx2Bootstrap so it can determine which emucore
+	 * variant to load without duplicating the page-size logic.
+	 */
+	public static String selectNativeLibraryNameStatic(Context context) {
+		return selectNativeLibraryName();
 	}
 
 	protected static WeakReference<Context> mContext;
@@ -113,7 +130,7 @@ public class NativeApp {
 	public static native int reloadPatches();
 	public static native boolean reloadTextureReplacements();
 
-	public static native void setEnabledPatches(boolean cheats, String[] allNames, String[] enabledNames);
+	public static native void setEnabledPatches(boolean cheats, String[] allNames, String[] enabledNames, String serial);
 	public static native String getGameSerial();
 	public static native String getGameCRC();
 
@@ -174,8 +191,8 @@ public class NativeApp {
 	public static native void setPadButtonForPort(int port, int index, int range, boolean iskeypressed);
 	public static native void setMultitap(int port, boolean enabled);
 
-	public static native void usbSetKeyboardEnabled(int port, boolean enabled);
 	public static native boolean usbKeyboardKey(int port, int androidKeyCode, boolean pressed);
+	public static native void usbApplyPorts();
 
 	public static volatile int sRumbleDeviceId = -1;
 	public static volatile boolean sRumbleEnabled = true;
@@ -376,11 +393,8 @@ public class NativeApp {
 
 	public static native void flushShaderCache();
 
-	public static native void runEeJitTests();
-
-	public static native void runVifTests();
-
-	public static native void runEeSeqTests();
+	/* JIT self-tests removed from the bundled libemucore — keep the callback for
+	 * any potential future use and remove the native declarations. */
 
 	public static void onTestResults(String label, int passed, int total) {
 		MainActivityRuntime.Companion.onTestResults(new TestResult(label, passed, total));
@@ -389,6 +403,79 @@ public class NativeApp {
 	public static native BiosInfo getBiosInfoFromFd(int fd);
 
 	public static native String getGameSerialFromFd(int fd);
+
+	// ---- auto-tune callbacks (called from native via GetStaticMethodID) ----
+
+	/** Called from native after auto-tune committed a setting. No-op in WinNative
+	 *  (no AutoTuneStore yet), but the method MUST exist or JNI aborts. */
+	public static void onAutoTuneCommitted(String serial, String section, String key, String value) {
+		android.util.Log.v("ARMSX2", "onAutoTuneCommitted " + section + "/" + key + "=" + value);
+	}
+
+	// ---- native methods present in the bundled libemucore but absent from this class ----
+
+	public static native String[] autoTuneDescribe(String serial);
+	public static native String[] autoTuneReset(String serial);
+	public static native String getGameDbEntries(String serial);
+	public static native String gameDbClaimingKeys();
+
+	public static native String getGameTitle(String path);
+	public static native float getFPS();
+	public static native float getNominalFrameRate();
+	public static native float getVPS();
+	public static native float getEmuSpeedPercent();
+	public static native float getCpuThreadUsage();
+	public static native float getGsThreadUsage();
+	public static native float getGpuUsage();
+	public static native float getAverageFrameTime();
+
+	public static native String getPauseGameTitle();
+	public static native String getAchievementsHashForPath(String imagePath);
+	public static native boolean isHardwareRenderer();
+
+	public static native void setAchievementsOptionInt(String key, int value);
+
+	public static native void setAdpfEnabled(boolean enabled);
+	public static native void emulog(String msg);
+
+	public static native void setThermals(float cpu, float gpu, float battery, boolean show);
+
+	public static native void osdShowAll(boolean enabled);
+	public static native void osdSetColor(int rgb);
+
+	public static native long zstdDecoderCreate(long maxOutputBytes);
+	public static native int zstdDecoderDecode(long handle, byte[] in, int inOff, int inLen, byte[] out, int outOff, int outLen);
+	public static native void zstdDecoderDestroy(long handle);
+
+	public static native void usbSetDeviceType(int port, String type);
+	public static native String usbDeviceTypes();
+	public static native void usbSetDeviceSubtype(int port, int subtype);
+	public static native void usbLightgunAim(float x, float y);
+	public static native void usbLightgunButton(int port, int bind, boolean pressed);
+
+	public static native void setArcadeLaunchFiles(String elf, String media, String sram);
+	public static native String getLastBootError();
+	public static native int arcadeModeForGameId(String gameId);
+	public static native boolean isArcadeSession();
+	public static native void arcadeInsertCoin(int player);
+	public static native void arcadeService(boolean pressed);
+	public static native void arcadeToggleTest();
+	public static native boolean arcadeTestModeOn();
+	public static native boolean isArcadeBios(String path);
+	public static native String getArcadeBiosNeed(String gameId);
+	public static native String getArcadeControls(String gameId);
+	public static native void setArcadeRemap(int[] pairs);
+	public static native String getArcadeGames();
+
+	public static native String getHostfsDir();
+	public static native int extractIsoToHostfs(String isoPath, String subdir);
+	public static native boolean setElfDiscOverride(String elfPath, String discPath);
+	public static native String getElfDiscOverride(String elfPath);
+	public static native void gameIniClaim(String section, String key);
+	public static native boolean gameIniBeginStage(String serial);
+	public static native void gameIniClearStage();
+	public static native void reloadGameSettingsLayer();
+	public static native boolean gameIniBeginWriteForSerial(String serial);
 
 	public static native int getCompatibilityForSerial(String serial);
 

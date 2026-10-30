@@ -1029,9 +1029,10 @@ open class MainActivityRuntime : ComponentActivity() {
 
             println("PCSX2_INIT")
 
-            NativeApp.runEeJitTests()
-            NativeApp.runEeSeqTests()
-            NativeApp.runVifTests()
+            // JIT self-tests removed in the bundled libemucore; skipped.
+            // NativeApp.runEeJitTests()
+            // NativeApp.runEeSeqTests()
+            // NativeApp.runVifTests()
 
             @Suppress("KotlinConstantConditions")
             if (AUTO_BOOT_BIOS && BuildConfig.DEBUG && !autoBootBiosFired &&
