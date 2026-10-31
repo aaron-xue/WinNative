@@ -272,6 +272,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
                 // loading; apply it now that the native side is live. applySurface()
                 // wraps it through FrameGen if the user enabled frame generation.
                 if (surface != null) applySurface()
+                // Motion sensors were deferred during onResume() because the native
+                // library hadn't loaded yet. Register them now that the core is live.
+                startMotionSensorListener()
                 // Overlays (host Compose menu + on-screen gamepad) are attached in
                 // attachGameOverlays() once emulation is actually running, so they don't
                 // appear above the loading screen.
@@ -742,6 +745,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
     // --- SensorEventListener (gyroscope + accelerometer) ---
 
     override fun onSensorChanged(event: SensorEvent) {
+        if (!ready.get()) return
         val rotation = this.display?.rotation
         if (rotation == Surface.ROTATION_90) {
             flipMotionOrientation = true
@@ -802,6 +806,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
     override fun onAccuracyChanged(sensor: Sensor, i: Int) {}
 
     private fun startMotionSensorListener() {
+        if (!ready.get()) return
         val sensorManager = this.getSystemService(android.content.Context.SENSOR_SERVICE) as SensorManager
         val gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
         val accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)

@@ -204,6 +204,12 @@ object ControllerInterface {
         }
     }
 
+    @Keep
+    @JvmStatic
+    private fun cancelVibration(vibrator: Vibrator) {
+        vibrator.cancel()
+    }
+
     private class InputDeviceListener : InputManager.InputDeviceListener {
         override external fun onInputDeviceAdded(deviceId: Int)
 
