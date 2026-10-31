@@ -131,6 +131,15 @@ object CitronBootstrap {
         // 5. bring up the HLE system / services
         NativeLibrary.initializeSystem(false)
         Log.i(TAG, "initializeSystem(false) returned")
+        // 5b. Reload HID input devices so the connected state and button/stick
+        //     mappings that were saved to the global config are pushed into the
+        //     freshly-initialized HID Core. Without this the settings screen
+        //     shows every player as "disconnected" after a process restart even
+        //     though the user had previously connected them.
+        runCatching {
+            NativeInput.reloadInputDevices()
+            Log.i(TAG, "reloadInputDevices done")
+        }.onFailure { Log.w(TAG, "reloadInputDevices failed (expected before GPU init)", it) }
         // 6. GPU driver. Pass the native library dir so adrenotools can find its
         //    hook .so files. A custom (Turnip) driver is selected in the host
         //    settings UI and stored as resolved paths in the "CITRON" prefs; nulls
