@@ -28,4 +28,10 @@
     <string name="swkbd_title">Input</string>
     <string name="swkbd_hint">Enter text</string>
     <string name="swkbd_min_length_error">Minimum %d characters required</string>
+
+    <!-- In-game toasts -->
+    <string name="toast_save_state_not_available">Save state slot %1$d not available yet</string>
+    <string name="toast_load_state_not_available">Load state slot %1$d not available yet</string>
+    <string name="toast_overlay_shown">On-screen controls shown</string>
+    <string name="toast_overlay_hidden">On-screen controls hidden</string>
 </resources>

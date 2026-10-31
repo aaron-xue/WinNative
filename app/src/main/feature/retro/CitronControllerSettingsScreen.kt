@@ -37,6 +37,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.winlator.cmod.R
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.fragment.app.FragmentActivity
@@ -126,7 +128,7 @@ private fun PlayerListScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item { RetroBackRow(onBack) }
-            item { RetroGroupTitle("控制器玩家绑定") }
+            item { RetroGroupTitle(stringResource(R.string.retro_scr_controller_player_binding)) }
             items(players) { p ->
                 RetroSettingGroup {
                     Row(
@@ -147,13 +149,14 @@ private fun PlayerListScreen(
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                "玩家 ${p.index + 1}",
+                                stringResource(R.string.retro_scr_controller_player_n, p.index + 1),
                                 color = Color.White,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium,
                             )
                             Text(
-                                if (p.connected) "已连接" else "未连接",
+                                if (p.connected) stringResource(R.string.retro_scr_controller_connected)
+                                else stringResource(R.string.retro_scr_controller_not_connected),
                                 color = PageSub,
                                 fontSize = 12.sp,
                             )
@@ -243,7 +246,7 @@ private fun PlayerDetailScreen(
             .getOrDefault(playerIndex == 0)
     }
 
-    val groups = remember(style, refresh) { buildInputRows(playerIndex, style) }
+    val groups = remember(style, refresh) { buildInputRows(playerIndex, style, context) }
 
     fun showMapping(item: InputItem) {
         val act = activity ?: return
@@ -326,18 +329,19 @@ private fun PlayerDetailScreen(
             // --- Player-level settings (mirrors addInputPlayer top section) ---
             item {
                 RetroSettingGroup {
-                    RetroGroupTitle("玩家 ${playerIndex + 1} 设置")
+                    RetroGroupTitle(stringResource(R.string.retro_scr_controller_player_settings, playerIndex + 1))
 
                     RetroSettingSwitch(
-                        label = "连接",
+                        label = stringResource(R.string.retro_scr_controller_connect),
                         checked = connected,
-                        subtitle = if (connected) "已连接" else "未连接",
+                        subtitle = if (connected) stringResource(R.string.retro_scr_controller_connected)
+                                   else stringResource(R.string.retro_scr_controller_not_connected),
                         onCheckedChange = { toggleConnected() },
                     )
 
-                    val styleLabels = supportedStyles.map { styleLabel(it) }
+                    val styleLabels = supportedStyles.map { styleLabel(it, context) }
                     RetroSettingDropdown(
-                        "控制器类型",
+                        stringResource(R.string.retro_scr_controller_type),
                         styleLabels,
                         supportedStyles.indexOf(style).coerceAtLeast(0),
                     ) { idx ->
@@ -350,8 +354,8 @@ private fun PlayerDetailScreen(
                     val physicalDevices = devices
                     if (physicalDevices.isNotEmpty()) {
                         val devLabels =
-                            physicalDevices.map { dev -> "手柄 ${dev.getName()} (端口 ${dev.getPort()})" }
-                        RetroSettingDropdown("自动映射", devLabels, 0) { idx ->
+                            physicalDevices.map { dev -> stringResource(R.string.retro_scr_controller_device_port, dev.getName(), dev.getPort()) }
+                        RetroSettingDropdown(stringResource(R.string.retro_scr_controller_auto_map), devLabels, 0) { idx ->
                             val dev = physicalDevices[idx]
                             val port = dev.getPort()
                             // Use the full ParamPackage from native-side registeredControllers
@@ -375,9 +379,9 @@ private fun PlayerDetailScreen(
                         }
                     }
 
-                    val profEntries = listOf("(无)") + profileNames
+                    val profEntries = listOf(stringResource(R.string.retro_scr_controller_profile_none)) + profileNames
                     RetroSettingDropdown(
-                        "配置方案",
+                        stringResource(R.string.retro_scr_controller_profile),
                         profEntries,
                         profEntries.indexOf(currentProfile).coerceAtLeast(0),
                     ) { idx ->
@@ -397,7 +401,7 @@ private fun PlayerDetailScreen(
                             onRefresh()
                             Toast.makeText(
                                 context,
-                                "已恢复默认映射",
+                                context.getString(R.string.retro_scr_controller_reset_mappings_toast),
                                 Toast.LENGTH_SHORT,
                             ).show()
                         },
@@ -405,7 +409,7 @@ private fun PlayerDetailScreen(
                             .fillMaxWidth()
                             .padding(top = 4.dp),
                     ) {
-                        Text("恢复默认映射")
+                        Text(stringResource(R.string.retro_scr_controller_reset_mappings))
                     }
                 }
             }
@@ -413,17 +417,19 @@ private fun PlayerDetailScreen(
             // --- Vibration (mirrors addInputPlayer vibration block) ---
             item {
                 RetroSettingGroup {
-                    RetroGroupTitle("振动")
+                    RetroGroupTitle(stringResource(R.string.retro_scr_controller_vibration))
                     RetroSettingSwitch(
-                        label = "启用振动",
+                        label = stringResource(R.string.retro_scr_controller_enable_vibration),
                         checked = vibrationEnabled,
-                        subtitle = if (vibrationEnabled) "开" else "关",
+                        subtitle = if (vibrationEnabled) stringResource(R.string.retro_scr_controller_on)
+                                   else stringResource(R.string.retro_scr_controller_off),
                         onCheckedChange = { toggleVibration() },
                     )
                     RetroSettingSwitch(
-                        label = "使用系统振动器",
+                        label = stringResource(R.string.retro_scr_controller_system_vibrator),
                         checked = useSystemVibrator,
-                        subtitle = if (useSystemVibrator) "开" else "关",
+                        subtitle = if (useSystemVibrator) stringResource(R.string.retro_scr_controller_on)
+                                   else stringResource(R.string.retro_scr_controller_off),
                         onCheckedChange = { toggleSystemVibrator() },
                     )
                 }
@@ -463,12 +469,12 @@ private fun PlayerDetailScreen(
 // upstream, only the rendering is Compose instead of RecyclerView).
 // ----------------------------------------------------------------------------
 
-private fun buildInputRows(playerIndex: Int, style: NpadStyleIndex): List<InputGroup> {
+private fun buildInputRows(playerIndex: Int, style: NpadStyleIndex, context: android.content.Context): List<InputGroup> {
     val groups = mutableListOf<InputGroup>()
     fun buttonItem(button: NativeButton, title: String) =
-        InputItem(title, buttonDisplay(playerIndex, button), button = button)
+        InputItem(title, buttonDisplay(playerIndex, button, context), button = button)
     fun analogItem(analog: NativeAnalog, dir: String, title: String) =
-        InputItem(title, analogDisplay(playerIndex, analog, dir), analog = analog, dir = dir)
+        InputItem(title, analogDisplay(playerIndex, analog, dir, context), analog = analog, dir = dir)
 
     // Buttons
     val buttons = when (style) {
@@ -503,7 +509,7 @@ private fun buildInputRows(playerIndex: Int, style: NpadStyleIndex): List<InputG
         )
         else -> emptyList()
     }
-    if (buttons.isNotEmpty()) groups.add(InputGroup("按键", buttons))
+    if (buttons.isNotEmpty()) groups.add(InputGroup(context.getString(R.string.retro_scr_controller_buttons), buttons))
 
     // DPad
     val dpad = when (style) {
@@ -515,7 +521,7 @@ private fun buildInputRows(playerIndex: Int, style: NpadStyleIndex): List<InputG
         )
         else -> emptyList()
     }
-    if (dpad.isNotEmpty()) groups.add(InputGroup("方向键", dpad))
+    if (dpad.isNotEmpty()) groups.add(InputGroup(context.getString(R.string.retro_scr_controller_dpad), dpad))
 
     // Left stick
     val leftStick = style in listOf(
@@ -528,10 +534,11 @@ private fun buildInputRows(playerIndex: Int, style: NpadStyleIndex): List<InputG
             add(analogItem(NativeAnalog.LStick, "down", "↓"))
             add(analogItem(NativeAnalog.LStick, "left", "←"))
             add(analogItem(NativeAnalog.LStick, "right", "→"))
-            if (leftStick) add(buttonItem(NativeButton.LStick, "按下"))
-            addAll(getExtraStickItems(playerIndex, NativeAnalog.LStick))
+            if (leftStick) add(buttonItem(NativeButton.LStick, context.getString(R.string.retro_scr_controller_press)))
+            addAll(getExtraStickItems(playerIndex, NativeAnalog.LStick, context))
         }
-        groups.add(InputGroup(if (leftGameCube) "控制杆" else "左摇杆", items))
+        groups.add(InputGroup(if (leftGameCube) context.getString(R.string.retro_scr_controller_control_stick)
+                              else context.getString(R.string.retro_scr_controller_left_stick), items))
     }
 
     // Right stick
@@ -544,10 +551,11 @@ private fun buildInputRows(playerIndex: Int, style: NpadStyleIndex): List<InputG
             add(analogItem(NativeAnalog.RStick, "down", "↓"))
             add(analogItem(NativeAnalog.RStick, "left", "←"))
             add(analogItem(NativeAnalog.RStick, "right", "→"))
-            if (rightStick) add(buttonItem(NativeButton.RStick, "按下"))
-            addAll(getExtraStickItems(playerIndex, NativeAnalog.RStick))
+            if (rightStick) add(buttonItem(NativeButton.RStick, context.getString(R.string.retro_scr_controller_press)))
+            addAll(getExtraStickItems(playerIndex, NativeAnalog.RStick, context))
         }
-        groups.add(InputGroup(if (leftGameCube) "C 摇杆" else "右摇杆", items))
+        groups.add(InputGroup(if (leftGameCube) context.getString(R.string.retro_scr_controller_c_stick)
+                              else context.getString(R.string.retro_scr_controller_right_stick), items))
     }
 
     // Triggers
@@ -563,22 +571,22 @@ private fun buildInputRows(playerIndex: Int, style: NpadStyleIndex): List<InputG
             buttonItem(NativeButton.R, "R"),
             buttonItem(NativeButton.ZL, "ZL"),
             buttonItem(NativeButton.ZR, "ZR"),
-            buttonItem(NativeButton.SLLeft, "SL(左)"),
-            buttonItem(NativeButton.SRLeft, "SR(左)"),
-            buttonItem(NativeButton.SLRight, "SL(右)"),
-            buttonItem(NativeButton.SRRight, "SR(右)"),
+            buttonItem(NativeButton.SLLeft, context.getString(R.string.retro_scr_controller_sl_left)),
+            buttonItem(NativeButton.SRLeft, context.getString(R.string.retro_scr_controller_sr_left)),
+            buttonItem(NativeButton.SLRight, context.getString(R.string.retro_scr_controller_sl_right)),
+            buttonItem(NativeButton.SRRight, context.getString(R.string.retro_scr_controller_sr_right)),
         )
         NpadStyleIndex.JoyconLeft -> listOf(
             buttonItem(NativeButton.L, "L"),
             buttonItem(NativeButton.ZL, "ZL"),
-            buttonItem(NativeButton.SLLeft, "SL(左)"),
-            buttonItem(NativeButton.SRLeft, "SR(左)"),
+            buttonItem(NativeButton.SLLeft, context.getString(R.string.retro_scr_controller_sl_left)),
+            buttonItem(NativeButton.SRLeft, context.getString(R.string.retro_scr_controller_sr_left)),
         )
         NpadStyleIndex.JoyconRight -> listOf(
             buttonItem(NativeButton.R, "R"),
             buttonItem(NativeButton.ZR, "ZR"),
-            buttonItem(NativeButton.SLRight, "SL(右)"),
-            buttonItem(NativeButton.SRRight, "SR(右)"),
+            buttonItem(NativeButton.SLRight, context.getString(R.string.retro_scr_controller_sl_right)),
+            buttonItem(NativeButton.SRRight, context.getString(R.string.retro_scr_controller_sr_right)),
         )
         NpadStyleIndex.GameCube -> listOf(
             buttonItem(NativeButton.R, "Z"),
@@ -587,23 +595,23 @@ private fun buildInputRows(playerIndex: Int, style: NpadStyleIndex): List<InputG
         )
         else -> emptyList()
     }
-    if (triggers.isNotEmpty()) groups.add(InputGroup("扳机", triggers))
+    if (triggers.isNotEmpty()) groups.add(InputGroup(context.getString(R.string.retro_scr_controller_triggers), triggers))
 
     return groups
 }
 
-private fun getExtraStickItems(playerIndex: Int, analog: NativeAnalog): List<InputItem> {
+private fun getExtraStickItems(playerIndex: Int, analog: NativeAnalog, context: android.content.Context): List<InputItem> {
     val params = NativeInput.getStickParam(playerIndex, analog)
     val isController = NativeInput.isController(params)
     return if (isController) {
         listOf(
-            InputItem("范围", stickIntDisplay(playerIndex, analog, "range", 0.95f)),
-            InputItem("死区", stickIntDisplay(playerIndex, analog, "deadzone", 0.15f)),
+            InputItem(context.getString(R.string.retro_scr_controller_range), stickIntDisplay(playerIndex, analog, "range", 0.95f)),
+            InputItem(context.getString(R.string.retro_scr_controller_deadzone), stickIntDisplay(playerIndex, analog, "deadzone", 0.15f)),
         )
     } else {
         listOf(
-            InputItem("修饰键", analogDisplay(playerIndex, analog, "modifier")),
-            InputItem("修饰范围", stickIntDisplay(playerIndex, analog, "modifier_scale", 0.5f)),
+            InputItem(context.getString(R.string.retro_scr_controller_modifier), analogDisplay(playerIndex, analog, "modifier", context)),
+            InputItem(context.getString(R.string.retro_scr_controller_modifier_scale), stickIntDisplay(playerIndex, analog, "modifier_scale", 0.5f)),
         )
     }
 }
@@ -613,69 +621,64 @@ private fun getExtraStickItems(playerIndex: Int, analog: NativeAnalog): List<Inp
 // buttonToText / analogToText / getDisplayString, only the strings are localized.
 // ----------------------------------------------------------------------------
 
-private const val NOT_SET = "未设置"
-private const val INVALID = "无效"
-private const val UNKNOWN = "未知"
-private const val UNUSED = "未使用"
-
-private fun buttonDisplay(playerIndex: Int, button: NativeButton): String {
+private fun buttonDisplay(playerIndex: Int, button: NativeButton, context: android.content.Context): String {
     val params = NativeInput.getButtonParam(playerIndex, button)
-    return formatInput(params, buttonToText(params))
+    return formatInput(params, buttonToText(params, context), context)
 }
 
-private fun analogDisplay(playerIndex: Int, analog: NativeAnalog, dir: String): String {
+private fun analogDisplay(playerIndex: Int, analog: NativeAnalog, dir: String, context: android.content.Context): String {
     val params = NativeInput.getStickParam(playerIndex, analog)
-    return formatInput(params, analogToText(params, dir))
+    return formatInput(params, analogToText(params, dir, context), context)
 }
 
-private fun formatInput(params: ParamPackage, control: String): String {
+private fun formatInput(params: ParamPackage, control: String, context: android.content.Context): String {
     val device = params.get("display", "")
-    if (device.isEmpty()) return NOT_SET
+    if (device.isEmpty()) return context.getString(R.string.retro_scr_controller_not_set)
     return "$device: $control"
 }
 
-private fun buttonToText(param: ParamPackage): String {
-    if (!param.has("engine")) return NOT_SET
+private fun buttonToText(param: ParamPackage, context: android.content.Context): String {
+    if (!param.has("engine")) return context.getString(R.string.retro_scr_controller_not_set)
     val toggle = if (param.get("toggle", false)) "~" else ""
     val inverted = if (param.get("inverted", false)) "!" else ""
     val invert = if (param.get("invert", "+") == "-") "-" else ""
     val turbo = if (param.get("turbo", false)) "$" else ""
     val name = NativeInput.getButtonName(param)
-    if (name == ButtonName.Invalid) return INVALID
+    if (name == ButtonName.Invalid) return context.getString(R.string.retro_scr_controller_invalid)
     if (name == ButtonName.Engine) return param.get("engine", "")
     if (name == ButtonName.Value) {
         if (param.has("hat")) {
-            return "方向 ${dirName(param.get("direction", ""))}"
+            return context.getString(R.string.retro_scr_controller_hat_dir, dirName(param.get("direction", ""), context))
         }
         if (param.has("axis")) {
             val axis = param.get("axis", "")
-            return "轴 $axis"
+            return context.getString(R.string.retro_scr_controller_axis, axis)
         }
         if (param.has("button")) {
             val button = param.get("button", "")
-            return "按键 $button"
+            return context.getString(R.string.retro_scr_controller_button_value, button)
         }
     }
-    return UNKNOWN
+    return context.getString(R.string.retro_scr_controller_unknown)
 }
 
-private fun analogToText(param: ParamPackage, dir: String): String {
-    if (!param.has("engine")) return NOT_SET
+private fun analogToText(param: ParamPackage, dir: String, context: android.content.Context): String {
+    if (!param.has("engine")) return context.getString(R.string.retro_scr_controller_not_set)
     if (param.get("engine", "") == "analog_from_button") {
-        return buttonToText(ParamPackage(param.get(dir, "")))
+        return buttonToText(ParamPackage(param.get(dir, "")), context)
     }
-    if (!param.has("axis_x") || !param.has("axis_y")) return UNKNOWN
+    if (!param.has("axis_x") || !param.has("axis_y")) return context.getString(R.string.retro_scr_controller_unknown)
     val xAxis = param.get("axis_x", "")
     val yAxis = param.get("axis_y", "")
     val xInvert = param.get("invert_x", "+") == "-"
     val yInvert = param.get("invert_y", "+") == "-"
-    if (dir == "modifier") return UNUSED
+    if (dir == "modifier") return context.getString(R.string.retro_scr_controller_unused)
     return when (dir) {
-        "up" -> "轴 $yAxis ${if (yInvert) "+" else "-"}"
-        "down" -> "轴 $yAxis ${if (yInvert) "-" else "+"}"
-        "left" -> "轴 $xAxis ${if (xInvert) "+" else "-"}"
-        "right" -> "轴 $xAxis ${if (xInvert) "-" else "+"}"
-        else -> UNKNOWN
+        "up" -> context.getString(R.string.retro_scr_controller_axis, yAxis) + " " + if (yInvert) "+" else "-"
+        "down" -> context.getString(R.string.retro_scr_controller_axis, yAxis) + " " + if (yInvert) "-" else "+"
+        "left" -> context.getString(R.string.retro_scr_controller_axis, xAxis) + " " + if (xInvert) "+" else "-"
+        "right" -> context.getString(R.string.retro_scr_controller_axis, xAxis) + " " + if (xInvert) "-" else "+"
+        else -> context.getString(R.string.retro_scr_controller_unknown)
     }
 }
 
@@ -685,20 +688,20 @@ private fun stickIntDisplay(playerIndex: Int, analog: NativeAnalog, name: String
     return "$v%"
 }
 
-private fun dirName(d: String): String = when (d) {
-    "up" -> "上"
-    "down" -> "下"
-    "left" -> "左"
-    "right" -> "右"
+private fun dirName(d: String, context: android.content.Context): String = when (d) {
+    "up" -> context.getString(R.string.retro_scr_controller_dir_up)
+    "down" -> context.getString(R.string.retro_scr_controller_dir_down)
+    "left" -> context.getString(R.string.retro_scr_controller_dir_left)
+    "right" -> context.getString(R.string.retro_scr_controller_dir_right)
     else -> d
 }
 
-private fun styleLabel(style: NpadStyleIndex): String = when (style) {
-    NpadStyleIndex.Fullkey -> "Pro 手柄"
-    NpadStyleIndex.Handheld -> "掌机"
-    NpadStyleIndex.JoyconDual -> "Joy-Con 双持"
-    NpadStyleIndex.JoyconLeft -> "左 Joy-Con"
-    NpadStyleIndex.JoyconRight -> "右 Joy-Con"
-    NpadStyleIndex.GameCube -> "GC 手柄"
+private fun styleLabel(style: NpadStyleIndex, context: android.content.Context): String = when (style) {
+    NpadStyleIndex.Fullkey -> context.getString(R.string.retro_scr_controller_style_pro)
+    NpadStyleIndex.Handheld -> context.getString(R.string.retro_scr_controller_style_handheld)
+    NpadStyleIndex.JoyconDual -> context.getString(R.string.retro_scr_controller_style_joycon_dual)
+    NpadStyleIndex.JoyconLeft -> context.getString(R.string.retro_scr_controller_style_joycon_left)
+    NpadStyleIndex.JoyconRight -> context.getString(R.string.retro_scr_controller_style_joycon_right)
+    NpadStyleIndex.GameCube -> context.getString(R.string.retro_scr_controller_style_gamecube)
     else -> style.name
 }

@@ -28,4 +28,10 @@
     <string name="swkbd_title">输入</string>
     <string name="swkbd_hint">请输入</string>
     <string name="swkbd_min_length_error">至少输入 %d 个字符</string>
+
+    <!-- In-game toasts -->
+    <string name="toast_save_state_not_available">即时存档槽 %1$d 暂不可用</string>
+    <string name="toast_load_state_not_available">即时读档槽 %1$d 暂不可用</string>
+    <string name="toast_overlay_shown">已显示触屏按键</string>
+    <string name="toast_overlay_hidden">已隐藏触屏按键</string>
 </resources>

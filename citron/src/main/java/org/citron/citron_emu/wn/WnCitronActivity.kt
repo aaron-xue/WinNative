@@ -274,8 +274,8 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
 
         // Native-side hooks. Save/load/fast-forward have no native API yet, so they
         // are implemented as user-visible no-ops until P2 wires the backend.
-        CitronHost.saveState = { slot -> toast("Save state slot $slot not available yet") }
-        CitronHost.loadState = { slot -> toast("Load state slot $slot not available yet") }
+        CitronHost.saveState = { slot -> toast(getString(R.string.toast_save_state_not_available, slot)) }
+        CitronHost.loadState = { slot -> toast(getString(R.string.toast_load_state_not_available, slot)) }
         CitronHost.setFastForward = { /* TODO: NativeConfig speed-limit in P2 */ }
 
         // Native bootstrap runs off the main thread to avoid ANR during the
@@ -657,14 +657,17 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
             menu.setGameTitle(intent.getStringExtra(CitronConsts.EXTRA_GAME_NAME))
             menu.onRequestClose = { closeMenu() }
             menu.onToggleInputOverlay = {
-                val ov = inputOverlay ?: return@onToggleInputOverlay
-                manualTouchOverride = true
-                ov.visibility = if (ov.visibility == View.VISIBLE) View.GONE else View.VISIBLE
-                Toast.makeText(
-                    this,
-                    if (ov.visibility == View.VISIBLE) "已显示触屏按键" else "已隐藏触屏按键",
-                    Toast.LENGTH_SHORT,
-                ).show()
+                val ov = inputOverlay
+                if (ov != null) {
+                    manualTouchOverride = true
+                    ov.visibility = if (ov.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+                    Toast.makeText(
+                        this,
+                        if (ov.visibility == View.VISIBLE) getString(R.string.toast_overlay_shown)
+                        else getString(R.string.toast_overlay_hidden),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
             }
             CitronHost.openMenu = { menu.open() }
             CitronHost.closeMenu = { menu.close() }
