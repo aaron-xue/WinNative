@@ -488,6 +488,14 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
                     InputHandler.updateControllerData()
                     Log.i(tag, "registered input devices (physical + overlay)")
                 }.onFailure { Log.e(tag, "InputHandler.updateControllerData failed", it) }
+                // Reload input devices from the saved config into the HID Core so
+                // button / stick mappings configured in the controller settings UI
+                // take effect. Without this the HID Core only has factory defaults
+                // and the user's custom bindings are ignored during play.
+                runCatching {
+                    NativeInput.reloadInputDevices()
+                    Log.i(tag, "reloaded input devices from saved config")
+                }.onFailure { Log.e(tag, "reloadInputDevices failed", it) }
                 // Mirror upstream EmulationActivity: a detected physical controller
                 // must be auto-mapped to Player 1 (port 0), otherwise the native
                 // GamePad device exists but the emulated controller never reads
@@ -584,13 +592,15 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
                         )
                     }
                 }
-                // connectControllers(n) connects players 0..n (mirrors upstream).
-                val maxPort = physical.maxOf { it.getPort() }
-                NativeInput.connectControllers(maxPort)
                 NativeConfig.saveGlobalConfig()
                 Log.i(tag, "auto-mapped ${physical.size} physical controller(s) ports=${physical.map { it.getPort() }}")
             }.onFailure { Log.e(tag, "auto-map first controller failed", it) }
         }
+        // Always connect physically present controllers so the HID Core knows
+        // which players are active, regardless of whether mappings came from
+        // auto-mapping or were loaded from a user-supplied profile.
+        val maxPort = physical.maxOf { it.getPort() }
+        NativeInput.connectControllers(maxPort)
     }
 
     /**
