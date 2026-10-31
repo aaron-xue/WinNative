@@ -15,6 +15,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.hardware.input.InputManager
 import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
@@ -52,6 +53,11 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
     private var surfaceH = 0
     private var inputOverlay: InputOverlay? = null
     private val started = java.util.concurrent.atomic.AtomicBoolean(false)
+    // Auto-hide the on-screen gamepad when a physical controller is connected
+    // (mirrors PS2 RetroActivity / Ps2GameOverlay behavior).
+    private var manualTouchOverride = false
+    private var controllerConnected = false
+    private var inputDeviceListener: InputManager.InputDeviceListener? = null
     private val ready = java.util.concurrent.atomic.AtomicBoolean(false)
     private var menuShown = false
     private var lifecyclePaused = false
@@ -230,6 +236,20 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
             getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE)
                 .getBoolean("wn.switch.hud", false)
         }.getOrDefault(false)
+
+        // Register an InputDeviceListener so we can auto-hide the on-screen gamepad
+        // when a physical controller is connected and re-show it when disconnected
+        // (mirrors PS2 Ps2GameOverlay behavior).
+        controllerConnected = anyGameController()
+        val listener = object : InputManager.InputDeviceListener {
+            override fun onInputDeviceAdded(deviceId: Int) = refreshInputOverlayVisibility()
+            override fun onInputDeviceRemoved(deviceId: Int) = refreshInputOverlayVisibility()
+            override fun onInputDeviceChanged(deviceId: Int) = refreshInputOverlayVisibility()
+        }
+        inputDeviceListener = listener
+        val inputMgr = getSystemService(INPUT_SERVICE) as InputManager
+        inputMgr.registerInputDeviceListener(listener, null)
+
         val hudEnabled = hudFromShortcut || hudFromExtra || hudFromCitron
         Log.i(
             tag,
@@ -637,21 +657,23 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
             menu.setGameTitle(intent.getStringExtra(CitronConsts.EXTRA_GAME_NAME))
             menu.onRequestClose = { closeMenu() }
             menu.onToggleInputOverlay = {
-                val ov = inputOverlay
-                if (ov != null) {
-                    ov.visibility = if (ov.visibility == View.VISIBLE) View.GONE else View.VISIBLE
-                    Toast.makeText(
-                        this,
-                        if (ov.visibility == View.VISIBLE) "已显示触屏按键" else "已隐藏触屏按键",
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
+                val ov = inputOverlay ?: return@onToggleInputOverlay
+                manualTouchOverride = true
+                ov.visibility = if (ov.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+                Toast.makeText(
+                    this,
+                    if (ov.visibility == View.VISIBLE) "已显示触屏按键" else "已隐藏触屏按键",
+                    Toast.LENGTH_SHORT,
+                ).show()
             }
             CitronHost.openMenu = { menu.open() }
             CitronHost.closeMenu = { menu.close() }
             CitronHost.isMenuOpen = { menu.visible }
             CitronHost.menuKeyHandler = { ev -> menu.handleKey(ev.keyCode, ev.action) }
             CitronHost.menuAxisHandler = { x, y -> menu.handleAxis(x, y) }
+            // Apply initial overlay visibility: hide if a physical gamepad is
+            // already connected (mirrors PS2 Ps2GameOverlay behavior).
+            refreshInputOverlayVisibility()
         }
     }
 
@@ -740,6 +762,12 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
     }
 
     override fun onDestroy() {
+        val listener = inputDeviceListener
+        if (listener != null) {
+            val inputMgr = getSystemService(INPUT_SERVICE) as InputManager
+            inputMgr.unregisterInputDeviceListener(listener)
+            inputDeviceListener = null
+        }
         stopMotionSensorListener()
         NativeLibrary.clearEmulationActivity()
         perfHud?.stop()
@@ -834,5 +862,41 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
         if (accelSensor != null) {
             sensorManager.unregisterListener(this, accelSensor)
         }
+    }
+
+    // --- Controller detection & overlay auto-hide ---
+
+    /**
+     * Returns true when any physical game controller is currently connected.
+     * Mirrors Ps2GameOverlay.anyGameController().
+     */
+    private fun anyGameController(): Boolean {
+        return InputDevice.getDeviceIds().any { id ->
+            val dev = InputDevice.getDevice(id) ?: return@any false
+            isGameController(dev)
+        }
+    }
+
+    private fun isGameController(device: InputDevice): Boolean {
+        if (device.isVirtual) return false
+        val sources = device.sources
+        return (sources and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
+            || (sources and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
+    }
+
+    /**
+     * Auto-hides the on-screen gamepad when a physical controller is connected
+     * and re-shows it when disconnected. Respects the manual override set by
+     * the menu toggle. When the controller connection state changes the override
+     * is reset (mirrors PS2 Ps2GameOverlay.refreshPadPresence behavior).
+     */
+    private fun refreshInputOverlayVisibility() {
+        val ov = inputOverlay ?: return
+        val wasConnected = controllerConnected
+        controllerConnected = anyGameController()
+        if (controllerConnected != wasConnected) {
+            manualTouchOverride = false
+        }
+        ov.visibility = if (controllerConnected && !manualTouchOverride) View.GONE else View.VISIBLE
     }
 }
