@@ -873,6 +873,27 @@ class RetroInputView(
             leftCursor += trigH + trigGap
         }
 
+        stickRadius = 0f
+        dpadRadius = snap * 7.5f
+        dpadCx = margin + dpadRadius
+        val leftBarWidth = gameArea?.left ?: 0f
+        if (leftBarWidth > snap * 8f) {
+            val avail = leftBarWidth - snap * 2f
+            if (dpadRadius * 2f > avail) dpadRadius = (avail * 0.5f).coerceAtLeast(snap * 5f)
+            dpadCx = leftBarWidth * 0.5f
+        }
+        dpadCy = height - bottomGap - dpadRadius
+
+        if (config.hasDualSticks) {
+            stickRadius = snap * 5.5f
+            stick2Radius = stickRadius
+            dpadCy -= stickRadius * 0.9f
+            stickCx = dpadCx + dpadRadius + snap * 0.8f + stickRadius
+            stickCy = height - snap * 4.5f - stickRadius
+            stick2Cx = width - stickCx
+            stick2Cy = stickCy
+        }
+
         var spread = snap * 5.5f
         var clusterCx = width - margin - faceRadius - spread
         val rightBarWidth = gameArea?.let { width - it.right } ?: 0f
@@ -887,11 +908,14 @@ class RetroInputView(
             clusterCx = width - rightBarWidth * 0.5f
         }
         val clusterCy =
-            if (config.hasDualSticks) {
-                dpadCy - dpadRadius + spread + faceRadius
-            } else {
-                height - bottomGap - faceRadius - spread
-            }
+            max(
+                if (config.hasDualSticks) {
+                    dpadCy - dpadRadius + spread + faceRadius
+                } else {
+                    height - bottomGap - faceRadius - spread
+                },
+                rightCursor + snap * 0.8f + faceRadius + spread,
+            )
         var clusterTop = height
         fun addFace(
             keyCode: Int,
@@ -920,27 +944,8 @@ class RetroInputView(
         val pillW = snap * 6f
         val pillH = snap * 3f
         val pillGap = snap * 1.2f
-        stickRadius = 0f
-        dpadRadius = snap * 7.5f
-        dpadCx = margin + dpadRadius
-        val leftBarWidth = gameArea?.left ?: 0f
-        if (leftBarWidth > snap * 8f) {
-            val avail = leftBarWidth - snap * 2f
-            if (dpadRadius * 2f > avail) dpadRadius = (avail * 0.5f).coerceAtLeast(snap * 5f)
-            dpadCx = leftBarWidth * 0.5f
-        }
-        dpadCy = height - bottomGap - dpadRadius
 
-        if (config.hasDualSticks) {
-            stickRadius = snap * 5.5f
-            stick2Radius = stickRadius
-            dpadCy -= stickRadius * 0.9f
-            stickCx = dpadCx + dpadRadius + snap * 0.8f + stickRadius
-            stickCy = height - snap * 4.5f - stickRadius
-            stick2Cx = width - stickCx
-            stick2Cy = stickCy
-
-            if (showL3R3) {
+        if (config.hasDualSticks && showL3R3) {
             val l3r = faceRadius * 0.82f
             val l3cy = height - snap * 3.2f - l3r
             val l3cx = margin + l3r + snap * 0.5f
@@ -951,7 +956,6 @@ class RetroInputView(
             val r3 = GlassButton(KeyEvent.KEYCODE_BUTTON_THUMBR, "R3", GlassShape.CIRCLE, textScale = 0.8f)
             r3.bounds.set(r3cx - l3r, l3cy - l3r, r3cx + l3r, l3cy + l3r)
             buttons += r3
-            }
         }
 
         if (config.hasTriggers && config.hasXY) {
