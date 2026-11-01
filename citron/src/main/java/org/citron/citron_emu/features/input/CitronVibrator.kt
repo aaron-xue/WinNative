@@ -4,8 +4,10 @@
 package org.citron.citron_emu.features.input
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.os.Build
 import android.os.CombinedVibration
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -20,6 +22,8 @@ interface CitronVibrator {
     fun supportsVibration(): Boolean
 
     fun vibrate(intensity: Float)
+
+    fun cancelVibration()
 
     companion object {
         fun getControllerVibrator(device: InputDevice): CitronVibrator =
@@ -60,7 +64,20 @@ class CitronVibratorManager(private val vibratorManager: VibratorManager) : Citr
 
     override fun vibrate(intensity: Float) {
         val vibration = CitronVibrator.getVibrationEffect(intensity) ?: return
-        vibratorManager.vibrate(CombinedVibration.createParallel(vibration))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            vibratorManager.vibrate(
+                CombinedVibration.createParallel(vibration),
+                VibrationAttributes.Builder()
+                    .setUsage(VibrationAttributes.USAGE_MEDIA)
+                    .build()
+            )
+        } else {
+            vibratorManager.vibrate(CombinedVibration.createParallel(vibration))
+        }
+    }
+
+    override fun cancelVibration() {
+        vibratorManager.cancel()
     }
 }
 
@@ -71,6 +88,19 @@ class CitronVibratorManagerCompat(private val vibrator: Vibrator) : CitronVibrat
 
     override fun vibrate(intensity: Float) {
         val vibration = CitronVibrator.getVibrationEffect(intensity) ?: return
-        vibrator.vibrate(vibration)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(
+                vibration,
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .build()
+            )
+        } else {
+            vibrator.vibrate(vibration)
+        }
+    }
+
+    override fun cancelVibration() {
+        vibrator.cancel()
     }
 }

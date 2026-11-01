@@ -37,7 +37,12 @@ class CitronPhysicalDevice(
     private val vibrator = if (useSystemVibrator) {
         CitronVibrator.getSystemVibrator()
     } else {
-        CitronVibrator.getControllerVibrator(device)
+        val controllerVibrator = CitronVibrator.getControllerVibrator(device)
+        if (controllerVibrator.supportsVibration()) {
+            controllerVibrator
+        } else {
+            CitronVibrator.getSystemVibrator()
+        }
     }
 
     override fun getName(): String {
@@ -60,6 +65,10 @@ class CitronPhysicalDevice(
 
     override fun vibrate(intensity: Float) {
         vibrator.vibrate(intensity)
+    }
+
+    fun cancelVibration() {
+        vibrator.cancelVibration()
     }
 
     fun getAxesForSource(source: Int): IntArray =
@@ -95,15 +104,14 @@ class CitronInputOverlayDevice(
     }
 
     override fun getSupportsVibration(): Boolean {
-        if (vibration) {
-            return vibrator.supportsVibration()
-        }
-        return false
+        return vibrator.supportsVibration()
     }
 
     override fun vibrate(intensity: Float) {
-        if (vibration) {
-            vibrator.vibrate(intensity)
-        }
+        vibrator.vibrate(intensity)
+    }
+
+    fun cancelVibration() {
+        vibrator.cancelVibration()
     }
 }
