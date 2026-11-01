@@ -242,9 +242,22 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
         // (mirrors PS2 Ps2GameOverlay behavior).
         controllerConnected = anyGameController()
         val listener = object : InputManager.InputDeviceListener {
-            override fun onInputDeviceAdded(deviceId: Int) = refreshInputOverlayVisibility()
-            override fun onInputDeviceRemoved(deviceId: Int) = refreshInputOverlayVisibility()
-            override fun onInputDeviceChanged(deviceId: Int) = refreshInputOverlayVisibility()
+            override fun onInputDeviceAdded(deviceId: Int) = onInputDevicesChanged()
+            override fun onInputDeviceRemoved(deviceId: Int) = onInputDevicesChanged()
+            override fun onInputDeviceChanged(deviceId: Int) = onInputDevicesChanged()
+
+            private fun onInputDevicesChanged() {
+                val wasConnected = controllerConnected
+                controllerConnected = anyGameController()
+                if (controllerConnected != wasConnected) {
+                    manualTouchOverride = false
+                }
+                // Apply visibility change only if the overlay has been created.
+                val ov = inputOverlay ?: return
+                val newVisibility = if (controllerConnected && !manualTouchOverride) View.GONE else View.VISIBLE
+                ov.visibility = newVisibility
+                switchMenu?.inputOverlayVisible = (newVisibility == View.VISIBLE)
+            }
         }
         inputDeviceListener = listener
         val inputMgr = getSystemService(INPUT_SERVICE) as InputManager
@@ -367,6 +380,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
         if (menuShown || lifecyclePaused) return
         if (!runCatching { NativeLibrary.isRunning() }.getOrDefault(false)) return
         menuShown = true
+        // Sync the menu's overlay-visible flag with the actual View state so the
+        // "Hide Controller" / "Show Controller" label is always correct.
+        switchMenu?.inputOverlayVisible = inputOverlay?.visibility == View.VISIBLE
         CitronHost.openMenu?.invoke()
         runCatching { NativeLibrary.pauseEmulation() }
     }
@@ -883,8 +899,14 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
     private fun isGameController(device: InputDevice): Boolean {
         if (device.isVirtual) return false
         val sources = device.sources
-        return (sources and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
-            || (sources and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
+        val isGamepad = (sources and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
+                || (sources and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
+        if (!isGamepad) return false
+        // A real gamepad must expose at least one analog axis. Android/MIUI
+        // registers purely virtual devices (e.g. "uinput-xiaomi") that report
+        // GAMEPAD but have no motion ranges; those are not actual gamepads
+        // and must not hide the on-screen overlay.
+        return device.motionRanges.isNotEmpty()
     }
 
     /**
@@ -892,6 +914,9 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
      * and re-shows it when disconnected. Respects the manual override set by
      * the menu toggle. When the controller connection state changes the override
      * is reset (mirrors PS2 Ps2GameOverlay.refreshPadPresence behavior).
+     *
+     * Also keeps the side-menu's "Hide Controller" / "Show Controller" label in
+     * sync with the real overlay visibility so the two never disagree.
      */
     private fun refreshInputOverlayVisibility() {
         val ov = inputOverlay ?: return
@@ -900,6 +925,8 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
         if (controllerConnected != wasConnected) {
             manualTouchOverride = false
         }
-        ov.visibility = if (controllerConnected && !manualTouchOverride) View.GONE else View.VISIBLE
+        val newVisibility = if (controllerConnected && !manualTouchOverride) View.GONE else View.VISIBLE
+        ov.visibility = newVisibility
+        switchMenu?.inputOverlayVisible = (newVisibility == View.VISIBLE)
     }
 }
