@@ -858,6 +858,9 @@ internal fun UnifiedActivity.AddCustomGameDialog(
                 gateRetro?.id == com.winlator.cmod.feature.retro.RetroSystems.SWITCH.id &&
                     !org.citron.citron_emu.wn.CitronBootstrap.areSwitchLibsAvailable(context) ->
                     R.string.retro_scr_switch_runtime_missing
+                gateRetro?.id == com.winlator.cmod.feature.retro.RetroSystems.SWITCH.id &&
+                    com.winlator.cmod.feature.retro.RetroBiosImport.installedSwitchKeys(context).isEmpty() ->
+                    R.string.retro_scr_switch_keys_required
                 else -> null
             }
         if (blockReason != null) {

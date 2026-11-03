@@ -3351,6 +3351,7 @@ Installed path:
     <string name="retro_scr_no_switch_firmware">Not installed</string>
     <string name="retro_scr_switch_firmware_installed">Installed %1$d system modules</string>
     <string name="retro_scr_switch_firmware_keys_warning">Firmware imported, but Switch keys are not installed yet. Install prod.keys for the firmware to decrypt.</string>
+    <string name="retro_scr_switch_keys_required">Switch keys (prod.keys/title.keys) must be installed before importing Switch games. Go to Settings → Retro to import them.</string>
     <string name="retro_scr_cat_achievements">Account &amp; Achievements</string>
     <string name="retro_scr_cat_playstation">PlayStation</string>
     <string name="retro_scr_cat_switch">Nintendo Switch</string>

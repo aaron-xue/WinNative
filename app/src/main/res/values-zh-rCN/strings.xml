@@ -3044,6 +3044,7 @@
     <string name="retro_scr_no_switch_firmware">未安装</string>
     <string name="retro_scr_switch_firmware_installed">已安装 %1$d 个系统模块</string>
     <string name="retro_scr_switch_firmware_keys_warning">固件已导入，但 Switch 密钥尚未安装。请先安装 prod.keys，固件才能被解密。</string>
+    <string name="retro_scr_switch_keys_required">导入 Switch 游戏前必须先安装 Switch 密钥 (prod.keys/title.keys)。请前往 设置 → Retro 导入密钥。</string>
     <string name="retro_scr_cat_achievements">账户与成就</string>
     <string name="retro_scr_cat_playstation">PlayStation</string>
     <string name="retro_scr_cat_switch">Nintendo Switch</string>
