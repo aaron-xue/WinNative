@@ -75,6 +75,7 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
     // (mirrors citron's EmulationFragment loading indicator).
     private var loadingOverlay: View? = null
     private var perfHud: SwitchPerfHudController? = null
+    private var citronHudPrefsListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
     private var switchMenu: SwitchMenuView? = null
     private val overlaysAttached = java.util.concurrent.atomic.AtomicBoolean(false)
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -284,6 +285,27 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
         if (FrameGen.requested) {
             perfHud?.applyFrameGenReserved(true)
         }
+
+        // Register a listener on the CITRON prefs so the HUD master toggle can
+        // dynamically create/destroy the in-game HUD when the user changes it from
+        // the in-game settings dialog, keeping the HUD display in sync.
+        citronHudPrefsListener =
+            android.content.SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+                if (key == "wn.switch.hud") {
+                    val enabled = prefs.getBoolean("wn.switch.hud", false)
+                    if (enabled && perfHud == null) {
+                        perfHud = SwitchPerfHudController(this@WnCitronActivity, root).also {
+                            it.start()
+                            if (FrameGen.requested) it.applyFrameGenReserved(true)
+                        }
+                    } else if (!enabled && perfHud != null) {
+                        perfHud?.stop()
+                        perfHud = null
+                    }
+                }
+            }
+        getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE)
+            .registerOnSharedPreferenceChangeListener(citronHudPrefsListener)
 
         // Native-side hooks. Save/load/fast-forward have no native API yet, so they
         // are implemented as user-visible no-ops until P2 wires the backend.
@@ -791,6 +813,13 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
         NativeLibrary.clearEmulationActivity()
         perfHud?.stop()
         perfHud = null
+        citronHudPrefsListener?.let {
+            runCatching {
+                getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE)
+                    .unregisterOnSharedPreferenceChangeListener(it)
+            }
+            citronHudPrefsListener = null
+        }
         mainHandler.removeCallbacks(pollRunning)
         runCatching { InputHandler.releaseAllInputs() }
         runCatching { NativeLibrary.stopEmulation() }

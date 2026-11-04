@@ -111,6 +111,7 @@ class SwitchPerfHudView(context: Context) :
     private var cpuPercent = -1
     private var ramPercent = -1
     private var batteryWatts = -1f
+    private var batteryCapacity = -1
     private var tempC = -1
     private var renderer = "Vulkan"
     private var frameGenOutputFps = 0f
@@ -279,6 +280,7 @@ class SwitchPerfHudView(context: Context) :
         cpuPercent: Int,
         ramPercent: Int,
         batteryWatts: Float,
+        batteryCapacity: Int,
         tempC: Int,
         renderer: String,
         frameGenOutputFps: Float,
@@ -290,6 +292,7 @@ class SwitchPerfHudView(context: Context) :
         this.cpuPercent = cpuPercent
         this.ramPercent = ramPercent
         this.batteryWatts = batteryWatts
+        this.batteryCapacity = batteryCapacity
         this.tempC = tempC
         this.renderer = renderer
         this.frameGenOutputFps = frameGenOutputFps
@@ -574,8 +577,11 @@ class SwitchPerfHudView(context: Context) :
     private fun gpuText() = if (gpuLoad >= 0) "$gpuLoad%" else "N/A"
     private fun cpuText() = if (cpuPercent >= 0) "$cpuPercent%" else "N/A"
     private fun ramText() = if (ramPercent >= 0) "$ramPercent%" else "N/A"
-    private fun batText() =
-        if (batteryWatts >= 0f) "%.1fW".format(if (dualBattery) batteryWatts * 2f else batteryWatts) else "N/A"
+    private fun batText(): String {
+        val w = if (batteryWatts >= 0f) "%.1fW".format(if (dualBattery) batteryWatts * 2f else batteryWatts) else "N/A"
+        if (batteryCapacity >= 0) return "$w($batteryCapacity%)"
+        return w
+    }
     private fun timeText(): String =
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
@@ -729,6 +735,7 @@ class SwitchPerfHudController(private val context: Context, private val root: Vi
     private var voltageMv = -1
     private var currentUa = Int.MIN_VALUE
     private var tempTenths = 0
+    private var batteryCapacity = -1
 
     // Frame generation output FPS tracking (mirrors RetroHudSupport.frameGenOutputSource).
     private var lastPresentedFrames = -1L
@@ -812,7 +819,7 @@ class SwitchPerfHudController(private val context: Context, private val root: Vi
         // Only show once emulation is live; before that the loading screen owns the foreground.
         val visible = running
         view.post { view.visibility = if (visible) View.VISIBLE else View.GONE }
-        view.setData(fps, frametime, gpu, cpu, ram, batteryW, temp, "Vulkan", fgOutputFps, fgActive)
+        view.setData(fps, frametime, gpu, cpu, ram, batteryW, batteryCapacity, temp, "Vulkan", fgOutputFps, fgActive)
     }
 
     // ── GPU load (sysfs, same paths citron/yuzu HUDs use) ──────────────────────────────
@@ -984,6 +991,7 @@ class SwitchPerfHudController(private val context: Context, private val root: Vi
             val ex = intent.getIntExtra("current_now", Int.MIN_VALUE)
             if (ex != Int.MIN_VALUE) currentUa = ex
         }
+        batteryCapacity = bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
     }
 
     // Watts = voltage(V) * current(A). Voltage comes from the broadcast (EXTRA_VOLTAGE, mV->V);
