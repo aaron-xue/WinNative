@@ -62,16 +62,10 @@ object CitronSaveManager {
     private fun findContainers(context: Context): List<File> {
         val base = citronBase(context)
         val out = LinkedHashSet<File>()
-        listOf(
-            File(base, "nand/user/save/$SPACE_MARKER/$USER_MARKER"),
-            File(base, "nand/user/user/save/$SPACE_MARKER/$USER_MARKER"),
-            File(base, "user/save/$SPACE_MARKER/$USER_MARKER"),
-            File(base, "save/$SPACE_MARKER/$USER_MARKER"),
-        ).forEach { if (it.isDirectory) out.add(it) }
-        // Walk for any .../save/<16-hex space id>/<user id> dir anywhere under the citron
-        // tree. The user id is 32 hex chars on real profiles (16 in some cases), so only the
-        // space id is pinned to 16 hex — requiring BOTH to be 16 hex is what hid every
-        // non-default profile's saves.
+        // Walk first so the real UUID-based profile container appears before the all-zeros
+        // hardcoded fallback. Preferring the UUID path is critical because Citron generates a
+        // random UUID as its user id, and save data placed under the all-zeros marker is
+        // invisible to the emulator.
         fun walk(dir: File, depth: Int) {
             if (depth > 10 || !dir.isDirectory) return
             if (TITLE_ID_RE.matches(dir.parentFile?.name ?: "") &&
@@ -82,6 +76,14 @@ object CitronSaveManager {
             dir.listFiles()?.forEach { child -> if (child.isDirectory) walk(child, depth + 1) }
         }
         walk(base, 0)
+        // Fallback: hardcoded known paths. Added after the walk so the UUID-based profile
+        // (found by the walk) takes priority in firstOrNull() / first-match scenarios.
+        listOf(
+            File(base, "nand/user/save/$SPACE_MARKER/$USER_MARKER"),
+            File(base, "nand/user/user/save/$SPACE_MARKER/$USER_MARKER"),
+            File(base, "user/save/$SPACE_MARKER/$USER_MARKER"),
+            File(base, "save/$SPACE_MARKER/$USER_MARKER"),
+        ).forEach { if (it.isDirectory) out.add(it) }
         return out.toList()
     }
 
@@ -279,10 +281,17 @@ object CitronSaveManager {
     }
 
     // Destination folder for a title that has no save yet: the first existing save container
-    // (so it lands under the CURRENT profile's user id), else the canonical default path.
+    // (so it lands under the CURRENT profile's user id). If no container exists yet (e.g. the
+    // app was just reinstalled and the NAND was wiped), ask the native core to create a default
+    // profile first — Citron's real user id is a random UUID, not the all-zeros marker, so
+    // falling back without initializing the NAND places saves under the wrong user folder.
     private fun createSaveFolder(context: Context, titleId: String): File? {
-        val container = findContainers(context).firstOrNull()
-            ?: File(citronBase(context), "nand/user/save/$SPACE_MARKER/$USER_MARKER")
+        var container = findContainers(context).firstOrNull()
+        if (container == null) {
+            org.citron.citron_emu.wn.CitronBootstrap.ensureSwitchUserDirectory(context)
+            container = findContainers(context).firstOrNull()
+                ?: File(citronBase(context), "nand/user/save/$SPACE_MARKER/$USER_MARKER")
+        }
         val dest = File(container, titleId.uppercase(Locale.ROOT))
         return if (dest.mkdirs() || dest.isDirectory) dest else null
     }
@@ -347,8 +356,39 @@ object CitronSaveManager {
      * Each top-level folder whose name matches a 16-char hex titleId is restored as
      * that game's save under the current NAND profile. Returns the count of
      * successfully imported games.
+     *
+     * Before importing, the NAND profile (with its randomly-generated user UUID) is
+     * ensured via [org.citron.citron_emu.wn.CitronBootstrap.ensureSwitchUserDirectory]
+     * so that save folders land under the correct user directory — not the hardcoded
+     * all-zeros fallback user id which does not match what Citron actually uses.
      */
     fun importAllSaves(context: Context, zipFile: File): Int {
+        // Ensure the emulated NAND has a default user profile and its save directory
+        // before we try to place any saves. Citron's user id is a random UUID, not the
+        // all-zeros marker we fall back to, so without this call on a fresh install the
+        // imported saves end up under the wrong user folder and the game never sees them.
+        val ensured = org.citron.citron_emu.wn.CitronBootstrap.ensureSwitchUserDirectory(context)
+        Log.i(
+            "CitronSaveManager",
+            "importAllSaves: ensureSwitchUserDirectory -> ${ensured?.absolutePath ?: "null"}",
+        )
+        if (ensured == null) {
+            Log.e(
+                "CitronSaveManager",
+                "importAllSaves: ensureSwitchUserDirectory returned null — the native core " +
+                    "could not create the NAND profile. Make sure the Retro-Consoles bundle " +
+                    "is installed and Switch keys are imported. Save import will be attempted " +
+                    "but may land under the wrong user directory.",
+            )
+        }
+
+        // Dump the full container list so we can verify the UUID path was found.
+        val containers = findContainers(context)
+        Log.i(
+            "CitronSaveManager",
+            "importAllSaves: findContainers -> ${containers.map { it.absolutePath }}",
+        )
+
         val byTitle = mutableMapOf<String, MutableList<Pair<String, ByteArray>>>()
         runCatching {
             ZipInputStream(zipFile.inputStream().buffered()).use { zis ->
@@ -368,20 +408,44 @@ object CitronSaveManager {
                     ze = zis.nextEntry
                 }
             }
-        }
+        }.onFailure { Log.w("CitronSaveManager", "failed to read zip $zipFile", it) }
+        Log.i("CitronSaveManager", "importAllSaves: zip contained ${byTitle.size} games")
+
         var count = 0
         byTitle.forEach { (titleId, files) ->
-            val target = createSaveFolder(context, titleId) ?: return@forEach
+            // Prefer the UUID-based container that ensureSwitchUserDirectory returned, not
+            // whatever findContainers().firstOrNull() gives us (which may be the all-zeros
+            // marker path left behind by a previous buggy import).
+            val container = resolvedContainer(ensured, containers, context)
+            val target = File(container, titleId.uppercase(Locale.ROOT))
+            if (!target.mkdirs() && !target.isDirectory) return@forEach
+            Log.i("CitronSaveManager", "importAllSaves: writing $titleId -> ${target.absolutePath} (${files.size} files)")
             runCatching {
+                target.deleteRecursively()
+                target.mkdirs()
                 files.forEach { (path, data) ->
                     val out = File(target, path)
                     out.parentFile?.mkdirs()
                     out.writeBytes(data)
                 }
                 count++
-            }
+            }.onFailure { Log.w("CitronSaveManager", "failed to write save for $titleId to ${target.absolutePath}", it) }
         }
+        Log.i("CitronSaveManager", "importAllSaves: imported $count/${byTitle.size} games")
         return count
+    }
+
+    // Chooses the best save container for writes. When ensureSwitchUserDirectory gave us a
+    // concrete path (the UUID-based profile container), prefer it — that's the one Citron
+    // will actually read when the game launches. Fall back through findContainers() and the
+    // all-zeros marker path only if the core could not be initialized.
+    private fun resolvedContainer(ensured: File?, containers: List<File>, context: Context): File {
+        if (ensured != null && ensured.isDirectory) return ensured
+        // If ensureSwitchUserDirectory failed, try any container found by the walk.
+        val byWalk = containers.firstOrNull()
+        if (byWalk != null) return byWalk
+        // Last resort: force the canonical default path (all-zeros marker).
+        return File(citronBase(context), "nand/user/save/$SPACE_MARKER/$USER_MARKER")
     }
 
     fun formatSize(bytes: Long): String {
