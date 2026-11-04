@@ -443,6 +443,11 @@ public class NativeApp {
 	public static native void osdShowAll(boolean enabled);
 	public static native void osdSetColor(int rgb);
 
+	/** ARMSX2's switch for the keyed OSD notice "armsx2_free_software_notice" that
+	 *  the core posts on every game boot (upstream Overlay option ui.freeSoftwareNotice).
+	 *  Exported by the bundled libemucore; WinNative keeps it off. */
+	public static native void setFreeSoftwareNotice(boolean show);
+
 	public static native long zstdDecoderCreate(long maxOutputBytes);
 	public static native int zstdDecoderDecode(long handle, byte[] in, int inOff, int inLen, byte[] out, int outOff, int outLen);
 	public static native void zstdDecoderDestroy(long handle);

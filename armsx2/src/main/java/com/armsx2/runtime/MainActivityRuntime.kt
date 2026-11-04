@@ -379,6 +379,8 @@ open class MainActivityRuntime : ComponentActivity() {
         }
 
         private fun applyRendererPrefs() {
+            // Re-apply before each VM start in case the core was reloaded since init.
+            runCatching { NativeApp.setFreeSoftwareNotice(false) }
             instance?.applicationContext?.let { com.armsx2.WinNativeHost.applyBootSettings?.invoke(it) }
             var resolved = com.armsx2.config.ConfigStore.resolveForGame(currentGame.value?.settingsKey)
             currentGame.value?.serial?.takeIf { it.isNotBlank() }?.let { serial ->
@@ -994,6 +996,10 @@ open class MainActivityRuntime : ComponentActivity() {
             }
 
             NativeApp.initializeOnce(applicationContext)
+            // ARMSX2 posts a keyed OSD notice ("armsx2_free_software_notice") on every
+            // game boot. WinNative has no Overlay switch for it, so use the upstream
+            // JNI switch to keep it off; cores without the symbol are ignored.
+            runCatching { NativeApp.setFreeSoftwareNotice(false) }
             nativeReady.value = true
 
             bios.value?.let { biosPath ->
