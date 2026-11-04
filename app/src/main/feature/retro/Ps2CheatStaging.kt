@@ -44,6 +44,7 @@ object Ps2CheatStaging {
         stagedPatches.forEach { patchByName[it.name] = it }
         dnas.forEach { s -> if (s.name !in patchByName) patchByName[s.name] = PatchRepo.Entry(s.name, "", s.body, "patches") }
         val patchFile = File(dir(ctx, true), "$serial$suffix.pnach")
+        val hadPatchFile = patchFile.isFile
         if (patchByName.isEmpty()) {
             runCatching { patchFile.delete() }
         } else {
@@ -54,6 +55,7 @@ object Ps2CheatStaging {
 
         val stagedCheats = read(ctx, serial, false)
         val cheatFile = File(dir(ctx, false), "$serial$suffix.pnach")
+        val hadCheatFile = cheatFile.isFile
         if (stagedCheats.isEmpty()) {
             runCatching { cheatFile.delete() }
         } else {
@@ -66,6 +68,13 @@ object Ps2CheatStaging {
         val cheatNames = stagedCheats.map { it.name }.toTypedArray()
         runCatching { NativeApp.setEnabledPatches(true, cheatNames, cheatNames, serial) }
 
-        runCatching { NativeApp.reloadPatches() }
+        // ARMSX2's reloadPatches() is a verbose reload: it always posts a "LoadPatches"
+        // OSD, which reads "No cheats or patches ... are found / enabled." when nothing
+        // is active. Skip it when this game has no patches/cheats to apply, but still
+        // reload if a leftover pnach was removed, so the core drops patches it loaded
+        // from that file earlier in the boot.
+        if (patchByName.isNotEmpty() || stagedCheats.isNotEmpty() || hadPatchFile || hadCheatFile) {
+            runCatching { NativeApp.reloadPatches() }
+        }
     }
 }
