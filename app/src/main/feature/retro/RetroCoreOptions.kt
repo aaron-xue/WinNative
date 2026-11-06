@@ -595,6 +595,12 @@ object RetroCoreOptions {
                         "dolphin_aspect_ratio" to "1",
                         "dolphin_sensor_bar_position" to "0",
                     )
+            RetroSystems.PSP.id ->
+                mapOf(
+                    "ppsspp_cpu_core" to "interpreter",
+                    "ppsspp_internal_resolution" to "2",
+                    "ppsspp_fast_memory" to "disabled",
+                )
             else -> emptyMap()
         }
 
@@ -611,6 +617,7 @@ object RetroCoreOptions {
             RetroSystems.PSX.id -> RetroCoreCatalog.BEETLE_PSX
             RetroSystems.GAMECUBE.id -> GAMECUBE_OPTIONS
             RetroSystems.WII.id -> WII_OPTIONS
+            RetroSystems.PSP.id -> RetroCoreCatalog.PPSSPP
             else -> emptyList()
         }
 

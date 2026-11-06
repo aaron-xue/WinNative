@@ -198,7 +198,7 @@ class RetroActivity : FixedFontScaleAppCompatActivity(), LandscapeOnlyActivity, 
         }
 
     private val stickIsAnalog: Boolean
-        get() = system?.id == RetroSystems.N64.id || RetroCoreManager.usesDolphinCore(system)
+        get() = system?.id == RetroSystems.N64.id || RetroCoreManager.usesDolphinCore(system) || system?.id == RetroSystems.PSP.id
 
     private fun anyGameControllerConnected(): Boolean =
         InputDevice.getDeviceIds().any { id ->
@@ -387,6 +387,9 @@ class RetroActivity : FixedFontScaleAppCompatActivity(), LandscapeOnlyActivity, 
         if (RetroCoreManager.usesDolphinCore(resolvedSystem)) {
             RetroCoreManager.ensureDolphinSys(this)
             RetroCoreManager.ensureDolphinUser(this)
+        }
+        if (RetroCoreManager.usesPpssppCore(resolvedSystem)) {
+            RetroCoreManager.ensurePpssppSys(this)
         }
         val savesDir = RetroCoreManager.savesDir(this)
         RetroSaveStates.migrateLegacy(this, gameName)

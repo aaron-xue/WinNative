@@ -158,6 +158,22 @@ object RetroCoreManager {
     fun usesDolphinCore(system: RetroSystem?): Boolean =
         system?.id == RetroSystems.GAMECUBE.id || system?.id == RetroSystems.WII.id
 
+    fun ensurePpssppSys(context: Context) {
+        val marker = File(systemDir(context), "PPSSPP/.wn_sys_ready")
+        if (marker.isFile) return
+        val destRoot = File(systemDir(context), "PPSSPP").also { it.mkdirs() }
+        runCatching {
+            val fromBundle = File(RetroBundle.dataDir(context), "ppsspp")
+            if (!fromBundle.isDirectory) return
+            fromBundle.copyRecursively(destRoot, overwrite = true)
+            marker.parentFile?.mkdirs()
+            marker.writeText("1")
+        }
+    }
+
+    fun usesPpssppCore(system: RetroSystem?): Boolean =
+        system?.id == RetroSystems.PSP.id
+
     fun missingBios(
         context: Context,
         system: RetroSystem,

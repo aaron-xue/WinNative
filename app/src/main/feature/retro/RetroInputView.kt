@@ -164,6 +164,17 @@ class RetroInputView(
                     faceLeft = "□",
                     faceRight = "○",
                 )
+            RetroSystems.PSP.id ->
+                OverlayConfig(
+                    hasXY = true,
+                    hasShoulders = true,
+                    hasTriggers = false,
+                    hasStick = true,
+                    faceTop = "△",
+                    faceBottom = "✕",
+                    faceLeft = "□",
+                    faceRight = "○",
+                )
             else -> OverlayConfig(hasXY = false, hasShoulders = false, hasTriggers = false, hasStick = false)
         }
 
@@ -331,7 +342,7 @@ class RetroInputView(
                     button = 0xFF303038.toInt(),
                     buttonText = 0xFFB9B9C2.toInt(),
                 )
-            RetroSystems.PSX.id, RetroSystems.PS2.id ->
+            RetroSystems.PSX.id, RetroSystems.PS2.id, RetroSystems.PSP.id ->
                 RetroTheme(
                     body = 0xFFB7B7C0.toInt(),
                     dpad = 0xFF50505A.toInt(),
