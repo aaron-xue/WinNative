@@ -5,6 +5,7 @@ import android.content.Intent
 import android.widget.Toast
 import com.winlator.cmod.runtime.container.ContainerManager
 import com.winlator.cmod.runtime.container.Shortcut
+import com.winlator.cmod.shared.android.LocaleHelper
 import com.winlator.cmod.shared.io.FileUtils
 import java.io.File
 import java.util.UUID
@@ -365,7 +366,7 @@ object RetroShortcuts {
                     setClassName(context, "com.wn.ppsspp.WnPpssppActivity")
                     setData(android.net.Uri.fromFile(rom))
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    putExtra("org.ppsspp.ppsspp.Args", "--appendconfig=$overrideIni")
+                    putExtra("org.ppsspp.ppsspp.Args", "--appendconfig=$overrideIni --pause-menu-exit=1")
                 }
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 runCatching { context.startActivity(intent) }
@@ -391,6 +392,17 @@ object RetroShortcuts {
         val resolution = prefs.getInt("wn.psp.resolution", 2).coerceIn(1, 5)
         val frameskip = prefs.getInt("wn.psp.frameskip", 0).coerceIn(0, 3)
 
+        val langTag = LocaleHelper.getAppliedLanguageTag()
+        // Map Winlator's BCP-47 tag to PPSSPP's langregion.ini key.
+        // If no explicit language is set (follows system), fall back to PPSSPP's
+        // own default (which picks up the Android system locale).
+        val ppssppLang =
+            when (langTag) {
+                "en" -> "en_US"
+                "zh-CN" -> "zh_CN"
+                else -> ""
+            }
+
         val ini =
             buildString {
                 appendLine("[Graphics]")
@@ -403,6 +415,11 @@ object RetroShortcuts {
                 appendLine()
                 appendLine("[Sound]")
                 appendLine("Enable = ${if (audio) "True" else "False"}")
+                if (ppssppLang.isNotEmpty()) {
+                    appendLine()
+                    appendLine("[General]")
+                    appendLine("Language = $ppssppLang")
+                }
             }
 
         val dir = File(context.getExternalFilesDir(null) ?: context.filesDir, "PSP/SYSTEM")
