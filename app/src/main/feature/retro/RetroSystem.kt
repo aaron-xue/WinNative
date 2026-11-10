@@ -116,6 +116,16 @@ object RetroSystems {
             badgeLabel = "PS2",
         )
 
+    val PSP =
+        RetroSystem(
+            id = "psp",
+            displayName = "Sony PlayStation Portable",
+            shortName = "PSP",
+            coreFileName = "",
+            extensions = setOf("iso", "cso", "chd", "pbp", "elf"),
+            badgeLabel = "PSP",
+        )
+
     val SWITCH =
         RetroSystem(
             id = "switch",
@@ -150,7 +160,7 @@ object RetroSystems {
     val ALL =
         listOf(
             NES, SNES, GAMEBOY, GAMEBOY_COLOR, GBA, GENESIS, MASTER_SYSTEM, GAME_GEAR,
-            N64, PSX, PS2, GAMECUBE, WII, SWITCH,
+            N64, PSX, PS2, PSP, GAMECUBE, WII, SWITCH,
         )
 
     private val PSX_ONLY_EXTENSIONS = setOf("cue", "chd", "pbp", "m3u")

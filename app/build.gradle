@@ -447,6 +447,7 @@ dependencies {
     implementation project(':dolphin')
     implementation project(':brotato')
     implementation project(':citron')
+    implementation project(':ppsspp')
 }
 
 spotless {

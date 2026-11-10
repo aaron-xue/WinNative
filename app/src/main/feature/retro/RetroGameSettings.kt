@@ -1023,6 +1023,7 @@ private fun coreDisplayName(system: RetroSystem?): String =
         system == null -> ""
         system.id == RetroSystems.PS2.id -> "ARMSX2"
         system.id == RetroSystems.SWITCH.id -> "CITRON"
+        system.id == RetroSystems.PSP.id -> "PPSSPP"
         RetroCoreManager.usesDolphinCore(system) -> "Dolphin"
         else -> system.coreFileName
     }
@@ -1055,8 +1056,8 @@ private fun RetroGeneralSection(
             singleLineValue = true,
         )
         // 快速启动只对 PS2 有效（写入 ARMSX2 的 wn.ps2.fastboot，仅 Ps2GameOverlay 读取）；
-        // Switch/citron 不读取该键，故对 Switch 隐藏此开关。
-        if (currentSystem?.isExternal == true && currentSystem?.id != RetroSystems.SWITCH.id) {
+        // Switch/citron 与 PSP 不读取该键，故对二者隐藏此开关。
+        if (currentSystem?.id == RetroSystems.PS2.id) {
             val ps2Prefs = remember(ctx) { ctx.getSharedPreferences("ARMSX2", android.content.Context.MODE_PRIVATE) }
             var version by remember { androidx.compose.runtime.mutableIntStateOf(0) }
             @Suppress("UNUSED_EXPRESSION") version

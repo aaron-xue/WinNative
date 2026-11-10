@@ -1,0 +1,48 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'org.ppsspp.ppsspp'
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 26
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+        // The upstream PPSSPP app defines a product flavor (normal/gold/vr/legacy)
+        // and reads BuildConfig.FLAVOR to detect VR devices. This module is always
+        // the normal (non-VR) build, so provide the constant directly.
+        buildConfigField 'String', 'FLAVOR', '"normal"'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    // The PSP native runtime (libppsspp_jni.so) is NOT bundled into the APK.
+    // It ships inside the Retro-Consoles bundle under `data/ppsspp/jniLibs/`
+    // and is extracted at runtime, then loaded directly via System.load
+    // (see PpssppBootstrap). Drop the jniLibs source set so it is no longer
+    // packaged.
+    sourceSets {
+        main {
+            jniLibs.srcDirs = []
+        }
+    }
+}
+
+dependencies {
+    implementation libs.appcompat
+    implementation libs.documentfile
+}

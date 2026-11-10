@@ -190,6 +190,7 @@ object RetroShortcuts {
             recordLaunchStats(context, shortcut)
             when (system.id) {
                 RetroSystems.PS2.id -> launchEmbeddedPs2(context, shortcut)
+                RetroSystems.PSP.id -> launchEmbeddedPsp(context, shortcut)
                 RetroSystems.SWITCH.id -> CitronEmbedLaunch.launch(context, shortcut)
                 else -> launchEmbeddedPs2(context, shortcut)
             }
@@ -325,6 +326,97 @@ object RetroShortcuts {
             }
         }
     }
+
+    private fun launchEmbeddedPsp(
+        context: Context,
+        shortcut: Shortcut,
+    ) {
+        val rom = File(romPath(shortcut))
+        if (!rom.isFile) {
+            Toast.makeText(context, context.getString(com.winlator.cmod.R.string.retro_rom_missing), Toast.LENGTH_LONG).show()
+            return
+        }
+        // PPSSPP Vulkan requires GLES 3.1
+        if (pspGpuSupported(context)) {
+            Toast.makeText(
+                context,
+                context.getString(com.winlator.cmod.R.string.retro_ps2_device_unsupported),
+                Toast.LENGTH_LONG,
+            ).show()
+            return
+        }
+        kotlin.concurrent.thread(name = "WnPspLaunch") {
+            val touchControls =
+                shortcut.getExtra(KEY_TOUCH_CONTROLS)
+                    .ifEmpty { if (RetroDefaults.touchControls(context, RetroSystems.PSP.id)) "1" else "0" } != "0"
+            val audio =
+                shortcut.getExtra(KEY_AUDIO)
+                    .ifEmpty { if (RetroDefaults.audio(context, RetroSystems.PSP.id)) "1" else "0" } != "0"
+            val overrideIni = writePspConfigOverride(context, touchControls, audio)
+
+            // PPSSPP boots the game from the data URI (parseIntent() quotes/decodes it
+            // automatically) and merges Winlator's settings through --appendconfig, which
+            // NativeApp.init() turns into Config::LoadAppendedConfig() before the game
+            // starts (and again after per-game settings load, so it always wins). The
+            // appended INI only overrides the keys written here, leaving the user's own
+            // ppsspp.ini intact.
+            val intent =
+                Intent().apply {
+                    setClassName(context, "com.wn.ppsspp.WnPpssppActivity")
+                    setData(android.net.Uri.fromFile(rom))
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra("org.ppsspp.ppsspp.Args", "--appendconfig=$overrideIni")
+                }
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                runCatching { context.startActivity(intent) }
+            }
+        }
+    }
+
+    private fun pspPrefs(context: Context) =
+        context.getSharedPreferences("ppsspp", Context.MODE_PRIVATE)
+
+    private fun writePspConfigOverride(
+        context: Context,
+        touchControls: Boolean,
+        audio: Boolean,
+    ): String {
+        val prefs = pspPrefs(context)
+        val backend =
+            if ((prefs.getString("wn.psp.renderer", "vulkan") ?: "vulkan").equals("opengl", true)) {
+                "OPENGL"
+            } else {
+                "VULKAN"
+            }
+        val resolution = prefs.getInt("wn.psp.resolution", 2).coerceIn(1, 5)
+        val frameskip = prefs.getInt("wn.psp.frameskip", 0).coerceIn(0, 3)
+
+        val ini =
+            buildString {
+                appendLine("[Graphics]")
+                appendLine("GraphicsBackend = $backend")
+                appendLine("InternalResolution = $resolution")
+                appendLine("FrameSkip = $frameskip")
+                appendLine()
+                appendLine("[Control]")
+                appendLine("ShowTouchControls = ${if (touchControls) "True" else "False"}")
+                appendLine()
+                appendLine("[Sound]")
+                appendLine("Enable = ${if (audio) "True" else "False"}")
+            }
+
+        val dir = File(context.getExternalFilesDir(null) ?: context.filesDir, "PSP/SYSTEM")
+        if (!dir.isDirectory) dir.mkdirs()
+        val out = File(dir, "winlator_ppsspp.ini")
+        FileUtils.writeString(out, ini)
+        return out.absolutePath
+    }
+
+    private fun pspGpuSupported(context: Context): Boolean =
+        runCatching {
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            am.deviceConfigurationInfo.glEsVersion.toDouble()
+        }.getOrDefault(Double.MAX_VALUE) < 3.1
 
     private fun ps2GpuSupported(context: Context): Boolean =
         runCatching {

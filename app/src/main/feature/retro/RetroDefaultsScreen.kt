@@ -504,7 +504,7 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                                 subtitle = stringResource(R.string.retro_gs_frame_generation_subtitle),
                                 ) { RetroDefaults.setFrameGen(context, sys, it); refresh++ }
                             }
-                            if (console.isExternal) {
+                            if (console.id == RetroSystems.PS2.id) {
                                 val ps2Prefs = context.getSharedPreferences("ARMSX2", android.content.Context.MODE_PRIVATE)
                                 val rendererKeys = listOf("vulkan", "opengl", "software")
                                 val rendererLabels = listOf(
@@ -788,6 +788,46 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                                     RetroSettingTextField(stringResource(R.string.retro_scr_secondary_dns), ps2Prefs.getString("wn.ps2.net.dns2", "").orEmpty(), stringResource(R.string.retro_scr_optional)) { ps2Prefs.edit().putString("wn.ps2.net.dns2", it).apply(); refresh++ }
                                     RetroSettingSwitch(stringResource(R.string.retro_gs_dnas_bypass), ps2Prefs.getBoolean(com.winlator.cmod.feature.retro.Ps2DnasBypass.PREF, true), subtitle = stringResource(R.string.retro_gs_dnas_bypass_subtitle)) { ps2Prefs.edit().putBoolean(com.winlator.cmod.feature.retro.Ps2DnasBypass.PREF, it).apply(); refresh++ }
                                     RetroSettingSwitch(stringResource(R.string.retro_scr_auto_ip_dhcp), ps2Prefs.getBoolean("wn.ps2.net.dhcp", true)) { ps2Prefs.edit().putBoolean("wn.ps2.net.dhcp", it).apply(); refresh++ }
+                                }
+                            }
+                            if (console.id == RetroSystems.PSP.id) {
+                                val pspPrefs = context.getSharedPreferences("ppsspp", android.content.Context.MODE_PRIVATE)
+                                RetroSettingGroup {
+                                    RetroSettingDropdown(
+                                    label = stringResource(R.string.retro_scr_renderer),
+                                    entries = listOf(
+                                    stringResource(R.string.retro_ps2_renderer_vulkan),
+                                    stringResource(R.string.retro_ps2_renderer_opengl),
+                                    ),
+                                    selectedIndex = listOf("vulkan", "opengl").indexOf(pspPrefs.getString("wn.psp.renderer", "vulkan")).coerceAtLeast(0),
+                                    onSelected = { pspPrefs.edit().putString("wn.psp.renderer", listOf("vulkan", "opengl")[it]).apply(); refresh++ },
+                                    )
+                                    val pspScales = listOf(1, 2, 3, 4, 5)
+                                    RetroSettingDropdown(
+                                    label = stringResource(R.string.retro_scr_upscale_resolution),
+                                    entries = pspScales.map { "${it}x" },
+                                    selectedIndex = pspScales.indexOf(pspPrefs.getInt("wn.psp.resolution", 2).coerceIn(1, 5)).coerceAtLeast(0),
+                                    onSelected = { pspPrefs.edit().putInt("wn.psp.resolution", pspScales[it]).apply(); refresh++ },
+                                    )
+                                    RetroSettingDropdown(
+                                    label = stringResource(R.string.retro_scr_frame_skip),
+                                    entries = listOf(
+                                    stringResource(R.string.retro_scr_skip_off),
+                                    stringResource(R.string.retro_scr_skip_1),
+                                    stringResource(R.string.retro_scr_skip_2),
+                                    stringResource(R.string.retro_scr_skip_3),
+                                    ),
+                                    selectedIndex = pspPrefs.getInt("wn.psp.frameskip", 0).coerceIn(0, 3),
+                                    onSelected = { pspPrefs.edit().putInt("wn.psp.frameskip", it).apply(); refresh++ },
+                                    )
+                                    RetroSettingSwitch(
+                                    stringResource(R.string.retro_scr_touch_controls),
+                                    RetroDefaults.touchControls(context, sys),
+                                    ) { RetroDefaults.setTouchControls(context, sys, it); refresh++ }
+                                    RetroSettingSwitch(
+                                    stringResource(R.string.retro_scr_sound),
+                                    RetroDefaults.audio(context, sys),
+                                    ) { RetroDefaults.setAudio(context, sys, it); refresh++ }
                                 }
                             }
                             if (!console.isExternal) {
