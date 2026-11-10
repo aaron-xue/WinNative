@@ -2728,6 +2728,17 @@ Installed path:
     <string name="retro_scr_fast_cdvd">Fast CDVD</string>
     <string name="retro_scr_touch_controls">On-screen touch controls</string>
     <string name="retro_scr_sound">Sound</string>
+    <string name="retro_scr_tex_filter">Texture Filter</string>
+    <string name="retro_scr_tex_filter_auto">Auto</string>
+    <string name="retro_scr_tex_filter_nearest">Nearest</string>
+    <string name="retro_scr_tex_filter_linear">Linear</string>
+    <string name="retro_scr_tex_filter_maxq">Auto Max Quality</string>
+    <string name="retro_scr_anisotropy">Anisotropic Filtering</string>
+    <string name="retro_scr_anisotropy_off">Off</string>
+    <string name="retro_scr_anisotropy_2x">2x</string>
+    <string name="retro_scr_anisotropy_4x">4x</string>
+    <string name="retro_scr_anisotropy_8x">8x</string>
+    <string name="retro_scr_anisotropy_16x">16x</string>
     <string name="retro_scr_swap_stereo">Swap Stereo Channels</string>
     <string name="retro_scr_hud_fps">HUD: FPS</string>
     <string name="retro_scr_hud_emulation_speed">HUD: Emulation Speed</string>

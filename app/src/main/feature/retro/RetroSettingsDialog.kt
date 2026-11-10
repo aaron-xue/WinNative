@@ -191,6 +191,18 @@ open class RetroSettingsDialog(
             }
         }
 
+    private fun syncPspConfigIfNeeded() {
+        val system = RetroShortcuts.systemForShortcut(shortcut)
+        if (system?.id != RetroSystems.PSP.id) return
+        RetroShortcuts.syncPspConfigFromGame(activity, shortcut)
+        // Refresh state after reading synced values from the updated shortcut.
+        state.pspRenderer = RetroShortcuts.pspRenderer(activity, shortcut)
+        state.pspResolution = RetroShortcuts.pspResolution(activity, shortcut)
+        state.pspFrameskip = RetroShortcuts.pspFrameskip(activity, shortcut)
+        state.pspTexFilter = RetroShortcuts.pspTexFilter(activity, shortcut)
+        state.pspAnisotropy = RetroShortcuts.pspAnisotropy(activity, shortcut)
+    }
+
     init {
         val composeView =
             ComposeView(activity).apply {
@@ -248,6 +260,7 @@ open class RetroSettingsDialog(
     }
 
     fun show() {
+        syncPspConfigIfNeeded()
         dialog.show()
         restorePaneNav?.invoke()
         restorePaneNav =

@@ -2471,6 +2471,17 @@
     <string name="retro_scr_fast_cdvd">快速 CDVD</string>
     <string name="retro_scr_touch_controls">屏幕触摸控制</string>
     <string name="retro_scr_sound">声音</string>
+    <string name="retro_scr_tex_filter">纹理过滤</string>
+    <string name="retro_scr_tex_filter_auto">自动</string>
+    <string name="retro_scr_tex_filter_nearest">邻近</string>
+    <string name="retro_scr_tex_filter_linear">线性</string>
+    <string name="retro_scr_tex_filter_maxq">自动最高质量</string>
+    <string name="retro_scr_anisotropy">各向异性过滤</string>
+    <string name="retro_scr_anisotropy_off">关闭</string>
+    <string name="retro_scr_anisotropy_2x">2x</string>
+    <string name="retro_scr_anisotropy_4x">4x</string>
+    <string name="retro_scr_anisotropy_8x">8x</string>
+    <string name="retro_scr_anisotropy_16x">16x</string>
     <string name="retro_scr_swap_stereo">交换立体声声道</string>
     <string name="retro_scr_hud_fps">HUD：FPS</string>
     <string name="retro_scr_hud_emulation_speed">HUD：模拟速度</string>

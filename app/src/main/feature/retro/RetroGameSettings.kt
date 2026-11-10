@@ -166,6 +166,28 @@ class RetroSettingsState(
         shortcut.getExtra(RetroShortcuts.KEY_AUDIO)
             .ifEmpty { if (context != null && sysId != null) (if (RetroDefaults.audio(context, sysId)) "1" else "0") else "1" } != "0",
     )
+    // PSP (PPSSPP) per-shortcut overrides. When unset, these fall back to the console-wide
+    // defaults stored in the "ppsspp" prefs (see RetroShortcuts.pspRenderer etc.).
+    var pspRenderer by mutableStateOf(
+        if (context != null) RetroShortcuts.pspRenderer(context, shortcut)
+        else shortcut.getExtra(RetroShortcuts.KEY_PSP_RENDERER).ifEmpty { "vulkan" },
+    )
+    var pspResolution by mutableIntStateOf(
+        if (context != null) RetroShortcuts.pspResolution(context, shortcut)
+        else shortcut.getExtra(RetroShortcuts.KEY_PSP_RESOLUTION).ifEmpty { "2" }.toIntOrNull() ?: 2,
+    )
+    var pspFrameskip by mutableIntStateOf(
+        if (context != null) RetroShortcuts.pspFrameskip(context, shortcut)
+        else shortcut.getExtra(RetroShortcuts.KEY_PSP_FRAMESKIP).ifEmpty { "0" }.toIntOrNull() ?: 0,
+    )
+    var pspTexFilter by mutableIntStateOf(
+        if (context != null) RetroShortcuts.pspTexFilter(context, shortcut)
+        else shortcut.getExtra(RetroShortcuts.KEY_PSP_TEX_FILTER).ifEmpty { "1" }.toIntOrNull() ?: 1,
+    )
+    var pspAnisotropy by mutableIntStateOf(
+        if (context != null) RetroShortcuts.pspAnisotropy(context, shortcut)
+        else shortcut.getExtra(RetroShortcuts.KEY_PSP_ANISOTROPY).ifEmpty { "4" }.toIntOrNull() ?: 4,
+    )
     var frameGen by mutableStateOf(
         if (context != null) {
             RetroFrameGen.enabled(context, shortcut, sysId)
@@ -258,6 +280,11 @@ class RetroSettingsState(
         shortcut.putExtra(RetroShortcuts.KEY_HDD_ENABLE, if (hddEnable) "1" else "0")
         shortcut.putExtra(RetroShortcuts.KEY_AUDIO, if (audio) "1" else "0")
         shortcut.putExtra(RetroShortcuts.KEY_HUD, if (hud) "1" else "0")
+        shortcut.putExtra(RetroShortcuts.KEY_PSP_RENDERER, pspRenderer)
+        shortcut.putExtra(RetroShortcuts.KEY_PSP_RESOLUTION, pspResolution.toString())
+        shortcut.putExtra(RetroShortcuts.KEY_PSP_FRAMESKIP, pspFrameskip.toString())
+        shortcut.putExtra(RetroShortcuts.KEY_PSP_TEX_FILTER, pspTexFilter.toString())
+        shortcut.putExtra(RetroShortcuts.KEY_PSP_ANISOTROPY, pspAnisotropy.toString())
         shortcut.putExtra(FrameGenOptions.KEY_ENABLED, if (frameGen) "1" else "0")
         shortcut.putExtra(FrameGenOptions.KEY_MULTIPLIER, frameGenMultiplier.toString())
         shortcut.putExtra(FrameGenOptions.KEY_TARGET_RATE, frameGenTargetRate.toString())
@@ -303,26 +330,34 @@ private fun buildRetroSections(
 ): List<RetroSection> {
     val sections = mutableListOf<RetroSection>()
     val systemId = state.system?.id
+    // PSP (PPSSPP) exposes its own small, PPSSPP-specific option set; the PS2/Switch
+    // sections (frame gen, performance hacks, HUD, cheats, netplay) do not apply to it.
+    val isPsp = systemId == RetroSystems.PSP.id
     sections += RetroSection(RetroSectionId.GENERAL, Icons.Outlined.Tune, R.string.retro_gs_section_general)
     sections += RetroSection(RetroSectionId.GRAPHICS, Icons.Outlined.Monitor, R.string.retro_gs_section_graphics)
-    sections += RetroSection(
-        RetroSectionId.FRAMEGEN,
-        Icons.Outlined.AutoAwesomeMotion,
-        R.string.session_drawer_frame_generation,
-    )
-    if (state.system?.isExternal == true) {
+    if (!isPsp) {
+        sections += RetroSection(
+            RetroSectionId.FRAMEGEN,
+            Icons.Outlined.AutoAwesomeMotion,
+            R.string.session_drawer_frame_generation,
+        )
+    }
+    if (state.system?.isExternal == true && !isPsp) {
         sections += RetroSection(RetroSectionId.PERFORMANCE, Icons.Outlined.Bolt, R.string.retro_gs_section_performance)
     }
-    sections += RetroSection(RetroSectionId.HUD, Icons.Outlined.Speed, R.string.retro_gs_section_hud)
+    if (!isPsp) {
+        sections += RetroSection(RetroSectionId.HUD, Icons.Outlined.Speed, R.string.retro_gs_section_hud)
+    }
     sections += RetroSection(RetroSectionId.INPUT, Icons.Outlined.SportsEsports, R.string.retro_gs_section_input)
     sections += RetroSection(RetroSectionId.AUDIO, Icons.AutoMirrored.Outlined.VolumeUp, R.string.retro_gs_section_audio)
-    if (RetroOnlineSupport.supportsDev9(systemId) ||
-        RetroOnlineSupport.supportsMultiplayerUi(systemId) ||
-        RetroOnlineSupport.supportsDolphinNetplay(systemId)
+    if (!isPsp &&
+        (RetroOnlineSupport.supportsDev9(systemId) ||
+            RetroOnlineSupport.supportsMultiplayerUi(systemId) ||
+            RetroOnlineSupport.supportsDolphinNetplay(systemId))
     ) {
         sections += RetroSection(RetroSectionId.ONLINE, Icons.Outlined.Public, R.string.retro_gs_section_online)
     }
-    if (state.system?.isExternal == true) {
+    if (state.system?.isExternal == true && !isPsp) {
         sections += RetroSection(RetroSectionId.CHEATS, Icons.Outlined.Code, R.string.retro_gs_group_cheats)
     }
     // A caller (e.g. the Switch-specific dialog) may restrict the tab list.
@@ -596,7 +631,12 @@ private fun RetroSectionContent(
             ) {
                 when (sections.getOrNull(idx)?.id) {
                     RetroSectionId.GENERAL -> RetroGeneralSection(state, onPickArtwork, onRemoveArtwork, onImportBios)
-                    RetroSectionId.GRAPHICS -> if (state.system?.id == RetroSystems.SWITCH.id) RetroCitronGraphicsSection() else RetroGraphicsSection(state)
+                    RetroSectionId.GRAPHICS ->
+                        when {
+                            state.system?.id == RetroSystems.SWITCH.id -> RetroCitronGraphicsSection()
+                            state.system?.id == RetroSystems.PSP.id -> RetroPspGraphicsSection(state)
+                            else -> RetroGraphicsSection(state)
+                        }
                     RetroSectionId.FRAMEGEN -> RetroFrameGenerationGroup(state)
                     RetroSectionId.PERFORMANCE -> if (state.system?.id == RetroSystems.SWITCH.id) RetroCitronPerformanceSection() else RetroPs2PerformanceSection()
                     RetroSectionId.HUD ->
@@ -605,8 +645,13 @@ private fun RetroSectionContent(
                         } else {
                             RetroLibretroHudSection(state.hud) { state.hud = it }
                         }
-                    RetroSectionId.INPUT -> RetroInputSection(state)
-                    RetroSectionId.AUDIO -> if (state.system?.id == RetroSystems.SWITCH.id) RetroCitronSettingsSection() else RetroAudioSection(state)
+                    RetroSectionId.INPUT -> if (state.system?.id == RetroSystems.PSP.id) RetroPspInputSection(state) else RetroInputSection(state)
+                    RetroSectionId.AUDIO ->
+                        when {
+                            state.system?.id == RetroSystems.SWITCH.id -> RetroCitronSettingsSection()
+                            state.system?.id == RetroSystems.PSP.id -> RetroPspAudioSection(state)
+                            else -> RetroAudioSection(state)
+                        }
                     RetroSectionId.ONLINE -> {
                         when {
                             RetroOnlineSupport.supportsDev9(state.system?.id) ->
@@ -1899,6 +1944,118 @@ private fun RetroPs2GraphicsSection() {
         ) { putInt("wn.ps2.frameskip", it) }
         RetroSettingSwitch(stringResource(R.string.retro_gs_widescreen_patches), prefs.getBoolean("wn.ps2.widescreen", false)) { putBool("wn.ps2.widescreen", it) }
         RetroSettingSwitch(stringResource(R.string.retro_gs_no_interlace_patches), prefs.getBoolean("wn.ps2.nointerlace", false)) { putBool("wn.ps2.nointerlace", it) }
+    }
+}
+
+@Composable
+private fun RetroPspGraphicsSection(state: RetroSettingsState) {
+    val pspScales = listOf(1, 2, 3, 4, 5)
+    val rendererKeys = listOf("vulkan", "opengl")
+    val rendererLabels = listOf(
+        stringResource(R.string.retro_gs_renderer_vulkan),
+        stringResource(R.string.retro_gs_renderer_opengl),
+    )
+    val texFilterLabels = listOf(
+        stringResource(R.string.retro_scr_tex_filter_auto),
+        stringResource(R.string.retro_scr_tex_filter_nearest),
+        stringResource(R.string.retro_scr_tex_filter_linear),
+        stringResource(R.string.retro_scr_tex_filter_maxq),
+    )
+    val anisotropyLabels = listOf(
+        stringResource(R.string.retro_scr_anisotropy_off),
+        stringResource(R.string.retro_scr_anisotropy_2x),
+        stringResource(R.string.retro_scr_anisotropy_4x),
+        stringResource(R.string.retro_scr_anisotropy_8x),
+        stringResource(R.string.retro_scr_anisotropy_16x),
+    )
+    val frameSkipLabels = listOf(
+        stringResource(R.string.retro_gs_off),
+        "1", "2", "3",
+    )
+
+    RetroSettingGroup {
+        RetroGroupTitle(stringResource(R.string.retro_gs_group_video))
+        RetroSettingDropdown(
+            label = stringResource(R.string.retro_scr_renderer),
+            entries = rendererLabels,
+            selectedIndex = rendererKeys.indexOf(state.pspRenderer).coerceAtLeast(0),
+            onSelected = { state.pspRenderer = rendererKeys[it] },
+        )
+        RetroSettingDropdown(
+            label = stringResource(R.string.retro_scr_upscale_resolution),
+            entries = pspScales.map { "${it}x PSP" },
+            selectedIndex = pspScales.indexOf(state.pspResolution).coerceAtLeast(0),
+            onSelected = { state.pspResolution = pspScales[it] },
+        )
+        RetroSettingDropdown(
+            label = stringResource(R.string.retro_scr_frame_skip),
+            entries = frameSkipLabels,
+            selectedIndex = state.pspFrameskip.coerceIn(0, 3),
+            onSelected = { state.pspFrameskip = it },
+        )
+        RetroSettingDropdown(
+            label = stringResource(R.string.retro_scr_tex_filter),
+            entries = texFilterLabels,
+            selectedIndex = state.pspTexFilter.coerceIn(0, 3),
+            onSelected = { state.pspTexFilter = it },
+        )
+        RetroSettingDropdown(
+            label = stringResource(R.string.retro_scr_anisotropy),
+            entries = anisotropyLabels,
+            selectedIndex = state.pspAnisotropy.coerceIn(0, 4),
+            onSelected = { state.pspAnisotropy = it },
+        )
+    }
+}
+
+@Composable
+private fun RetroPspInputSection(state: RetroSettingsState) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs =
+        remember(context) {
+            androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
+        }
+    var haptic by remember { mutableStateOf(prefs.getFloat("retro_haptic_strength", 0.4f)) }
+    RetroSettingGroup {
+        RetroGroupTitle(stringResource(R.string.retro_gs_group_input))
+        RetroSettingSwitch(
+            label = stringResource(R.string.retro_gs_on_screen_controls),
+            checked = state.touchControls,
+            onCheckedChange = { state.touchControls = it },
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = TightGap),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.retro_gs_haptic_feedback),
+                color = TextPrimary,
+                fontSize = ValueSize,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                "${(haptic * 100).toInt()}%",
+                color = TextSecondary,
+                fontSize = ValueSize,
+            )
+        }
+        androidx.compose.material3.Slider(
+            value = haptic,
+            onValueChange = { value ->
+                haptic = value
+                prefs.edit().putFloat("retro_haptic_strength", value).apply()
+            },
+            valueRange = 0f..1f,
+            modifier = Modifier.fillMaxWidth().height(26.dp),
+        )
+    }
+}
+
+@Composable
+private fun RetroPspAudioSection(state: RetroSettingsState) {
+    RetroSettingGroup {
+        RetroGroupTitle(stringResource(R.string.retro_gs_group_audio))
+        RetroSettingSwitch(stringResource(R.string.retro_gs_mute), !state.audio) { state.audio = !it }
     }
 }
 

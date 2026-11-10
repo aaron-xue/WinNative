@@ -24,6 +24,12 @@ object RetroShortcuts {
     const val KEY_AUDIO = "retro_audio"
     const val KEY_HUD = "retro_hud"
 
+    const val KEY_PSP_RENDERER = "retro_psp_renderer"
+    const val KEY_PSP_RESOLUTION = "retro_psp_resolution"
+    const val KEY_PSP_FRAMESKIP = "retro_psp_frameskip"
+    const val KEY_PSP_TEX_FILTER = "retro_psp_tex_filter"
+    const val KEY_PSP_ANISOTROPY = "retro_psp_anisotropy"
+
     const val EXTRA_PS2_ROM_PATH = "wn_ps2_rom_path"
     const val EXTRA_PS2_GAME_NAME = "wn_ps2_game_name"
     const val EXTRA_PS2_SHORTCUT_PATH = "wn_ps2_shortcut_path"
@@ -347,13 +353,7 @@ object RetroShortcuts {
             return
         }
         kotlin.concurrent.thread(name = "WnPspLaunch") {
-            val touchControls =
-                shortcut.getExtra(KEY_TOUCH_CONTROLS)
-                    .ifEmpty { if (RetroDefaults.touchControls(context, RetroSystems.PSP.id)) "1" else "0" } != "0"
-            val audio =
-                shortcut.getExtra(KEY_AUDIO)
-                    .ifEmpty { if (RetroDefaults.audio(context, RetroSystems.PSP.id)) "1" else "0" } != "0"
-            val overrideIni = writePspConfigOverride(context, touchControls, audio)
+            val overrideIni = writePspConfigOverride(context, shortcut)
 
             // PPSSPP boots the game from the data URI (parseIntent() quotes/decodes it
             // automatically) and merges Winlator's settings through --appendconfig, which
@@ -377,20 +377,54 @@ object RetroShortcuts {
     private fun pspPrefs(context: Context) =
         context.getSharedPreferences("ppsspp", Context.MODE_PRIVATE)
 
+    // Per-shortcut override wins; otherwise fall back to the console-wide default stored in the
+    // "ppsspp" prefs (written by RetroDefaultsScreen). Values mirror PPSSPP's own config keys.
+    fun pspRenderer(context: Context, shortcut: Shortcut): String =
+        shortcut
+            .getExtra(KEY_PSP_RENDERER)
+            .ifEmpty { pspPrefs(context).getString("wn.psp.renderer", "vulkan") ?: "vulkan" }
+            .let { if (it.equals("opengl", true)) "opengl" else "vulkan" }
+
+    fun pspResolution(context: Context, shortcut: Shortcut): Int =
+        (
+            shortcut.getExtra(KEY_PSP_RESOLUTION)
+                .ifEmpty { pspPrefs(context).getInt("wn.psp.resolution", 2).toString() }
+        ).toIntOrNull()?.coerceIn(1, 5) ?: 2
+
+    fun pspFrameskip(context: Context, shortcut: Shortcut): Int =
+        (
+            shortcut.getExtra(KEY_PSP_FRAMESKIP)
+                .ifEmpty { pspPrefs(context).getInt("wn.psp.frameskip", 0).toString() }
+        ).toIntOrNull()?.coerceIn(0, 3) ?: 0
+
+    fun pspTexFilter(context: Context, shortcut: Shortcut): Int =
+        (
+            shortcut.getExtra(KEY_PSP_TEX_FILTER)
+                .ifEmpty { pspPrefs(context).getInt("wn.psp.texfilter", 1).toString() }
+        ).toIntOrNull()?.coerceIn(0, 3) ?: 1
+
+    fun pspAnisotropy(context: Context, shortcut: Shortcut): Int =
+        (
+            shortcut.getExtra(KEY_PSP_ANISOTROPY)
+                .ifEmpty { pspPrefs(context).getInt("wn.psp.anisotropy", 4).toString() }
+        ).toIntOrNull()?.coerceIn(0, 4) ?: 4
+
     private fun writePspConfigOverride(
         context: Context,
-        touchControls: Boolean,
-        audio: Boolean,
+        shortcut: Shortcut,
     ): String {
-        val prefs = pspPrefs(context)
-        val backend =
-            if ((prefs.getString("wn.psp.renderer", "vulkan") ?: "vulkan").equals("opengl", true)) {
-                "OPENGL"
-            } else {
-                "VULKAN"
-            }
-        val resolution = prefs.getInt("wn.psp.resolution", 2).coerceIn(1, 5)
-        val frameskip = prefs.getInt("wn.psp.frameskip", 0).coerceIn(0, 3)
+        val backend = if (pspRenderer(context, shortcut) == "opengl") "OPENGL" else "VULKAN"
+        val resolution = pspResolution(context, shortcut)
+        val frameskip = pspFrameskip(context, shortcut)
+        // PPSSPP TextureFiltering is 1-based (1=AUTO..4=MAX_QUALITY) while Winlator is 0-based.
+        val texFilter = pspTexFilter(context, shortcut) + 1
+        val anisotropy = pspAnisotropy(context, shortcut)
+        val touchControls =
+            shortcut.getExtra(KEY_TOUCH_CONTROLS)
+                .ifEmpty { if (RetroDefaults.touchControls(context, RetroSystems.PSP.id)) "1" else "0" } != "0"
+        val audio =
+            shortcut.getExtra(KEY_AUDIO)
+                .ifEmpty { if (RetroDefaults.audio(context, RetroSystems.PSP.id)) "1" else "0" } != "0"
 
         val langTag = LocaleHelper.getAppliedLanguageTag()
         // Map Winlator's BCP-47 tag to PPSSPP's langregion.ini key.
@@ -409,6 +443,8 @@ object RetroShortcuts {
                 appendLine("GraphicsBackend = $backend")
                 appendLine("InternalResolution = $resolution")
                 appendLine("FrameSkip = $frameskip")
+                appendLine("TextureFiltering = $texFilter")
+                appendLine("AnisotropyLevel = $anisotropy")
                 appendLine()
                 appendLine("[Control]")
                 appendLine("ShowTouchControls = ${if (touchControls) "True" else "False"}")
@@ -427,6 +463,59 @@ object RetroShortcuts {
         val out = File(dir, "winlator_ppsspp.ini")
         FileUtils.writeString(out, ini)
         return out.absolutePath
+    }
+
+    private fun ppssppConfigFile(context: Context): File =
+        File(android.os.Environment.getExternalStorageDirectory(), "PSP/SYSTEM/ppsspp.ini")
+
+    fun syncPspConfigFromGame(context: Context, shortcut: Shortcut) {
+        val iniFile = ppssppConfigFile(context)
+        if (!iniFile.isFile) return
+
+        val iniContent = FileUtils.readString(iniFile)
+        val renderer = parseIniValue(iniContent, "Graphics", "GraphicsBackend", "VULKAN").let {
+            // PPSSPP stores enums as "3 (VULKAN)"; match the human-readable suffix.
+            if (it.contains("OPENGL", true)) "opengl" else "vulkan"
+        }
+        // PPSSPP InternalResolution: 0=Auto, 1=1x, 2=2x... but Winlator scales are 1~5 (no Auto).
+        // Map 0→1 (native), and clamp 1-5 as-is.
+        val pspRawRes = parseIniValue(iniContent, "Graphics", "InternalResolution", "1").toIntOrNull() ?: 1
+        val resolution = if (pspRawRes <= 0) 1 else pspRawRes.coerceIn(1, 5)
+        val frameskip = parseIniValue(iniContent, "Graphics", "FrameSkip", "0").toIntOrNull()?.coerceIn(0, 3) ?: 0
+        // PPSSPP TextureFiltering: 1=AUTO, 2=NEAREST, 3=LINEAR, 4=MAX_QUALITY.
+        // Winlator indexes are 0-based, subtract 1.
+        val pspRawTexFilter = parseIniValue(iniContent, "Graphics", "TextureFiltering", "1").toIntOrNull() ?: 1
+        val texFilter = (pspRawTexFilter - 1).coerceIn(0, 3)
+        // PPSSPP AnisotropyLevel: 0=off, 1=2x, 2=4x, 3=8x, 4=16x, matches Winlator 0-4 exactly.
+        val anisotropy = parseIniValue(iniContent, "Graphics", "AnisotropyLevel", "0").toIntOrNull()?.coerceIn(0, 4) ?: 0
+
+        shortcut.putExtra(KEY_PSP_RENDERER, renderer)
+        shortcut.putExtra(KEY_PSP_RESOLUTION, resolution.toString())
+        shortcut.putExtra(KEY_PSP_FRAMESKIP, frameskip.toString())
+        shortcut.putExtra(KEY_PSP_TEX_FILTER, texFilter.toString())
+        shortcut.putExtra(KEY_PSP_ANISOTROPY, anisotropy.toString())
+        shortcut.saveData()
+    }
+
+    private fun parseIniValue(content: String, section: String, key: String, defaultValue: String): String {
+        val targetSectionMarker = "[$section]"
+        val lines = content.lineSequence()
+        var inTargetSection = false
+        for (line in lines) {
+            val trimLine = line.trim()
+            if (trimLine.startsWith("[")) {
+                inTargetSection = trimLine == targetSectionMarker
+                continue
+            }
+            if (!inTargetSection) continue
+            val eqPos = trimLine.indexOf('=')
+            if (eqPos <= 0) continue
+            val k = trimLine.substring(0, eqPos).trim()
+            if (k == key) {
+                return trimLine.substring(eqPos + 1).trim()
+            }
+        }
+        return defaultValue
     }
 
     private fun pspGpuSupported(context: Context): Boolean =

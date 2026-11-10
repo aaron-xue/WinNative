@@ -820,6 +820,29 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                                     selectedIndex = pspPrefs.getInt("wn.psp.frameskip", 0).coerceIn(0, 3),
                                     onSelected = { pspPrefs.edit().putInt("wn.psp.frameskip", it).apply(); refresh++ },
                                     )
+                                    RetroSettingDropdown(
+                                    label = stringResource(R.string.retro_scr_tex_filter),
+                                    entries = listOf(
+                                    stringResource(R.string.retro_scr_tex_filter_auto),
+                                    stringResource(R.string.retro_scr_tex_filter_nearest),
+                                    stringResource(R.string.retro_scr_tex_filter_linear),
+                                    stringResource(R.string.retro_scr_tex_filter_maxq),
+                                    ),
+                                    selectedIndex = pspPrefs.getInt("wn.psp.texfilter", 1).coerceIn(0, 3),
+                                    onSelected = { pspPrefs.edit().putInt("wn.psp.texfilter", it).apply(); refresh++ },
+                                    )
+                                    RetroSettingDropdown(
+                                    label = stringResource(R.string.retro_scr_anisotropy),
+                                    entries = listOf(
+                                    stringResource(R.string.retro_scr_anisotropy_off),
+                                    stringResource(R.string.retro_scr_anisotropy_2x),
+                                    stringResource(R.string.retro_scr_anisotropy_4x),
+                                    stringResource(R.string.retro_scr_anisotropy_8x),
+                                    stringResource(R.string.retro_scr_anisotropy_16x),
+                                    ),
+                                    selectedIndex = pspPrefs.getInt("wn.psp.anisotropy", 4).coerceIn(0, 4),
+                                    onSelected = { pspPrefs.edit().putInt("wn.psp.anisotropy", it).apply(); refresh++ },
+                                    )
                                     RetroSettingSwitch(
                                     stringResource(R.string.retro_scr_touch_controls),
                                     RetroDefaults.touchControls(context, sys),
