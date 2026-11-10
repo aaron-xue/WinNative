@@ -23,6 +23,7 @@
             android:name="com.wn.ppsspp.WnPpssppActivity"
             android:process=":psp"
             android:exported="false"
+            android:screenOrientation="sensorLandscape"
             android:configChanges="locale|keyboard|keyboardHidden|navigation|uiMode|orientation|screenSize|screenLayout|smallestScreenSize|density"
             android:theme="@style/ppsspp_style"
             android:launchMode="singleInstance"

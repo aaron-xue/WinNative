@@ -495,18 +495,15 @@ public class PpssppActivity extends AppCompatActivity implements SensorEventList
 		}
 		String apkFilePath = appInfo.sourceDir;
 
-		// Assets are loaded from the Retro-Consoles bundle's data/ppsspp/assets dir
-		// instead of from inside the APK. PpssppActivity's NativeApp.init() normally
-		// receives the APK path (appInfo.sourceDir) so the native side can open it as a
-		// ZipFileReader. Here we pass the extracted assets dir; PPSSPP's native VFS falls
-		// back to DirectoryReader and serves the exact same "assets/..." paths. This keeps
-		// the native runtime fully unchanged.
+		// The bundle assets are extracted to a plain directory under filesDir (no APK/ZIP).
+		// The patched native runtime detects a directory path and registers a DirectoryReader
+		// for it, so assets (compat.ini, fonts, shaders, ...) load straight from disk.
 		File pspAssetsDir = PpssppBootstrap.INSTANCE.findPspAssetsDir(this);
-		if (pspAssetsDir != null && pspAssetsDir.isDirectory()) {
+		if (pspAssetsDir != null) {
 			apkFilePath = pspAssetsDir.getAbsolutePath();
 			Log.i(TAG, "Loading PPSSPP assets from bundle dir: " + apkFilePath);
 		} else {
-			Log.w(TAG, "PPSSPP bundle assets dir not found, falling back to APK path: " + apkFilePath);
+			Log.w(TAG, "PPSSPP bundle assets not available, falling back to APK path: " + apkFilePath);
 		}
 
 		File cacheDirFile = getCacheDir();
@@ -622,7 +619,8 @@ public class PpssppActivity extends AppCompatActivity implements SensorEventList
 		int nativeRotation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
 		switch (rot) {
 			case 0:
-				nativeRotation = ActivityInfo.SCREEN_ORIENTATION_SENSOR;
+				// Default "Auto" must not follow the device into portrait; force landscape.
+				nativeRotation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
 				break;
 			case 1:
 				nativeRotation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;

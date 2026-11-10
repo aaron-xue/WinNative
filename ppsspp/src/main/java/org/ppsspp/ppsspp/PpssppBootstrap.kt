@@ -86,10 +86,10 @@ object PpssppBootstrap {
     }
 
     /**
-     * Returns the bundle assets dir for PPSSPP. This points directly to the extracted
-     * `data/ppsspp/assets` directory inside the Retro-Consoles bundle, so PPSSPP
-     * can use DirectoryReader instead of ZipFileReader to load its assets without
-     * needing the assets inside an APK. No PPSSPP source changes required.
+     * Returns the extracted bundle assets dir for PPSSPP
+     * (`data/ppsspp/assets` inside the Retro-Consoles bundle). This directory is passed
+     * straight to NativeApp.init(); the patched native runtime registers a DirectoryReader
+     * for it, so assets are served directly from disk (no zip/APK packaging).
      */
     fun findPspAssetsDir(context: Context): File? {
         val root = File(context.filesDir, "retro/bundle")
