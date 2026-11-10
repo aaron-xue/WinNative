@@ -1,9 +1,11 @@
 package com.wn.ppsspp;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.util.Log;
 import org.ppsspp.ppsspp.PpssppActivity;
 import org.ppsspp.ppsspp.PpssppBootstrap;
+import org.ppsspp.ppsspp.PspHost;
 
 /**
  * Thin bootstrap Activity that inherits from the stock PPSSPP PpssppActivity.
@@ -34,5 +36,25 @@ public class WnPpssppActivity extends PpssppActivity {
         // The stock PpssppActivity guards several native entry points behind its
         // static `libraryLoaded` flag. Flip it on now that the .so is actually loaded.
         PpssppActivity.CheckABIAndLoadLibrary();
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        // Install frame generation from the launch intent (written by
+        // RetroFrameGen.writeInto) before any surface is created so the first
+        // surfaceChanged can wrap the output surface.
+        com.winlator.cmod.shared.framegen.FrameGen.installFromIntent(this, getIntent());
+
+        super.onCreate(savedInstanceState);
+
+        com.winlator.cmod.shared.framegen.FrameGen.applyDisplayMode(this);
+
+        // The host app (PspGameOverlay.install()) registered the HUD overlay in this
+        // process; attach it above PPSSPP's surface now that the content view exists.
+        kotlin.jvm.functions.Function1<android.app.Activity, kotlin.Unit> attach =
+            PspHost.INSTANCE.getAttachOverlay();
+        if (attach != null) {
+            attach.invoke(this);
+        }
     }
 }

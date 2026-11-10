@@ -367,6 +367,8 @@ object RetroShortcuts {
                     setData(android.net.Uri.fromFile(rom))
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     putExtra("org.ppsspp.ppsspp.Args", "--appendconfig=$overrideIni --pause-menu-exit=1")
+                    putExtra(PspGameOverlay.EXTRA_PSP_HUD, RetroHudSupport.hudEnabled(context, shortcut, RetroSystems.PSP.id))
+                    RetroFrameGen.writeInto(context, this, shortcut, RetroSystems.PSP.id)
                 }
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 runCatching { context.startActivity(intent) }

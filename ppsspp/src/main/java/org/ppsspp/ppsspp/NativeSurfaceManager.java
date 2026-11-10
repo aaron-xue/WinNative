@@ -121,11 +121,18 @@ public class NativeSurfaceManager implements SurfaceHolder.Callback {
 		}
 
 		reportSurfaceSize(width, height);
-		activity.notifySurface(holder.getSurface());
+
+		// Wrap the output surface with the frame-generation producer surface when
+		// frame generation is enabled for this game, so PPSSPP renders into the
+		// interpolated producer instead of the real window surface.
+		android.view.Surface raw = holder.getSurface();
+		android.view.Surface output = com.winlator.cmod.shared.framegen.FrameGen.wrap(raw, width, height);
+		activity.notifySurface(output != null ? output : raw);
 	}
 
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
+		com.winlator.cmod.shared.framegen.FrameGen.release();
 		activity.notifySurface(null);
 		reportedWidth = 0;
 		reportedHeight = 0;

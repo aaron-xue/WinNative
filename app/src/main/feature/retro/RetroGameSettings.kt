@@ -331,23 +331,20 @@ private fun buildRetroSections(
     val sections = mutableListOf<RetroSection>()
     val systemId = state.system?.id
     // PSP (PPSSPP) exposes its own small, PPSSPP-specific option set; the PS2/Switch
-    // sections (frame gen, performance hacks, HUD, cheats, netplay) do not apply to it.
+    // performance-hack / cheat / netplay sections do not apply to it. Frame generation
+    // and HUD are host-side overlays, so they stay available for PSP too.
     val isPsp = systemId == RetroSystems.PSP.id
     sections += RetroSection(RetroSectionId.GENERAL, Icons.Outlined.Tune, R.string.retro_gs_section_general)
     sections += RetroSection(RetroSectionId.GRAPHICS, Icons.Outlined.Monitor, R.string.retro_gs_section_graphics)
-    if (!isPsp) {
-        sections += RetroSection(
-            RetroSectionId.FRAMEGEN,
-            Icons.Outlined.AutoAwesomeMotion,
-            R.string.session_drawer_frame_generation,
-        )
-    }
+    sections += RetroSection(
+        RetroSectionId.FRAMEGEN,
+        Icons.Outlined.AutoAwesomeMotion,
+        R.string.session_drawer_frame_generation,
+    )
     if (state.system?.isExternal == true && !isPsp) {
         sections += RetroSection(RetroSectionId.PERFORMANCE, Icons.Outlined.Bolt, R.string.retro_gs_section_performance)
     }
-    if (!isPsp) {
-        sections += RetroSection(RetroSectionId.HUD, Icons.Outlined.Speed, R.string.retro_gs_section_hud)
-    }
+    sections += RetroSection(RetroSectionId.HUD, Icons.Outlined.Speed, R.string.retro_gs_section_hud)
     sections += RetroSection(RetroSectionId.INPUT, Icons.Outlined.SportsEsports, R.string.retro_gs_section_input)
     sections += RetroSection(RetroSectionId.AUDIO, Icons.AutoMirrored.Outlined.VolumeUp, R.string.retro_gs_section_audio)
     if (!isPsp &&
@@ -640,10 +637,13 @@ private fun RetroSectionContent(
                     RetroSectionId.FRAMEGEN -> RetroFrameGenerationGroup(state)
                     RetroSectionId.PERFORMANCE -> if (state.system?.id == RetroSystems.SWITCH.id) RetroCitronPerformanceSection() else RetroPs2PerformanceSection()
                     RetroSectionId.HUD ->
-                        if (state.system?.isExternal == true) {
-                            RetroPs2HudSection(state)
-                        } else {
-                            RetroLibretroHudSection(state.hud) { state.hud = it }
+                        when {
+                            state.system?.id == RetroSystems.PSP.id ->
+                                RetroLibretroHudSection(state.hud) { state.hud = it }
+                            state.system?.isExternal == true ->
+                                RetroPs2HudSection(state)
+                            else ->
+                                RetroLibretroHudSection(state.hud) { state.hud = it }
                         }
                     RetroSectionId.INPUT -> if (state.system?.id == RetroSystems.PSP.id) RetroPspInputSection(state) else RetroInputSection(state)
                     RetroSectionId.AUDIO ->
