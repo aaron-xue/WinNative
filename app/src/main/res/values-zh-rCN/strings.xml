@@ -791,6 +791,7 @@
     <string name="session_display_fps_label">FPS：</string>
     <string name="session_display_renderer_label">渲染器：</string>
     <string name="session_display_gpu_label">GPU：</string>
+    <string name="session_display_direct_composition">直接合成（零拷贝）</string>
     <string name="session_display_ram_label">内存：</string>
     <string name="session_display_ram_usage_format">已使用 %1$s GB / 共 %2$s</string>
 

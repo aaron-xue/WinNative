@@ -447,6 +447,14 @@ class ShortcutSettingsComposeDialog private constructor(
             if (container.isUseUnixLibs) "1" else "0"
         ) == "1"
 
+        // Direct Composition (per-shortcut override of the container setting).
+        // Falls back to the container's value when the shortcut doesn't override.
+        val directComposition = getShortcutSetting(
+            Container.EXTRA_DIRECT_COMPOSITION,
+            if (container.isDirectCompositionEnabled()) "1" else "0"
+        )
+        state.directComposition.value = directComposition == "1"
+
         // LC_ALL — fall back to the device locale when neither the shortcut nor
         // the container has a stored value (mirrors the container dialog).
         state.lcAll.value = getShortcutSetting("lc_all", container.getLC_ALL())
@@ -1238,6 +1246,13 @@ class ShortcutSettingsComposeDialog private constructor(
                 "useUnixLibs",
                 if (state.useUnixLibs.value) "1" else "0",
                 if (container.isUseUnixLibs) "1" else "0"
+            )
+
+            // Direct Composition (per-shortcut override)
+            hasContainerOverride = hasContainerOverride or saveOverride(
+                Container.EXTRA_DIRECT_COMPOSITION,
+                if (state.directComposition.value) "1" else "0",
+                if (container.isDirectCompositionEnabled()) "1" else "0"
             )
 
             // Win components
@@ -2479,6 +2494,7 @@ class ShortcutSettingsComposeDialog private constructor(
             .takeUnless { it.isNullOrEmpty() }
             ?: LocaleEnv.deriveFromDevice()
         state.fullscreenStretched.value = container.isFullscreenStretched
+        state.directComposition.value = container.isDirectCompositionEnabled()
         state.useUnixLibs.value = container.isUseUnixLibs
 
         val startupEntries = state.startupSelectionEntries.value

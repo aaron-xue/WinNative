@@ -7,6 +7,7 @@ import com.winlator.cmod.shared.math.Mathf;
 import com.winlator.cmod.shared.util.Callback;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Drawable extends XResource {
   public final short width;
@@ -25,6 +26,7 @@ public class Drawable extends XResource {
   private Runnable onDrawListener;
   private Callback<Drawable> onDestroyListener;
   public final Object renderLock = new Object();
+  private final AtomicInteger acquireFenceFd = new AtomicInteger(-1);
 
   static {
     System.loadLibrary("winlator");
@@ -140,6 +142,20 @@ public class Drawable extends XResource {
 
   public boolean isDirectScanout() {
     return directScanout;
+  }
+
+  public int takeAcquireFenceFd() {
+    return acquireFenceFd.getAndSet(-1);
+  }
+
+  public void setAcquireFenceFd(int fd) {
+    int prior = acquireFenceFd.getAndSet(fd);
+    if (prior >= 0 && prior != fd) {
+      try {
+        android.os.ParcelFileDescriptor.adoptFd(prior).close();
+      } catch (java.io.IOException ignored) {
+      }
+    }
   }
 
   private short getStride() {

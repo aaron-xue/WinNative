@@ -120,6 +120,10 @@ public class GPUImage extends Texture {
         return virtualData;
     }
 
+    public long getHardwareBufferPtr() {
+        return ahbPtr;
+    }
+
     public boolean isValid() {
         return ahbPtr != 0 && (!cpuAccessible || (virtualData != null && stride > 0));
     }

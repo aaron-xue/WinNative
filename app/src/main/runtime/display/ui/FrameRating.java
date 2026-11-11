@@ -119,6 +119,7 @@ public class FrameRating extends LinearLayout implements Runnable {
   private boolean enableGraph;
   private boolean enableRenderer;
   private boolean enableTime;
+  private volatile boolean directCompositionActive = false;
   private volatile FrameObserver frameObserver;
   private int gpuFailCount;
   private int statsParity;
@@ -1168,10 +1169,26 @@ public class FrameRating extends LinearLayout implements Runnable {
 
   private void updateRendererText() {
     if (this.tvRenderer != null) {
-      this.tvRenderer.setText(this.rendererName);
+      if (directCompositionActive) {
+        SpannableStringBuilder sb = new SpannableStringBuilder();
+        sb.append(this.rendererName);
+        sb.append(" + DC");
+        sb.setSpan(new ForegroundColorSpan(0xFF4CAF50),
+                this.rendererName.length(), sb.length(),
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        this.tvRenderer.setText(sb);
+      } else {
+        this.tvRenderer.setText(this.rendererName);
+      }
       this.tvRenderer.setVisibility(this.enableRenderer ? View.VISIBLE : View.GONE);
       updateSeparators(getOrientation() == LinearLayout.HORIZONTAL);
     }
+  }
+
+  public void setDirectCompositionActive(boolean active) {
+    if (this.directCompositionActive == active) return;
+    this.directCompositionActive = active;
+    post(this::updateRendererText);
   }
 
   public void setGpuName(String name) {

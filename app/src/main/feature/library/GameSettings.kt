@@ -620,6 +620,9 @@ class GameSettingsStateHolder {
     val selectedStartupSelection = mutableIntStateOf(0)
     val execArgs = mutableStateOf("")
     val fullscreenStretched = mutableStateOf(false)
+    // Direct Composition (zero-copy AHB → SurfaceControl + HWC overlay).
+    // Per-container toggle; read once at activity startup. See Container.EXTRA_DIRECT_COMPOSITION.
+    val directComposition = mutableStateOf(false)
 
     // Advanced - CPU
     val cpuCount = mutableIntStateOf(Runtime.getRuntime().availableProcessors())
@@ -2072,6 +2075,17 @@ private fun FrameGenerationCard(state: GameSettingsStateHolder) {
     val targetRate = state.frameGenTargetRate.intValue
 
     SettingGroup {
+        SettingSwitch(
+            label = stringResource(R.string.session_display_direct_composition),
+            checked = state.directComposition.value,
+            onCheckedChange = {
+                state.directComposition.value = it
+                if (it) state.frameGenEnabled.value = false
+            },
+        )
+
+        Spacer(Modifier.height(SettingItemGap))
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Outlined.Speed,
@@ -2094,7 +2108,10 @@ private fun FrameGenerationCard(state: GameSettingsStateHolder) {
             label = stringResource(R.string.session_drawer_frame_generation_enable),
             checked = enabled,
             enabled = ready,
-            onCheckedChange = { state.frameGenEnabled.value = it },
+            onCheckedChange = {
+                state.frameGenEnabled.value = it
+                if (it) state.directComposition.value = false
+            },
         )
 
 
