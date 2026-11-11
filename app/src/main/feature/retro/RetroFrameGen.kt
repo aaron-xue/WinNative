@@ -4,15 +4,43 @@ import android.content.Context
 import android.content.Intent
 import com.winlator.cmod.feature.library.LosslessAutoImport
 import com.winlator.cmod.runtime.container.Shortcut
+import com.winlator.cmod.runtime.content.AdrenotoolsManager
 import com.winlator.cmod.runtime.display.lsfg.LosslessScaling
 import com.winlator.cmod.shared.framegen.FrameGenOptions
+import java.io.File
 
 object RetroFrameGen {
     private const val SYSTEM_DRIVER = "System"
     private const val CONSOLE_RATE = 60
 
+    @Volatile private var resolvedDriver: String? = null
+
+    private fun driver(context: Context): String {
+        resolvedDriver?.let { return it }
+        synchronized(this) {
+            resolvedDriver?.let { return it }
+            var chosen = SYSTEM_DRIVER
+            if (!LosslessScaling.isSupportedByGpu(context, SYSTEM_DRIVER)) {
+                val manager = AdrenotoolsManager(context)
+                val dir = File(context.filesDir, "contents/adrenotools")
+                val ids = dir.listFiles()?.filter { it.isDirectory }?.map { it.name }
+                    ?.sortedDescending().orEmpty()
+                for (id in ids) {
+                    if (manager.isTurnipDriver(id) &&
+                        LosslessScaling.isSupportedByGpu(context, id)
+                    ) {
+                        chosen = id
+                        break
+                    }
+                }
+            }
+            resolvedDriver = chosen
+            return chosen
+        }
+    }
+
     fun supported(context: Context): Boolean =
-        LosslessScaling.isSupportedByGpu(context, SYSTEM_DRIVER)
+        LosslessScaling.isSupportedByGpu(context, driver(context))
 
     fun shadersReady(context: Context): Boolean =
         LosslessScaling.resolveCacheFile(context, true) != null
@@ -58,7 +86,7 @@ object RetroFrameGen {
             targetRate = targetRate(context, shortcut, systemId),
             flowScale = flowScale(context, shortcut, systemId),
             cachePath = cache.absolutePath,
-            driverName = SYSTEM_DRIVER,
+            driverName = driver(context),
             sourceRate = CONSOLE_RATE,
         )
     }
@@ -78,7 +106,7 @@ object RetroFrameGen {
             targetRate = targetRate.coerceAtLeast(0),
             flowScale = FrameGenOptions.clampFlowScale(flowScale),
             cachePath = cache.absolutePath,
-            driverName = SYSTEM_DRIVER,
+            driverName = driver(context),
             sourceRate = CONSOLE_RATE,
         )
     }
