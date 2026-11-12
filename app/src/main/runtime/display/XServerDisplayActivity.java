@@ -509,6 +509,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private boolean frametimeNumericMode = false;
     private boolean hudCardExpanded = false;
     private boolean screenEffectsCardExpanded = false;
+    private boolean directCompositionEnabled = false;
     private boolean frameGenEnabled = false;
     private int frameGenMultiplier = 2;
     private int frameGenTargetRate = 0;
@@ -953,7 +954,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private void applyFrameGenerationSettings(VulkanRenderer renderer, Container container) {
         if (renderer == null) return;
 
-        String containerValue = container != null ? container.getExtra("frameGen", "0") : "0";
+        String containerValue = container != null ? container.getExtra("frameGen", "1") : "1";
         String containerMultiplier = container != null ? container.getExtra("frameGenMultiplier", "2") : "2";
         String containerTargetRate = container != null ? container.getExtra("frameGenTargetRate", "0") : "0";
         String containerFlowScale = container != null ? container.getExtra("frameGenFlowScale", "70") : "70";
@@ -1330,9 +1331,22 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         renderDrawerMenu();
     }
 
+    private void saveDirectCompositionSettings() {
+        if (shortcut != null) {
+            boolean overridden = saveFrameGenOverride(
+                    com.winlator.cmod.runtime.container.Container.EXTRA_DIRECT_COMPOSITION,
+                    directCompositionEnabled ? "1" : "0", "0");
+            if (overridden) shortcut.putExtra("use_container_defaults", "0");
+            shortcut.saveData();
+        } else if (container != null) {
+            container.setDirectCompositionEnabled(directCompositionEnabled);
+            container.saveData();
+        }
+    }
+
     private void saveFrameGenerationSettings() {
         if (shortcut != null) {
-            boolean overridden = saveFrameGenOverride("frameGen", frameGenEnabled ? "1" : "0", "0");
+            boolean overridden = saveFrameGenOverride("frameGen", frameGenEnabled ? "1" : "0", "1");
             overridden |= saveFrameGenOverride("frameGenMultiplier",
                     String.valueOf(frameGenMultiplier), "2");
             overridden |= saveFrameGenOverride("frameGenTargetRate",
@@ -5672,6 +5686,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 frameGenFlowScale,
                 getString(R.string.session_drawer_frame_generation));
 
+        state = XServerDrawerMenuKt.withDirectCompositionState(state, directCompositionEnabled);
+
         state = XServerDrawerMenuKt.withDisFrameGenState(
                 state,
                 disFrameGenEnabled,
@@ -6060,11 +6076,27 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                     }
 
                     @Override
+                    public void onDirectCompositionChanged(boolean enabled) {
+                        directCompositionEnabled = enabled;
+                        if (enabled && (frameGenEnabled || disFrameGenEnabled)) {
+                            frameGenEnabled = false;
+                            disFrameGenEnabled = false;
+                            applyFrameGenerationLive();
+                        }
+                        saveDirectCompositionSettings();
+                        renderDrawerMenu();
+                    }
+
+                    @Override
                     public void onFrameGenEngineSelected(FrameGenEngine engine) {
                         boolean lsfg = engine == FrameGenEngine.LSFG;
                         if (lsfg && frameGenCachePath == null) return;
                         frameGenEnabled = lsfg;
                         disFrameGenEnabled = engine == FrameGenEngine.DIS;
+                        if ((lsfg || disFrameGenEnabled) && directCompositionEnabled) {
+                            directCompositionEnabled = false;
+                            saveDirectCompositionSettings();
+                        }
                         applyFrameGenerationLive();
                     }
 
@@ -9650,6 +9682,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
         applyFrameGenerationSettings(renderer, container);
         applyDisFrameGenerationSettings(renderer, container);
+        directCompositionEnabled = isDirectCompositionEnabledForSession();
 
         if (shortcut != null || (bootExePath != null && !bootExePath.isEmpty())) {
             renderer.setUnviewableWMClasses("explorer.exe");

@@ -1078,7 +1078,7 @@ class ContainerSettingsComposeDialog @JvmOverloads constructor(
 
     private fun writeFrameGenExtras(c: Container) {
         c.putExtra("frameGen", if (state.frameGenEnabled.value) "1" else "0")
-        if (state.frameGenEnabled.value) c.putExtra("disFrameGen", "0")
+        if (state.frameGenEnabled.value || state.directComposition.value) c.putExtra("disFrameGen", "0")
         c.putExtra("frameGenMultiplier", state.frameGenMultiplier.intValue.coerceIn(2, 4).toString())
         c.putExtra("frameGenTargetRate", state.frameGenTargetRate.intValue.coerceAtLeast(0).toString())
         c.putExtra("frameGenFlowScale", state.frameGenFlowScale.intValue.coerceIn(25, 100).toString())

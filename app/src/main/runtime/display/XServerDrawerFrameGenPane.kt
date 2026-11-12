@@ -73,6 +73,14 @@ internal fun FrameGenPaneContent(
                         .padding(horizontal = (12f * paneScale).dp, vertical = (12f * paneScale).dp),
                 verticalArrangement = Arrangement.spacedBy((10f * paneScale).dp),
             ) {
+                NavBooleanRow(
+                    title = stringResource(R.string.session_display_direct_composition),
+                    checked = state.directComposition,
+                    onCheckedChange = listener::onDirectCompositionChanged,
+                )
+
+                ThinDivider()
+
                 val engine = FrameGenEngine.of(state.frameGenEnabled, state.disFrameGenEnabled)
 
                 FrameGenEngineSection(

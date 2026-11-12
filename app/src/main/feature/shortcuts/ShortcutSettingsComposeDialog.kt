@@ -1457,9 +1457,9 @@ class ShortcutSettingsComposeDialog private constructor(
             hasContainerOverride = hasContainerOverride or saveOverride(
                 "frameGen",
                 if (state.frameGenEnabled.value) "1" else "0",
-                container.getExtra("frameGen", "0"),
+                container.getExtra("frameGen", "1"),
             )
-            if (state.frameGenEnabled.value) {
+            if (state.frameGenEnabled.value || state.directComposition.value) {
                 hasContainerOverride = hasContainerOverride or saveOverride(
                     "disFrameGen",
                     "0",

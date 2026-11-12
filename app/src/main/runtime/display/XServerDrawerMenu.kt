@@ -630,6 +630,7 @@ data class XServerDrawerState(
     val frameGenMultiplier: Int = 2,
     val frameGenTargetRate: Int = 0,
     val frameGenFlowScale: Int = 70,
+    val directComposition: Boolean = false,
     val disFrameGenEnabled: Boolean = false,
     val disFrameGenScale: Int = 180,
     val disFrameGenTargetFps: Int = 0,
@@ -1036,6 +1037,8 @@ interface XServerDrawerActionListener {
     fun onFPSLimitChanged(limit: Int)
 
     fun onFrameGenEnabledChanged(enabled: Boolean)
+
+    fun onDirectCompositionChanged(enabled: Boolean)
 
     fun onFrameGenEngineSelected(engine: FrameGenEngine)
 
@@ -1502,6 +1505,11 @@ fun setupXServerDrawerComposeView(
         }
     }
 }
+
+fun withDirectCompositionState(
+    state: XServerDrawerState,
+    enabled: Boolean,
+): XServerDrawerState = state.copy(directComposition = enabled)
 
 fun withFrameGenState(
     state: XServerDrawerState,
