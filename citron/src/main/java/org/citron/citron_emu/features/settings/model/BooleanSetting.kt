@@ -12,7 +12,14 @@ enum class BooleanSetting(val key: String, private val default: Boolean) {
     TOUCHSCREEN("touchscreen", true),
     DPAD_SLIDE("dpad_slide", true),
     HAPTIC_FEEDBACK("haptic_feedback", false),
-    JOYSTICK_REL_CENTER("joystick_rel_center", false);
+    JOYSTICK_REL_CENTER("joystick_rel_center", false),
+    CONTROLLER_SENSORY("controller_sensory", false),
+    CONTROLLER_SENSORY_SWITCH_X("controller_sensory_switch_x", false),
+    CONTROLLER_SENSORY_SWITCH_Y("controller_sensory_switch_y", false),
+    CONTROLLER_SENSORY_SWITCH_Z("controller_sensory_switch_z", false),
+    CONTROLLER_SENSORY_SWITCH_X_A("controller_sensory_switch_x_a", false),
+    CONTROLLER_SENSORY_SWITCH_Y_A("controller_sensory_switch_y_a", false),
+    CONTROLLER_SENSORY_SWITCH_Z_A("controller_sensory_switch_z_a", false);
 
     fun getBoolean(): Boolean {
         val prefs = NativeLibrary.appContext!!.getSharedPreferences("wn_overlay", Context.MODE_PRIVATE)

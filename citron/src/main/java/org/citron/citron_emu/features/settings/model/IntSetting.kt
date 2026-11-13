@@ -9,7 +9,10 @@ import org.citron.citron_emu.NativeLibrary
 
 enum class IntSetting(val key: String, private val default: Int) {
     OVERLAY_SCALE("overlay_scale", 50),
-    OVERLAY_OPACITY("overlay_opacity", 100);
+    OVERLAY_OPACITY("overlay_opacity", 100),
+    SENSORY_X("sensory_x", 0),
+    SENSORY_Y("sensory_y", 1),
+    SENSORY_Z("sensory_z", 2);
 
     fun getInt(): Int {
         val prefs = NativeLibrary.appContext!!.getSharedPreferences("wn_overlay", Context.MODE_PRIVATE)

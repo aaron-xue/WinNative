@@ -47,6 +47,8 @@ import org.citron.citron_emu.features.input.model.ButtonName
 import org.citron.citron_emu.features.input.model.NativeAnalog
 import org.citron.citron_emu.features.input.model.NativeButton
 import org.citron.citron_emu.features.input.model.NpadStyleIndex
+import org.citron.citron_emu.features.settings.model.BooleanSetting
+import org.citron.citron_emu.features.settings.model.IntSetting
 import org.citron.citron_emu.wn.CitronBootstrap
 import org.citron.citron_emu.wn.InputDialogFragment
 import org.citron.citron_emu.utils.InputHandler
@@ -167,7 +169,125 @@ private fun PlayerListScreen(
                     }
                 }
             }
+            item {
+                MotionControlsSettings()
+            }
         }
+    }
+}
+
+@Composable
+private fun MotionControlsSettings() {
+    val axisOptions = listOf("X", "Y", "Z")
+    var useControllerSensory by remember { mutableStateOf(BooleanSetting.CONTROLLER_SENSORY.getBoolean()) }
+    var sensoryX by remember { mutableIntStateOf(IntSetting.SENSORY_X.getInt()) }
+    var sensoryY by remember { mutableIntStateOf(IntSetting.SENSORY_Y.getInt()) }
+    var sensoryZ by remember { mutableIntStateOf(IntSetting.SENSORY_Z.getInt()) }
+    var switchX by remember { mutableStateOf(BooleanSetting.CONTROLLER_SENSORY_SWITCH_X.getBoolean()) }
+    var switchY by remember { mutableStateOf(BooleanSetting.CONTROLLER_SENSORY_SWITCH_Y.getBoolean()) }
+    var switchZ by remember { mutableStateOf(BooleanSetting.CONTROLLER_SENSORY_SWITCH_Z.getBoolean()) }
+    var switchXA by remember { mutableStateOf(BooleanSetting.CONTROLLER_SENSORY_SWITCH_X_A.getBoolean()) }
+    var switchYA by remember { mutableStateOf(BooleanSetting.CONTROLLER_SENSORY_SWITCH_Y_A.getBoolean()) }
+    var switchZA by remember { mutableStateOf(BooleanSetting.CONTROLLER_SENSORY_SWITCH_Z_A.getBoolean()) }
+
+    RetroSettingGroup {
+        RetroGroupTitle(stringResource(R.string.retro_scr_controller_motion))
+
+        RetroSettingSwitch(
+            label = stringResource(R.string.retro_scr_controller_use_controller_sensory),
+            checked = useControllerSensory,
+            subtitle = stringResource(R.string.retro_scr_controller_use_controller_sensory_desc),
+            onCheckedChange = {
+                useControllerSensory = it
+                BooleanSetting.CONTROLLER_SENSORY.setBoolean(it)
+            },
+        )
+
+        RetroSettingDropdown(
+            stringResource(R.string.retro_scr_controller_sensory_x),
+            axisOptions,
+            sensoryX,
+        ) {
+            sensoryX = it
+            IntSetting.SENSORY_X.setInt(it)
+        }
+        RetroSettingDropdown(
+            stringResource(R.string.retro_scr_controller_sensory_y),
+            axisOptions,
+            sensoryY,
+        ) {
+            sensoryY = it
+            IntSetting.SENSORY_Y.setInt(it)
+        }
+        RetroSettingDropdown(
+            stringResource(R.string.retro_scr_controller_sensory_z),
+            axisOptions,
+            sensoryZ,
+        ) {
+            sensoryZ = it
+            IntSetting.SENSORY_Z.setInt(it)
+        }
+
+        RetroSettingSwitch(
+            label = stringResource(R.string.retro_scr_controller_sensory_switch_x),
+            checked = switchX,
+            subtitle = if (switchX) stringResource(R.string.retro_scr_controller_on)
+                       else stringResource(R.string.retro_scr_controller_off),
+            onCheckedChange = {
+                switchX = it
+                BooleanSetting.CONTROLLER_SENSORY_SWITCH_X.setBoolean(it)
+            },
+        )
+        RetroSettingSwitch(
+            label = stringResource(R.string.retro_scr_controller_sensory_switch_y),
+            checked = switchY,
+            subtitle = if (switchY) stringResource(R.string.retro_scr_controller_on)
+                       else stringResource(R.string.retro_scr_controller_off),
+            onCheckedChange = {
+                switchY = it
+                BooleanSetting.CONTROLLER_SENSORY_SWITCH_Y.setBoolean(it)
+            },
+        )
+        RetroSettingSwitch(
+            label = stringResource(R.string.retro_scr_controller_sensory_switch_z),
+            checked = switchZ,
+            subtitle = if (switchZ) stringResource(R.string.retro_scr_controller_on)
+                       else stringResource(R.string.retro_scr_controller_off),
+            onCheckedChange = {
+                switchZ = it
+                BooleanSetting.CONTROLLER_SENSORY_SWITCH_Z.setBoolean(it)
+            },
+        )
+        RetroSettingSwitch(
+            label = stringResource(R.string.retro_scr_controller_sensory_switch_x_a),
+            checked = switchXA,
+            subtitle = if (switchXA) stringResource(R.string.retro_scr_controller_on)
+                       else stringResource(R.string.retro_scr_controller_off),
+            onCheckedChange = {
+                switchXA = it
+                BooleanSetting.CONTROLLER_SENSORY_SWITCH_X_A.setBoolean(it)
+            },
+        )
+        RetroSettingSwitch(
+            label = stringResource(R.string.retro_scr_controller_sensory_switch_y_a),
+            checked = switchYA,
+            subtitle = if (switchYA) stringResource(R.string.retro_scr_controller_on)
+                       else stringResource(R.string.retro_scr_controller_off),
+            onCheckedChange = {
+                switchYA = it
+                BooleanSetting.CONTROLLER_SENSORY_SWITCH_Y_A.setBoolean(it)
+            },
+        )
+        RetroSettingSwitch(
+            label = stringResource(R.string.retro_scr_controller_sensory_switch_z_a),
+            checked = switchZA,
+            subtitle = if (switchZA) stringResource(R.string.retro_scr_controller_on)
+                       else stringResource(R.string.retro_scr_controller_off),
+            onCheckedChange = {
+                switchZA = it
+                BooleanSetting.CONTROLLER_SENSORY_SWITCH_Z_A.setBoolean(it)
+            },
+        )
     }
 }
 

@@ -32,6 +32,8 @@ import org.citron.citron_emu.R
 import org.citron.citron_emu.applets.keyboard.SoftwareKeyboard
 import org.citron.citron_emu.features.input.NativeInput
 import org.citron.citron_emu.features.input.model.NativeButton
+import org.citron.citron_emu.features.settings.model.BooleanSetting
+import org.citron.citron_emu.features.settings.model.IntSetting
 import org.citron.citron_emu.overlay.InputOverlay
 import org.citron.citron_emu.utils.GameMetadata
 import org.citron.citron_emu.utils.InputHandler
@@ -67,6 +69,8 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
     private val accel = FloatArray(3)
     private var motionTimestamp: Long = 0
     private var flipMotionOrientation: Boolean = false
+    private val sensorManagers = mutableListOf<SensorManager>()
+    private val sensorPorts = mutableMapOf<Int, Int>()
 
     private var pauseDimOverlay: View? = null
 
@@ -840,25 +844,42 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
             flipMotionOrientation = false
         }
 
-        if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-            if (flipMotionOrientation) {
-                accel[0] = event.values[1] / SensorManager.GRAVITY_EARTH
-                accel[1] = -event.values[0] / SensorManager.GRAVITY_EARTH
-            } else {
-                accel[0] = -event.values[1] / SensorManager.GRAVITY_EARTH
-                accel[1] = event.values[0] / SensorManager.GRAVITY_EARTH
+        val useControllerSensory = BooleanSetting.CONTROLLER_SENSORY.getBoolean()
+        if (useControllerSensory) {
+            val sensoryX = IntSetting.SENSORY_X.getInt().coerceIn(0, 2)
+            val sensoryY = IntSetting.SENSORY_Y.getInt().coerceIn(0, 2)
+            val sensoryZ = IntSetting.SENSORY_Z.getInt().coerceIn(0, 2)
+            if (event.sensor.type == Sensor.TYPE_GYROSCOPE) {
+                gyro[0] = (if (BooleanSetting.CONTROLLER_SENSORY_SWITCH_X.getBoolean()) -1f else 1f) * event.values[sensoryX] / 6.0f
+                gyro[1] = (if (BooleanSetting.CONTROLLER_SENSORY_SWITCH_Y.getBoolean()) -1f else 1f) * event.values[sensoryY] / 6.0f
+                gyro[2] = (if (BooleanSetting.CONTROLLER_SENSORY_SWITCH_Z.getBoolean()) -1f else 1f) * event.values[sensoryZ] / 6.0f
             }
-            accel[2] = -event.values[2] / SensorManager.GRAVITY_EARTH
-        }
-        if (event.sensor.type == Sensor.TYPE_GYROSCOPE) {
-            if (flipMotionOrientation) {
-                gyro[0] = -event.values[1] / 6.0f
-                gyro[1] = event.values[0] / 6.0f
-            } else {
-                gyro[0] = event.values[1] / 6.0f
-                gyro[1] = -event.values[0] / 6.0f
+            if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
+                accel[0] = (if (BooleanSetting.CONTROLLER_SENSORY_SWITCH_X_A.getBoolean()) -1f else 1f) * event.values[sensoryX] / SensorManager.GRAVITY_EARTH
+                accel[1] = (if (BooleanSetting.CONTROLLER_SENSORY_SWITCH_Y_A.getBoolean()) -1f else 1f) * event.values[sensoryY] / SensorManager.GRAVITY_EARTH
+                accel[2] = (if (BooleanSetting.CONTROLLER_SENSORY_SWITCH_Z_A.getBoolean()) -1f else 1f) * event.values[sensoryZ] / SensorManager.GRAVITY_EARTH
             }
-            gyro[2] = event.values[2] / 6.0f
+        } else {
+            if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
+                if (flipMotionOrientation) {
+                    accel[0] = event.values[1] / SensorManager.GRAVITY_EARTH
+                    accel[1] = -event.values[0] / SensorManager.GRAVITY_EARTH
+                } else {
+                    accel[0] = -event.values[1] / SensorManager.GRAVITY_EARTH
+                    accel[1] = event.values[0] / SensorManager.GRAVITY_EARTH
+                }
+                accel[2] = -event.values[2] / SensorManager.GRAVITY_EARTH
+            }
+            if (event.sensor.type == Sensor.TYPE_GYROSCOPE) {
+                if (flipMotionOrientation) {
+                    gyro[0] = -event.values[1] / 6.0f
+                    gyro[1] = event.values[0] / 6.0f
+                } else {
+                    gyro[0] = event.values[1] / 6.0f
+                    gyro[1] = -event.values[0] / 6.0f
+                }
+                gyro[2] = event.values[2] / 6.0f
+            }
         }
 
         // Only update state on accelerometer data
@@ -867,8 +888,13 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
         }
         val deltaTimestamp = (event.timestamp - motionTimestamp) / 1000
         motionTimestamp = event.timestamp
+        val port = if (useControllerSensory && sensorPorts.containsKey(event.sensor.id)) {
+            sensorPorts[event.sensor.id] ?: NativeInput.Player1Device
+        } else {
+            NativeInput.Player1Device
+        }
         NativeInput.onDeviceMotionEvent(
-            NativeInput.Player1Device,
+            port,
             deltaTimestamp,
             gyro[0],
             gyro[1],
@@ -893,14 +919,53 @@ class WnCitronActivity : ComponentActivity(), SurfaceHolder.Callback, SensorEven
 
     private fun startMotionSensorListener() {
         if (!ready.get()) return
-        val sensorManager = this.getSystemService(android.content.Context.SENSOR_SERVICE) as SensorManager
-        val gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
-        val accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        sensorManager.registerListener(this, gyroSensor, SensorManager.SENSOR_DELAY_GAME)
-        sensorManager.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_GAME)
+        if (!BooleanSetting.CONTROLLER_SENSORY.getBoolean()) {
+            val sensorManager = this.getSystemService(android.content.Context.SENSOR_SERVICE) as SensorManager
+            val gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+            val accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            sensorManager.registerListener(this, gyroSensor, SensorManager.SENSOR_DELAY_GAME)
+            sensorManager.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_GAME)
+            return
+        }
+
+        sensorPorts.clear()
+        sensorManagers.forEach { it.unregisterListener(this) }
+        sensorManagers.clear()
+
+        val fallbackManager = this.getSystemService(android.content.Context.SENSOR_SERVICE) as SensorManager
+        for (controller in InputHandler.androidControllers.values) {
+            val manager = controller.getSensorManager()
+            if (manager != null) {
+                val gyroSensor = manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+                val accelSensor = manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+                if (gyroSensor != null && accelSensor != null) {
+                    manager.registerListener(this, gyroSensor, SensorManager.SENSOR_DELAY_GAME)
+                    manager.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_GAME)
+                    sensorPorts[gyroSensor.id] = controller.getPort()
+                    sensorPorts[accelSensor.id] = controller.getPort()
+                    sensorManagers.add(manager)
+                }
+            } else {
+                val gyroSensor = fallbackManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+                val accelSensor = fallbackManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+                if (gyroSensor != null && accelSensor != null && !sensorPorts.containsKey(gyroSensor.id)) {
+                    fallbackManager.registerListener(this, gyroSensor, SensorManager.SENSOR_DELAY_GAME)
+                    fallbackManager.registerListener(this, accelSensor, SensorManager.SENSOR_DELAY_GAME)
+                    sensorPorts[gyroSensor.id] = controller.getPort()
+                    sensorPorts[accelSensor.id] = controller.getPort()
+                    sensorManagers.add(fallbackManager)
+                }
+            }
+        }
     }
 
     private fun stopMotionSensorListener() {
+        if (BooleanSetting.CONTROLLER_SENSORY.getBoolean()) {
+            sensorManagers.forEach { it.unregisterListener(this) }
+            sensorPorts.clear()
+            sensorManagers.clear()
+            return
+        }
         val sensorManager = this.getSystemService(android.content.Context.SENSOR_SERVICE) as SensorManager
         val gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
         val accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)

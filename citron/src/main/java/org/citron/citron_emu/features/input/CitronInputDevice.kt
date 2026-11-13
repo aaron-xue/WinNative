@@ -3,6 +3,9 @@
 
 package org.citron.citron_emu.features.input
 
+import android.hardware.Sensor
+import android.hardware.SensorManager
+import android.os.Build
 import android.view.InputDevice
 import androidx.annotation.Keep
 import org.citron.citron_emu.NativeLibrary
@@ -58,6 +61,17 @@ class CitronPhysicalDevice(
     }
 
     fun getDeviceId(): Int = device.id
+
+    fun getSensorManager(): SensorManager? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
+        val manager = device.sensorManager
+        if (manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) == null ||
+            manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) == null
+        ) {
+            return null
+        }
+        return manager
+    }
 
     override fun getSupportsVibration(): Boolean {
         return vibrator.supportsVibration()
