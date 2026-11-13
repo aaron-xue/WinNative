@@ -36,11 +36,12 @@ public abstract class Box64PresetManager {
       envVars.put(ucPrefix + "_DYNAREC_FASTNAN", "0");
       envVars.put(ucPrefix + "_DYNAREC_FASTROUND", "0");
       envVars.put(ucPrefix + "_DYNAREC_X87DOUBLE", "1");
-      envVars.put(ucPrefix + "_DYNAREC_BIGBLOCK", "0");
+      envVars.put(ucPrefix + "_DYNAREC_BIGBLOCK", "1");
       envVars.put(ucPrefix + "_DYNAREC_STRONGMEM", "2");
       envVars.put(ucPrefix + "_DYNAREC_FORWARD", "128");
       envVars.put(ucPrefix + "_DYNAREC_CALLRET", "0");
       envVars.put(ucPrefix + "_DYNAREC_WAIT", "0");
+      envVars.put(ucPrefix + "_DYNAREC_WEAKBARRIER", "0");
       if (ucPrefix.equals("BOX64")) {
         envVars.put("BOX64_AVX", "0");
         envVars.put("BOX64_UNITYPLAYER", "1");
@@ -52,11 +53,12 @@ public abstract class Box64PresetManager {
       envVars.put(ucPrefix + "_DYNAREC_FASTNAN", "0");
       envVars.put(ucPrefix + "_DYNAREC_FASTROUND", "0");
       envVars.put(ucPrefix + "_DYNAREC_X87DOUBLE", "1");
-      envVars.put(ucPrefix + "_DYNAREC_BIGBLOCK", "0");
+      envVars.put(ucPrefix + "_DYNAREC_BIGBLOCK", "1");
       envVars.put(ucPrefix + "_DYNAREC_STRONGMEM", "1");
       envVars.put(ucPrefix + "_DYNAREC_FORWARD", "128");
       envVars.put(ucPrefix + "_DYNAREC_CALLRET", "0");
       envVars.put(ucPrefix + "_DYNAREC_WAIT", "1");
+      envVars.put(ucPrefix + "_DYNAREC_WEAKBARRIER", "1");
       if (ucPrefix.equals("BOX64")) {
         envVars.put("BOX64_AVX", "0");
         envVars.put("BOX64_UNITYPLAYER", "1");
@@ -73,6 +75,7 @@ public abstract class Box64PresetManager {
       envVars.put(ucPrefix + "_DYNAREC_FORWARD", "256");
       envVars.put(ucPrefix + "_DYNAREC_CALLRET", "1");
       envVars.put(ucPrefix + "_DYNAREC_WAIT", "1");
+      envVars.put(ucPrefix + "_DYNAREC_WEAKBARRIER", "2");
       if (ucPrefix.equals("BOX64")) {
         envVars.put("BOX64_AVX", "0");
         envVars.put("BOX64_UNITYPLAYER", "0");
@@ -89,6 +92,7 @@ public abstract class Box64PresetManager {
       envVars.put(ucPrefix + "_DYNAREC_FORWARD", "512");
       envVars.put(ucPrefix + "_DYNAREC_CALLRET", "1");
       envVars.put(ucPrefix + "_DYNAREC_WAIT", "1");
+      envVars.put(ucPrefix + "_DYNAREC_WEAKBARRIER", "2");
       if (ucPrefix.equals("BOX64")) {
         envVars.put("BOX64_AVX", "0");
         envVars.put("BOX64_UNITYPLAYER", "0");
