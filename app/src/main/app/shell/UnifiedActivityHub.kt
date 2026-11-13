@@ -818,6 +818,14 @@ internal fun UnifiedActivity.UnifiedHub() {
                     },
                     modifier = Modifier.matchParentSize(),
                 ) { model ->
+                    // Gentle breathing zoom on the immersive backdrop so it feels alive, matching
+                    // the reference library's hero animation.
+                    val breatheScale by rememberInfiniteTransition(label = "immersiveBackdropBreathe").animateFloat(
+                        initialValue = 1f,
+                        targetValue = 1.05f,
+                        animationSpec = infiniteRepeatable(tween(2000, easing = LinearEasing), RepeatMode.Reverse),
+                        label = "breatheScale",
+                    )
                     Box(Modifier.matchParentSize()) {
                         if (model != null) {
                             val request = remember(model, immersiveBlur, context) {
@@ -838,7 +846,13 @@ internal fun UnifiedActivity.UnifiedHub() {
                             AsyncImage(
                                 model = request,
                                 contentDescription = null,
-                                modifier = Modifier.matchParentSize(),
+                                modifier =
+                                    Modifier
+                                        .matchParentSize()
+                                        .graphicsLayer {
+                                            scaleX = breatheScale
+                                            scaleY = breatheScale
+                                        },
                                 contentScale = ContentScale.Crop,
                             )
                         }
