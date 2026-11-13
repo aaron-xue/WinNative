@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,12 +50,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -444,6 +449,18 @@ private fun UnifiedActivity.DefaultGamesRow(
     val leftPadding = 22.dp
     val listState = rememberLazyListState()
 
+    // The library's floating file-manager and add-game buttons sit at the bottom-end and would
+    // cover the right edge of the strip, so inset the strip's viewport to stay clear of them. The
+    // foreground Column already insets both edges by leftPadding, so the extra end padding only
+    // needs to cover the difference between the FAB clearance and that existing edge inset.
+    val configuration = LocalConfiguration.current
+    val libraryFabBase = minOf(configuration.screenWidthDp, configuration.screenHeightDp)
+    val addGameFabSize = (libraryFabBase * 0.125f).dp.coerceIn(56.dp, 64.dp)
+    val fabNavInsets = WindowInsets.navigationBars.asPaddingValues()
+    val fabEndInset =
+        (20.dp - fabNavInsets.calculateRightPadding(LayoutDirection.Ltr)).coerceAtLeast(4.dp)
+    val fabClearance = fabEndInset + addGameFabSize + 8.dp
+
     // Focus is owned by the activity (libraryFocusIndex, moved with the d-pad). Mirror GRID_4: the
     // strip scrolls to keep the focused card in view, and never reports a new focus from scrolling.
     LaunchedEffect(focusIndex, items.size) {
@@ -455,11 +472,12 @@ private fun UnifiedActivity.DefaultGamesRow(
     LazyRow(
         state = listState,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        // The foreground Column already insets both edges by leftPadding, so don't add a second
-        // left inset (that would push the strip further right than the title/cards above). Keep the
-        // padding on the right so the trailing gap stays as the list's breathing room.
         contentPadding = PaddingValues(start = 0.dp, end = leftPadding),
-        modifier = Modifier.fillMaxWidth().height(rowHeight),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(end = (fabClearance - leftPadding).coerceAtLeast(0.dp))
+                .height(rowHeight),
     ) {
         itemsIndexed(items, key = { _, item -> item.id }) { index, app ->
             GameCapsule(
