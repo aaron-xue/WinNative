@@ -3,6 +3,7 @@
 
 package org.citron.citron_emu.utils
 
+import android.os.Build
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -27,6 +28,15 @@ object InputHandler {
     private var changedAxesScratch = IntArray(16)
     private var changedValuesScratch = FloatArray(16)
 
+    // 任天堂左 Joy-Con 的 USB vendor/product ID，以及它在蓝牙下上报的原始 HID scan code。
+    private const val NINTENDO_VENDOR_ID = 0x057E
+    private const val JOYCON_LEFT_PRODUCT_ID = 0x2006
+    private const val SCANCODE_DPAD_UP = 544
+    private const val SCANCODE_DPAD_DOWN = 545
+    private const val SCANCODE_DPAD_LEFT = 546
+    private const val SCANCODE_DPAD_RIGHT = 547
+    private const val SCANCODE_STICK_LEFT_CLICK = 317
+
     /** Returns whether Android currently exposes a physical game controller. */
     fun hasPhysicalController(): Boolean = InputDevice.getDeviceIds().any { deviceId ->
         InputDevice.getDevice(deviceId)?.isGameController() == true
@@ -43,15 +53,17 @@ object InputHandler {
             else -> return false
         }
 
+        val keyCode = remapKeyCode(event)
+
         val cn = event.device.controllerNumber
         var controllerData = androidControllers[cn]
         if (controllerData == null) {
-            Log.debug("WnInput: key ${event.keyCode} cn=$cn no match, refreshing device list")
+            Log.debug("WnInput: key $keyCode cn=$cn no match, refreshing device list")
             updateControllerData()
             controllerData = androidControllers[cn]
                 ?: androidControllers.values.firstOrNull { it.getDeviceId() == event.deviceId }
             if (controllerData == null) {
-                Log.warning("WnInput: key ${event.keyCode} dev=${event.deviceId} cn=$cn NOT MAPPED (device not registered)")
+                Log.warning("WnInput: key $keyCode dev=${event.deviceId} cn=$cn NOT MAPPED (device not registered)")
                 return false
             }
         }
@@ -59,18 +71,42 @@ object InputHandler {
         val inputState = controllerStates.getOrPut(cn) {
             ControllerInputState()
         }
-        if (inputState.getButtonState(event.keyCode) == action) {
+        if (inputState.getButtonState(keyCode) == action) {
             return true
         }
-        inputState.setButtonState(event.keyCode, action)
+        inputState.setButtonState(keyCode, action)
 
-        Log.debug("WnInput: key ${event.keyCode} dev=${event.deviceId} cn=$cn port=${controllerData.getPort()} action=$action -> onGamePadButtonEventByPort")
+        Log.debug("WnInput: key $keyCode dev=${event.deviceId} cn=$cn port=${controllerData.getPort()} action=$action -> onGamePadButtonEventByPort")
         NativeInput.onGamePadButtonEventByPort(
             controllerData.getPort(),
-            event.keyCode,
+            keyCode,
             action
         )
         return true
+    }
+
+    /**
+     * 左 Joy-Con（Nintendo vendor 0x057E / product 0x2006）在蓝牙下用分离式方向键和左摇杆按下，
+     * 上报的是原始 HID scan code，Android 不会把它们翻译成标准的 DPAD / THUMBL keycode。
+     * 这里统一纠正，保证 native 侧输入映射能正确匹配。
+     */
+    fun remapKeyCode(event: KeyEvent): Int {
+        val keyCode = event.keyCode
+        val device = event.device ?: return keyCode
+        if (device.vendorId != NINTENDO_VENDOR_ID || device.productId != JOYCON_LEFT_PRODUCT_ID) {
+            return keyCode
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return keyCode
+        }
+        return when (event.scanCode) {
+            SCANCODE_DPAD_UP -> KeyEvent.KEYCODE_DPAD_UP
+            SCANCODE_DPAD_DOWN -> KeyEvent.KEYCODE_DPAD_DOWN
+            SCANCODE_DPAD_LEFT -> KeyEvent.KEYCODE_DPAD_LEFT
+            SCANCODE_DPAD_RIGHT -> KeyEvent.KEYCODE_DPAD_RIGHT
+            SCANCODE_STICK_LEFT_CLICK -> KeyEvent.KEYCODE_BUTTON_THUMBL
+            else -> keyCode
+        }
     }
 
     fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
