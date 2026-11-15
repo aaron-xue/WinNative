@@ -174,7 +174,36 @@ object NativeInput {
         playerIndex: Int,
         deviceParams: ParamPackage,
         displayName: String,
-    ) = updateMappingsWithDefaultImpl(playerIndex, deviceParams.serialize(), displayName)
+        merge: Boolean = false,
+    ) {
+        if (!merge) {
+            updateMappingsWithDefaultImpl(playerIndex, deviceParams.serialize(), displayName)
+            return
+        }
+
+        // A dual-Joy-Con player is driven by two physical devices (JOY-CON(L) + JOY-CON(R)).
+        // The native impl always clears every button/stick mapping before applying the new
+        // device, so auto-mapping the second Joy-Con would wipe the first one. Snapshot the
+        // existing bindings, apply the new device, then restore any binding the new device
+        // did not cover (left and right Joy-Cons map disjoint button/stick sets).
+        val oldButtons = NativeButton.entries.map { getButtonParam(playerIndex, it) }
+        val oldSticks = NativeAnalog.entries.map { getStickParam(playerIndex, it) }
+
+        updateMappingsWithDefaultImpl(playerIndex, deviceParams.serialize(), displayName)
+
+        NativeButton.entries.forEachIndexed { index, button ->
+            val current = getButtonParam(playerIndex, button)
+            if (!current.has("engine") && oldButtons[index].has("engine")) {
+                setButtonParam(playerIndex, button, oldButtons[index])
+            }
+        }
+        NativeAnalog.entries.forEachIndexed { index, stick ->
+            val current = getStickParam(playerIndex, stick)
+            if (!current.has("engine") && oldSticks[index].has("engine")) {
+                setStickParam(playerIndex, stick, oldSticks[index])
+            }
+        }
+    }
 
     private external fun updateMappingsWithDefaultImpl(
         playerIndex: Int,

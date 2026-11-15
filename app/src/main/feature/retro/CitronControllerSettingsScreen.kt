@@ -342,7 +342,7 @@ private fun PlayerDetailScreen(
     val style = remember(refresh) {
         runCatching { NativeInput.getStyleIndex(playerIndex) }.getOrDefault(NpadStyleIndex.Fullkey)
     }
-    val supportedStyles = remember {
+    val supportedStyles = remember(refresh) {
         runCatching { NativeInput.getSupportedStyleTags(playerIndex) }
             .getOrDefault(listOf(NpadStyleIndex.Fullkey))
     }
@@ -401,7 +401,8 @@ private fun PlayerDetailScreen(
                     if (params != null) {
                         NativeInput.updateMappingsWithDefault(
                             playerIndex, params,
-                            params.get("display", physical.getName())
+                            params.get("display", physical.getName()),
+                            merge = style == NpadStyleIndex.JoyconDual,
                         )
                     }
                 }
@@ -490,7 +491,8 @@ private fun PlayerDetailScreen(
                             if (params != null) {
                                 NativeInput.updateMappingsWithDefault(
                                     playerIndex, params,
-                                    params.get("display", dev.getName())
+                                    params.get("display", dev.getName()),
+                                    merge = style == NpadStyleIndex.JoyconDual,
                                 )
                                 NativeConfig.saveGlobalConfig()
                                 NativeInput.reloadInputDevices()
