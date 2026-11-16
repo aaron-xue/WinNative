@@ -125,6 +125,10 @@ import com.winlator.cmod.runtime.content.ContentProfile
 import com.winlator.cmod.runtime.content.ContentsManager
 import com.winlator.cmod.runtime.content.AdrenotoolsManager
 import com.winlator.cmod.runtime.content.Downloader
+import com.winlator.cmod.runtime.content.DriverPackages
+import com.winlator.cmod.runtime.system.SessionKeepAliveService
+import com.winlator.cmod.shared.android.DirectoryPickerDialog
+import com.winlator.cmod.shared.ui.dialog.ContentDialog
 import com.winlator.cmod.runtime.display.environment.ImageFs
 import com.winlator.cmod.runtime.display.environment.ImageFsInstaller
 import com.winlator.cmod.runtime.wine.WineInfo
@@ -138,6 +142,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.io.File
+import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -1229,6 +1234,268 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
         return if (failed) null else installedProfile
     }
 
+    private val localContentInstallExtensions = setOf("wcp", "xz", "txz", "tzst")
+
+    private fun promptInstallContentFromFile() {
+        DirectoryPickerDialog.showFile(
+            activity = this,
+            title = getString(R.string.settings_content_install),
+            allowedExtensions = localContentInstallExtensions,
+            allowMultiSelect = true,
+            onSelectedAll = { paths -> installLocalContents(paths) },
+        ) { path -> installLocalContents(listOf(path)) }
+    }
+
+    private fun installLocalContents(paths: List<String>) {
+        val files =
+            paths.map(::File).filter { file ->
+                file.isFile && file.extension.lowercase(Locale.ROOT) in localContentInstallExtensions
+            }
+        if (files.isEmpty()) return
+        val manager = ContentsManager(this)
+        manager.syncContents()
+        val pendingContainers = mutableListOf<ContentProfile>()
+        val queue = ArrayDeque(files)
+        val total = queue.size
+        var current = 0
+
+        fun finishAll() {
+            if (pendingContainers.isNotEmpty()) {
+                createLocalContainersSequentially(manager, pendingContainers) {
+                    updateTransferState(null)
+                    WinToast.show(this, getString(R.string.settings_content_batch_install_all_done, total))
+                }
+            } else {
+                updateTransferState(null)
+                WinToast.show(this, getString(R.string.settings_content_batch_install_all_done, total))
+            }
+        }
+
+        fun installNext() {
+            val file = queue.removeFirstOrNull()
+            if (file == null) {
+                finishAll()
+                return
+            }
+            current++
+            updateTransferState(
+                TransferState(
+                    title = getString(R.string.settings_content_installing_title),
+                    detail = getString(R.string.settings_content_install_progress, current, total),
+                    currentIndex = current,
+                    total = total,
+                ),
+            )
+            installLocalContentFile(
+                manager = manager,
+                file = file,
+                onInstalled = { pendingContainers += it },
+                onTerminal = { installNext() },
+            )
+        }
+        installNext()
+    }
+
+    private fun installLocalContentFile(
+        manager: ContentsManager,
+        file: File,
+        onInstalled: (ContentProfile) -> Unit,
+        onTerminal: () -> Unit,
+    ) {
+        val uri = Uri.fromFile(file)
+        var extracting = true
+        var extracted: ContentProfile? = null
+        val callback =
+            object : ContentsManager.OnInstallFinishedCallback {
+                override fun onFailed(
+                    reason: ContentsManager.InstallFailedReason,
+                    e: Exception?,
+                ) {
+                    val conflict = extracted
+                    if (reason == ContentsManager.InstallFailedReason.ERROR_EXIST) {
+                        manager.syncContents()
+                        if (conflict != null) {
+                            runOnUiThread {
+                                updateTransferState(null)
+                                recordInstalledContent(this@SetupWizardActivity, conflict)
+                                onInstalled(conflict)
+                                onTerminal()
+                            }
+                            return
+                        }
+                    }
+                    val msgId =
+                        when (reason) {
+                            ContentsManager.InstallFailedReason.ERROR_BADTAR -> R.string.settings_content_file_cannot_be_recognized
+                            ContentsManager.InstallFailedReason.ERROR_NOPROFILE -> R.string.settings_content_profile_not_found
+                            ContentsManager.InstallFailedReason.ERROR_BADPROFILE -> R.string.settings_content_profile_cannot_be_recognized
+                            ContentsManager.InstallFailedReason.ERROR_MISSINGFILES -> R.string.settings_content_is_incomplete
+                            ContentsManager.InstallFailedReason.ERROR_UNTRUSTPROFILE -> R.string.settings_content_cannot_be_trusted
+                            else -> R.string.settings_content_unable_to_install
+                        }
+                    runOnUiThread {
+                        updateTransferState(null)
+                        ContentDialog.alert(
+                            this@SetupWizardActivity,
+                            getString(R.string.settings_content_install_failed) + ": " + getString(msgId),
+                            null,
+                        )
+                        onTerminal()
+                    }
+                }
+
+                override fun onSucceed(profile: ContentProfile) {
+                    if (extracting) {
+                        extracting = false
+                        extracted = profile
+                        updateTransferState(
+                            TransferState(
+                                title = getString(R.string.settings_content_installing_title),
+                                detail = profile.verName,
+                                currentIndex = 0,
+                                total = 0,
+                            ),
+                        )
+                        manager.finishInstallContent(profile, this)
+                        return
+                    }
+                    manager.syncContents()
+                    runOnUiThread {
+                        recordInstalledContent(this@SetupWizardActivity, profile)
+                        onInstalled(profile)
+                        onTerminal()
+                    }
+                }
+            }
+        val extractionProgress =
+            object : ContentsManager.OnExtractionProgressListener {
+                override fun onProgress(
+                    filesExtracted: Int,
+                    currentFileName: String,
+                ) {
+                    updateTransferState(
+                        TransferState(
+                            title = getString(R.string.settings_content_extracting_title),
+                            detail = getString(R.string.settings_content_extracting_detail, filesExtracted),
+                            currentIndex = 0,
+                            total = 0,
+                        ),
+                    )
+                }
+
+                override fun prefersByteProgress(): Boolean = true
+
+                override fun onByteProgress(bytesExtracted: Long) {
+                    updateTransferState(
+                        TransferState(
+                            title = getString(R.string.settings_content_extracting_title),
+                            detail =
+                                android.text.format.Formatter.formatFileSize(
+                                    this@SetupWizardActivity,
+                                    bytesExtracted,
+                                ),
+                            currentIndex = 0,
+                            total = 0,
+                        ),
+                    )
+                }
+            }
+        val keepAliveTag = "wizard_content_install_${uri}_${System.currentTimeMillis()}"
+        val appCtx = applicationContext
+        SessionKeepAliveService.startDownload(appCtx, keepAliveTag)
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                runCatching { manager.extraContentFile(uri, callback, extractionProgress) }
+                    .onFailure {
+                        runOnUiThread {
+                            updateTransferState(null)
+                            WinToast.show(this@SetupWizardActivity, R.string.input_controls_editor_unable_to_import)
+                            onTerminal()
+                        }
+                    }
+            } finally {
+                SessionKeepAliveService.stopDownload(appCtx, keepAliveTag)
+            }
+        }
+    }
+
+    private fun createLocalContainersSequentially(
+        manager: ContentsManager,
+        profiles: List<ContentProfile>,
+        onComplete: () -> Unit,
+    ) {
+        val queue = ArrayDeque(profiles)
+        val containerManager = ContainerManager(this)
+        fun createNext() {
+            val profile = queue.removeFirstOrNull()
+            if (profile == null) {
+                onComplete()
+                return
+            }
+            updateTransferState(
+                TransferState(
+                    title = getString(R.string.containers_list_creating),
+                    detail = profile.verName,
+                    currentIndex = 0,
+                    total = 0,
+                ),
+            )
+            ContainerCreation.createContainerForProfileAsync(
+                this,
+                containerManager,
+                manager,
+                profile,
+            ) { newContainer ->
+                if (newContainer != null) {
+                    WinToast.show(this, getString(R.string.settings_content_container_created, newContainer.name))
+                }
+                createNext()
+            }
+        }
+        createNext()
+    }
+
+    private fun promptInstallDriverFromFile() {
+        DirectoryPickerDialog.showFile(
+            activity = this,
+            title = getString(R.string.settings_drivers_install),
+            allowedExtensions = setOf("zip"),
+        ) { path -> installLocalDriver(Uri.fromFile(File(path))) }
+    }
+
+    private fun installLocalDriver(uri: Uri) {
+        updateTransferState(
+            TransferState(
+                title = getString(R.string.settings_drivers_install),
+                detail = getString(R.string.settings_content_preparing_package),
+                currentIndex = 0,
+                total = 0,
+            ),
+        )
+        val keepAliveTag = "wizard_driver_install_$uri"
+        val appCtx = applicationContext
+        SessionKeepAliveService.startDownload(appCtx, keepAliveTag)
+        lifecycleScope.launch {
+            try {
+                val installed =
+                    withContext(Dispatchers.IO) {
+                        runCatching { DriverPackages.install(appCtx, uri, null, null) }.getOrNull()
+                    }
+                updateTransferState(null)
+                if (installed == null) {
+                    WinToast.show(this@SetupWizardActivity, R.string.settings_drivers_install_failed)
+                    return@launch
+                }
+                if (installed.platform == DriverPackages.Platform.ANDROID) {
+                    recordInstalledDriver(this@SetupWizardActivity, installed.id)
+                }
+                refreshAdvancedInstalledSet()
+            } finally {
+                SessionKeepAliveService.stopDownload(appCtx, keepAliveTag)
+            }
+        }
+    }
+
     private fun loadAdvancedProfiles() {
         if (advancedProfiles.isNotEmpty()) return
         lifecycleScope.launch {
@@ -1923,20 +2190,39 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
                         onClick = { setNav(REGION_NAV, 0); if (page > 0) pageIndex.intValue -= 1 },
                     )
 
-                    if (page < lastPage) {
-                        AccentPillButton(
-                            label = stringResource(R.string.setup_wizard_next),
-                            enabled = canGoNext,
-                            highlighted = controller && region == REGION_NAV && navIdx == 1,
-                            onClick = { setNav(REGION_NAV, 1); if (canGoNext) pageIndex.intValue += 1 },
-                        )
-                    } else {
-                        AccentPillButton(
-                            label = stringResource(R.string.setup_wizard_finish),
-                            enabled = !creatingContainer.value && !transferActive,
-                            highlighted = controller && region == REGION_NAV && navIdx == 1,
-                            onClick = { setNav(REGION_NAV, 1); finishWizard() },
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        // Local install actions sit right beside Next / Finish.
+                        if (page == 1) {
+                            CompactInstallButton(
+                                label = stringResource(R.string.setup_wizard_install_content_from_file),
+                                enabled = !transferActive,
+                                onClick = { promptInstallContentFromFile() },
+                            )
+                            CompactInstallButton(
+                                label = stringResource(R.string.setup_wizard_install_driver_from_file),
+                                enabled = !transferActive,
+                                onClick = { promptInstallDriverFromFile() },
+                            )
+                        }
+
+                        if (page < lastPage) {
+                            AccentPillButton(
+                                label = stringResource(R.string.setup_wizard_next),
+                                enabled = canGoNext,
+                                highlighted = controller && region == REGION_NAV && navIdx == 1,
+                                onClick = { setNav(REGION_NAV, 1); if (canGoNext) pageIndex.intValue += 1 },
+                            )
+                        } else {
+                            AccentPillButton(
+                                label = stringResource(R.string.setup_wizard_finish),
+                                enabled = !creatingContainer.value && !transferActive,
+                                highlighted = controller && region == REGION_NAV && navIdx == 1,
+                                onClick = { setNav(REGION_NAV, 1); finishWizard() },
+                            )
+                        }
                     }
                 }
             }
@@ -2187,6 +2473,34 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
                 ),
         ) {
             Text(label, fontFamily = InterFont, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        }
+    }
+
+    @Composable
+    private fun CompactInstallButton(
+        label: String,
+        enabled: Boolean,
+        onClick: () -> Unit,
+    ) {
+        val turquoise = Color(0xFF57CBDE)
+        Button(
+            onClick = onClick,
+            enabled = enabled,
+            shape = RoundedCornerShape(12.dp),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = turquoise.copy(alpha = 0.14f),
+                    contentColor = turquoise,
+                    disabledContainerColor = turquoise.copy(alpha = 0.16f),
+                    disabledContentColor = turquoise,
+                ),
+        ) {
+            Text(
+                text = label,
+                fontFamily = InterFont,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+            )
         }
     }
 

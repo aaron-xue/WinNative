@@ -1646,6 +1646,8 @@ Installed path:
     <string name="setup_wizard_install_failed_detail">%1$s - %2$s</string>
     <string name="setup_wizard_required_access">Required Access</string>
     <string name="setup_wizard_select_components">Select Components</string>
+    <string name="setup_wizard_install_content_from_file">Install components</string>
+    <string name="setup_wizard_install_driver_from_file">Install driver</string>
     <string name="setup_wizard_recommended_wine_proton">Recommended Wine / Proton</string>
     <string name="setup_wizard_advanced_setup">Advanced Setup</string>
     <string name="setup_wizard_title">Setup Wizard</string>

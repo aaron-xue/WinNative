@@ -1154,6 +1154,8 @@
     <string name="setup_wizard_install_failed_detail">%1$s - %2$s</string>
     <string name="setup_wizard_required_access">所需权限</string>
     <string name="setup_wizard_select_components">选择组件</string>
+    <string name="setup_wizard_install_content_from_file">安装组件</string>
+    <string name="setup_wizard_install_driver_from_file">安装驱动</string>
     <string name="setup_wizard_recommended_wine_proton">推荐 Wine / Proton</string>
     <string name="setup_wizard_advanced_setup">高级设置</string>
     <string name="setup_wizard_title">设置向导</string>
