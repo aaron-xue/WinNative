@@ -981,7 +981,7 @@ onDismiss: () -> Unit,
 }
 
 @Composable
-private fun RetroConsoleBundleGroup(
+internal fun RetroConsoleBundleGroup(
 refreshKey: Int,
 onChanged: () -> Unit,
 ) {
