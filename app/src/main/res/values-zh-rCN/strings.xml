@@ -1159,10 +1159,6 @@
     <string name="setup_wizard_title">设置向导</string>
     <string name="setup_wizard_advanced_user">高级用户</string>
     <string name="setup_wizard_next">下一步</string>
-    <string name="setup_wizard_steam_client">Steam Client</string>
-    <string name="setup_wizard_windows_steam_client">Windows Steam Client</string>
-    <string name="setup_wizard_windows_steam_summary">The Windows Steam Client runs through Wine or Proton; its components and container are set up on the next pages.</string>
-    <string name="setup_wizard_linux_client_continues">The install carries on while you finish the setup, and shows under Linux Client in Settings > Stores.</string>
     <string name="setup_wizard_finish">完成</string>
     <string name="setup_wizard_download_and_install">下载 + 安装</string>
     <string name="setup_wizard_open_drivers">打开驱动</string>
@@ -3666,8 +3662,6 @@
     <string name="settings_drivers_bundled">内置 Mesa</string>
     <string name="settings_drivers_legacy">Linux 客户端驱动程序</string>
     <string name="settings_drivers_routed">已识别驱动程序并安装到 %1$s。</string>
-    <string name="linux_child_processes_message">Android 会限制应用的后台进程数量，而 Linux 会话远超此限制：Steam 或游戏可能在游玩时被终止。请在开发者选项中打开“禁用子进程限制”。现在打开吗？</string>
-    <string name="linux_child_processes_adb">Android 会限制应用的后台进程数量，而 Linux 会话远超此限制：Steam 或游戏可能在游玩时被终止。此 Android 版本没有该开关。请在电脑上运行：\n\nadb shell settings put global settings_enable_monitor_phantom_procs false</string>
 
     <string name="registry_editor">注册表</string>
     <string name="registry_hive_user">用户（user.reg）</string>
