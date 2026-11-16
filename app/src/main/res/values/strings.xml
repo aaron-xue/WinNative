@@ -1634,7 +1634,11 @@ Installed path:
     <string name="setup_wizard_loading_components">Loading components…</string>
     <string name="setup_wizard_no_components_available">No components available for this category.</string>
     <string name="setup_wizard_default_settings">Default Settings</string>
-    <string name="setup_wizard_containers">Container Setup</string>
+    <string name="setup_wizard_containers">Retro consoles</string>
+    <string name="setup_wizard_retro_bios_group">Console BIOS</string>
+    <string name="setup_wizard_retro_bios_hint">PS1/PS2 cores need a matching region BIOS to boot games.</string>
+    <string name="setup_wizard_retro_switch_group">Nintendo Switch</string>
+    <string name="setup_wizard_retro_switch_hint">Import prod keys and firmware before running Switch games.</string>
     <string name="setup_wizard_containers_description">Open each container and set the defaults you want every new game to inherit. New games will target the x86-64 container by default.</string>
     <string name="setup_wizard_store_sign_in_optional">Store sign-in is optional. Each sign-in returns here when it finishes.</string>
     <string name="setup_wizard_granted">Granted</string>

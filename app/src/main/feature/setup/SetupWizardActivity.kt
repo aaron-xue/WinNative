@@ -46,6 +46,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -86,6 +87,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -103,7 +105,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -136,10 +141,17 @@ import com.winlator.cmod.shared.ui.toast.WinToast
 import com.winlator.cmod.shared.android.FixedFontScaleFragmentActivity
 import com.winlator.cmod.shared.android.LandscapeOnlyActivity
 import com.winlator.cmod.shared.ui.widget.chasingBorder
+import com.winlator.cmod.feature.retro.RetroBiosImport
+import com.winlator.cmod.feature.retro.RetroBundle
+import com.winlator.cmod.feature.retro.RetroConsoleBundleGroup
+import com.winlator.cmod.feature.retro.RetroCoreManager
+import com.winlator.cmod.feature.retro.RetroSystems
 import com.winlator.cmod.shared.theme.WinNativeTheme
+import com.winlator.cmod.shared.ui.dialog.WinNativeComposeDialogs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.citron.citron_emu.wn.CitronBootstrap
 import org.json.JSONArray
 import java.io.File
 import java.util.Locale
@@ -1617,27 +1629,6 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
         }.getOrDefault(emptyList())
     }
 
-    private fun ensureContainerForProfile(
-        profile: ContentProfile,
-        desiredName: String,
-    ): Container {
-        val containerManager = ContainerManager(this)
-        val contentsManager = ContentsManager(this)
-        contentsManager.syncContents()
-
-        return requireNotNull(
-            ContainerCreation.getOrCreateContainerForProfile(
-                this,
-                containerManager,
-                contentsManager,
-                profile,
-                desiredName,
-            ),
-        ) {
-            "Unable to create container for ${profile.verName}"
-        }
-    }
-
     private fun openDrivers() {
         if (supportFragmentManager.findFragmentByTag(SetupWizardDriversDialogFragment.TAG) == null) {
             SetupWizardDriversDialogFragment().show(
@@ -2154,7 +2145,7 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
                             when (targetPage) {
                                 0 -> PagePermissions(isCompact)
                                 1 -> PageAdvancedComponents(isCompact)
-                                2 -> PageDefaultSettings()
+                                2 -> PageRetroConsoles()
                             }
                         }
                     }
@@ -2479,13 +2470,15 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
     @Composable
     private fun CompactInstallButton(
         label: String,
-        enabled: Boolean,
+        enabled: Boolean = true,
+        modifier: Modifier = Modifier,
         onClick: () -> Unit,
     ) {
         val turquoise = Color(0xFF57CBDE)
         Button(
             onClick = onClick,
             enabled = enabled,
+            modifier = modifier,
             shape = RoundedCornerShape(12.dp),
             colors =
                 ButtonDefaults.buttonColors(
@@ -3189,282 +3182,283 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
     }
 
     @Composable
-    private fun PageDefaultSettings() {
-        val contentsManager =
-            remember {
-                ContentsManager(this@SetupWizardActivity).also { it.syncContents() }
+    private fun PageRetroConsoles() {
+        val scope = rememberCoroutineScope()
+        var refresh by remember { mutableIntStateOf(0) }
+        // Only offer the Switch importers when the installed console bundle really
+        // carries the Switch native runtime.
+        val switchReady =
+            remember(refresh) {
+                RetroBundle.isInstalled(this@SetupWizardActivity) &&
+                    CitronBootstrap.areSwitchLibsAvailable(this@SetupWizardActivity)
             }
-        val installedRuntimes =
-            remember(advancedInstalledSet.toList()) {
-                val wineProfiles =
-                    contentsManager
-                        .getProfiles(ContentProfile.ContentType.CONTENT_TYPE_WINE)
-                        .orEmpty()
-                        .filter { it.isInstalled }
-                val protonProfiles =
-                    contentsManager
-                        .getProfiles(ContentProfile.ContentType.CONTENT_TYPE_PROTON)
-                        .orEmpty()
-                        .filter { it.isInstalled }
-                (wineProfiles + protonProfiles)
+        LaunchedEffect(Unit) { setTabCount(0) }
+
+        // Echo back what is already installed; reloaded from disk after every import.
+        var ps1Bios by remember { mutableStateOf<List<String>>(emptyList()) }
+        var ps2Bios by remember { mutableStateOf<List<String>>(emptyList()) }
+        var switchKeys by remember { mutableStateOf<List<String>>(emptyList()) }
+        var firmwareCount by remember { mutableIntStateOf(0) }
+        LaunchedEffect(refresh) {
+            val data =
+                withContext(Dispatchers.IO) {
+                    val dir = RetroCoreManager.systemDir(this@SetupWizardActivity)
+                    arrayOf(
+                        RetroSystems.PSX.biosFiles.filter { File(dir, it).isFile },
+                        RetroBiosImport.installedPs2BiosLabels(this@SetupWizardActivity),
+                        RetroBiosImport.installedSwitchKeys(this@SetupWizardActivity),
+                        RetroBiosImport.installedSwitchFirmwareCount(this@SetupWizardActivity),
+                    )
+                }
+            ps1Bios = data[0] as List<String>
+            ps2Bios = data[1] as List<String>
+            switchKeys = data[2] as List<String>
+            firmwareCount = data[3] as Int
+        }
+
+        val importPs1Bios: () -> Unit = {
+            DirectoryPickerDialog.showFile(
+                activity = this,
+                title = getString(R.string.retro_scr_import_ps1_bios),
+                allowedExtensions = setOf("bin"),
+            ) { path ->
+                scope.launch {
+                    val result =
+                        withContext(Dispatchers.IO) {
+                            RetroBiosImport.importFromUri(this@SetupWizardActivity, Uri.fromFile(File(path)))
+                        }
+                    result
+                        .onSuccess {
+                            WinToast.show(this@SetupWizardActivity, getString(R.string.retro_scr_bios_imported, it))
+                        }
+                        .onFailure {
+                            WinToast.show(
+                                this@SetupWizardActivity,
+                                it.message ?: getString(R.string.retro_scr_invalid_bios_file),
+                            )
+                        }
+                    refresh++
+                }
+            }
+        }
+
+        val importPs2Bios: () -> Unit = {
+            DirectoryPickerDialog.showFile(
+                activity = this,
+                title = getString(R.string.retro_scr_import_ps2_bios),
+                allowedExtensions = setOf("bin"),
+            ) { path ->
+                scope.launch {
+                    val result =
+                        withContext(Dispatchers.IO) {
+                            RetroBiosImport.importPs2FromUri(this@SetupWizardActivity, Uri.fromFile(File(path)))
+                        }
+                    result
+                        .onSuccess {
+                            WinToast.show(this@SetupWizardActivity, getString(R.string.retro_scr_ps2_bios_imported, it))
+                        }
+                        .onFailure {
+                            WinToast.show(
+                                this@SetupWizardActivity,
+                                it.message ?: getString(R.string.retro_scr_invalid_ps2_bios_file),
+                            )
+                        }
+                    refresh++
+                }
+            }
+        }
+
+        val importSwitchKeys: () -> Unit = {
+            DirectoryPickerDialog.showFile(
+                activity = this,
+                title = getString(R.string.retro_scr_import_switch_keys),
+                allowedExtensions = setOf("keys"),
+            ) { path ->
+                scope.launch {
+                    val result =
+                        withContext(Dispatchers.IO) {
+                            RetroBiosImport.importSwitchKeysFromUri(this@SetupWizardActivity, Uri.fromFile(File(path)))
+                        }
+                    result
+                        .onSuccess {
+                            WinToast.show(this@SetupWizardActivity, getString(R.string.retro_scr_switch_keys_imported, it))
+                        }
+                        .onFailure {
+                            WinToast.show(
+                                this@SetupWizardActivity,
+                                it.message ?: getString(R.string.retro_scr_invalid_switch_keys_file),
+                            )
+                        }
+                    refresh++
+                }
+            }
+        }
+
+        val importSwitchFirmware: () -> Unit = {
+            DirectoryPickerDialog.showFile(
+                activity = this,
+                title = getString(R.string.retro_scr_import_switch_firmware),
+                allowedExtensions = setOf("zip"),
+            ) { path ->
+                scope.launch {
+                    val loading =
+                        WinNativeComposeDialogs.showLoading(
+                            this@SetupWizardActivity,
+                            getString(R.string.retro_scr_importing_switch_firmware),
+                        )
+                    val result =
+                        withContext(Dispatchers.IO) {
+                            RetroBiosImport.importSwitchFirmwareFromUri(this@SetupWizardActivity, Uri.fromFile(File(path)))
+                        }
+                    loading?.dismiss()
+                    result
+                        .onSuccess {
+                            WinToast.show(this@SetupWizardActivity, getString(R.string.retro_scr_switch_firmware_imported, it))
+                            if (RetroBiosImport.installedSwitchKeys(this@SetupWizardActivity).isEmpty()) {
+                                WinToast.show(this@SetupWizardActivity, getString(R.string.retro_scr_switch_firmware_keys_warning))
+                            }
+                        }
+                        .onFailure {
+                            WinToast.show(
+                                this@SetupWizardActivity,
+                                it.message ?: getString(R.string.retro_scr_invalid_switch_firmware_file),
+                            )
+                        }
+                    refresh++
+                }
+            }
+        }
+
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            RetroConsoleBundleGroup(refreshKey = refresh, onChanged = { refresh++ })
+
+            RetroImportCard(
+                title = stringResource(R.string.setup_wizard_retro_bios_group),
+                hint = stringResource(R.string.setup_wizard_retro_bios_hint),
+                statusLines =
+                    listOf(
+                        stringResource(R.string.retro_scr_installed) to
+                            if (ps1Bios.isEmpty()) {
+                                stringResource(R.string.retro_scr_none_ps1_bios)
+                            } else {
+                                ps1Bios.joinToString(", ")
+                            },
+                        stringResource(R.string.retro_scr_installed) to
+                            if (ps2Bios.isEmpty()) {
+                                stringResource(R.string.retro_scr_none_ps2_bios)
+                            } else {
+                                ps2Bios.joinToString(", ")
+                            },
+                    ),
+            ) {
+                CompactInstallButton(
+                    label = stringResource(R.string.retro_scr_import_ps1_bios),
+                    enabled = true,
+                    modifier = Modifier.weight(1f),
+                    onClick = importPs1Bios,
+                )
+                CompactInstallButton(
+                    label = stringResource(R.string.retro_scr_import_ps2_bios),
+                    enabled = true,
+                    modifier = Modifier.weight(1f),
+                    onClick = importPs2Bios,
+                )
             }
 
-        if (installedRuntimes.isEmpty()) {
-            Column(
-                modifier =
-                    Modifier
-                        .widthIn(max = 420.dp)
-                        .background(Color.White.copy(alpha = SetupGlassSurfaceAlpha), RoundedCornerShape(12.dp))
-                        .border(1.dp, Color.White.copy(alpha = SetupGlassBorderAlpha), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 18.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = stringResource(R.string.setup_wizard_no_runtime_installed),
-                    color = Color(0xFF8B949E),
-                    fontFamily = InterFont,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = stringResource(R.string.setup_wizard_no_runtime_hint),
-                    color = Color(0xFF6B7580),
-                    fontFamily = InterFont,
-                    fontSize = 11.sp,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        } else {
-            BoxWithConstraints(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                // Fixed at 3, a portrait window gave each card about 120 dp: the Create
-                // button took its intrinsic width and the weighted text column beside it was
-                // left with a few dp, wrapping "ARM64EC" one character per line.
-                val gridColumns =
-                    when {
-                        maxWidth < 420.dp -> 1
-                        maxWidth < 720.dp -> 2
-                        else -> 3
-                    }
-                val compactGrid = maxWidth < 720.dp || maxHeight < 280.dp
-                val region by navRegion
-                val navIdx by navIndex
-                val activate by activateSignal
-                val controller by controllerConnected
-                LaunchedEffect(installedRuntimes.size, gridColumns) {
-                    setTabCount(0)
-                    setContentLayout(installedRuntimes.size, gridColumns)
-                }
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(gridColumns),
-                    modifier =
-                        Modifier
-                            .widthIn(max = 960.dp)
-                            .fillMaxWidth()
-                            .fillMaxHeight(),
-                    horizontalArrangement = Arrangement.spacedBy(if (compactGrid) 8.dp else 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(if (compactGrid) 6.dp else 10.dp),
-                    contentPadding = PaddingValues(bottom = if (compactGrid) 4.dp else 12.dp),
+            if (switchReady) {
+                RetroImportCard(
+                    title = stringResource(R.string.setup_wizard_retro_switch_group),
+                    hint = stringResource(R.string.setup_wizard_retro_switch_hint),
+                    statusLines =
+                        listOf(
+                            stringResource(R.string.retro_scr_installed) to
+                                if (switchKeys.isEmpty()) {
+                                    stringResource(R.string.retro_scr_none_switch_keys)
+                                } else {
+                                    switchKeys.joinToString(", ")
+                                },
+                            stringResource(R.string.retro_scr_installed) to
+                                if (firmwareCount == 0) {
+                                    stringResource(R.string.retro_scr_no_switch_firmware)
+                                } else {
+                                    getString(R.string.retro_scr_switch_firmware_installed, firmwareCount)
+                                },
+                        ),
                 ) {
-                    gridItemsIndexed(installedRuntimes) { i, profile ->
-                        RuntimeContainerCard(
-                            profile,
-                            compact = compactGrid,
-                            highlighted = controller && region == REGION_CONTENT && navIdx == i,
-                            activate = activate,
-                            onTap = { setNav(REGION_CONTENT, i) },
-                        )
-                    }
+                    CompactInstallButton(
+                        label = stringResource(R.string.retro_scr_import_switch_keys),
+                        enabled = true,
+                        modifier = Modifier.weight(1f),
+                        onClick = importSwitchKeys,
+                    )
+                    CompactInstallButton(
+                        label = stringResource(R.string.retro_scr_import_switch_firmware),
+                        enabled = true,
+                        modifier = Modifier.weight(1f),
+                        onClick = importSwitchFirmware,
+                    )
                 }
             }
         }
     }
 
     @Composable
-    private fun RuntimeContainerCard(
-        profile: ContentProfile,
-        compact: Boolean = false,
-        highlighted: Boolean = false,
-        activate: Int = 0,
-        onTap: () -> Unit = {},
+    private fun RetroImportCard(
+        title: String,
+        hint: String,
+        statusLines: List<Pair<String, String>> = emptyList(),
+        buttons: @Composable RowScope.() -> Unit,
     ) {
-        val entryName = ContentsManager.getEntryName(profile)
-        val displayName = ContainerCreation.displayNameForProfile(profile)
-        val isArm64 = profile.verName.contains("arm64ec", ignoreCase = true)
-        val archLabel = if (isArm64) "ARM64EC" else "x86-64"
-
-        val containerManager = remember { ContainerManager(this@SetupWizardActivity) }
-        var existingContainer by remember {
-            mutableStateOf(
-                containerManager.containers.firstOrNull { it.wineVersion == entryName },
-            )
-        }
-        val creating = creatingContainer.value
-
-        val hasContainer = existingContainer != null
-        val turquoise = Color(0xFF57CBDE)
-        val completedTurquoise = Color(0xFF3FAFBE)
-        val cardShape = RoundedCornerShape(12.dp)
-        val bgColor = Color.White.copy(alpha = SetupGlassSurfaceAlpha)
-        val activeColor = if (hasContainer) completedTurquoise else Color(0xFF4A5260)
-        val outlineColor =
-            if (hasContainer) {
-                completedTurquoise.copy(alpha = SetupGlassCompletedSoftBorderAlpha)
-            } else {
-                Color.White.copy(alpha = SetupGlassBorderAlpha)
-            }
-
-        val createContainer = {
-            if (!creating && transferState.value == null) {
-                creatingContainer.value = true
-                lifecycleScope.launch {
-                    wizardError.value = null
-                    val container =
-                        withContext(Dispatchers.IO) {
-                            try {
-                                val c = ensureContainerForProfile(profile, displayName)
-                                if (isArm64) {
-                                    saveDefaultArm64ContainerId(this@SetupWizardActivity, c.id)
-                                } else {
-                                    saveDefaultX86ContainerId(this@SetupWizardActivity, c.id)
-                                }
-                                c
-                            } catch (e: Exception) {
-                                updateWizardError("Container creation failed: ${e.message}")
-                                null
-                            }
-                        }
-                    existingContainer = container
-                    creatingContainer.value = false
-                    refreshAdvancedInstalledSet()
-                    refreshWizardState()
-                }
-            }
-        }
-        val openSettings = {
-            existingContainer?.let { openContainerDefaultSettings(it.id, if (isArm64) "arm64" else "x86") }
-            Unit
-        }
-
-        val lastActivate = remember { mutableStateOf(activate) }
-        LaunchedEffect(activate) {
-            if (activate != lastActivate.value) {
-                lastActivate.value = activate
-                if (highlighted) {
-                    if (existingContainer == null) createContainer() else openSettings()
-                }
-            }
-        }
-
-        Row(
+        Column(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .background(bgColor, cardShape)
-                    .border(1.dp, outlineColor, cardShape)
-                    .navHighlight(highlighted, cornerRadius = 12.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { onTap() }
-                    .padding(horizontal = if (compact) 10.dp else 12.dp, vertical = if (compact) 6.dp else 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                    .background(Color.White.copy(alpha = SetupGlassSurfaceAlpha), RoundedCornerShape(12.dp))
+                    .border(1.dp, Color.White.copy(alpha = SetupGlassBorderAlpha), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(6.dp)
-                                .background(
-                                    activeColor,
-                                    RoundedCornerShape(3.dp),
-                                ),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = archLabel,
-                        color = if (hasContainer) activeColor else Color(0xFF8B949E),
-                        fontFamily = InterFont,
-                        fontSize = if (compact) 8.sp else 9.sp,
-                        letterSpacing = 1.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Spacer(Modifier.height(if (compact) 1.dp else 3.dp))
+            Text(
+                text = title,
+                color = Color(0xFFE6EDF3),
+                fontFamily = InterFont,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 12.sp,
+            )
+            Text(
+                text = hint,
+                color = Color(0xFF8B949E),
+                fontFamily = InterFont,
+                fontSize = 11.sp,
+            )
+            statusLines.forEach { (label, value) ->
                 Text(
-                    text = displayName,
-                    color = Color(0xFFE6EDF3),
-                    fontFamily = InterFont,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = if (compact) 11.sp else 12.sp,
-                    maxLines = 1,
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(color = Color(0xFF8B949E), fontFamily = InterFont, fontSize = 11.sp)) {
+                            append("$label: ")
+                        }
+                        withStyle(SpanStyle(color = Color(0xFFE6EDF3), fontFamily = InterFont, fontSize = 11.sp)) {
+                            append(value)
+                        }
+                    },
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(Modifier.width(if (compact) 6.dp else 8.dp))
-            if (existingContainer == null) {
-                Button(
-                    onClick = { onTap(); createContainer() },
-                    enabled = !creating && transferState.value == null,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.height(if (compact) 24.dp else 28.dp),
-                    contentPadding = PaddingValues(horizontal = if (compact) 9.dp else 12.dp, vertical = 0.dp),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = turquoise.copy(alpha = 0.14f),
-                            contentColor = turquoise,
-                            disabledContainerColor =
-                                if (creating) turquoise.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.08f),
-                            disabledContentColor = if (creating) turquoise else Color(0xFF4A5260),
-                        ),
-                ) {
-                    if (creating) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(if (compact) 12.dp else 14.dp),
-                            color = turquoise,
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(Modifier.width(if (compact) 4.dp else 6.dp))
-                    }
-                    Text(
-                        text =
-                            stringResource(
-                                if (creating) R.string.setup_wizard_creating_container else R.string.setup_wizard_create_container,
-                        ),
-                        fontFamily = InterFont,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = if (compact) 9.sp else 10.sp,
-                    )
-                }
-            } else {
-                Button(
-                    onClick = { onTap(); openSettings() },
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.height(if (compact) 24.dp else 28.dp),
-                    contentPadding = PaddingValues(horizontal = if (compact) 9.dp else 12.dp, vertical = 0.dp),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = completedTurquoise.copy(alpha = 0.14f),
-                            contentColor = completedTurquoise,
-                        ),
-                ) {
-                    Text(
-                        text = stringResource(R.string.setup_wizard_default_settings),
-                        fontFamily = InterFont,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = if (compact) 9.sp else 10.sp,
-                    )
-                }
-            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                content = buttons,
+            )
         }
     }
+
 
     @Composable
     private fun WizardActionCard(

@@ -1355,7 +1355,11 @@
     <string name="session_gyroscope_activator">激活器</string>
     <string name="settings_general_check_for_updates">检查更新</string>
     <string name="settings_general_check_for_updates_summary">在启动时和定期自动检查新版本。</string>
-    <string name="setup_wizard_containers">容器设置</string>
+    <string name="setup_wizard_containers">复古游戏主机</string>
+    <string name="setup_wizard_retro_bios_group">主机 BIOS</string>
+    <string name="setup_wizard_retro_bios_hint">PS1/PS2 核心需要对应区域的 BIOS 才能启动游戏。</string>
+    <string name="setup_wizard_retro_switch_group">Switch 主机</string>
+    <string name="setup_wizard_retro_switch_hint">运行 Switch 游戏前请先导入密钥与固件。</string>
     <string name="cloud_saves_title">云存档</string>
     <string name="cloud_saves_title_for_provider">%1$s 云存档 - %2$s</string>
     <string name="cloud_sync_title">云同步</string>

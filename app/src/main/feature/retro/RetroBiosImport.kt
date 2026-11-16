@@ -2,8 +2,10 @@ package com.winlator.cmod.feature.retro
 
 import android.content.Context
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import java.io.File
 import java.security.MessageDigest
+import kr.co.iefriends.pcsx2.NativeApp
 
 object RetroBiosImport {
     private val KNOWN_BIOS: Map<String, String> =
@@ -47,6 +49,34 @@ object RetroBiosImport {
             .map { it.name }
             .sorted()
 
+    // Mirrors ARMSX2's BIOS manager: probe each dump with the core
+    // (NativeApp.getBiosInfoFromFd → IsBIOSFromFd) and render
+    // "file · description · v2.30 · zone". Falls back to the raw file name when
+    // the probe is unavailable (core not loaded, invalid dump, …).
+    fun installedPs2BiosLabels(context: Context): List<String> =
+        installedPs2Bios(context).map { name ->
+            val info =
+                runCatching {
+                    val file = File(ps2BiosDir(context), name)
+                    val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                    try {
+                        NativeApp.getBiosInfoFromFd(pfd.detachFd())
+                    } finally {
+                        pfd.close()
+                    }
+                }.getOrNull()
+            if (info == null) {
+                name
+            } else {
+                listOf(
+                    name,
+                    info.description.takeIf { it.isNotBlank() },
+                    info.versionString.takeIf { it.isNotBlank() },
+                    info.zone.takeIf { it.isNotBlank() },
+                ).joinToString(" · ")
+            }
+        }
+
     fun deletePs1Bios(context: Context): Int {
         val dir = RetroCoreManager.systemDir(context)
         var removed = 0
@@ -66,10 +96,17 @@ object RetroBiosImport {
         uri: Uri,
     ): Result<String> =
         runCatching {
+            // Keep the real file name: pickers hand us file:// URIs, for which
+            // DISPLAY_NAME queries return null — that used to rename every import
+            // to "ps2-bios.bin". Content URIs still resolve via DISPLAY_NAME.
             val name =
-                context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
-                    if (it.moveToFirst()) it.getString(0) else null
-                } ?: "ps2-bios.bin"
+                when (uri.scheme) {
+                    "file" -> File(uri.path ?: "").name
+                    else ->
+                        context.contentResolver
+                            .query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                            ?.use { if (it.moveToFirst()) it.getString(0) else null }
+                }?.takeIf(String::isNotBlank) ?: "ps2-bios.bin"
             val bytes =
                 context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     ?: throw IllegalStateException("Could not read file")
