@@ -91,8 +91,6 @@ private const val ContainerCardAspect = 1.2f
 
 data class ContainersScreenState(
     val containers: List<Container> = emptyList(),
-    /** The GameScope containers; Linux programs and Steam boot into the first of them. */
-    val gamescope: List<Container> = emptyList(),
     val dialog: ContainersDialogUiState = ContainersDialogUiState.None,
 )
 
@@ -134,7 +132,6 @@ data class ContainerStorageInfoUiState(
 fun ContainersScreen(
     state: ContainersScreenState,
     onAddContainer: () -> Unit,
-    onAddGamescope: () -> Unit,
     onRunContainer: (Container) -> Unit,
     onEditContainer: (Container) -> Unit,
     onDuplicateContainer: (Container) -> Unit,
@@ -228,55 +225,6 @@ fun ContainersScreen(
                         }
                     }
 
-                    Spacer(Modifier.height(10.dp))
-                    SectionLabel(text = stringResource(R.string.containers_gamescope_section))
-                    Spacer(Modifier.height(6.dp))
-                    // The card that makes one sits first, so this section reads the same way the
-                    // Wine/Proton one above it does, and it only ever creates a GameScope container.
-                    val gamescopeCells = state.gamescope.size + 1
-                    val gamescopeRows = (gamescopeCells + columns - 1) / columns
-                    for (rowIndex in 0 until gamescopeRows) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(cardSpacing),
-                        ) {
-                            for (colIndex in 0 until columns) {
-                                val cellIndex = rowIndex * columns + colIndex
-                                val navRow = (rowCount + rowIndex) * 2
-                                val navCol = colIndex * 2
-                                Box(modifier = Modifier.weight(1f)) {
-                                    when {
-                                        cellIndex == 0 ->
-                                            AddContainerCard(
-                                                label = stringResource(R.string.containers_gamescope_new),
-                                                onClick = onAddGamescope,
-                                                navRow = navRow,
-                                                navCol = navCol,
-                                            )
-                                        cellIndex <= state.gamescope.size -> {
-                                            val gamescope = state.gamescope[cellIndex - 1]
-                                            key(gamescope.id) {
-                                                ContainerCard(
-                                                    container = gamescope,
-                                                    navRow = navRow,
-                                                    navCol = navCol,
-                                                    onRun = { onRunContainer(gamescope) },
-                                                    onEdit = { onEditContainer(gamescope) },
-                                                    onDuplicate = null,
-                                                    onInstallComponents = null,
-                                                    onRemove = { onRemoveContainer(gamescope) },
-                                                    onShowInfo = { onShowInfo(gamescope) },
-                                                    onFileManager = { onFileManager(gamescope) },
-                                                    onRegistryEditor = { onRegistryEditor(gamescope) },
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (rowIndex < gamescopeRows - 1) Spacer(Modifier.height(cardSpacing))
-                    }
                     Spacer(Modifier.height(4.dp + navBarBottomPadding))
                 }
             }

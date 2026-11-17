@@ -68,12 +68,6 @@ class TouchpadView(
     private var scrolling = false
     private var sensitivity = 1.0f
     private var simTouchScreen = false
-    private var sinkTouchActive = false
-    private var sinkTapTime = 0L
-    private var sinkTapX = 0f
-    private var sinkTapY = 0f
-    private var sinkTouchX = 0f
-    private var sinkTouchY = 0f
     private var touchLeftPressed = false
     private var touchPrimaryId = -1
     private var touchSecondId = -1
@@ -460,17 +454,6 @@ class TouchpadView(
         return true
     }
 
-    /**
-     * Takes touchscreen-mode touches (0 = down, 1 = move, 2 = up, in screen coordinates) while a
-     * Wayland session presents: the compositor knows where on the screen it draws the scene,
-     * which this view's own transform does not. Returns false when no such session is attached.
-     */
-    fun interface TouchscreenSink {
-        fun onTouch(action: Int, rawX: Float, rawY: Float): Boolean
-    }
-
-    var touchscreenSink: TouchscreenSink? = null
-
     private fun rawX(event: MotionEvent, index: Int): Float = event.getX(index) + event.rawX - event.x
 
     private fun rawY(event: MotionEvent, index: Int): Float = event.getY(index) + event.rawY - event.y
@@ -504,7 +487,6 @@ class TouchpadView(
     }
 
     private fun pressAt(x: Float, y: Float, rawX: Float, rawY: Float) {
-        if (tapToClickEnabled && sinkTouchDown(rawX, rawY)) return
         val transformedPoint = XForm.transformPoint(xform, x, y)
         var tx = transformedPoint[0].toInt()
         var ty = transformedPoint[1].toInt()
@@ -526,22 +508,6 @@ class TouchpadView(
         }
     }
 
-    /** A second tap close to the first lands exactly on it, so a double tap is a double click. */
-    private fun sinkTouchDown(rawX: Float, rawY: Float): Boolean {
-        val sink = touchscreenSink ?: return false
-        val now = System.currentTimeMillis()
-        val near = Math.hypot((rawX - sinkTapX).toDouble(), (rawY - sinkTapY).toDouble()) < TOUCHSCREEN_DOUBLE_TAP_DISTANCE
-        if (now - sinkTapTime >= TOUCHSCREEN_DOUBLE_TAP_MS || !near) {
-            sinkTapX = rawX
-            sinkTapY = rawY
-        }
-        sinkTapTime = now
-        sinkTouchX = sinkTapX
-        sinkTouchY = sinkTapY
-        sinkTouchActive = sink.onTouch(0, sinkTapX, sinkTapY)
-        return sinkTouchActive
-    }
-
     private fun handleTouchMove(event: MotionEvent, index: Int) {
         readTouch(event, index, pressCurrent)
         if (pressPending) {
@@ -553,12 +519,6 @@ class TouchpadView(
     }
 
     private fun moveTouch() {
-        if (sinkTouchActive) {
-            sinkTouchX = pressCurrent[2]
-            sinkTouchY = pressCurrent[3]
-            touchscreenSink?.onTouch(1, sinkTouchX, sinkTouchY)
-            return
-        }
         val transformedPoint = XForm.transformPoint(xform, pressCurrent[0], pressCurrent[1])
         xServer.injectPointerMove(transformedPoint[0].toInt(), transformedPoint[1].toInt())
     }
@@ -566,10 +526,6 @@ class TouchpadView(
     private fun handleTouchUp(event: MotionEvent, index: Int) {
         readTouch(event, index, pressCurrent)
         firePendingPress()
-        if (sinkTouchActive) {
-            sinkTouchX = pressCurrent[2]
-            sinkTouchY = pressCurrent[3]
-        }
         releaseTouchscreenPointers()
     }
 
@@ -577,7 +533,7 @@ class TouchpadView(
     private fun startTwoFingerGesture(event: MotionEvent) {
         val pressed = !pressPending
         endTouchscreenPress()
-        if (!pressed && touchscreenSink?.onTouch(1, pressCurrent[2], pressCurrent[3]) != true) {
+        if (!pressed) {
             val transformedPoint = XForm.transformPoint(xform, pressCurrent[0], pressCurrent[1])
             xServer.injectPointerMove(transformedPoint[0].toInt(), transformedPoint[1].toInt())
         }
@@ -624,10 +580,6 @@ class TouchpadView(
 
     private fun endTouchscreenPress() {
         cancelPendingPress()
-        if (sinkTouchActive) {
-            sinkTouchActive = false
-            touchscreenSink?.onTouch(2, sinkTouchX, sinkTouchY)
-        }
         if (touchLeftPressed) {
             touchLeftPressed = false
             xServer.injectPointerButtonRelease(Pointer.Button.BUTTON_LEFT)

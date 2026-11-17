@@ -38,7 +38,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeveloperBoard
@@ -112,18 +111,6 @@ data class ComponentItem(
     val isOfficial: Boolean = false,
 )
 
-data class LinuxComponentItem(
-    val key: String,
-    val type: ContentProfile.ContentType,
-    val verName: String,
-    val isInstalled: Boolean,
-    val hasRemote: Boolean,
-    val sizeBytes: Long? = null,
-    val isOfficial: Boolean = false,
-    val isWorking: Boolean = false,
-    val progress: Float = Float.NaN,
-)
-
 data class ComponentsDownloadProgress(
     val title: String,
     val message: String,
@@ -135,25 +122,15 @@ data class ComponentsConflict(
     val path: String,
 )
 
-enum class ComponentsPlatform {
-    ANDROID,
-    LINUX,
-}
-
 data class ComponentsState(
-    val platform: ComponentsPlatform = ComponentsPlatform.ANDROID,
     val currentType: ContentProfile.ContentType = ContentProfile.ContentType.CONTENT_TYPE_WINE,
     val installed: List<ComponentItem> = emptyList(),
     val available: List<ComponentItem> = emptyList(),
-    val linuxCurrentType: ContentProfile.ContentType = ContentProfile.ContentType.CONTENT_TYPE_PROTON,
-    val linuxInstalled: List<LinuxComponentItem> = emptyList(),
-    val linuxAvailable: List<LinuxComponentItem> = emptyList(),
     val downloadProgress: ComponentsDownloadProgress? = null,
     val conflict: ComponentsConflict? = null,
     val autoCreateContainer: Boolean = true,
     val isRefreshing: Boolean = false,
     val loadFailed: Boolean = false,
-    val linuxRuntimeInstalled: Boolean = false,
 )
 
 // Root
@@ -162,22 +139,15 @@ data class ComponentsState(
 fun ComponentsScreen(
     bridge: SettingsNavBridge? = null,
     state: ComponentsState,
-    onPlatformSelected: (ComponentsPlatform) -> Unit,
     onTypeSelected: (ContentProfile.ContentType) -> Unit,
     onInstallFromFile: () -> Unit,
     onDownloadItem: (ComponentItem) -> Unit,
     onRemoveItem: (ComponentItem) -> Unit,
-    onDownloadLinuxItem: (LinuxComponentItem) -> Unit,
-    onRemoveLinuxItem: (LinuxComponentItem) -> Unit,
-    onCancelLinuxItem: (LinuxComponentItem) -> Unit,
     onDismissConflict: () -> Unit,
     onToggleAutoCreateContainer: (Boolean) -> Unit,
     onRefresh: () -> Unit,
-    onInstallLinuxRuntimeFromFile: () -> Unit,
-    onInstallLinuxContentFromFile: () -> Unit,
 ) {
     var itemPendingRemoval by remember { mutableStateOf<ComponentItem?>(null) }
-    var linuxItemPendingRemoval by remember { mutableStateOf<LinuxComponentItem?>(null) }
     val layoutDirection = LocalLayoutDirection.current
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
     val navBarStartPadding = navBarPadding.calculateStartPadding(layoutDirection)
@@ -192,13 +162,9 @@ fun ComponentsScreen(
             lastSectionSignal = sectionSignal
             val dir = bridge?.contentSectionDir ?: 0
             if (dir != 0) {
-                if (state.platform == ComponentsPlatform.ANDROID) {
-                    val types = ContentProfile.ContentType.values()
-                    val idx = types.indexOf(state.currentType).coerceAtLeast(0)
-                    onTypeSelected(types[((idx + dir) % types.size + types.size) % types.size])
-                } else {
-                    onPlatformSelected(ComponentsPlatform.ANDROID)
-                }
+                val types = ContentProfile.ContentType.values()
+                val idx = types.indexOf(state.currentType).coerceAtLeast(0)
+                onTypeSelected(types[((idx + dir) % types.size + types.size) % types.size])
             }
         }
     }
@@ -219,28 +185,6 @@ fun ComponentsScreen(
                     onConfirm = {
                         onRemoveItem(item)
                         itemPendingRemoval = null
-                    },
-                )
-            }
-        }
-    }
-
-    linuxItemPendingRemoval?.let { item ->
-        val nav = remember { PaneNavRegistry() }
-        Dialog(onDismissRequest = { linuxItemPendingRemoval = null }) {
-            DialogPaneNav(nav, onDismiss = { linuxItemPendingRemoval = null })
-            CompositionLocalProvider(LocalPaneNav provides nav) {
-                PopupDialog(
-                    title = stringResource(R.string.settings_content_remove_title),
-                    message = stringResource(R.string.settings_content_confirm_remove),
-                    confirmLabel = stringResource(R.string.common_ui_remove),
-                    modifier = Modifier.widthIn(min = 280.dp, max = 360.dp),
-                    icon = Icons.Outlined.Delete,
-                    accentColor = DangerRed,
-                    onCancel = { linuxItemPendingRemoval = null },
-                    onConfirm = {
-                        onRemoveLinuxItem(item)
-                        linuxItemPendingRemoval = null
                     },
                 )
             }
@@ -269,10 +213,8 @@ fun ComponentsScreen(
         }
     }
 
-    val installedCount =
-        if (state.platform == ComponentsPlatform.LINUX) state.linuxInstalled.size else state.installed.size
-    val availableCount =
-        if (state.platform == ComponentsPlatform.LINUX) state.linuxAvailable.size else state.available.size
+    val installedCount = state.installed.size
+    val availableCount = state.available.size
 
     CompositionLocalProvider(LocalPaneNav provides contentNav) {
         Column(
@@ -292,61 +234,17 @@ fun ComponentsScreen(
             HeroHeader(
                 installedCount = installedCount,
                 availableCount = availableCount,
-                platform = state.platform,
                 currentType = state.currentType,
-                linuxCurrentType = state.linuxCurrentType,
                 autoCreateContainer = state.autoCreateContainer,
                 isRefreshing = state.isRefreshing,
                 loadFailed = state.loadFailed,
-                linuxRuntimeInstalled = state.linuxRuntimeInstalled,
-                onPlatformSelected = onPlatformSelected,
                 onTypeSelected = onTypeSelected,
                 onInstallFromFile = onInstallFromFile,
                 onToggleAutoCreateContainer = onToggleAutoCreateContainer,
                 onRefresh = onRefresh,
-                onInstallLinuxRuntimeFromFile = onInstallLinuxRuntimeFromFile,
-                onInstallLinuxContentFromFile = onInstallLinuxContentFromFile,
             )
 
-            if (state.platform == ComponentsPlatform.LINUX) {
-                if (state.linuxInstalled.isEmpty() && state.linuxAvailable.isEmpty() && !state.isRefreshing) {
-                    EmptyState()
-                } else {
-                    if (state.linuxInstalled.isNotEmpty()) {
-                        SectionLabel(
-                            text = stringResource(R.string.common_ui_installed),
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                        state.linuxInstalled.forEach { item ->
-                            key("linux_installed_${item.key}") {
-                                LinuxComponentItemCard(
-                                    item = item,
-                                    onDownload = { onDownloadLinuxItem(item) },
-                                    onRemove = { linuxItemPendingRemoval = item },
-                                    onCancel = { onCancelLinuxItem(item) },
-                                )
-                            }
-                        }
-                    }
-
-                    if (state.linuxAvailable.isNotEmpty()) {
-                        SectionLabel(
-                            text = stringResource(R.string.common_ui_available),
-                            modifier = Modifier.padding(top = 6.dp),
-                        )
-                        state.linuxAvailable.forEach { item ->
-                            key("linux_available_${item.key}") {
-                                LinuxComponentItemCard(
-                                    item = item,
-                                    onDownload = { onDownloadLinuxItem(item) },
-                                    onRemove = { linuxItemPendingRemoval = item },
-                                    onCancel = { onCancelLinuxItem(item) },
-                                )
-                            }
-                        }
-                    }
-                }
-            } else if (state.installed.isEmpty() && state.available.isEmpty() && !state.isRefreshing) {
+            if (state.installed.isEmpty() && state.available.isEmpty() && !state.isRefreshing) {
                 EmptyState()
             } else {
                 if (state.installed.isNotEmpty()) {
@@ -393,20 +291,14 @@ fun ComponentsScreen(
 private fun HeroHeader(
     installedCount: Int,
     availableCount: Int,
-    platform: ComponentsPlatform,
     currentType: ContentProfile.ContentType,
-    linuxCurrentType: ContentProfile.ContentType,
     autoCreateContainer: Boolean,
     isRefreshing: Boolean,
     loadFailed: Boolean,
-    linuxRuntimeInstalled: Boolean,
-    onPlatformSelected: (ComponentsPlatform) -> Unit,
     onTypeSelected: (ContentProfile.ContentType) -> Unit,
     onInstallFromFile: () -> Unit,
     onToggleAutoCreateContainer: (Boolean) -> Unit,
     onRefresh: () -> Unit,
-    onInstallLinuxRuntimeFromFile: () -> Unit,
-    onInstallLinuxContentFromFile: () -> Unit,
 ) {
     Box(
         modifier =
@@ -424,17 +316,13 @@ private fun HeroHeader(
                 CountPill(label = stringResource(R.string.common_ui_available), count = availableCount)
             }
             val toggle: @Composable (Modifier) -> Unit = { toggleModifier ->
-                if (platform == ComponentsPlatform.ANDROID) {
-                    ToggleChip(
-                        label = stringResource(R.string.settings_content_auto_create_container),
-                        enabled = autoCreateContainer,
-                        compact = true,
-                        modifier = toggleModifier,
-                        onToggle = { onToggleAutoCreateContainer(!autoCreateContainer) },
-                    )
-                } else {
-                    Spacer(toggleModifier)
-                }
+                ToggleChip(
+                    label = stringResource(R.string.settings_content_auto_create_container),
+                    enabled = autoCreateContainer,
+                    compact = true,
+                    modifier = toggleModifier,
+                    onToggle = { onToggleAutoCreateContainer(!autoCreateContainer) },
+                )
             }
             val refresh: @Composable () -> Unit = {
                 RefreshChip(
@@ -444,42 +332,13 @@ private fun HeroHeader(
                 )
             }
             val install: @Composable () -> Unit = {
-                if (platform == ComponentsPlatform.ANDROID) {
-                    SmallPillButton(
-                        label = stringResource(R.string.settings_content_install),
-                        icon = Icons.Outlined.Upload,
-                        tint = Accent,
-                        compact = true,
-                        onClick = onInstallFromFile,
-                    )
-                } else if (platform == ComponentsPlatform.LINUX) {
-                    SmallPillButton(
-                        label = stringResource(R.string.settings_content_install),
-                        icon = Icons.Outlined.Upload,
-                        tint = Accent,
-                        compact = true,
-                        onClick = onInstallLinuxContentFromFile,
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    if (linuxRuntimeInstalled) {
-                        SmallPillButton(
-                            label = stringResource(R.string.linux_runtime_installed),
-                            icon = Icons.Outlined.CheckCircle,
-                            tint = SuccessGreen,
-                            compact = true,
-                            enabled = true,
-                            onClick = onInstallLinuxRuntimeFromFile,
-                        )
-                    } else {
-                        SmallPillButton(
-                            label = stringResource(R.string.linux_runtime_install_local),
-                            icon = Icons.Outlined.Upload,
-                            tint = Accent,
-                            compact = true,
-                            onClick = onInstallLinuxRuntimeFromFile,
-                        )
-                    }
-                }
+                SmallPillButton(
+                    label = stringResource(R.string.settings_content_install),
+                    icon = Icons.Outlined.Upload,
+                    tint = Accent,
+                    compact = true,
+                    onClick = onInstallFromFile,
+                )
             }
 
             if (isPortraitLayout()) {
@@ -528,14 +387,9 @@ private fun HeroHeader(
             }
 
             Spacer(Modifier.height(12.dp))
-            PlatformTabsContent(
-                platform = platform,
-                onPlatformSelected = onPlatformSelected,
-            )
-            Spacer(Modifier.height(10.dp))
             TypeTabsContent(
-                currentType = if (platform == ComponentsPlatform.LINUX) linuxCurrentType else currentType,
-                types = if (platform == ComponentsPlatform.LINUX) LINUX_CONTENT_TYPES else ContentProfile.ContentType.values().toList(),
+                currentType = currentType,
+                types = ContentProfile.ContentType.values().toList(),
                 onTypeSelected = onTypeSelected,
             )
         }
@@ -677,69 +531,6 @@ private fun CountPill(
 }
 
 @Composable
-private fun PlatformTabsContent(
-    platform: ComponentsPlatform,
-    onPlatformSelected: (ComponentsPlatform) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        PlatformTabChip(
-            label = "${stringResource(R.string.settings_drivers_android)} ${stringResource(R.string.settings_content_components)}",
-            selected = platform == ComponentsPlatform.ANDROID,
-            onClick = { onPlatformSelected(ComponentsPlatform.ANDROID) },
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(Modifier.width(8.dp))
-        PlatformTabChip(
-            label = "${stringResource(R.string.settings_drivers_linux)} ${stringResource(R.string.settings_content_components)}",
-            selected = platform == ComponentsPlatform.LINUX,
-            onClick = { onPlatformSelected(ComponentsPlatform.LINUX) },
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun PlatformTabChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val background = if (selected) Accent.copy(alpha = 0.18f) else SurfaceDark
-    val borderColor = if (selected) Accent.copy(alpha = 0.45f) else CardBorder
-    val textColor = if (selected) Accent else TextSecondary
-    Box(
-        modifier =
-            modifier
-                .height(34.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(background)
-                .border(1.dp, borderColor, RoundedCornerShape(10.dp))
-                .paneNavItem(
-                    cornerRadius = 10.dp,
-                    onActivate = onClick,
-                    highlightColor = NavHighlight,
-                    tapToSelect = true,
-                )
-                .padding(horizontal = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            color = textColor,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
 private fun TypeTabsContent(
     currentType: ContentProfile.ContentType,
     types: List<ContentProfile.ContentType>,
@@ -796,8 +587,6 @@ private fun descriptionResFor(type: ContentProfile.ContentType): Int =
         ContentProfile.ContentType.CONTENT_TYPE_FEXCORE -> R.string.settings_content_desc_fexcore
         ContentProfile.ContentType.CONTENT_TYPE_D7VK -> R.string.settings_content_desc_d7vk
     }
-
-private val LINUX_CONTENT_TYPES = listOf(ContentProfile.ContentType.CONTENT_TYPE_PROTON)
 
 @Composable
 private fun TypeTabChip(
@@ -954,130 +743,6 @@ private fun ComponentItemCard(
                         tint = TextSecondary.copy(alpha = 0.5f),
                         modifier = Modifier.size(18.dp),
                     )
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun LinuxComponentItemCard(
-    item: LinuxComponentItem,
-    onDownload: () -> Unit,
-    onRemove: () -> Unit,
-    onCancel: () -> Unit,
-) {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(CardDark)
-                .border(1.dp, CardBorder, RoundedCornerShape(12.dp)),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 11.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(IconBoxBg),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = iconFor(item.type),
-                    contentDescription = null,
-                    tint = Accent,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Spacer(Modifier.width(13.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.verName,
-                    color = TextPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.basicMarquee(
-                        iterations = Int.MAX_VALUE,
-                        initialDelayMillis = 5000,
-                        repeatDelayMillis = 5000,
-                        velocity = 25.dp,
-                        spacing = MarqueeSpacing(40.dp),
-                    ),
-                )
-                val sizeLabel = formatSizeLabel(item)
-                if (sizeLabel != null) {
-                    Text(
-                        text = sizeLabel,
-                        color = TextSecondary,
-                        fontSize = 11.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Spacer(Modifier.width(8.dp))
-            Row(
-                modifier = Modifier.height(IntrinsicSize.Min),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (item.isOfficial) {
-                    OfficialBadge(Modifier.fillMaxHeight())
-                    Spacer(Modifier.width(8.dp))
-                }
-                when {
-                    item.isWorking -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(22.dp),
-                            strokeWidth = 2.dp,
-                            color = Accent,
-                            progress = { if (item.progress.isFinite()) item.progress.coerceIn(0f, 1f) else 0f },
-                        )
-                        // These builds are several hundred megabytes; without this a mistaken tap
-                        // can only be stopped by killing the app.
-                        Spacer(Modifier.width(8.dp))
-                        SmallPillButton(
-                            label = stringResource(R.string.common_ui_cancel),
-                            icon = null,
-                            tint = DangerRed,
-                            compact = true,
-                            onClick = onCancel,
-                        )
-                    }
-                    item.isInstalled -> {
-                        IconTapButton(
-                            icon = Icons.Outlined.Delete,
-                            tint = DangerRed,
-                            onClick = onRemove,
-                        )
-                    }
-                    item.hasRemote -> {
-                        SmallPillButton(
-                            label = stringResource(R.string.common_ui_download),
-                            icon = Icons.Outlined.Download,
-                            tint = Accent,
-                            compact = true,
-                            onClick = onDownload,
-                        )
-                    }
-                    else -> {
-                        Icon(
-                            imageVector = Icons.Outlined.CloudDownload,
-                            contentDescription = null,
-                            tint = TextSecondary.copy(alpha = 0.5f),
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
                 }
             }
         }
@@ -1298,13 +963,6 @@ private fun formatSizeLabel(item: ComponentItem): String? {
         return "${stringResource(R.string.common_ui_size)}: ${formatBytes(bytes)}"
     }
     if (!item.hasRemote) return null
-    val bytes = item.sizeBytes ?: return "${stringResource(R.string.common_ui_size)}: --"
-    if (bytes <= 0L) return null
-    return "${stringResource(R.string.common_ui_size)}: ${formatBytes(bytes)}"
-}
-
-@Composable
-private fun formatSizeLabel(item: LinuxComponentItem): String? {
     val bytes = item.sizeBytes ?: return "${stringResource(R.string.common_ui_size)}: --"
     if (bytes <= 0L) return null
     return "${stringResource(R.string.common_ui_size)}: ${formatBytes(bytes)}"

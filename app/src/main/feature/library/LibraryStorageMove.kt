@@ -5,7 +5,6 @@ import android.os.StatFs
 import com.winlator.cmod.app.db.PluviaDatabase
 import com.winlator.cmod.feature.stores.steam.data.AppInfo
 import com.winlator.cmod.feature.stores.steam.service.SteamService
-import com.winlator.cmod.runtime.container.ContainerManager
 import com.winlator.cmod.shared.android.StoragePathUtils
 import java.io.File
 import java.io.IOException
@@ -161,8 +160,6 @@ object LibraryStorageMove {
                 }
 
                 record(plan.appId, destination)
-                runCatching { LinuxSteamLibrary.relink(ContainerManager(context), plan.appId, destination) }
-                    .onFailure { Timber.w(it, "Could not update the entries of appId=%d", plan.appId) }
                 if (!renamed && !deleteTree(source)) {
                     Timber.w("Moved appId=%d but could not fully remove %s", plan.appId, source.path)
                 }

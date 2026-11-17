@@ -165,11 +165,7 @@ import com.winlator.cmod.feature.library.LibraryItemType
 import com.winlator.cmod.feature.library.LibraryStoreLinks
 import com.winlator.cmod.feature.library.LibraryStoreOption
 import com.winlator.cmod.feature.library.LibraryStoreTransfer
-import com.winlator.cmod.feature.library.LinuxApps
 import com.winlator.cmod.feature.settings.InputControlsFragment
-import com.winlator.cmod.feature.stores.steam.enums.AppType
-import com.winlator.cmod.feature.settings.LinuxClientDialog
-import com.winlator.cmod.runtime.linux.LinuxClientInstaller
 import com.winlator.cmod.feature.settings.SettingsFocusZone
 import com.winlator.cmod.feature.settings.SettingsHost
 import com.winlator.cmod.feature.settings.SettingsNavBridge
@@ -350,24 +346,6 @@ internal fun UnifiedActivity.UnifiedHub() {
     val steamAppsOrNull by db.steamAppDao().getAllOwnedApps().collectAsState(initial = null)
     val steamApps = steamAppsOrNull ?: emptyList()
     val context = LocalContext.current
-    var showLinuxClient by rememberSaveable { mutableStateOf(false) }
-    val linuxClient by LinuxClientInstaller.state.collectAsState()
-    val linuxClientWasWorking = remember { booleanArrayOf(false) }
-    // An install finishing adds the Steam entry, and an uninstall removes it; the Library reads it again.
-    LaunchedEffect(linuxClient) {
-        val found = linuxClient
-        val removed = linuxClientWasWorking[0] && found is LinuxClientInstaller.State.Missing
-        linuxClientWasWorking[0] = found is LinuxClientInstaller.State.Working
-        if (found is LinuxClientInstaller.State.Installed || removed) localLibraryRefreshKey++
-        // A newer runtime is put in front of the user once; after that it waits in Stores.
-        if (found is LinuxClientInstaller.State.UpdateAvailable && found.isNews) {
-            LinuxClientInstaller.dismissUpdate(context, found)
-            showLinuxClient = true
-        }
-    }
-    LaunchedEffect(showLinuxClient) {
-        if (!LinuxClientInstaller.isWorking) LinuxClientInstaller.refresh(context)
-    }
     val persona by SteamService.instance?.localPersona?.collectAsState()
         ?: remember { mutableStateOf(null) }
     val scope = rememberCoroutineScope()
@@ -1377,17 +1355,6 @@ internal fun UnifiedActivity.UnifiedHub() {
                 showAddCustomGame = false
                 localLibraryRefreshKey++
             },
-            onInstallLinuxClient = { showLinuxClient = true },
-        )
-    }
-
-    if (showLinuxClient) {
-        LinuxClientDialog(
-            state = linuxClient,
-            onStart = { LinuxClientInstaller.start(context) },
-            onCancelInstall = { LinuxClientInstaller.cancel() },
-            onUninstall = { LinuxClientInstaller.uninstall(context) },
-            onDismiss = { showLinuxClient = false },
         )
     }
 
@@ -2315,14 +2282,7 @@ internal fun UnifiedActivity.LibraryCarousel(
                                 SteamApp(
                                     id = customId,
                                     name = displayName,
-                                    // The Steam client is how its games are reached, so it shows with
-                                    // them rather than behind the Applications filter, which starts off.
-                                    type =
-                                        if (LinuxApps.isSteamClientShortcut(shortcut)) {
-                                            AppType.game
-                                        } else {
-                                            LibraryItemType.of(shortcut).appType
-                                        },
+                                    type = LibraryItemType.of(shortcut).appType,
                                     developer = "Custom",
                                     gameDir = gameDir,
                                 )

@@ -1,7 +1,5 @@
 package com.winlator.cmod.runtime.display.winhandler;
 
-import com.winlator.cmod.runtime.display.wayland.WaylandCompositor;
-
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.input.InputManager;
@@ -425,33 +423,8 @@ public class WinHandler {
         });
   }
 
-  private volatile boolean waylandMouseRouting;
-
-  /** Wayland mode: relative mouse input goes to the compositor instead of the guest-side bridge. */
-  public void setWaylandMouseRouting(boolean on) {
-    waylandMouseRouting = on;
-  }
-
-  private static void waylandMouseEvent(int flags, int dx, int dy, int wheelDelta) {
-    if ((flags & MouseEventFlags.MOVE) != 0) WaylandCompositor.sendPointerDelta(dx, dy);
-    if ((flags & MouseEventFlags.LEFTDOWN) != 0) WaylandCompositor.nativeSendSceneInput(3, 0x110, 1);
-    if ((flags & MouseEventFlags.LEFTUP) != 0) WaylandCompositor.nativeSendSceneInput(3, 0x110, 0);
-    if ((flags & MouseEventFlags.RIGHTDOWN) != 0) WaylandCompositor.nativeSendSceneInput(3, 0x111, 1);
-    if ((flags & MouseEventFlags.RIGHTUP) != 0) WaylandCompositor.nativeSendSceneInput(3, 0x111, 0);
-    if ((flags & MouseEventFlags.MIDDLEDOWN) != 0) WaylandCompositor.nativeSendSceneInput(3, 0x112, 1);
-    if ((flags & MouseEventFlags.MIDDLEUP) != 0) WaylandCompositor.nativeSendSceneInput(3, 0x112, 0);
-    if ((flags & MouseEventFlags.WHEEL) != 0 && wheelDelta != 0) {
-      int steps = wheelDelta > 0 ? -Math.max(1, wheelDelta / 120) : Math.max(1, -wheelDelta / 120);
-      WaylandCompositor.nativeSendSceneInput(4, steps, 0);
-    }
-  }
-
   public void mouseEvent(final int flags, final int dx, final int dy, final int wheelDelta) {
     checkGyroActivatorMouseFlags(flags);
-    if (waylandMouseRouting) {
-      waylandMouseEvent(flags, dx, dy, wheelDelta);
-      return;
-    }
     if (!this.initReceived) {
       return;
     }
@@ -713,15 +686,6 @@ public class WinHandler {
     writeVirtualGamepadState(shouldApplyGyroToTarget(GAMEPAD_SOURCE_VIRTUAL, null));
     XServer xServer = activity.getXServer();
     if (xServer != null && xServer.getRenderer() != null) xServer.getRenderer().requestRenderCoalesced(VulkanRenderer.WAKE_WINHANDLER);
-  }
-
-  /**
-   * A GameScope guest learns of pads only as it starts (its udev monitor never reports one added
-   * later), so there no slot is ever removed: a disconnect or a move leaves it present and
-   * neutral, and whichever pad takes it next reaches the game through it.
-   */
-  private boolean slotsOutliveDevices() {
-    return this.activity.isGamescopeMode();
   }
 
   public void representVirtualGamepad() {
@@ -1033,7 +997,7 @@ public class WinHandler {
 
     ensureWriterForSlot(targetSlot);
     if (this.writers[currentSlot] != null) {
-      if (releaseVacatedSlot && !isPhysicalSlotOccupied(currentSlot) && !slotsOutliveDevices()) {
+      if (releaseVacatedSlot && !isPhysicalSlotOccupied(currentSlot)) {
         // The virtual pad is leaving this slot for good (consolidation, not a
         // hand-off to an incoming physical pad). Tear it down so winebus sees the
         // device disappear instead of a phantom stuck-at-neutral controller.
@@ -1210,10 +1174,7 @@ public class WinHandler {
         if (this.fallbackSlot == slot) {
           this.fallbackSlot = -1;
         }
-        if (this.writers[slot] != null && slotsOutliveDevices()) {
-          // Released to neutral and kept for the next pad; the guest would never find a new one.
-          this.writers[slot].reset();
-        } else if (this.writers[slot] != null) {
+        if (this.writers[slot] != null) {
           // Remove the discovery node so winebus sees a disconnect; event bytes live in
           // the slot ring and are not replayed by reopening this path.
           this.writers[slot].destroy();

@@ -157,8 +157,6 @@ public class InputDeviceManager
   @Override
   public void onPointerButtonPress(Pointer.Button button) {
     if (xServer.isRelativeMouseMovement()) {
-      // A Wayland session's input sink already hands the button to the compositor.
-      if (xServer.hasInputSink()) return;
       WinHandler winHandler = xServer.getWinHandler();
       int wheelDelta =
           button == Pointer.Button.BUTTON_SCROLL_UP
@@ -200,7 +198,6 @@ public class InputDeviceManager
   @Override
   public void onPointerButtonRelease(Pointer.Button button) {
     if (xServer.isRelativeMouseMovement()) {
-      if (xServer.hasInputSink()) return;
       int flags = MouseEventFlags.getFlagFor(button, false);
       // A wheel step is whole on press; its release carries nothing.
       if (flags == 0 || flags == MouseEventFlags.WHEEL) return;

@@ -47,7 +47,6 @@ class LibraryGameLaunchStoreTagTest {
                 onPlay = {},
                 onSettings = {},
                 onBootToDesktop = {},
-                onShortcut = {},
                 onCloudSaves = {},
                 onUninstall = {},
                 storeOptions = storeOptions,

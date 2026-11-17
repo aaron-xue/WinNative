@@ -19,7 +19,6 @@ import com.winlator.cmod.runtime.content.ContentsManager;
 import com.winlator.cmod.runtime.display.connector.UnixSocketConfig;
 import com.winlator.cmod.runtime.display.environment.EnvironmentComponent;
 import com.winlator.cmod.runtime.display.environment.ImageFs;
-import com.winlator.cmod.runtime.display.wayland.WineWaylandSupport;
 import com.winlator.cmod.runtime.input.controls.FakeInputWriter;
 import com.winlator.cmod.runtime.input.controls.GamepadIdentityStore;
 import com.winlator.cmod.runtime.system.GPUInformation;
@@ -61,24 +60,6 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
   private Runnable preUnpackCallback;
   private boolean fexUnixLibsActive = false;
 
-  // The session runs through winewayland.drv into the embedded compositor instead of the X server.
-  private boolean waylandMode = false;
-
-  public void setWaylandMode(boolean waylandMode) {
-    this.waylandMode = waylandMode;
-  }
-
-  public boolean isWaylandMode() {
-    return waylandMode;
-  }
-
-  private static final String GUEST_WAYLAND_LIB_DIR = "wayland-x86_64";
-
-  /** Directory holding the compositor's wayland-0 socket; the compositor and the guest share it. */
-  public static File getWaylandRuntimeDir(Context context) {
-    return new File(context.getFilesDir(), ".wayland-rt");
-  }
-
   /**
    * Brings a stale prefix up to date before the session starts, with no display driver attached.
    *
@@ -109,14 +90,9 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
 
       EnvVars env = new EnvVars();
       env.putAll(guestEnv);
-      if (waylandMode) {
-        env.remove("WAYLAND_DISPLAY");
-        env.remove("XDG_RUNTIME_DIR");
-        env.remove("DISPLAY");
-      }
       env.put("WINEDLLOVERRIDES", withMscoreeDisabled(env.get("WINEDLLOVERRIDES")));
       Log.i(TAG, "prefix update: .update-timestamp \"" + current + "\" != wine.inf mtime " + infMtime
-              + "; updating the prefix before the " + (waylandMode ? "Wayland" : "X11") + " session");
+              + "; updating the prefix before the session");
       long started = System.currentTimeMillis();
       ProcessHelper.exec(wineLauncher + " wineboot -h", env.toStringArray(), rootDir);
       long deadline = started + 180_000;
@@ -154,74 +130,6 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     String value = overrides == null ? "" : overrides.trim();
     while (value.endsWith(";")) value = value.substring(0, value.length() - 1).trim();
     return value.isEmpty() ? "mscoree=d" : value + ";mscoree=d";
-  }
-
-  /**
-   * The compositor hands wl_keyboard clients the xkb keymap from this directory, and Wine only
-   * connects once wayland-0 exists; the socket is bound on the compositor thread, so the guest
-   * launch waits for it briefly instead of racing it.
-   */
-  private void prepareWaylandRuntime() {
-    Context context = environment.getContext();
-    File runtimeDir = getWaylandRuntimeDir(context);
-    if (!runtimeDir.isDirectory() && !runtimeDir.mkdirs()) {
-      Log.e(TAG, "wayland: cannot create " + runtimeDir);
-      return;
-    }
-    File keymap = new File(runtimeDir, "keymap.xkb");
-    if (!keymap.isFile()) {
-      File tmp = new File(runtimeDir, "keymap.xkb.part");
-      try (InputStream in = context.getAssets().open("wayland/keymap.xkb")) {
-        java.nio.file.Files.copy(in, tmp.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        if (!tmp.renameTo(keymap)) tmp.delete();
-      } catch (IOException e) {
-        Log.e(TAG, "wayland: keymap extract failed", e);
-        tmp.delete();
-      }
-    }
-    String winePath = environment.getImageFs().getWinePath();
-    if (!WineWaylandSupport.writeManifests(new File(winePath))) {
-      Log.w(TAG, "wayland: no Turnip manifests written under " + winePath);
-    }
-    File socket = new File(runtimeDir, "wayland-0");
-    long deadline = System.currentTimeMillis() + 8000;
-    while (!socket.exists() && System.currentTimeMillis() < deadline) {
-      try {
-        Thread.sleep(25);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        break;
-      }
-    }
-    if (!socket.exists()) Log.w(TAG, "wayland: " + socket + " not present after 8 s; Wine may not find the compositor");
-  }
-
-  /**
-   * Points Wine at the compositor's socket. winewayland.so's Wayland client libraries ship inside
-   * the Proton with unversioned sonames, so the Proton's lib dir is put ahead of the image
-   * libraries; their own dependencies still resolve from the image.
-   *
-   * An x86_64 Proton cannot fall back on the image for those dependencies, whose copies there are
-   * aarch64, so it vendors its own in {@link #GUEST_WAYLAND_LIB_DIR}. That directory is kept off
-   * LD_LIBRARY_PATH and given to Box64 alone: some of its sonames (libc++_shared.so, libz.so.1)
-   * are also needed by the native box64 binary, which refuses to start if it links the x86_64 one.
-   */
-  private static void applyWaylandEnv(Context context, ImageFs imageFs, EnvVars envVars, String imageLibPath) {
-    envVars.remove("DISPLAY");
-    envVars.put("WAYLAND_DISPLAY", "wayland-0");
-    envVars.put("XDG_RUNTIME_DIR", getWaylandRuntimeDir(context).getPath());
-    String wineLibPath = imageFs.getWinePath() + "/lib";
-    envVars.put("LD_LIBRARY_PATH", wineLibPath + ":" + imageLibPath);
-
-    File guestDeps = new File(wineLibPath, GUEST_WAYLAND_LIB_DIR);
-    if (guestDeps.isDirectory()) {
-      String current = envVars.get("BOX64_LD_LIBRARY_PATH");
-      envVars.put(
-          "BOX64_LD_LIBRARY_PATH",
-          current == null || current.isEmpty()
-              ? guestDeps.getPath()
-              : guestDeps.getPath() + ":" + current);
-    }
   }
 
   public static File ensureImageFsNativeLibrary(
@@ -365,9 +273,6 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     envVars.put("LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib");
     envVars.put(
         "BOX64_LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib/x86_64-linux-gnu");
-    // After the two library paths above, which would otherwise drop the Proton's own lib dir.
-    if (waylandMode)
-      applyWaylandEnv(context, imageFs, envVars, imageFs.getRootDir().getPath() + "/usr/lib");
     envVars.put(
         "ANDROID_SYSVSHM_SERVER",
         imageFs.getRootDir().getPath() + UnixSocketConfig.SYSVSHM_SERVER_PATH);
@@ -703,7 +608,6 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         }
       }
 
-      if (waylandMode) prepareWaylandRuntime();
       launchGeneration++;
       pid = execGuestProgram();
       Log.d(
@@ -1056,7 +960,6 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     envVars.put("WINE_NO_DUPLICATE_EXPLORER", "1");
     envVars.put("PREFIX", rootDir.getPath() + "/usr");
     envVars.put("DISPLAY", ":0");
-    if (waylandMode) applyWaylandEnv(context, imageFs, envVars, rootDir.getPath() + "/usr/lib" + ":" + "/system/lib64");
     envVars.put("WINE_DISABLE_FULLSCREEN_HACK", "1");
     envVars.put("GST_PLUGIN_FEATURE_RANK", "ximagesink:3000");
     envVars.put(

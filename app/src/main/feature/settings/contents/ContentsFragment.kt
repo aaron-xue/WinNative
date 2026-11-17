@@ -11,10 +11,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -28,13 +26,10 @@ import com.winlator.cmod.runtime.container.ContainerManager
 import com.winlator.cmod.runtime.content.ContentProfile
 import com.winlator.cmod.runtime.content.ContentsManager
 import com.winlator.cmod.runtime.content.Downloader
-import com.winlator.cmod.runtime.linux.LinuxProtons
-import com.winlator.cmod.runtime.linux.LinuxRuntime
 import com.winlator.cmod.shared.ui.toast.WinToast
 import com.winlator.cmod.shared.android.DirectoryPickerDialog
 import com.winlator.cmod.shared.io.FileUtils
 import com.winlator.cmod.shared.io.StorageUtils
-import com.winlator.cmod.shared.io.TarCompressorUtils
 import com.winlator.cmod.shared.ui.dialog.ContentDialog
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import kotlinx.coroutines.Dispatchers
@@ -49,7 +44,6 @@ class ContentsFragment : Fragment() {
     private lateinit var manager: ContentsManager
 
     private var componentsState by mutableStateOf(ComponentsState())
-    private var currentPlatform = ComponentsPlatform.ANDROID
     private var currentContentType = ContentProfile.ContentType.CONTENT_TYPE_WINE
 
     private var profilesByKey = emptyMap<String, ContentProfile>()
@@ -60,22 +54,15 @@ class ContentsFragment : Fragment() {
     private val installedSizeFetchesInFlight = mutableSetOf<String>()
 
     private var downloadProgress: ComponentsDownloadProgress? = null
-    private var installingLinuxContentFile: Boolean = false
     private var conflictingContentPath: String? = null
     private var isRefreshing = false
     private var loadFailed = false
 
     private var autoCreateContainer = true
-    private var linuxRuntimeInstalled = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         manager = ContentsManager(requireContext())
-
-        savedInstanceState
-            ?.getString(STATE_COMPONENTS_PLATFORM)
-            ?.let { name -> runCatching { ComponentsPlatform.valueOf(name) }.getOrNull() }
-            ?.let { currentPlatform = it }
 
         savedInstanceState
             ?.getString(STATE_CONTENT_TYPE)
@@ -94,7 +81,6 @@ class ContentsFragment : Fragment() {
         savedInstanceState: Bundle?,
     ): View {
         val ctx = requireContext()
-        linuxRuntimeInstalled = LinuxRuntime.isInstalled(ctx)
         publishState()
 
         return ComposeView(ctx).apply {
@@ -108,38 +94,9 @@ class ContentsFragment : Fragment() {
                             surface = Color(0xFF1E252E),
                         ),
                 ) {
-                    val linuxProtons by LinuxProtons.state.collectAsState()
-                    val linuxBuildsById = linuxProtons.builds.associateBy { it.id }
-                    val linuxInstalled =
-                        linuxProtons
-                            .builds
-                            .filter { it.id in linuxProtons.installed }
-                            .map { build -> build.toLinuxComponentItem(linuxProtons) }
-                    val linuxAvailable =
-                        linuxProtons
-                            .builds
-                            .filterNot { it.id in linuxProtons.installed }
-                            .map { build -> build.toLinuxComponentItem(linuxProtons) }
-                    LaunchedEffect(currentPlatform) {
-                        if (currentPlatform == ComponentsPlatform.LINUX) {
-                            LinuxProtons.refresh(ctx)
-                        }
-                    }
-                    LaunchedEffect(linuxProtons.working) {
-                        if (installingLinuxContentFile && linuxProtons.working == null) {
-                            installingLinuxContentFile = false
-                            clearDownloadProgress()
-                        }
-                    }
                     ComponentsScreen(
                         bridge = (requireActivity() as? UnifiedActivity)?.settingsNavBridge,
-                        state =
-                            componentsState.copy(
-                                linuxInstalled = linuxInstalled,
-                                linuxAvailable = linuxAvailable,
-                                linuxRuntimeInstalled = linuxRuntimeInstalled,
-                            ),
-                        onPlatformSelected = { platform -> selectPlatform(platform) },
+                        state = componentsState,
                         onTypeSelected = { type -> selectContentType(type) },
                         onInstallFromFile = { promptInstallFromFile() },
                         onDownloadItem = { item ->
@@ -148,13 +105,6 @@ class ContentsFragment : Fragment() {
                         onRemoveItem = { item ->
                             profilesByKey[item.key]?.let { onRemoveRequested(it) }
                         },
-                        onDownloadLinuxItem = { item ->
-                            linuxBuildsById[item.key]?.let { LinuxProtons.install(ctx, it) }
-                        },
-                        onRemoveLinuxItem = { item ->
-                            linuxBuildsById[item.key]?.let { LinuxProtons.remove(ctx, it) }
-                        },
-                        onCancelLinuxItem = { LinuxProtons.cancel() },
                         onDismissConflict = {
                             conflictingContentPath = null
                             publishState()
@@ -168,15 +118,7 @@ class ContentsFragment : Fragment() {
                                 .apply()
                             publishState()
                         },
-                        onRefresh = {
-                            if (currentPlatform == ComponentsPlatform.LINUX) {
-                                LinuxProtons.refresh(ctx)
-                            } else {
-                                refreshRemoteProfiles()
-                            }
-                        },
-                        onInstallLinuxRuntimeFromFile = { promptInstallLinuxRuntimeFromFile() },
-                        onInstallLinuxContentFromFile = { promptInstallLinuxContentFromFile() },
+                        onRefresh = { refreshRemoteProfiles() },
                     )
                 }
             }
@@ -202,12 +144,10 @@ class ContentsFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        linuxRuntimeInstalled = LinuxRuntime.isInstalled(requireContext())
         refreshRemoteProfiles()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString(STATE_COMPONENTS_PLATFORM, currentPlatform.name)
         outState.putString(STATE_CONTENT_TYPE, currentContentType.toString())
         super.onSaveInstanceState(outState)
     }
@@ -222,15 +162,6 @@ class ContentsFragment : Fragment() {
     private fun selectContentType(type: ContentProfile.ContentType) {
         if (type == currentContentType) return
         currentContentType = type
-        publishState()
-    }
-
-    private fun selectPlatform(platform: ComponentsPlatform) {
-        if (platform == currentPlatform) return
-        currentPlatform = platform
-        if (platform == ComponentsPlatform.LINUX) {
-            LinuxProtons.refresh(requireContext())
-        }
         publishState()
     }
 
@@ -257,7 +188,6 @@ class ContentsFragment : Fragment() {
         profilesByKey = keyedProfiles
         componentsState =
             ComponentsState(
-                platform = currentPlatform,
                 currentType = currentContentType,
                 installed = installedItems,
                 available = availableItems,
@@ -266,7 +196,6 @@ class ContentsFragment : Fragment() {
                 autoCreateContainer = autoCreateContainer,
                 isRefreshing = isRefreshing,
                 loadFailed = loadFailed,
-                linuxRuntimeInstalled = linuxRuntimeInstalled,
             )
 
         scheduleRemoteSizeFetches(availableItems)
@@ -326,19 +255,6 @@ class ContentsFragment : Fragment() {
             isOfficial = isOfficial,
         )
     }
-
-    private fun LinuxProtons.Build.toLinuxComponentItem(state: LinuxProtons.State): LinuxComponentItem =
-        LinuxComponentItem(
-            key = id,
-            type = ContentProfile.ContentType.CONTENT_TYPE_PROTON,
-            verName = displayName,
-            isInstalled = id in state.installed,
-            hasRemote = true,
-            sizeBytes = size,
-            isOfficial = false,
-            isWorking = state.working == id,
-            progress = state.progress,
-        )
 
     private fun scheduleRemoteSizeFetches(items: List<ComponentItem>) {
         val urlsToFetch =
@@ -403,98 +319,6 @@ class ContentsFragment : Fragment() {
             onSelectedAll = { paths -> installContentsFromPaths(paths) },
         ) { path ->
             installContentsFromPaths(listOf(path))
-        }
-    }
-
-    private fun promptInstallLinuxRuntimeFromFile() {
-        val activity = activity ?: return
-        DirectoryPickerDialog.showFile(
-            activity = activity,
-            title = getString(R.string.linux_runtime_install_local),
-            allowedExtensions = setOf("tzst", "tar.zst"),
-            allowMultiSelect = false,
-            onSelectedAll = null,
-        ) { path ->
-            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                installLinuxRuntimeFromPath(path)
-            }
-        }
-    }
-
-    private fun promptInstallLinuxContentFromFile() {
-        val activity = activity ?: return
-        DirectoryPickerDialog.showFile(
-            activity = activity,
-            title = getString(R.string.settings_content_install),
-            allowedExtensions = LINUX_CONTENT_INSTALL_EXTENSIONS,
-            allowMultiSelect = true,
-            onSelectedAll = { paths ->
-                paths.forEach { path ->
-                    installLinuxContentFromPath(path)
-                }
-            },
-        ) { path ->
-            installLinuxContentFromPath(path)
-        }
-    }
-
-    private fun installLinuxContentFromPath(path: String) {
-        val file = File(path)
-        if (!file.isFile) return
-        installingLinuxContentFile = true
-        updateDownloadProgress(
-            title = getString(R.string.settings_content_install),
-            message = file.name,
-            indeterminate = true,
-        )
-        LinuxProtons.installLocal(requireContext(), file)
-    }
-
-    private suspend fun installLinuxRuntimeFromPath(path: String) {
-        val file = File(path)
-        if (!file.isFile) return
-        try {
-            val context = requireContext()
-            val staging = File(context.filesDir, "linuxfs.staging")
-            val root = LinuxRuntime.rootDir(context)
-
-            withContext(Dispatchers.Main) {
-                updateDownloadProgress(
-                    title = getString(R.string.linux_runtime_install_local),
-                    message = file.name,
-                    indeterminate = true,
-                )
-            }
-
-            FileUtils.delete(staging)
-            if (!staging.mkdirs()) throw java.io.IOException("Could not create staging directory")
-
-            val extracted = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, file, staging, null)
-            if (!extracted) throw java.io.IOException("Could not extract ${file.name}")
-
-            if (root.exists()) {
-                FileUtils.delete(File(context.filesDir, "linuxfs.old"))
-                root.renameTo(File(context.filesDir, "linuxfs.old"))
-            }
-            if (!staging.renameTo(root)) throw java.io.IOException("Could not move runtime into place")
-
-            FileUtils.delete(File(context.filesDir, "linuxfs.old"))
-            linuxRuntimeInstalled = LinuxRuntime.isInstalled(context)
-
-            withContext(Dispatchers.Main) {
-                clearDownloadProgress()
-                WinToast.show(requireContext(), getString(R.string.linux_runtime_installed))
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to install Linux runtime from $path", e)
-            withContext(Dispatchers.Main) {
-                clearDownloadProgress()
-                WinToast.show(requireContext(), e.message ?: "Install failed")
-            }
-        } finally {
-            withContext(Dispatchers.Main) {
-                publishState()
-            }
         }
     }
 
@@ -929,12 +753,10 @@ class ContentsFragment : Fragment() {
     }
 
     companion object {
-        private const val STATE_COMPONENTS_PLATFORM = "state_components_platform"
         private const val STATE_CONTENT_TYPE = "state_content_type"
         private const val TAG = "ContentsFragment"
         private const val PREF_AUTO_CREATE_CONTAINER = "components_auto_create_container"
         private val INSTALL_CONTENT_EXTENSIONS = setOf("wcp", "xz", "txz", "tzst")
-        private val LINUX_CONTENT_INSTALL_EXTENSIONS = setOf("tzst", "tar.zst", "xz", "txz", "tar.xz", "gz", "tgz", "tar.gz")
     }
 }
 

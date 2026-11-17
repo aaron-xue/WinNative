@@ -3734,15 +3734,6 @@ class SteamService : Service() {
             // Emit event synchronously so the UI can react in the same frame
             PluviaApp.events.emit(SteamEvent.LoggedOut(username))
 
-            // The Linux client was signed in with this account's token, so it goes with it. A client
-            // that is running owns its files and writes them back on exit; it is left to its own menu.
-            if (!SessionKeepAliveService.isLinuxSessionActive()) {
-                val appContext = PluviaApp.instance.applicationContext
-                kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-                    com.winlator.cmod.runtime.linux.LinuxSteamLogin.clear(appContext, username, steamId64)
-                }
-            }
-
             // Session already disconnected above; just clear the local database (best-effort).
             instance?.let { svc ->
                 svc.scope.launch(Dispatchers.Default) {

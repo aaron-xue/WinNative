@@ -85,7 +85,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.winlator.cmod.runtime.content.DriverPackages.Platform
 import com.winlator.cmod.R
 import com.winlator.cmod.shared.ui.dialog.PopupDialog
 import androidx.compose.ui.focus.FocusRequester
@@ -126,7 +125,6 @@ private fun Modifier.noRippleClickable(
 
 // State
 data class DriversState(
-    val platform: Platform = Platform.ANDROID,
     val installedDrivers: List<InstalledDriverItem> = emptyList(),
     val sources: List<DriverRepo> = emptyList(),
     val releasesBySource: Map<String, List<DriverReleaseItem>> = emptyMap(),
@@ -185,9 +183,7 @@ data class DriverAssetItem(
 @Composable
 fun DriversScreen(
     state: DriversState,
-    onInstallFromFile: (Platform) -> Unit,
-    onPlatformSelected: (Platform) -> Unit,
-    onSelectDriver: (InstalledDriverItem) -> Unit,
+    onInstallFromFile: () -> Unit,
     onSourceTapped: (DriverRepo) -> Unit,
     onReleaseTapped: (DriverReleaseItem) -> Unit,
     onDownloadAsset: (DriverAssetItem) -> Unit,
@@ -292,11 +288,10 @@ fun DriversScreen(
                     ),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            PlatformOptions(state.platform, onPlatformSelected)
             HeroHeader(
                 installedCount = state.installedDrivers.size,
                 repoCount = state.sources.size,
-                onInstall = { onInstallFromFile(state.platform) },
+                onInstall = { onInstallFromFile() },
                 onAddRepo = { showAddRepoDialog = true },
             )
 
@@ -314,7 +309,7 @@ fun DriversScreen(
                         InstalledDriverCard(
                             driver = driver,
                             onRemove = { driverPendingRemoval = driver },
-                            onSelect = if (state.platform == Platform.LINUX) ({ onSelectDriver(driver) }) else null,
+                            onSelect = null,
                         )
                     }
                 }
@@ -367,39 +362,6 @@ fun DriversScreen(
             }
 
             Spacer(Modifier.height(24.dp))
-        }
-    }
-}
-
-@Composable
-private fun PlatformOptions(selected: Platform, onSelect: (Platform) -> Unit) {
-    // Sized to match ComponentsScreen's PlatformTabChip (height 34.dp, 10.dp horizontal
-    // padding, 12.sp label) so the Android / Linux toggles look identical across tabs.
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Platform.entries.forEach { platform ->
-            val label = stringResource(if (platform == Platform.ANDROID) R.string.settings_drivers_android else R.string.settings_drivers_linux)
-            Box(
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (selected == platform) Accent.copy(alpha = 0.18f) else CardDark)
-                        .border(1.dp, if (selected == platform) Accent.copy(alpha = 0.45f) else CardBorder, RoundedCornerShape(10.dp))
-                        .paneNavItem(cornerRadius = 10.dp, onActivate = { onSelect(platform) }, highlightColor = NavHighlight, tapToSelect = true)
-                        .padding(horizontal = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    label,
-                    color = if (selected == platform) Accent else TextSecondary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
         }
     }
 }

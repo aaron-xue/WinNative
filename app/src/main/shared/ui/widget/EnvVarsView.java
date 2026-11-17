@@ -24,37 +24,6 @@ import java.util.Arrays;
 import java.util.List;
 
 public class EnvVarsView extends FrameLayout {
-  /**
-   * Variables a Linux session has no reader for: the Android Vulkan wrapper and the ALSA server are
-   * not part of it, Proton decides WINEESYNC for itself, /dev/ntsync does not exist on Android, and
-   * the rest are switches of WinNative's own Wine patches, which Valve's Proton does not carry.
-   */
-  private static final java.util.Set<String> GAMESCOPE_UNUSED =
-      new java.util.HashSet<>(
-          java.util.Arrays.asList(
-              "WINEESYNC",
-              "WINENTSYNC",
-              "WINE_FAST_YIELD",
-              "WINE_DO_NOT_CREATE_DXGI_DEVICE_MANAGER",
-              "WINE_NEW_MEDIASOURCE",
-              "WRAPPER_MAX_IMAGE_COUNT",
-              "WRAPPER_DMAHEAP_CACHED",
-              "ALSA_LATENCY_MS",
-              "ALSA_VOLUME",
-              "ALSA_BASS_BOOST",
-              "ALSA_PERFORMANCE_MODE"));
-
-  public static boolean appliesToGamescope(String name) {
-    return !GAMESCOPE_UNUSED.contains(name);
-  }
-
-  /** {@code envVars} as a Linux session reads it: what it has no reader for is dropped. */
-  public static String forGamescope(String envVars) {
-    EnvVars kept = new EnvVars(envVars);
-    for (String name : GAMESCOPE_UNUSED) kept.remove(name);
-    return kept.toString();
-  }
-
   public static final String[][] knownEnvVars = {
     {"ZINK_DESCRIPTORS", "SELECT", "auto", "lazy", "cached", "notemplates"},
     {

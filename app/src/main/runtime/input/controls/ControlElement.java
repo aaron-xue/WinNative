@@ -629,7 +629,7 @@ return boundingBox;
   }
 
   public void draw(Canvas canvas) {
-    if (isAdaptiveHidden() || isGuideOutsideLinuxSession()) return;
+    if (isAdaptiveHidden() || isGuideOnlyElement()) return;
     VisualStyle style = inputControlsView.getVisualStyle();
     if (style == VisualStyle.GAMEHUB) {
       drawGameHub(canvas);
@@ -3787,8 +3787,8 @@ return boundingBox;
     return isAdaptiveStick() && !isEngaged();
   }
 
-  // Only a Linux session's Steam answers the guide button, so it stays out of the way elsewhere.
-  private boolean isGuideOutsideLinuxSession() {
+  // An element bound only to the guide button stays out of the way when it is not shown.
+  private boolean isGuideOnlyElement() {
     if (inputControlsView.isGuideButtonShown()) return false;
     boolean guide = false;
     for (Binding binding : bindings) {
@@ -3799,7 +3799,7 @@ return boundingBox;
   }
 
   private boolean acceptsTouchAt(float x, float y) {
-    if (isGuideOutsideLinuxSession()) return false;
+    if (isGuideOnlyElement()) return false;
     if (!isAdaptiveStick()) return containsPoint(x, y);
     Rect box = getBoundingBox();
     float reach = box.width() * ADAPTIVE_REACH;

@@ -402,7 +402,6 @@ public class ContentsManager {
     }
 
     repairInstalledContentPermissions(profile);
-    com.winlator.cmod.runtime.display.wayland.WineWaylandSupport.invalidate();
     unixLibsCache.clear();
     callback.onSucceed(profile);
   }
@@ -672,7 +671,6 @@ public class ContentsManager {
     unixLibsCache.clear();
     forgetRemoteProfileAliases(profile);
     syncContents();
-    com.winlator.cmod.runtime.display.wayland.WineWaylandSupport.invalidate();
   }
 
   private void forgetRemoteProfileAliases(ContentProfile profile) {

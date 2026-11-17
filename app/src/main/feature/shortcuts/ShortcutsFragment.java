@@ -156,7 +156,6 @@ public class ShortcutsFragment extends Fragment {
           }
 
           if (fileDeleted) {
-            com.winlator.cmod.runtime.linux.LinuxSteamShortcuts.removed(requireContext(), shortcut);
             disableShortcutOnScreen(requireContext(), shortcut);
             loadShortcutsList();
             WinToast.show(context, R.string.shortcuts_list_removed);

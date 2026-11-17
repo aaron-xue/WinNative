@@ -8,7 +8,7 @@ object WnWineEnvVars {
         val accountName: String,
         val appId: Int,
         val ownedDlcAppIds: List<Int>,
-        val steamRootLinux: String,
+        val steamRootPath: String,
         val breakpadDir: String,
         val steam3MasterHostPort: String = "127.0.0.1:57343",
         val steamClientServiceHostPort: String = "127.0.0.1:57344",
@@ -23,7 +23,7 @@ object WnWineEnvVars {
         v["WINESTEAMCLIENTPATH"]   = input.libSteamClientSoPath
         v["_STEAM_SETENV_MANAGER"] = "1"
         v["BREAKPAD_DUMP_LOCATION"] = input.breakpadDir
-        v["STEAM_BASE_FOLDER"]     = input.steamRootLinux
+        v["STEAM_BASE_FOLDER"]     = input.steamRootPath
         v["ENABLE_VK_LAYER_VALVE_steam_overlay_1"] = "0"
         v["STEAMVIDEOTOKEN"]       = "1"
         v["Steam3Master"]          = input.steam3MasterHostPort

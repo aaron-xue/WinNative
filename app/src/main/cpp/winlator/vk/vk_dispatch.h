@@ -163,8 +163,7 @@ void vkd_unload(void);
 
 bool vkd_bind(void* libvulkan_handle, VkInstance instance);
 
-// For callers that already hold the driver's vkGetInstanceProcAddr rather than a dlopen handle
-// (the Wayland compositor resolves Turnip through adrenotools).
+// For callers that already hold the driver's vkGetInstanceProcAddr rather than a dlopen handle.
 bool vkd_bind_proc(PFN_vkGetInstanceProcAddr gipa, VkInstance instance);
 
 #ifdef __cplusplus

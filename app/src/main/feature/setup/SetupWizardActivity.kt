@@ -412,7 +412,7 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
         private fun isContainerUsable(
             contentsManager: ContentsManager,
             container: Container,
-        ): Boolean = !container.isGamescopeRuntime && isWineVersionInstalled(contentsManager, container.wineVersion)
+        ): Boolean = isWineVersionInstalled(contentsManager, container.wineVersion)
 
         private fun hasInstalledRuntimes(context: Context): Boolean = ContentsManager.hasInstalledRuntimes(context)
 

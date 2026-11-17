@@ -47,7 +47,6 @@ class LibraryGameLaunchBranchTagTest {
                 onPlay = {},
                 onSettings = {},
                 onBootToDesktop = {},
-                onShortcut = {},
                 onCloudSaves = {},
                 onUninstall = {},
                 branches = branchOptions,

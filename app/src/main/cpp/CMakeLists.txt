@@ -135,7 +135,7 @@ endforeach()
 
 add_custom_target(winlator_shaders DEPENDS ${SHADER_HEADERS})
 
-# WFG frame generator (DIS optical flow + interpolation), linked by libwinlator and libwnwayland.
+# WFG frame generator (DIS optical flow + interpolation), linked by libwinlator.
 add_subdirectory(wfg)
 
 # ----------------------------------------------------------------------------
@@ -222,13 +222,6 @@ add_library(waudio SHARED
 target_compile_options(waudio PRIVATE -Wall -Wextra -fvisibility=hidden)
 target_link_libraries(waudio log dl)
 
-# The app's end of DirectAudio in a Linux session, see wnaudiohook/wn_aaudio_protocol.h.
-add_library(wnaudiohost SHARED
-        wnaudiohook/wn_aaudio_host.c
-)
-target_compile_options(wnaudiohost PRIVATE -Wall -Wextra -fvisibility=hidden)
-target_link_libraries(wnaudiohost aaudio android log)
-
 find_package(SDL3 REQUIRED CONFIG)
 
 add_library(steamctrl SHARED
@@ -236,7 +229,3 @@ add_library(steamctrl SHARED
 )
 target_compile_options(steamctrl PRIVATE -Wall -Wextra -fvisibility=hidden)
 target_link_libraries(steamctrl SDL3::SDL3 log)
-
-# Embedded Wayland compositor (winewayland.drv sessions); see waylandcomp/CMakeLists.txt.
-add_subdirectory(waylandcomp)
-add_subdirectory(proot)

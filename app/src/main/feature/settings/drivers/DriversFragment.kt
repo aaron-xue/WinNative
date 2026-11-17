@@ -22,8 +22,6 @@ import com.winlator.cmod.feature.setup.SetupWizardActivity
 import com.winlator.cmod.runtime.content.AdrenotoolsManager
 import com.winlator.cmod.runtime.content.Downloader
 import com.winlator.cmod.runtime.content.DriverPackages
-import com.winlator.cmod.runtime.content.DriverPackages.Platform
-import com.winlator.cmod.runtime.linux.LinuxRuntime
 import com.winlator.cmod.shared.android.DirectoryPickerDialog
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import com.winlator.cmod.shared.ui.toast.WinToast
@@ -44,7 +42,6 @@ class DriversFragment : Fragment() {
     private lateinit var adrenotoolsManager: AdrenotoolsManager
     private lateinit var preferences: SharedPreferences
 
-    private var platform = Platform.ANDROID
     private var driversState by mutableStateOf(DriversState())
 
     private val releasesBySource = linkedMapOf<String, List<DriverReleaseItem>>()
@@ -58,8 +55,6 @@ class DriversFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        platform =
-            savedInstanceState?.getString("driverPlatform")?.let { runCatching { Platform.valueOf(it) }.getOrNull() } ?: Platform.ANDROID
         adrenotoolsManager = AdrenotoolsManager(requireContext())
         preferences = PreferenceManager.getDefaultSharedPreferences(requireContext())
     }
@@ -95,16 +90,7 @@ class DriversFragment : Fragment() {
                 ) {
                     DriversScreen(
                         state = driversState,
-                        onInstallFromFile = { selected ->
-                            selectPlatform(selected)
-                            promptInstallDriverFromFile()
-                        },
-                        onPlatformSelected = { selectPlatform(it) },
-                        onSelectDriver = { driver ->
-                            DriverPackages.selectLinux(requireContext(), driver.id)
-                            refreshInstalledDrivers()
-                            publishState()
-                        },
+                        onInstallFromFile = { promptInstallDriverFromFile() },
                         onSourceTapped = { source -> onSourceSelected(source) },
                         onReleaseTapped = { release ->
                             expandedReleaseId = if (expandedReleaseId == release.id) null else release.id
@@ -112,11 +98,7 @@ class DriversFragment : Fragment() {
                         },
                         onDownloadAsset = { asset -> downloadReleaseAsset(asset) },
                         onRemoveDriver = { driver ->
-                            if (platform == Platform.LINUX) {
-                                DriverPackages.removeLinux(requireContext(), driver.id)
-                            } else {
-                                adrenotoolsManager.removeDriver(driver.id)
-                            }
+                            adrenotoolsManager.removeDriver(driver.id)
                             refreshInstalledDrivers()
                             publishState()
                         },
@@ -153,23 +135,8 @@ class DriversFragment : Fragment() {
         }
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString("driverPlatform", platform.name)
-    }
-
     override fun onResume() {
         super.onResume()
-        refreshInstalledDrivers()
-        publishState()
-    }
-
-    private fun selectPlatform(selected: Platform) {
-        if (platform == selected) return
-        platform = selected
-        expandedSourceApiUrl = null
-        expandedReleaseId = null
-        loadRepos()
         refreshInstalledDrivers()
         publishState()
     }
@@ -190,13 +157,12 @@ class DriversFragment : Fragment() {
         val hasMissingDefaults = defaultRepoList().any { it.apiUrl !in existingApiUrls }
         driversState =
             DriversState(
-                platform = platform,
                 installedDrivers = installedDrivers,
                 sources = sources.toList(),
                 releasesBySource =
                     releasesBySource.mapValues { (_, releases) ->
                         releases.mapNotNull { release ->
-                            val assets = release.assets.filter { (it.name.startsWith("WN-Linux-")) == (platform == Platform.LINUX) }
+                            val assets = release.assets.filter { !it.name.startsWith("WN-Linux-") }
                             if (assets.isEmpty()) null else release.copy(assets = assets)
                         }
                     },
@@ -210,57 +176,6 @@ class DriversFragment : Fragment() {
     }
 
     private fun refreshInstalledDrivers() {
-        if (platform == Platform.LINUX) {
-            val context = requireContext()
-            val selected = DriverPackages.selectedLinux(context)
-            val custom =
-                DriverPackages.linuxDrivers(context).mapNotNull { directory ->
-                    runCatching {
-                        val meta = JSONObject(File(directory, "meta.json").readText())
-                        InstalledDriverItem(
-                            id = directory.name,
-                            name = meta.getString("name"),
-                            version = meta.optString("driverVersion"),
-                            selected =
-                                selected == directory.name,
-                        ) to
-                            meta.optString("sourceAsset")
-                    }.getOrNull()
-                }
-            installedDrivers =
-                buildList {
-                    add(
-                        InstalledDriverItem(
-                            id = DriverPackages.BUNDLED,
-                            name = getString(R.string.settings_drivers_bundled),
-                            version = LinuxRuntime.TURNIP_VERSION,
-                            selected =
-                                selected == DriverPackages.BUNDLED,
-                            removable = false,
-                        ),
-                    )
-                    if (LinuxRuntime.downloadedDriverVersion(context) > 0) {
-                        add(
-                            InstalledDriverItem(
-                                id = DriverPackages.LEGACY,
-                                name = getString(R.string.settings_drivers_legacy),
-                                version =
-                                    File(LinuxRuntime.driverDir(context), LinuxRuntime.DRIVER_NAME_FILE)
-                                        .takeIf {
-                                            it.isFile
-                                        }?.readText()
-                                        ?.trim()
-                                        .orEmpty(),
-                                selected =
-                                    selected == DriverPackages.LEGACY,
-                            ),
-                        )
-                    }
-                    addAll(custom.map { it.first }.sortedBy { it.name.lowercase(Locale.ROOT) })
-                }
-            installedAssetNames = custom.map { it.second }.filter { it.isNotBlank() }.toSet()
-            return
-        }
         val driverIds = adrenotoolsManager.enumarateInstalledDrivers()
         installedDrivers =
             driverIds
@@ -284,20 +199,14 @@ class DriversFragment : Fragment() {
                 repoUrl = "https://github.com/WinNative-Emu/Drivers/releases",
                 apiUrl = "https://api.github.com/repos/WinNative-Emu/Drivers/releases",
             ),
-        ) +
-            if (platform == Platform.LINUX) {
-                emptyList()
-            } else {
-                listOf(
-                    DriverRepo(
-                        name = WINNATIVE_COMPONENTS_REPO_NAME,
-                        repoUrl = WINNATIVE_COMPONENTS_REPO_URL,
-                        apiUrl = WINNATIVE_COMPONENTS_API_URL,
-                    ),
-                )
-            }
+            DriverRepo(
+                name = WINNATIVE_COMPONENTS_REPO_NAME,
+                repoUrl = WINNATIVE_COMPONENTS_REPO_URL,
+                apiUrl = WINNATIVE_COMPONENTS_API_URL,
+            ),
+        )
 
-    private fun repoPreferenceKey() = if (platform == Platform.LINUX) "custom_linux_driver_repos" else "custom_driver_repos"
+    private fun repoPreferenceKey() = "custom_driver_repos"
 
     private fun loadRepos() {
         val jsonStr = preferences.getString(repoPreferenceKey(), null)
@@ -637,7 +546,6 @@ class DriversFragment : Fragment() {
         sourceAssetName: String? = null,
         onComplete: (() -> Unit)? = null,
     ) {
-        val requestedPlatform = platform
         val installTitle = getString(R.string.settings_drivers_install)
         val installMessage = getString(R.string.settings_content_preparing_package)
         updateDownloadProgress(
@@ -677,21 +585,7 @@ class DriversFragment : Fragment() {
                     return@launch
                 }
 
-                if (installed.platform == Platform.ANDROID) SetupWizardActivity.recordInstalledDriver(requireContext(), installed.id)
-                selectPlatform(installed.platform)
-                if (installed.platform != requestedPlatform) {
-                    val destination =
-                        getString(
-                            if (installed.platform ==
-                                Platform.LINUX
-                            ) {
-                                R.string.settings_drivers_linux
-                            } else {
-                                R.string.settings_drivers_android
-                            },
-                        )
-                    WinToast.show(requireContext(), getString(R.string.settings_drivers_routed, destination))
-                }
+                SetupWizardActivity.recordInstalledDriver(requireContext(), installed.id)
                 refreshInstalledDrivers()
                 publishState()
             } finally {
