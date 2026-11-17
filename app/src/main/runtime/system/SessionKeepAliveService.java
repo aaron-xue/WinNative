@@ -371,6 +371,13 @@ public class SessionKeepAliveService extends Service {
         // Now that fields are ready, publish the instance
         instance = this;
 
+        // CRITICAL: Android requires startForeground() to be called within ~5s of
+        // startForegroundService(). Call it here — before the wakelock, lifecycle
+        // observer, handler-thread and receiver setup below — so a busy main thread
+        // (e.g. a component download/install running container/IO work) can never
+        // trigger ForegroundServiceDidNotStartInTimeException.
+        ensureForeground(true);
+
         // Seed initial state from current lifecycle rather than assuming foreground.
         isAppInBackground = !androidx.lifecycle.ProcessLifecycleOwner.get()
                 .getLifecycle().getCurrentState()

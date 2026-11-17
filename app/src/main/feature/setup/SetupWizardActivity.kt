@@ -1301,7 +1301,13 @@ class SetupWizardActivity : FixedFontScaleFragmentActivity(), LandscapeOnlyActiv
             installLocalContentFile(
                 manager = manager,
                 file = file,
-                onInstalled = { pendingContainers += it },
+                onInstalled = { profile ->
+                    if (profile.type == ContentProfile.ContentType.CONTENT_TYPE_WINE ||
+                        profile.type == ContentProfile.ContentType.CONTENT_TYPE_PROTON
+                    ) {
+                        pendingContainers += profile
+                    }
+                },
                 onTerminal = { installNext() },
             )
         }
