@@ -1,7 +1,6 @@
 package com.winlator.cmod.runtime.display
 
 import androidx.compose.ui.platform.LocalContext
-import com.winlator.cmod.app.config.DeviceProfileSettings
 import android.app.Activity
 import android.content.Context
 import androidx.compose.animation.AnimatedContent

@@ -26,8 +26,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.winlator.cmod.app.config.DeviceProfileSettings
-import com.winlator.cmod.shared.ui.layout.isPortraitLayout
 import com.winlator.cmod.shared.ui.layout.screenWidthDp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
@@ -35,18 +33,19 @@ import kotlin.math.abs
 
 enum class ViewMode { Grid }
 
-fun gridColumnsForWidth(widthDp: Int): Int = DeviceProfileSettings.stockLibraryColumns(widthDp)
+fun gridColumnsForWidth(widthDp: Int): Int =
+    when {
+        widthDp <= 0 -> 4
+        widthDp < 480 -> 2
+        widthDp < 700 -> 3
+        else -> 4
+    }
 
 @Composable
-fun defaultGridColumns(): Int =
-    DeviceProfileSettings.libraryColumns(
-        LocalContext.current,
-        screenWidthDp().value.toInt(),
-        isPortraitLayout(),
-    )
+fun defaultGridColumns(): Int = gridColumnsForWidth(screenWidthDp().value.toInt())
 
 @Composable
-fun defaultGridImageAspect(): Float? = DeviceProfileSettings.libraryImageAspect(LocalContext.current)
+fun defaultGridImageAspect(): Float? = null
 
 fun gridRowHeightFor(
     columnWidth: Dp,
@@ -54,7 +53,7 @@ fun gridRowHeightFor(
     titleStripDp: Float,
 ): Dp =
     if (imageAspect == null || imageAspect <= 0f) {
-        columnWidth * DeviceProfileSettings.STOCK_LIBRARY_CARD_FACTOR
+        columnWidth * 1.25f
     } else {
         columnWidth / imageAspect + titleStripDp.dp
     }
@@ -113,7 +112,7 @@ fun <T> FourByTwoGridView(
                 val targetRowHeight =
                     minOf(
                         availableRowHeight,
-                        gridRowHeightFor(availableColumnWidth, imageAspect, DeviceProfileSettings.libraryTitleStripDp()),
+                        gridRowHeightFor(availableColumnWidth, imageAspect, 24f),
                     )
                 val rowHeight by animateDpAsState(
                     targetValue = targetRowHeight,

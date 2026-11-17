@@ -28,7 +28,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CoroutineScope
-import com.winlator.cmod.app.config.DeviceProfileSettings
 import com.winlator.cmod.runtime.display.environment.components.NetworkingSettings
 import com.winlator.cmod.runtime.wine.WineThemeManager
 import com.winlator.cmod.BuildConfig
@@ -379,7 +378,7 @@ class ShortcutSettingsComposeDialog private constructor(
             InputControlsView.EXTRA_ADAPTIVE_JOYSTICKS,
             container.getExtra(
                 InputControlsView.EXTRA_ADAPTIVE_JOYSTICKS,
-                DeviceProfileSettings.adaptiveJoysticksDefaultExtra(context),
+                "0",
             ),
         ) == "1"
         state.shortcutExclusiveXInput.value = shortcut.getExtra("exclusiveXInput", "").let {
@@ -1320,7 +1319,7 @@ class ShortcutSettingsComposeDialog private constructor(
                 if (state.adaptiveJoysticks.value) "1" else "0",
                 container.getExtra(
                     InputControlsView.EXTRA_ADAPTIVE_JOYSTICKS,
-                    DeviceProfileSettings.adaptiveJoysticksDefaultExtra(context),
+                    "0",
                 ),
             )
 
@@ -2466,7 +2465,7 @@ class ShortcutSettingsComposeDialog private constructor(
         state.adaptiveJoysticks.value =
             container.getExtra(
                 InputControlsView.EXTRA_ADAPTIVE_JOYSTICKS,
-                DeviceProfileSettings.adaptiveJoysticksDefaultExtra(context),
+                "0",
             ) == "1"
         if (!state.shortcutExclusiveXInput.value) {
             state.enableXInput.value = true

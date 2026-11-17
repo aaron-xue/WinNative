@@ -8,7 +8,6 @@ import android.net.Uri;
 import android.util.JsonReader;
 import android.util.Log;
 import androidx.preference.PreferenceManager;
-import com.winlator.cmod.app.config.DeviceProfileSettings;
 import com.winlator.cmod.app.config.SettingsConfig;
 import com.winlator.cmod.shared.android.AppUtils;
 import com.winlator.cmod.shared.io.FileUtils;
@@ -109,11 +108,6 @@ public class InputControlsManager {
     return profiles;
   }
 
-  private static String assetProfilesDir(String deviceToken) {
-    if (deviceToken == null || deviceToken.isEmpty()) return ASSET_PROFILES_DIR;
-    return ASSET_PROFILES_DIR + "-" + deviceToken;
-  }
-
   private static String[] listAssetProfiles(AssetManager assetManager, String dir) {
     String[] names;
     try {
@@ -145,12 +139,8 @@ public class InputControlsManager {
     int newVersion = AppUtils.getVersionCode(context);
     int oldVersion = preferences.getInt("inputcontrols_app_version", 0);
     int oldSyncRevision = preferences.getInt("inputcontrols_asset_sync_revision", 0);
-    String deviceToken = DeviceProfileSettings.assetProfilesToken(context);
-    String oldDeviceToken = preferences.getString("inputcontrols_asset_device_profile", null);
-    boolean deviceChanged = !deviceToken.equals(oldDeviceToken);
     if (oldVersion == newVersion
-        && oldSyncRevision >= ASSET_PROFILE_SYNC_REVISION
-        && !deviceChanged) return;
+        && oldSyncRevision >= ASSET_PROFILE_SYNC_REVISION) return;
 
     for (int id : RETIRED_PROFILE_IDS) {
       ControlsProfile.getProfileFile(context, id).delete();
@@ -163,12 +153,8 @@ public class InputControlsManager {
     }
 
     AssetManager assetManager = context.getAssets();
-    String assetDir = assetProfilesDir(deviceToken);
+    String assetDir = ASSET_PROFILES_DIR;
     String[] assetFiles = listAssetProfiles(assetManager, assetDir);
-    if (assetFiles == null && !assetDir.equals(ASSET_PROFILES_DIR)) {
-      assetDir = ASSET_PROFILES_DIR;
-      assetFiles = listAssetProfiles(assetManager, assetDir);
-    }
     if (assetFiles == null) return;
 
     for (String assetFile : assetFiles) {
@@ -190,7 +176,6 @@ public class InputControlsManager {
         .edit()
         .putInt("inputcontrols_app_version", newVersion)
         .putInt("inputcontrols_asset_sync_revision", ASSET_PROFILE_SYNC_REVISION)
-        .putString("inputcontrols_asset_device_profile", deviceToken)
         .apply();
   }
 

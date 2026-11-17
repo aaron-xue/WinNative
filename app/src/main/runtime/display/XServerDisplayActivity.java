@@ -50,7 +50,6 @@ import androidx.core.graphics.Insets;
 import androidx.core.content.FileProvider;
 import androidx.compose.ui.platform.ComposeView;
 import androidx.core.view.WindowInsetsCompat;
-import com.winlator.cmod.app.config.DeviceProfileSettings;
 import com.winlator.cmod.BuildConfig;
 import com.winlator.cmod.feature.leaderboard.SessionRecordingController;
 import com.winlator.cmod.feature.stores.steam.enums.Marker;
@@ -868,7 +867,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     }
 
     private String containerAdaptiveJoysticks() {
-        String fallback = DeviceProfileSettings.adaptiveJoysticksDefaultExtra(this);
+        String fallback = "0";
         return container != null
                 ? container.getExtra(InputControlsView.EXTRA_ADAPTIVE_JOYSTICKS, fallback)
                 : fallback;
