@@ -91,13 +91,29 @@ static long raw_syscall6(long n, long a1, long a2, long a3, long a4, long a5,
 #ifndef SYS_mprotect
 #define SYS_mprotect 226
 #endif
+#ifndef SYS_openat
+#define SYS_openat 56
+#endif
+#ifndef SYS_read
+#define SYS_read 63
+#endif
+#ifndef SYS_close
+#define SYS_close 57
+#endif
 
 /* ----------------------------------------------------------------------------
  * W^X region tracking.
  *
- * Only regions the JIT asked for as RWX are tracked. The table is append-only
- * from the JIT's point of view: entries are published with a release store and
- * tombstoned on munmap. The SIGSEGV handler only reads it (lock-free).
+ * We track every range the JIT asked to make executable (PROT_EXEC), not just
+ * RWX. RWX requests are downgraded to RW at the syscall boundary, but a JIT may
+ * also map a buffer RW, mprotect it RX after writing code, and then write to it
+ * again for self-modifying code. Without tracking those RX ranges the SIGSEGV
+ * handler cannot flip the page back to RW, so the fault would be forwarded to
+ * the guest and crash it.
+ *
+ * The table is append-only from the JIT's point of view: entries are published
+ * with a release store and trimmed/tombstoned on munmap. The SIGSEGV handler
+ * only reads it (lock-free).
  * -------------------------------------------------------------------------- */
 
 #define WX_MAX_REGIONS 4096
@@ -112,13 +128,13 @@ static volatile int g_region_count;
 static pthread_mutex_t g_region_mutex = PTHREAD_MUTEX_INITIALIZER;
 static long g_page_size;
 
-static void track_region(uintptr_t start, size_t len) {
+/* Assumes g_region_mutex is held. */
+static void track_region_locked(uintptr_t start, size_t len) {
     int i, n, free_slot = -1;
     uintptr_t end;
 
     if (len == 0 || start == 0) return;
 
-    pthread_mutex_lock(&g_region_mutex);
     n = __atomic_load_n(&g_region_count, __ATOMIC_ACQUIRE);
     for (i = 0; i < n; ++i) {
         if (g_regions[i].len == 0) {
@@ -130,7 +146,6 @@ static void track_region(uintptr_t start, size_t len) {
             if (end - g_regions[i].start > g_regions[i].len) {
                 g_regions[i].len = end - g_regions[i].start;
             }
-            pthread_mutex_unlock(&g_region_mutex);
             return;
         }
     }
@@ -143,14 +158,20 @@ static void track_region(uintptr_t start, size_t len) {
         g_regions[n].len = len;
         __atomic_store_n(&g_region_count, n + 1, __ATOMIC_RELEASE);
     } else {
-        LOGW("region table full; dropping RWX region 0x%lx", (unsigned long)start);
+        LOGW("region table full; dropping tracked region 0x%lx", (unsigned long)start);
     }
+}
+
+static void track_region(uintptr_t start, size_t len) {
+    pthread_mutex_lock(&g_region_mutex);
+    track_region_locked(start, len);
     pthread_mutex_unlock(&g_region_mutex);
 }
 
 static void untrack_range(uintptr_t start, size_t len) {
     int i, n;
     uintptr_t end = start + len;
+    uintptr_t rs, re;
 
     if (len == 0) return;
 
@@ -158,8 +179,25 @@ static void untrack_range(uintptr_t start, size_t len) {
     n = __atomic_load_n(&g_region_count, __ATOMIC_ACQUIRE);
     for (i = 0; i < n; ++i) {
         if (g_regions[i].len == 0) continue;
-        if (g_regions[i].start < end && g_regions[i].start + g_regions[i].len > start) {
-            g_regions[i].len = 0; /* tombstone */
+        rs = g_regions[i].start;
+        re = rs + g_regions[i].len;
+        if (rs >= end || re <= start) continue; /* no overlap */
+
+        if (start <= rs && end >= re) {
+            /* Unmapping covers the whole region -> tombstone. */
+            g_regions[i].len = 0;
+        } else if (start > rs && end < re) {
+            /* Hole in the middle -> keep head, publish tail. Publish the tail
+             * first so the lock-free reader never briefly loses it. */
+            track_region_locked(end, re - end);
+            g_regions[i].len = start - rs;
+        } else if (start <= rs) {
+            /* Unmap overlaps the head -> trim head. */
+            g_regions[i].start = end;
+            g_regions[i].len = re - end;
+        } else {
+            /* end >= re: unmap overlaps the tail -> trim tail. */
+            g_regions[i].len = start - rs;
         }
     }
     pthread_mutex_unlock(&g_region_mutex);
@@ -175,6 +213,94 @@ static int find_region(uintptr_t page) {
         }
     }
     return -1;
+}
+
+/* ----------------------------------------------------------------------------
+ * /proc/self/maps fallback lookup (mirrors the closed-source shim's find_vma_at).
+ *
+ * The internal tracking table above can miss executable regions that were
+ * created without going through our mmap/mprotect interceptors, e.g. mappings
+ * moved by mremap, created with a raw SYS_mmap, or established before this
+ * library's constructor ran. SEGV_ACCERR tells us the faulting page IS mapped
+ * but that the current permissions disallow the access, so on a table miss we
+ * parse /proc/self/maps to learn the page's VMA and its current execute bit.
+ *
+ * Everything here uses raw syscalls and stack buffers only: no libc, no malloc,
+ * so it is safe to run from inside the SIGSEGV handler.
+ * -------------------------------------------------------------------------- */
+
+static int hex_digit(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    return -1;
+}
+
+/* Parse one /proc/self/maps line:
+ *   7f8b000000-7f8b001000 r-xp 00000000 00:00 0  /path
+ * If `addr` falls inside the line's [start, end) range, return 1 and fill in
+ * the range plus whether the mapping is currently executable (perms[2] == 'x').
+ */
+static int parse_maps_line(const char *line, uintptr_t addr, uintptr_t *out_start,
+                           uintptr_t *out_end, int *out_exec) {
+    uintptr_t start = 0, end = 0;
+    const char *p = line;
+    int d;
+
+    while ((d = hex_digit(*p)) >= 0) {
+        start = (start << 4) | (uintptr_t)d;
+        p++;
+    }
+    if (*p != '-') return 0;
+    p++;
+    while ((d = hex_digit(*p)) >= 0) {
+        end = (end << 4) | (uintptr_t)d;
+        p++;
+    }
+    if (*p != ' ') return 0;
+    p++;
+    /* perms string is "rwxp" (or with '-' for unset bits): [0]=r [1]=w [2]=x */
+    if (addr >= start && addr < end) {
+        if (out_start) *out_start = start;
+        if (out_end) *out_end = end;
+        if (out_exec) *out_exec = (p[2] == 'x');
+        return 1;
+    }
+    return 0;
+}
+
+static int find_vma_at(uintptr_t addr, uintptr_t *out_start, uintptr_t *out_end,
+                       int *out_exec) {
+    char buf[2048];
+    char line[512];
+    size_t line_len = 0;
+    long fd, n, i;
+    int found = 0;
+
+    fd = raw_syscall6(SYS_openat, (long)AT_FDCWD, (long)"/proc/self/maps",
+                      (long)(O_RDONLY | O_CLOEXEC), 0, 0, 0);
+    if (fd < 0) return 0;
+
+    for (;;) {
+        n = raw_syscall6(SYS_read, fd, (long)buf, (long)sizeof(buf), 0, 0, 0);
+        if (n <= 0) break;
+        for (i = 0; i < n; i++) {
+            if (buf[i] == '\n') {
+                line[line_len] = '\0';
+                if (parse_maps_line(line, addr, out_start, out_end, out_exec)) {
+                    found = 1;
+                    goto out;
+                }
+                line_len = 0;
+            } else if (line_len < sizeof(line) - 1) {
+                line[line_len++] = buf[i];
+            }
+        }
+    }
+
+out:
+    raw_syscall6(SYS_close, fd, 0, 0, 0, 0, 0);
+    return found;
 }
 
 /* ----------------------------------------------------------------------------
@@ -578,20 +704,47 @@ static void wx_sigsegv_handler(int sig, siginfo_t *si, void *ctx) {
     }
 
     page = fault & ~(uintptr_t)(g_page_size - 1);
-    region = find_region(page);
-
-    if (region < 0) {
-        if (log_budget(&g_log_fault_detail, 20)) {
-            LOGI("SIGSEGV page not tracked -> forwarding to guest (fault=%p)", (void *)fault);
-        }
-        forward_signal(sig, si, ctx);
-        return;
-    }
 
     /* Execute fault: the faulting address is the instruction that could not be
      * fetched (PC). Data fault: the faulting address is a data location that is
      * not writable. Flip the page accordingly and retry the access. */
     exec_fault = (pc >= page && pc < page + (uintptr_t)g_page_size);
+
+    region = find_region(page);
+
+    if (region < 0) {
+        /* Fallback: consult /proc/self/maps for executable regions the tracking
+         * table may have missed (mremap moves, raw-syscall maps, pre-constructor
+         * maps). SEGV_ACCERR guarantees the page is mapped but the current
+         * permissions disallow this access. */
+        uintptr_t vma_start = 0, vma_end = 0;
+        int vma_exec = 0;
+
+        if (!find_vma_at(page, &vma_start, &vma_end, &vma_exec)) {
+            if (log_budget(&g_log_fault_detail, 20)) {
+                LOGI("SIGSEGV page not mapped -> forwarding to guest (fault=%p)", (void *)fault);
+            }
+            forward_signal(sig, si, ctx);
+            return;
+        }
+
+        /* A write fault on a page that is not currently executable is a plain
+         * data fault, not a JIT self-modifying write; leave it to the guest. */
+        if (!exec_fault && !vma_exec) {
+            if (log_budget(&g_log_fault_detail, 20)) {
+                LOGI("SIGSEGV write fault on non-exec page -> forwarding to guest (fault=%p)",
+                     (void *)fault);
+            }
+            forward_signal(sig, si, ctx);
+            return;
+        }
+
+        if (log_budget(&g_log_fault_detail, 20)) {
+            LOGI("SIGSEGV maps fallback vma=[%p,%p) exec=%d fault=%p",
+                 (void *)vma_start, (void *)vma_end, vma_exec, (void *)fault);
+        }
+    }
+
     prot = exec_fault ? (PROT_READ | PROT_EXEC) : (PROT_READ | PROT_WRITE);
 
     if (log_budget(&g_log_fault_detail, 20)) {
@@ -761,20 +914,34 @@ static const char *redirect_path(const char *path) {
 
 int mprotect(void *addr, size_t len, int prot) {
     if (!real_mprotect) resolve_all();
+    if (!real_mprotect) {
+        errno = ENOSYS;
+        return -1;
+    }
 
-    if (real_mprotect && (prot & PROT_EXEC) && (prot & PROT_WRITE)) {
-        int rw = (prot & ~PROT_EXEC) | PROT_READ;
-        int rc = real_mprotect(addr, len, rw);
+    if (prot & PROT_EXEC) {
+        if (prot & PROT_WRITE) {
+            /* RWX: the kernel would reject it under W^X, so downgrade to RW. */
+            int rw = (prot & ~PROT_EXEC) | PROT_READ;
+            int rc = real_mprotect(addr, len, rw);
+            if (rc == 0) {
+                track_region((uintptr_t)addr, len);
+            }
+            if (log_budget(&g_log_mmap_rwx, 16)) {
+                LOGI("mprotect RWX->RW addr=%p len=%zu rc=%d", addr, len, rc);
+            }
+            return rc;
+        }
+        /* RX (or R+X without W): pass through unchanged but track it so a later
+         * self-modifying write can be flipped back to RW. */
+        int rc = real_mprotect(addr, len, prot);
         if (rc == 0) {
             track_region((uintptr_t)addr, len);
-        }
-        if (log_budget(&g_log_mmap_rwx, 16)) {
-            LOGI("mprotect RWX->RW addr=%p len=%zu rc=%d", addr, len, rc);
         }
         return rc;
     }
 
-    return real_mprotect ? real_mprotect(addr, len, prot) : -1;
+    return real_mprotect(addr, len, prot);
 }
 
 void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
@@ -784,14 +951,22 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
         return MAP_FAILED;
     }
 
-    if ((prot & PROT_EXEC) && (prot & PROT_WRITE)) {
-        int rw = (prot & ~PROT_EXEC) | PROT_READ;
-        void *p = real_mmap(addr, len, rw, flags, fd, offset);
+    if (prot & PROT_EXEC) {
+        if (prot & PROT_WRITE) {
+            int rw = (prot & ~PROT_EXEC) | PROT_READ;
+            void *p = real_mmap(addr, len, rw, flags, fd, offset);
+            if (p != MAP_FAILED) {
+                track_region((uintptr_t)p, len);
+            }
+            if (log_budget(&g_log_mmap_rwx, 16)) {
+                LOGI("mmap RWX->RW addr=%p len=%zu", p, len);
+            }
+            return p;
+        }
+        /* RX mapping: track it so a later self-modifying write can be flipped. */
+        void *p = real_mmap(addr, len, prot, flags, fd, offset);
         if (p != MAP_FAILED) {
             track_region((uintptr_t)p, len);
-        }
-        if (log_budget(&g_log_mmap_rwx, 16)) {
-            LOGI("mmap RWX->RW addr=%p len=%zu", p, len);
         }
         return p;
     }
@@ -807,14 +982,22 @@ void *mmap64(void *addr, size_t len, int prot, int flags, int fd, off_t offset) 
         return MAP_FAILED;
     }
 
-    if ((prot & PROT_EXEC) && (prot & PROT_WRITE)) {
-        int rw = (prot & ~PROT_EXEC) | PROT_READ;
-        void *p = real_mmap64(addr, len, rw, flags, fd, offset);
+    if (prot & PROT_EXEC) {
+        if (prot & PROT_WRITE) {
+            int rw = (prot & ~PROT_EXEC) | PROT_READ;
+            void *p = real_mmap64(addr, len, rw, flags, fd, offset);
+            if (p != MAP_FAILED) {
+                track_region((uintptr_t)p, len);
+            }
+            if (log_budget(&g_log_mmap_rwx, 16)) {
+                LOGI("mmap64 RWX->RW addr=%p len=%zu", p, len);
+            }
+            return p;
+        }
+        /* RX mapping: track it so a later self-modifying write can be flipped. */
+        void *p = real_mmap64(addr, len, prot, flags, fd, offset);
         if (p != MAP_FAILED) {
             track_region((uintptr_t)p, len);
-        }
-        if (log_budget(&g_log_mmap_rwx, 16)) {
-            LOGI("mmap64 RWX->RW addr=%p len=%zu", p, len);
         }
         return p;
     }
