@@ -4,6 +4,29 @@ project(Winlator)
 
 include(FetchContent)
 
+# ccache: transparent C/C++ compiler-cache wrapper. When present on PATH it
+# caches translation units across builds, which makes incremental native builds
+# (and Debug<->Release switches) much faster. No-op when ccache is not installed.
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER   "${CCACHE_PROGRAM}")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    message(STATUS "ccache enabled: ${CCACHE_PROGRAM}")
+endif()
+
+# Optional local source mirror for the zstd/xz FetchContent deps. Point this at a
+# pre-cloned directory (e.g. a CI cache) to skip the network clone; unset (empty)
+# keeps the default per-build-config _deps checkout.
+set(WINLATOR_FETCHCONTENT_MIRROR "" CACHE PATH "Optional local mirror for zstd/xz sources")
+if(WINLATOR_FETCHCONTENT_MIRROR)
+    if(EXISTS "${WINLATOR_FETCHCONTENT_MIRROR}/zstd")
+        set(FETCHCONTENT_SOURCE_DIR_ZSTD "${WINLATOR_FETCHCONTENT_MIRROR}/zstd")
+    endif()
+    if(EXISTS "${WINLATOR_FETCHCONTENT_MIRROR}/xz")
+        set(FETCHCONTENT_SOURCE_DIR_XZ "${WINLATOR_FETCHCONTENT_MIRROR}/xz")
+    endif()
+endif()
+
 # Warning hygiene that must stay on regardless of build type.
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-function -Wimplicit-function-declaration")
 

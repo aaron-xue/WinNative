@@ -432,6 +432,7 @@ dependencies {
     implementation libs.recyclerview
     implementation libs.coreKtx
     implementation(libs.lifecycleProcess)    // New = compilation errors / gradle plugin update requirement.
+    implementation libs.profileInstaller   // Baseline Profile install (cold-start AOT)
 
 
     implementation 'com.android.ndk.thirdparty:openssl:1.1.1q-beta-1'

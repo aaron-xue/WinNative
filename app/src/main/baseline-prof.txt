@@ -1,0 +1,9 @@
+# Baseline profile for cold-start AOT compilation.
+# Installed automatically at app start by androidx.profileinstaller.
+# Regenerate the full set via a Macrobenchmark BaselineProfileGenerator run when
+# the startup path changes materially.
+
+HSPLcom/winlator/cmod/app/PluviaApp;
+HSPLcom/winlator/cmod/app/shell/UnifiedActivity;
+PLcom/winlator/cmod/app/PluviaApp;->onCreate()V
+PLcom/winlator/cmod/app/shell/UnifiedActivity;->onCreate(Landroid/os/Bundle;)V

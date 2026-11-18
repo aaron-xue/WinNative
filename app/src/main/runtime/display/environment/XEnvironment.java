@@ -6,6 +6,7 @@ import com.winlator.cmod.runtime.audio.alsaserver.ALSAClient;
 import com.winlator.cmod.runtime.display.environment.components.GuestProgramLauncherComponent;
 import com.winlator.cmod.runtime.display.environment.components.PulseAudioComponent;
 import com.winlator.cmod.runtime.system.LogManager;
+import com.winlator.cmod.shared.android.GameStateReporter;
 import com.winlator.cmod.shared.io.FileUtils;
 import java.io.File;
 import java.util.ArrayList;
@@ -65,6 +66,7 @@ public class XEnvironment implements Iterable<EnvironmentComponent> {
   }
 
   public void startEnvironmentComponents() {
+    GameStateReporter.reportLoading(context);
     FileUtils.clear(getTmpDir());
     LogManager.log(TAG, "Starting " + components.size() + " environment component(s)");
 
@@ -111,10 +113,12 @@ public class XEnvironment implements Iterable<EnvironmentComponent> {
       LogManager.log(TAG, "Starting component " + launcher.getClass().getSimpleName());
       launcher.start();
     }
+    GameStateReporter.reportGameplay(context);
     LogManager.log(TAG, "Environment component startup finished");
   }
 
   public void stopEnvironmentComponents() {
+    GameStateReporter.reportNone(context);
     // Stop in reverse order so dependent components (guest launcher) tear down before
     // their underlying services (audio sockets, XServer, shm).
     Log.d(TAG, "Stopping " + components.size() + " environment component(s)");
