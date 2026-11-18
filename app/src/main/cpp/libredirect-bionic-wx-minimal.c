@@ -58,6 +58,7 @@ static int g_log_mmap_rwx;
 static int g_log_sigaction;
 static int g_log_fault;
 static int g_log_fault_detail;
+static int g_log_misaligned;
 
 static int log_budget(int *counter, int limit) {
     return __atomic_fetch_add(counter, 1, __ATOMIC_RELAXED) < limit;
@@ -108,6 +109,9 @@ static long raw_syscall6(long n, long a1, long a2, long a3, long a4, long a5,
 #endif
 #ifndef SYS_munmap
 #define SYS_munmap 215
+#endif
+#ifndef SYS_pread64
+#define SYS_pread64 67
 #endif
 #ifndef MFD_CLOEXEC
 #define MFD_CLOEXEC 0x0001U
@@ -759,6 +763,89 @@ static int is_elf_binary(const char *path) {
     return n == 4 && hdr[0] == 0x7f && hdr[1] == 'E' && hdr[2] == 'L' && hdr[3] == 'F';
 }
 
+/* ----------------------------------------------------------------------------
+ * 16KB-page runtime alignment probe (read-only diagnostic).
+ *
+ * `-z,max-page-size=16384` fixes alignment at link time for ELFs we build, but
+ * guest binaries loaded from the imagefs (box64/wine, uncompressed resources)
+ * may still carry 4KB assumptions. On a 16KB-page device the kernel rejects an
+ * mmap offset that is not a multiple of the real page size (EINVAL) and
+ * linker64/box64 refuse PT_LOAD segments whose p_align is smaller than the page
+ * size. We only *assert* here (log early), never rewrite mappings: silently
+ * changing mmap/ELF semantics in a preload shim is far more dangerous than a
+ * clear diagnostic.
+ * -------------------------------------------------------------------------- */
+
+typedef struct {
+    unsigned char e_ident[16];
+    uint16_t e_type;
+    uint16_t e_machine;
+    uint32_t e_version;
+    uint64_t e_entry;
+    uint64_t e_phoff;
+    uint64_t e_shoff;
+    uint32_t e_flags;
+    uint16_t e_ehsize;
+    uint16_t e_phentsize;
+    uint16_t e_phnum;
+    uint16_t e_shentsize;
+    uint16_t e_shnum;
+    uint16_t e_shstrndx;
+} wn_elf64_ehdr_t;
+
+typedef struct {
+    uint32_t p_type;
+    uint32_t p_flags;
+    uint64_t p_offset;
+    uint64_t p_vaddr;
+    uint64_t p_paddr;
+    uint64_t p_filesz;
+    uint64_t p_memsz;
+    uint64_t p_align;
+} wn_elf64_phdr_t;
+
+#define WN_PT_LOAD 1
+
+static void check_elf_load_alignment(const char *path) {
+    wn_elf64_ehdr_t eh;
+    wn_elf64_phdr_t ph;
+    uint64_t i;
+    int fd;
+    long n;
+
+    if (!path || g_page_size <= 0) return;
+    if (!real_open) resolve_all();
+    if (!real_close) resolve_all();
+    if (!real_open || !real_close) return;
+
+    fd = real_open(path, O_RDONLY | O_CLOEXEC, 0);
+    if (fd < 0) return;
+
+    n = raw_syscall6(SYS_pread64, (long)fd, (long)&eh, (long)sizeof(eh), 0, 0, 0);
+    if (n != (long)sizeof(eh)) goto out;
+    if (eh.e_ident[0] != 0x7f || eh.e_ident[1] != 'E' ||
+        eh.e_ident[2] != 'L' || eh.e_ident[3] != 'F') goto out;
+    if (eh.e_ident[4] != 2 /* ELFCLASS64 */) goto out;
+    if (eh.e_phoff == 0 || eh.e_phnum == 0 ||
+        eh.e_phentsize != sizeof(ph)) goto out;
+
+    for (i = 0; i < eh.e_phnum; i++) {
+        uint64_t off = eh.e_phoff + i * (uint64_t)eh.e_phentsize;
+        n = raw_syscall6(SYS_pread64, (long)fd, (long)&ph, (long)sizeof(ph),
+                         (long)off, 0, 0);
+        if (n != (long)sizeof(ph)) break;
+        if (ph.p_type == WN_PT_LOAD && ph.p_align != 0 && ph.p_align != 1 &&
+            ph.p_align < (uint64_t)g_page_size) {
+            LOGW("guest ELF %s PT_LOAD p_align=0x%llx < page_size=%ld "
+                 "(not loadable on a 16KB-page device)",
+                 path, (unsigned long long)ph.p_align, g_page_size);
+        }
+    }
+
+out:
+    real_close(fd);
+}
+
 int execve(const char *path, char *const argv[], char *const envp[]) {
     char rp[PATH_MAX];
     const char *resolved;
@@ -795,6 +882,8 @@ int execve(const char *path, char *const argv[], char *const envp[]) {
     if (!is_elf_binary(resolved)) {
         return real_execve(path, argv, envp);
     }
+
+    check_elf_load_alignment(resolved);
 
     argc = 0;
     if (argv) {
@@ -1304,6 +1393,21 @@ static void *mmap_rwx_dual(size_t len) {
     return rw;
 }
 
+/* File-backed mmap() requires the file offset to be a multiple of the real page
+ * size. Guest code that lays out uncompressed resources (Godot noCompress) or
+ * maps ELF segments assuming 4KB pages will pass a 4KB-aligned offset that the
+ * kernel rejects with EINVAL on a 16KB-page device. Log it once so the failure
+ * is attributable instead of a silent EINVAL. */
+static void check_mmap_offset_alignment(int fd, off_t offset) {
+    if (fd < 0 || offset == 0 || g_page_size <= 0) return;
+    if (((uint64_t)offset & ((uint64_t)g_page_size - 1)) == 0) return;
+    if (log_budget(&g_log_misaligned, 32)) {
+        LOGW("mmap fd=%d offset=0x%llx not aligned to page size %ld "
+             "(EINVAL on a 16KB-page device)",
+             fd, (unsigned long long)offset, g_page_size);
+    }
+}
+
 int mprotect(void *addr, size_t len, int prot) {
     if (!real_mprotect) resolve_all();
     if (!real_mprotect) {
@@ -1342,6 +1446,8 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
         errno = ENOSYS;
         return MAP_FAILED;
     }
+
+    check_mmap_offset_alignment(fd, offset);
 
     if (prot & PROT_EXEC) {
         if (prot & PROT_WRITE) {
@@ -1384,6 +1490,8 @@ void *mmap64(void *addr, size_t len, int prot, int flags, int fd, off_t offset) 
         errno = ENOSYS;
         return MAP_FAILED;
     }
+
+    check_mmap_offset_alignment(fd, offset);
 
     if (prot & PROT_EXEC) {
         if (prot & PROT_WRITE) {

@@ -44,6 +44,7 @@
 
     <application
         android:name="com.winlator.cmod.app.PluviaApp"
+        android:largeHeap="true"
         android:label="@string/common_ui_app_name"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
