@@ -8940,11 +8940,11 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             renderer.setUnviewableWMClasses("explorer.exe");
         }
         if (shortcut != null) {
-            String savedFpsLimit = shortcut.getExtra("fpsLimit", "0");
+            String savedFpsLimit = shortcut.getExtra("fpsLimit", "30");
             try {
                 runtimeFpsLimit = Integer.parseInt(savedFpsLimit);
             } catch (NumberFormatException e) {
-                runtimeFpsLimit = 0;
+                runtimeFpsLimit = 30;
             }
         }
         renderer.setFpsLimit(runtimeFpsLimit);
