@@ -153,6 +153,16 @@ static pthread_mutex_t g_region_mutex = PTHREAD_MUTEX_INITIALIZER;
 static unsigned g_region_seq; /* even = stable, odd = writer active */
 static long g_page_size;
 
+/* One-slot hot cache for the SIGSEGV handler: it records the last dual-mapped
+ * region an execute fault landed in, so the very common "keep executing the
+ * same JIT region" case can redirect the PC straight to the RX mirror without
+ * the seqlock read + binary search. Guarded by g_hot_seq (same even/odd
+ * convention as g_region_seq); start == 0 means "no cached entry". */
+static uintptr_t g_hot_start; /* RW view start */
+static uintptr_t g_hot_end;   /* RW view end (exclusive) */
+static uintptr_t g_hot_rx;    /* RX mirror base */
+static unsigned g_hot_seq;    /* even = stable, odd = writer active */
+
 /* Index of the first entry with start >= key (insertion point). */
 static int region_lower_bound(const wx_region_t *arr, int n, uintptr_t key) {
     int lo = 0, hi = n;
@@ -216,6 +226,27 @@ static void close_memfd_if_any(int fd) {
     }
 }
 
+/* Publish a dual-mapped region as the handler's hot entry. Only ever called from
+ * the writer path (g_region_mutex held), so it is the single g_hot_* writer and
+ * the seqlock stays well-formed for lock-free reads in the handler. */
+static void publish_hot_region(uintptr_t start, uintptr_t end, uintptr_t rx) {
+    __atomic_fetch_add(&g_hot_seq, 1, __ATOMIC_ACQ_REL);
+    __atomic_store_n(&g_hot_start, start, __ATOMIC_RELEASE);
+    __atomic_store_n(&g_hot_end, end, __ATOMIC_RELEASE);
+    __atomic_store_n(&g_hot_rx, rx, __ATOMIC_RELEASE);
+    __atomic_fetch_add(&g_hot_seq, 1, __ATOMIC_ACQ_REL);
+}
+
+/* Drop the hot cache: called from the writer path right before an RX mirror is
+ * unmapped, so the handler never redirects a PC into a stale (unmapped) mirror.
+ * Wrapped in g_hot_seq so a concurrent handler read never observes a torn
+ * start/end/rx triple. */
+static void invalidate_hot_region(void) {
+    __atomic_fetch_add(&g_hot_seq, 1, __ATOMIC_ACQ_REL);
+    __atomic_store_n(&g_hot_start, 0, __ATOMIC_RELEASE);
+    __atomic_fetch_add(&g_hot_seq, 1, __ATOMIC_ACQ_REL);
+}
+
 /* Insert/merge [start, start+len) into the sorted table. Caller holds the mutex
  * and has already marked g_region_seq odd. Overlapping or adjacent regions are
  * coalesced so the table stays non-overlapping, which is what makes the
@@ -249,6 +280,9 @@ static void track_region_locked(uintptr_t start, size_t len, uintptr_t rx_start,
         g_regions[0].rx_start = rx_start;
         g_regions[0].memfd = memfd;
         __atomic_store_n(&g_region_count, 1, __ATOMIC_RELEASE);
+        if (rx_start != 0 && memfd >= 0) {
+            publish_hot_region(start, start + len, rx_start);
+        }
         return;
     }
 
@@ -280,6 +314,7 @@ static void track_region_locked(uintptr_t start, size_t len, uintptr_t rx_start,
                 if (g_regions[k].rx_start != 0) {
                     raw_syscall6(SYS_munmap, (long)g_regions[k].rx_start,
                                  (long)g_regions[k].len, 0, 0, 0, 0);
+                    invalidate_hot_region();
                 }
                 close_memfd_if_any(g_regions[k].memfd);
             }
@@ -287,6 +322,7 @@ static void track_region_locked(uintptr_t start, size_t len, uintptr_t rx_start,
         if (memfd >= 0) {
             if (rx_start != 0) {
                 raw_syscall6(SYS_munmap, (long)rx_start, (long)len, 0, 0, 0, 0);
+                invalidate_hot_region();
             }
             close_memfd_if_any(memfd);
         }
@@ -314,6 +350,11 @@ static void track_region_locked(uintptr_t start, size_t len, uintptr_t rx_start,
     g_regions[a].rx_start = new_rx;
     g_regions[a].memfd = new_memfd;
     __atomic_store_n(&g_region_count, new_n, __ATOMIC_RELEASE);
+
+    /* Publish the newest dual-mapped region as the handler's hot entry. */
+    if (new_rx != 0 && new_memfd >= 0) {
+        publish_hot_region(new_start, new_end, new_rx);
+    }
 }
 
 static void track_region(uintptr_t start, size_t len) {
@@ -370,6 +411,7 @@ static void untrack_range_locked(uintptr_t start, size_t len) {
         if (r->memfd >= 0) {
             if (r->rx_start != 0) {
                 raw_syscall6(SYS_munmap, (long)r->rx_start, (long)r->len, 0, 0, 0, 0);
+                invalidate_hot_region();
             }
             close_memfd_if_any(r->memfd);
         }
@@ -953,6 +995,28 @@ static void wx_sigsegv_handler(int sig, siginfo_t *si, void *ctx) {
      * fetched (PC). Data fault: the faulting address is a data location that is
      * not writable. Flip the page accordingly and retry the access. */
     exec_fault = (pc >= page && pc < page + (uintptr_t)g_page_size);
+
+    /* Hot-cache fast path: an execute fault whose PC still falls inside the last
+     * dual-mapped region published by the writer path is redirected straight to
+     * the RX mirror — no seqlock region read, no binary search. */
+    if (exec_fault) {
+        unsigned hs0 = __atomic_load_n(&g_hot_seq, __ATOMIC_ACQUIRE);
+        if (!(hs0 & 1u)) {
+            uintptr_t hs = __atomic_load_n(&g_hot_start, __ATOMIC_ACQUIRE);
+            uintptr_t he = __atomic_load_n(&g_hot_end, __ATOMIC_ACQUIRE);
+            uintptr_t hr = __atomic_load_n(&g_hot_rx, __ATOMIC_ACQUIRE);
+            unsigned hs1 = __atomic_load_n(&g_hot_seq, __ATOMIC_ACQUIRE);
+            if (hs1 == hs0 && hs != 0 && pc >= hs && pc < he) {
+                uintptr_t new_pc = hr + (pc - hs);
+                if (log_budget(&g_log_fault_detail, 20)) {
+                    LOGI("SIGSEGV hot-cache exec redirect pc=%p -> %p",
+                         (void *)pc, (void *)new_pc);
+                }
+                uc->uc_mcontext.pc = new_pc;
+                return;
+            }
+        }
+    }
 
     r.start = 0;
     r.len = 0;
