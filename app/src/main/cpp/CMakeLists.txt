@@ -222,6 +222,17 @@ add_library(waudio SHARED
 target_compile_options(waudio PRIVATE -Wall -Wextra -fvisibility=hidden)
 target_link_libraries(waudio log dl)
 
+# Open-source W^X shim for the modern (targetSdk 36 / Android 16) flavor. It
+# replaces the closed-source libredirect-bionic-wx-minimal.so: downgrades RWX
+# mmap/mprotect requests and re-bakes JIT pages via a SIGSEGV handler, plus
+# redirects /system/lib{64} bionic paths to /apex/com.android.runtime. Symbols
+# must keep default visibility so they interpose libc through LD_PRELOAD.
+add_library(redirect-bionic-wx-minimal SHARED
+        libredirect-bionic-wx-minimal.c
+)
+target_compile_options(redirect-bionic-wx-minimal PRIVATE -Wall -Wextra)
+target_link_libraries(redirect-bionic-wx-minimal log dl)
+
 find_package(SDL3 REQUIRED CONFIG)
 
 add_library(steamctrl SHARED

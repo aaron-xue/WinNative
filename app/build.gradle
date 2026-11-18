@@ -191,12 +191,10 @@ def coldClientVersion = coldClientVersionFile.exists() ? coldClientVersionFile.t
 
 android {
     namespace 'com.winlator.cmod'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.winnative.cmod"
-        minSdk 26
-        targetSdk 28
         versionCode appVersionCode
         versionName appVersionName
         testInstrumentationRunner "com.winlator.cmod.StoreUiTestRunner"
@@ -277,33 +275,53 @@ android {
         }
     }
 
-    flavorDimensions "branding"
+    flavorDimensions "branding", "androidApi"
 
     productFlavors {
         standard {
             dimension "branding"
             applicationId "com.winnative.cmod"
+            buildConfigField "String", "BRANDING_FLAVOR", "\"standard\""
         }
         ludashi {
             dimension "branding"
             applicationId "com.ludashi.benchmark"
             versionCode brandedVersionCode
+            buildConfigField "String", "BRANDING_FLAVOR", "\"ludashi\""
         }
         pubg {
             isDefault true
             dimension "branding"
             applicationId "com.tencent.ig"
             versionCode brandedVersionCode
+            buildConfigField "String", "BRANDING_FLAVOR", "\"pubg\""
         }
         antutu {
             dimension "branding"
             applicationId "com.antutu.ABenchMark"
             versionCode brandedVersionCode
+            buildConfigField "String", "BRANDING_FLAVOR", "\"antutu\""
+        }
+
+        legacy {
+            dimension "androidApi"
+            isDefault true
+            minSdk 26
+            targetSdk 28
+            buildConfigField "boolean", "MODERN_ANDROID", "false"
+            buildConfigField "String", "PRELOAD_BIONIC_SO", "\"libredirect-bionic.so\""
+        }
+        modern {
+            dimension "androidApi"
+            minSdk 29
+            targetSdk 36
+            buildConfigField "boolean", "MODERN_ANDROID", "true"
+            buildConfigField "String", "PRELOAD_BIONIC_SO", "\"libredirect-bionic-wx.so\""
         }
     }
 
     applicationVariants.configureEach { variant ->
-        def names = android.productFlavors.collect { it.name }.join(",")
+        def names = android.productFlavors.findAll { it.dimension == "branding" }.collect { it.name }.join(",")
         variant.buildConfigField "String", "KNOWN_FLAVORS", "\"${names}\""
     }
 

@@ -7,6 +7,7 @@ import android.net.ConnectivityManager;
 import android.os.Process;
 import android.util.Log;
 import androidx.preference.PreferenceManager;
+import com.winlator.cmod.BuildConfig;
 import com.winlator.cmod.runtime.compat.box64.Box64Preset;
 import com.winlator.cmod.runtime.compat.box64.Box64PresetManager;
 import com.winlator.cmod.runtime.compat.fexcore.FEXCorePreset;
@@ -944,7 +945,9 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     envVars.put("USER", ImageFs.USER);
     envVars.put("TMPDIR", rootDir.getPath() + "/usr/tmp");
     envVars.put("XDG_DATA_DIRS", rootDir.getPath() + "/usr/share");
-    envVars.put("LD_LIBRARY_PATH", rootDir.getPath() + "/usr/lib" + ":" + "/system/lib64");
+    String ldLibraryPath = rootDir.getPath() + "/usr/lib" + ":" + "/system/lib64";
+    if (BuildConfig.MODERN_ANDROID) ldLibraryPath += ":" + imageFs.getWinePath() + "/lib";
+    envVars.put("LD_LIBRARY_PATH", ldLibraryPath);
     envVars.put("XDG_CONFIG_DIRS", rootDir.getPath() + "/usr/etc/xdg");
     envVars.put("GST_PLUGIN_PATH", rootDir.getPath() + "/usr/lib/gstreamer-1.0");
     envVars.put("FONTCONFIG_PATH", rootDir.getPath() + "/usr/etc/fonts");
@@ -985,6 +988,8 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     Log.d(TAG, "WinePath is " + winePath);
 
     envVars.put("PATH", winePath + ":" + rootDir.getPath() + "/usr/bin");
+    if (BuildConfig.MODERN_ANDROID)
+      envVars.put("REDIRECT_EXEC__PROC_SELF_EXE", winePath + "/wine");
 
     envVars.put("ANDROID_SYSVSHM_SERVER", rootDir.getPath() + UnixSocketConfig.SYSVSHM_SERVER_PATH);
 
@@ -1173,6 +1178,12 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
       }
     }
 
+    String libredirectPreload = resolveLibredirectPreload(context, imageFs);
+    if (libredirectPreload != null) {
+      if (!ld_preload.isEmpty()) ld_preload += ":";
+      ld_preload += libredirectPreload;
+    }
+
     LogManager.log(TAG, "Final LD_PRELOAD: " + ld_preload);
     envVars.put("LD_PRELOAD", ld_preload);
 
@@ -1310,6 +1321,31 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         envVars.put("BOX86_CPULIST", cpuList);
       }
     }
+  }
+
+  /**
+   * Resolve which libredirect shim to preload for the guest process. The legacy flavor keeps its
+   * existing launch path and preloads nothing extra here (returns {@code null}). The modern flavor
+   * (targetSdk 36 / Android 16) must preload a W^X-safe shim so Wine's JIT survives the strict
+   * W^X kernel.
+   *
+   * <p>The full shim ({@code BuildConfig.PRELOAD_BIONIC_SO}) bakes in GameNative's package name
+   * for its historical-identifier path redirects (com.winlator / com.termux / com.winlator.cmod
+   * all map to app.gamenative), which misdirects guest paths under WinNative's own package and
+   * crashes Wine during init. The minimal variant keeps the dynamic /apex wine redirect plus the
+   * mprotect W^X handling while skipping those hardcoded package redirects, so it is the correct
+   * preload for WinNative's modern flavor.
+   *
+   * <p>The open-source minimal shim is compiled by the native build (see
+   * {@code app/src/main/cpp/libredirect-bionic-wx-minimal.c}) and staged into the imagefs lib
+   * directory from the APK's nativeLibraryDir via {@link #ensureImageFsNativeLibrary}, replacing
+   * the closed-source asset that was previously copied by ImageFsInstaller.
+   */
+  private String resolveLibredirectPreload(Context context, ImageFs imageFs) {
+    if (!BuildConfig.MODERN_ANDROID) return null;
+    File dest = ensureImageFsNativeLibrary(context, imageFs, "libredirect-bionic-wx-minimal.so");
+    if (dest == null || !dest.exists()) return null;
+    return dest.getAbsolutePath();
   }
 
   private void repairRuntimeExecutablePermissions(Context context, ImageFs imageFs) {

@@ -85,20 +85,20 @@ jobs:
       matrix:
         flavor:
           - name: Standard
-            gradleTask: assembleStandardDebug
-            apkPath: app/build/outputs/apk/standard/debug/standard.apk
+            gradleTask: assembleStandardLegacyDebug
+            apkPath: app/build/outputs/apk/standardLegacy/debug/standardLegacy.apk
             artifactName: release-apk-standard
           - name: Ludashi
-            gradleTask: assembleLudashiDebug
-            apkPath: app/build/outputs/apk/ludashi/debug/ludashi.apk
+            gradleTask: assembleLudashiLegacyDebug
+            apkPath: app/build/outputs/apk/ludashiLegacy/debug/ludashiLegacy.apk
             artifactName: release-apk-ludashi
           - name: Pubg
-            gradleTask: assemblePubgDebug
-            apkPath: app/build/outputs/apk/pubg/debug/pubg.apk
+            gradleTask: assemblePubgLegacyDebug
+            apkPath: app/build/outputs/apk/pubgLegacy/debug/pubgLegacy.apk
             artifactName: release-apk-pubg
           - name: Antutu
-            gradleTask: assembleAntutuDebug
-            apkPath: app/build/outputs/apk/antutu/debug/antutu.apk
+            gradleTask: assembleAntutuLegacyDebug
+            apkPath: app/build/outputs/apk/antutuLegacy/debug/antutuLegacy.apk
             artifactName: release-apk-antutu
 
     steps:

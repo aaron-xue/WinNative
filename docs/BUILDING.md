@@ -7,7 +7,7 @@
 | Android Studio | Current stable |
 | JDK | 17 (not 21 — required by the Android Gradle Plugin) |
 | [Git LFS](https://git-lfs.com) | Any |
-| Android SDK | compileSdk 35 |
+| Android SDK | compileSdk 36 |
 | NDK | `27.3.13750724` — only needed for the native shims and any core built from source |
 | CMake | 3.22.1 — same |
 
@@ -39,17 +39,19 @@ rustup target add aarch64-linux-android
 **Command line:**
 
 ```bash
-./gradlew assembleStandardDebug
+./gradlew assembleStandardLegacyDebug
 ```
 
 On Windows use `.\gradlew.bat`. Substitute the flavor name for a branded build, for example
-`./gradlew assemblePubgDebug`.
+`./gradlew assemblePubgLegacyDebug`.
 
 ## Flavors
 
-All four flavors build the same app. They differ only in application id, which is what lets a
-device's game booster or benchmark detection treat WinNative as a known title, and what lets
-several forks sit side by side.
+Flavors come in two dimensions, so every variant is a `<branding><androidApi>` pair.
+
+The **branding** dimension chooses the application id. All four build the same app and differ only
+in application id, which is what lets a device's game booster or benchmark detection treat
+WinNative as a known title, and what lets several forks sit side by side.
 
 | Flavor | Application id | Why |
 | --- | --- | --- |
@@ -58,8 +60,20 @@ several forks sit side by side.
 | `antutu` | `com.antutu.ABenchMark` | Forces max GPU clocks on most devices (AnTuTu benchmark spoof) |
 | `pubg` | `com.tencent.ig` | PUBG package name, which unlocks some game-booster advanced features |
 
-Gradle tasks follow the usual `assemble<Flavor><BuildType>` pattern, and output lands in
-`app/build/outputs/apk/<flavor>/<buildType>/`.
+The **androidApi** dimension chooses the Android 16 (W^X) strategy:
+
+| Flavor | targetSdk | minSdk | Purpose |
+| --- | --- | --- | --- |
+| `legacy` (default) | 28 | 26 | The long-standing build; keeps the old JIT memory path and broad device support |
+| `modern` | 36 | 29 | Android 16 targetSdk build that preloads the W^X-safe `libredirect-bionic-wx-minimal.so` shim so Wine survives the strict write-xor-execute kernel |
+
+`modern` compiles the open-source W^X shim from `app/src/main/cpp/libredirect-bionic-wx-minimal.c`
+(built by the shared CMake tree) and stages it into the imagefs at launch; `legacy` does not include it.
+
+Gradle tasks follow the usual `assemble<Branding><AndroidApi><BuildType>` pattern, and output
+lands in `app/build/outputs/apk/<branding><androidApi>/<buildType>/`. The default (`legacy`)
+variant is what the CI release pipeline builds, e.g. `assemblePubgLegacyDebug` produces
+`app/build/outputs/apk/pubgLegacy/debug/pubgLegacy.apk`.
 
 ## Retro console cores
 

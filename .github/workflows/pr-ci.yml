@@ -28,20 +28,20 @@ jobs:
         flavor:
           - name: Standard
             artifactName: apk-standard
-            gradleTask: assembleStandardDebug
-            apkPath: app/build/outputs/apk/standard/debug/standard.apk
+            gradleTask: assembleStandardLegacyDebug
+            apkPath: app/build/outputs/apk/standardLegacy/debug/standardLegacy.apk
           - name: Ludashi
             artifactName: apk-ludashi
-            gradleTask: assembleLudashiDebug
-            apkPath: app/build/outputs/apk/ludashi/debug/ludashi.apk
+            gradleTask: assembleLudashiLegacyDebug
+            apkPath: app/build/outputs/apk/ludashiLegacy/debug/ludashiLegacy.apk
           - name: Pubg
             artifactName: apk-pubg
-            gradleTask: assemblePubgDebug
-            apkPath: app/build/outputs/apk/pubg/debug/pubg.apk
+            gradleTask: assemblePubgLegacyDebug
+            apkPath: app/build/outputs/apk/pubgLegacy/debug/pubgLegacy.apk
           - name: Antutu
             artifactName: apk-antutu
-            gradleTask: assembleAntutuDebug
-            apkPath: app/build/outputs/apk/antutu/debug/antutu.apk
+            gradleTask: assembleAntutuLegacyDebug
+            apkPath: app/build/outputs/apk/antutuLegacy/debug/antutuLegacy.apk
 
     steps:
     - name: Clone repository

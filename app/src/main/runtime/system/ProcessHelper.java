@@ -2,6 +2,7 @@ package com.winlator.cmod.runtime.system;
 
 import android.os.Process;
 import android.util.Log;
+import com.winlator.cmod.BuildConfig;
 import com.winlator.cmod.shared.util.Callback;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -345,6 +346,7 @@ public abstract class ProcessHelper {
 
     int pid = -1;
     try {
+      if (BuildConfig.MODERN_ANDROID) command = "/system/bin/linker64 " + command;
       if (PRINT_DEBUG) Log.d("ProcessHelper", "Splitting command: " + command);
       String[] splitCommand = splitCommand(command);
       if (PRINT_DEBUG)

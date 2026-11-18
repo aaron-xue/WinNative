@@ -199,12 +199,12 @@ data class UpdateRelease(
                 val name = asset.optString("name")
                 if (name.isNotBlank()) byName[name] = asset
             }
-            val chosen = matchApkAsset(byName.keys.toList(), BuildConfig.FLAVOR)
+            val chosen = matchApkAsset(byName.keys.toList(), BuildConfig.BRANDING_FLAVOR)
             if (chosen == null) {
                 Timber.w(
                     "Release %s has no %s APK; assets=%s",
                     tag,
-                    BuildConfig.FLAVOR,
+                    BuildConfig.BRANDING_FLAVOR,
                     byName.keys.joinToString(),
                 )
                 return null

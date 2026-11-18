@@ -63,7 +63,7 @@ fun buildInfoLines(): List<Pair<Int, String>> {
             R.string.about_version to BuildConfig.VERSION_NAME,
             R.string.about_build_id to BuildConfig.BUILD_ID,
             R.string.about_version_code to BuildConfig.TRUE_VERSION_CODE.toString(),
-            R.string.about_variant to "${BuildConfig.FLAVOR} · ${BuildConfig.BUILD_TYPE}",
+            R.string.about_variant to "${BuildConfig.BRANDING_FLAVOR} · ${BuildConfig.BUILD_TYPE}",
             R.string.about_package to BuildConfig.APPLICATION_ID,
         )
     if (isBrandedBuild()) {

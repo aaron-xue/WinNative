@@ -60,7 +60,7 @@ class UpdateSourceTest {
     @Test
     fun theApkChosenIsThisBuildsOwnFlavour() {
         val release = UpdateRelease.pickPullRequest(ci769, 769)!!
-        val flavour = BuildConfig.FLAVOR.lowercase()
+        val flavour = BuildConfig.BRANDING_FLAVOR.lowercase()
         assertTrue(release.apkName, release.apkName.lowercase().contains(flavour))
         assertTrue(release.apkName, release.apkName.endsWith(".apk"))
         assertTrue(release.apkUrl, release.apkUrl.startsWith("https://"))
@@ -87,7 +87,7 @@ class UpdateSourceTest {
         assertEquals(UpdateChannel.OFFICIAL, release.channel)
         assertEquals("", release.buildRef)
         assertEquals("v0.6.2-beta", release.key)
-        assertTrue(release.apkName, release.apkName.lowercase().contains(BuildConfig.FLAVOR.lowercase()))
+        assertTrue(release.apkName, release.apkName.lowercase().contains(BuildConfig.BRANDING_FLAVOR.lowercase()))
         assertTrue(release.apkName, release.apkName.contains("signed"))
     }
 
