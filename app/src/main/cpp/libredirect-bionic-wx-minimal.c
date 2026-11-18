@@ -100,6 +100,18 @@ static long raw_syscall6(long n, long a1, long a2, long a3, long a4, long a5,
 #ifndef SYS_close
 #define SYS_close 57
 #endif
+#ifndef SYS_memfd_create
+#define SYS_memfd_create 279
+#endif
+#ifndef SYS_ftruncate
+#define SYS_ftruncate 46
+#endif
+#ifndef SYS_munmap
+#define SYS_munmap 215
+#endif
+#ifndef MFD_CLOEXEC
+#define MFD_CLOEXEC 0x0001U
+#endif
 
 /* ----------------------------------------------------------------------------
  * W^X region tracking.
@@ -111,108 +123,339 @@ static long raw_syscall6(long n, long a1, long a2, long a3, long a4, long a5,
  * handler cannot flip the page back to RW, so the fault would be forwarded to
  * the guest and crash it.
  *
- * The table is append-only from the JIT's point of view: entries are published
- * with a release store and trimmed/tombstoned on munmap. The SIGSEGV handler
- * only reads it (lock-free).
+ * Regions are kept in a dense array sorted by `start`, so the SIGSEGV handler
+ * can locate a faulting page with a lock-free binary search. Writers mutate the
+ * array under a mutex (mmap/mprotect/munmap are rare); they fully write a new
+ * entry before releasing `g_region_count`, and on growth they publish a fresh
+ * array pointer without freeing the old one (a reader may still scan it).
  * -------------------------------------------------------------------------- */
 
-#define WX_MAX_REGIONS 4096
+#define WX_MAX_REGIONS 16384
+#define WX_INIT_REGIONS 256
 
 typedef struct {
-    uintptr_t start;
-    size_t len; /* 0 == tombstone / free slot */
+    uintptr_t start;    /* RW view (the address the JIT holds); primary sort key */
+    size_t len;         /* >0 for live entries; the array stays dense (no tombstones) */
+    uintptr_t rx_start; /* dual-map RX mirror base; 0 = no mirror (mprotect flip path) */
+    int memfd;          /* dual-map backing memfd; -1 = none */
 } wx_region_t;
 
-static wx_region_t g_regions[WX_MAX_REGIONS];
-static volatile int g_region_count;
+/* The region table is a dynamically grown, sorted, dense array. The SIGSEGV
+ * handler reads it with a lock-free binary search guarded by a seqlock
+ * (g_region_seq): an even value means the table is stable, an odd value means a
+ * writer is mutating it. A reader that observes an odd sequence or a sequence
+ * change falls back to /proc/self/maps, so it never reads a torn table and
+ * never blocks on the writer (it must stay signal-safe and deadlock-free). */
+static wx_region_t *g_regions;
+static int g_region_count;
+static int g_region_capacity;
 static pthread_mutex_t g_region_mutex = PTHREAD_MUTEX_INITIALIZER;
+static unsigned g_region_seq; /* even = stable, odd = writer active */
 static long g_page_size;
 
-/* Assumes g_region_mutex is held. */
-static void track_region_locked(uintptr_t start, size_t len) {
-    int i, n, free_slot = -1;
-    uintptr_t end;
-
-    if (len == 0 || start == 0) return;
-
-    n = __atomic_load_n(&g_region_count, __ATOMIC_ACQUIRE);
-    for (i = 0; i < n; ++i) {
-        if (g_regions[i].len == 0) {
-            if (free_slot < 0) free_slot = i;
-            continue;
+/* Index of the first entry with start >= key (insertion point). */
+static int region_lower_bound(const wx_region_t *arr, int n, uintptr_t key) {
+    int lo = 0, hi = n;
+    while (lo < hi) {
+        int mid = lo + ((hi - lo) >> 1);
+        if (arr[mid].start < key) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
         }
-        if (g_regions[i].start == start) {
-            end = start + len;
-            if (end - g_regions[i].start > g_regions[i].len) {
-                g_regions[i].len = end - g_regions[i].start;
-            }
+    }
+    return lo;
+}
+
+/* Index of the first entry with start > key (so idx-1 is the last start <= key). */
+static int region_upper_bound(const wx_region_t *arr, int n, uintptr_t key) {
+    int lo = 0, hi = n;
+    while (lo < hi) {
+        int mid = lo + ((hi - lo) >> 1);
+        if (arr[mid].start <= key) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    return lo;
+}
+
+/* Grow the table to hold at least `needed` entries. Caller holds the mutex and
+ * has already marked g_region_seq odd. The old buffer is intentionally not
+ * freed: a reader that loaded the old pointer before the swap may still touch it
+ * (the seqlock makes it detect the change only after the fact). Growth doubles
+ * the capacity, so the sum of all retired buffers stays below ~2x the final
+ * capacity. */
+static int ensure_capacity_locked(int needed) {
+    int new_cap;
+    wx_region_t *na;
+
+    if (needed > WX_MAX_REGIONS) return -1;
+    new_cap = g_region_capacity > 0 ? g_region_capacity : WX_INIT_REGIONS;
+    while (new_cap < needed) {
+        new_cap <<= 1;
+        if (new_cap > WX_MAX_REGIONS) new_cap = WX_MAX_REGIONS;
+    }
+
+    na = (wx_region_t *)calloc((size_t)new_cap, sizeof(wx_region_t));
+    if (!na) return -1;
+    if (g_regions && g_region_count > 0) {
+        memcpy(na, g_regions, (size_t)g_region_count * sizeof(wx_region_t));
+    }
+    __atomic_store_n(&g_regions, na, __ATOMIC_RELEASE);
+    g_region_capacity = new_cap;
+    return 0;
+}
+
+/* Close a memfd without going through the PLT (usable from a signal context if
+ * ever needed, though it is only called from the writer path here). */
+static void close_memfd_if_any(int fd) {
+    if (fd >= 0) {
+        raw_syscall6(SYS_close, (long)fd, 0, 0, 0, 0, 0);
+    }
+}
+
+/* Insert/merge [start, start+len) into the sorted table. Caller holds the mutex
+ * and has already marked g_region_seq odd. Overlapping or adjacent regions are
+ * coalesced so the table stays non-overlapping, which is what makes the
+ * lock-free binary search in find_region_info() exact.
+ *
+ * A dual-map entry (rx_start != 0, memfd >= 0) carries its own RX mirror. If a
+ * merge window swallows existing entries, their mirrors cannot be combined into
+ * one coherent mirror, so we drop the mirror on the merged result (it falls back
+ * to the mprotect flip) and close every memfd in the window. */
+static void track_region_locked(uintptr_t start, size_t len, uintptr_t rx_start, int memfd) {
+    uintptr_t end = start + len;
+    int n = __atomic_load_n(&g_region_count, __ATOMIC_RELAXED);
+    int lo, hi, a, b, src, trailing, new_n, k, merged;
+    uintptr_t new_start = start, new_end = end;
+    uintptr_t new_rx = rx_start;
+    int new_memfd = memfd;
+
+    if (len == 0 || start == 0) {
+        close_memfd_if_any(memfd);
+        return;
+    }
+
+    if (n == 0 || g_regions == NULL) {
+        if (ensure_capacity_locked(1) != 0) {
+            LOGW("region table full; dropping tracked region 0x%lx", (unsigned long)start);
+            close_memfd_if_any(memfd);
             return;
         }
+        g_regions[0].start = start;
+        g_regions[0].len = len;
+        g_regions[0].rx_start = rx_start;
+        g_regions[0].memfd = memfd;
+        __atomic_store_n(&g_region_count, 1, __ATOMIC_RELEASE);
+        return;
     }
 
-    if (free_slot >= 0) {
-        g_regions[free_slot].start = start;
-        g_regions[free_slot].len = len;
-    } else if (n < WX_MAX_REGIONS) {
-        g_regions[n].start = start;
-        g_regions[n].len = len;
-        __atomic_store_n(&g_region_count, n + 1, __ATOMIC_RELEASE);
-    } else {
-        LOGW("region table full; dropping tracked region 0x%lx", (unsigned long)start);
+    lo = region_lower_bound(g_regions, n, start);
+    hi = region_lower_bound(g_regions, n, end);
+
+    /* Extend the merge window left if the previous entry touches [start,end). */
+    a = lo;
+    if (lo > 0) {
+        const wx_region_t *prev = &g_regions[lo - 1];
+        if (prev->start + prev->len >= start) a = lo - 1;
     }
+    /* Extend the merge window right if the entry at `end` is adjacent. */
+    b = hi;
+    if (hi < n && g_regions[hi].start == end) b = hi + 1;
+
+    merged = (a < b);
+
+    if (merged) {
+        if (g_regions[a].start < new_start) new_start = g_regions[a].start;
+        if (g_regions[b - 1].start + g_regions[b - 1].len > new_end)
+            new_end = g_regions[b - 1].start + g_regions[b - 1].len;
+
+        /* Drop all mirrors in the merge window plus the one being inserted:
+         * unmap their RX views and close their memfds. The merged region falls
+         * back to the mprotect flip. */
+        for (k = a; k < b; k++) {
+            if (g_regions[k].memfd >= 0) {
+                if (g_regions[k].rx_start != 0) {
+                    raw_syscall6(SYS_munmap, (long)g_regions[k].rx_start,
+                                 (long)g_regions[k].len, 0, 0, 0, 0);
+                }
+                close_memfd_if_any(g_regions[k].memfd);
+            }
+        }
+        if (memfd >= 0) {
+            if (rx_start != 0) {
+                raw_syscall6(SYS_munmap, (long)rx_start, (long)len, 0, 0, 0, 0);
+            }
+            close_memfd_if_any(memfd);
+        }
+        new_rx = 0;
+        new_memfd = -1;
+    }
+
+    new_n = n - (b - a) + 1;
+    if (ensure_capacity_locked(new_n) != 0) {
+        LOGW("region table full; dropping tracked region 0x%lx", (unsigned long)start);
+        close_memfd_if_any(new_memfd);
+        return;
+    }
+
+    /* Move the trailing block out of the way, then write the merged entry. For a
+     * pure insert (a == b) this shifts [a,n) right by one; for a merge (a < b)
+     * it shifts [b,n) left to a+1. memmove copes with either direction. */
+    src = (a < b) ? b : a;
+    trailing = n - src;
+    if (trailing > 0) {
+        memmove(&g_regions[a + 1], &g_regions[src], (size_t)trailing * sizeof(wx_region_t));
+    }
+    g_regions[a].start = new_start;
+    g_regions[a].len = new_end - new_start;
+    g_regions[a].rx_start = new_rx;
+    g_regions[a].memfd = new_memfd;
+    __atomic_store_n(&g_region_count, new_n, __ATOMIC_RELEASE);
 }
 
 static void track_region(uintptr_t start, size_t len) {
+    if (len == 0 || start == 0) return;
     pthread_mutex_lock(&g_region_mutex);
-    track_region_locked(start, len);
+    __atomic_fetch_add(&g_region_seq, 1, __ATOMIC_ACQ_REL);
+    track_region_locked(start, len, 0, -1);
+    __atomic_fetch_add(&g_region_seq, 1, __ATOMIC_ACQ_REL);
     pthread_mutex_unlock(&g_region_mutex);
+}
+
+/* Track a dual-mapped RWX region: `rw_start` is the address returned to the JIT
+ * (the RW view), `rx_start` its RX mirror backed by the same `memfd` pages. */
+static void track_region_dual(uintptr_t rw_start, size_t len, uintptr_t rx_start, int memfd) {
+    if (len == 0 || rw_start == 0 || rx_start == 0 || memfd < 0) {
+        close_memfd_if_any(memfd);
+        return;
+    }
+    pthread_mutex_lock(&g_region_mutex);
+    __atomic_fetch_add(&g_region_seq, 1, __ATOMIC_ACQ_REL);
+    track_region_locked(rw_start, len, rx_start, memfd);
+    __atomic_fetch_add(&g_region_seq, 1, __ATOMIC_ACQ_REL);
+    pthread_mutex_unlock(&g_region_mutex);
+}
+
+/* Remove [start, start+len) from the sorted table. Caller holds the mutex and
+ * has already marked g_region_seq odd. */
+static void untrack_range_locked(uintptr_t start, size_t len) {
+    uintptr_t end = start + len;
+    int n = __atomic_load_n(&g_region_count, __ATOMIC_RELAXED);
+    int lo, hi, a, b, w, trailing, new_n, k;
+    int has_head = 0, has_tail = 0;
+    wx_region_t head, tail;
+
+    if (len == 0 || n == 0 || g_regions == NULL) return;
+
+    lo = region_lower_bound(g_regions, n, start);
+    hi = region_lower_bound(g_regions, n, end);
+
+    a = lo;
+    if (lo > 0) {
+        const wx_region_t *prev = &g_regions[lo - 1];
+        if (prev->start + prev->len > start) a = lo - 1;
+    }
+    b = hi; /* first entry with start >= end; overlaps are indices [a, b) */
+
+    if (a >= b) return; /* no overlap */
+
+    /* A dual-map region cannot be split while keeping a coherent mirror, so any
+     * region we touch loses its mirror (survivors fall back to the mprotect
+     * flip). Unmap the RX mirror and close the memfd exactly once per region. */
+    for (k = a; k < b; k++) {
+        wx_region_t *r = &g_regions[k];
+        if (r->memfd >= 0) {
+            if (r->rx_start != 0) {
+                raw_syscall6(SYS_munmap, (long)r->rx_start, (long)r->len, 0, 0, 0, 0);
+            }
+            close_memfd_if_any(r->memfd);
+        }
+    }
+
+    /* Survivor on the left edge (the entry containing `start`). */
+    {
+        const wx_region_t *first = &g_regions[a];
+        if (first->start < start) {
+            head.start = first->start;
+            head.len = start - first->start;
+            head.rx_start = 0;
+            head.memfd = -1;
+            has_head = 1;
+        }
+    }
+    /* Survivor on the right edge (the entry containing `end`). */
+    {
+        const wx_region_t *last = &g_regions[b - 1];
+        if (last->start + last->len > end) {
+            tail.start = end;
+            tail.len = (last->start + last->len) - end;
+            tail.rx_start = 0;
+            tail.memfd = -1;
+            has_tail = 1;
+        }
+    }
+
+    new_n = n - (b - a) + has_head + has_tail;
+    if (new_n > WX_MAX_REGIONS) {
+        /* Degenerate: table is full and this split would need one more slot.
+         * Drop the tail survivor to stay within the cap; future faults on that
+         * tail simply fall through to the /proc/self/maps path. */
+        has_tail = 0;
+        new_n = n - (b - a) + has_head;
+    }
+    if (ensure_capacity_locked(new_n) != 0) {
+        LOGW("region table allocation failed during untrack");
+        return;
+    }
+
+    w = a;
+    if (has_head) g_regions[w++] = head;
+    if (has_tail) g_regions[w++] = tail;
+    trailing = n - b;
+    if (trailing > 0) {
+        memmove(&g_regions[w], &g_regions[b], (size_t)trailing * sizeof(wx_region_t));
+    }
+    __atomic_store_n(&g_region_count, new_n, __ATOMIC_RELEASE);
 }
 
 static void untrack_range(uintptr_t start, size_t len) {
-    int i, n;
-    uintptr_t end = start + len;
-    uintptr_t rs, re;
-
     if (len == 0) return;
-
     pthread_mutex_lock(&g_region_mutex);
-    n = __atomic_load_n(&g_region_count, __ATOMIC_ACQUIRE);
-    for (i = 0; i < n; ++i) {
-        if (g_regions[i].len == 0) continue;
-        rs = g_regions[i].start;
-        re = rs + g_regions[i].len;
-        if (rs >= end || re <= start) continue; /* no overlap */
-
-        if (start <= rs && end >= re) {
-            /* Unmapping covers the whole region -> tombstone. */
-            g_regions[i].len = 0;
-        } else if (start > rs && end < re) {
-            /* Hole in the middle -> keep head, publish tail. Publish the tail
-             * first so the lock-free reader never briefly loses it. */
-            track_region_locked(end, re - end);
-            g_regions[i].len = start - rs;
-        } else if (start <= rs) {
-            /* Unmap overlaps the head -> trim head. */
-            g_regions[i].start = end;
-            g_regions[i].len = re - end;
-        } else {
-            /* end >= re: unmap overlaps the tail -> trim tail. */
-            g_regions[i].len = start - rs;
-        }
-    }
+    __atomic_fetch_add(&g_region_seq, 1, __ATOMIC_ACQ_REL);
+    untrack_range_locked(start, len);
+    __atomic_fetch_add(&g_region_seq, 1, __ATOMIC_ACQ_REL);
     pthread_mutex_unlock(&g_region_mutex);
 }
 
-static int find_region(uintptr_t page) {
-    int i, n = __atomic_load_n(&g_region_count, __ATOMIC_ACQUIRE);
-    for (i = 0; i < n; ++i) {
-        if (g_regions[i].len == 0) continue;
-        if (page >= g_regions[i].start &&
-            page < g_regions[i].start + g_regions[i].len) {
-            return i;
-        }
+/* Lock-free lookup used by the SIGSEGV handler. See the seqlock comment above.
+ * On success fills *out with a local snapshot of the region entry (so the
+ * handler can read rx_start/memfd without racing the writer) and returns the
+ * entry index; returns -1 on miss or if a writer was active during the read. */
+static int find_region_info(uintptr_t page, wx_region_t *out) {
+    unsigned s0, s1;
+    const wx_region_t *arr;
+    int n, idx;
+
+    s0 = __atomic_load_n(&g_region_seq, __ATOMIC_ACQUIRE);
+    if (s0 & 1u) return -1;
+
+    arr = __atomic_load_n(&g_regions, __ATOMIC_ACQUIRE);
+    n = __atomic_load_n(&g_region_count, __ATOMIC_ACQUIRE);
+    if (!arr || n <= 0) return -1;
+
+    idx = region_upper_bound(arr, n, page) - 1;
+    if (idx < 0 || arr[idx].len == 0 || page >= arr[idx].start + arr[idx].len) {
+        idx = -1;
+    } else if (out) {
+        *out = arr[idx];
     }
-    return -1;
+
+    s1 = __atomic_load_n(&g_region_seq, __ATOMIC_ACQUIRE);
+    if (s1 != s0) return -1;
+    return idx;
 }
 
 /* ----------------------------------------------------------------------------
@@ -686,6 +929,7 @@ static void wx_sigsegv_handler(int sig, siginfo_t *si, void *ctx) {
     uintptr_t fault, pc, page;
     ucontext_t *uc = (ucontext_t *)ctx;
     int exec_fault, prot, region;
+    wx_region_t r;
     long rc;
 
     fault = (uintptr_t)si->si_addr;
@@ -710,7 +954,11 @@ static void wx_sigsegv_handler(int sig, siginfo_t *si, void *ctx) {
      * not writable. Flip the page accordingly and retry the access. */
     exec_fault = (pc >= page && pc < page + (uintptr_t)g_page_size);
 
-    region = find_region(page);
+    r.start = 0;
+    r.len = 0;
+    r.rx_start = 0;
+    r.memfd = -1;
+    region = find_region_info(page, &r);
 
     if (region < 0) {
         /* Fallback: consult /proc/self/maps for executable regions the tracking
@@ -743,6 +991,24 @@ static void wx_sigsegv_handler(int sig, siginfo_t *si, void *ctx) {
             LOGI("SIGSEGV maps fallback vma=[%p,%p) exec=%d fault=%p",
                  (void *)vma_start, (void *)vma_end, vma_exec, (void *)fault);
         }
+
+        /* No mirror known for the maps fallback; treat it as a flip region. */
+        r.start = vma_start;
+        r.len = vma_end - vma_start;
+        r.rx_start = 0;
+        r.memfd = -1;
+    }
+
+    /* Dual-map fast path: an execute fault inside a region that has an RX mirror
+     * is satisfied by redirecting the program counter to the same physical page's
+     * executable view. No mprotect, no TLB shootdown, no syscall. */
+    if (exec_fault && r.rx_start != 0 && pc >= r.start && pc < r.start + r.len) {
+        uintptr_t new_pc = r.rx_start + (pc - r.start);
+        if (log_budget(&g_log_fault_detail, 20)) {
+            LOGI("SIGSEGV dual-map exec redirect pc=%p -> %p", (void *)pc, (void *)new_pc);
+        }
+        uc->uc_mcontext.pc = new_pc;
+        return; /* retry the faulting instruction from the RX mirror */
     }
 
     prot = exec_fault ? (PROT_READ | PROT_EXEC) : (PROT_READ | PROT_WRITE);
@@ -912,6 +1178,68 @@ static const char *redirect_path(const char *path) {
  * Interceptors.
  * -------------------------------------------------------------------------- */
 
+/* Can this RWX mmap request be satisfied with a memfd dual-map? We only take
+ * that path for anonymous, non-fixed mappings without a file backing, because
+ * those are exactly the mappings a JIT allocates for code. Anything else (fixed
+ * addresses, MAP_SHARED file mappings, fd-backed mappings) keeps the original
+ * downgrade-to-RW + mprotect-flip behavior. */
+static int can_dual_map(void *addr, int flags, int fd) {
+    if (addr != NULL) return 0;
+    if (fd != -1) return 0;
+    if (flags & MAP_FIXED) return 0;
+#ifdef MAP_FIXED_NOREPLACE
+    if (flags & MAP_FIXED_NOREPLACE) return 0;
+#endif
+#ifdef MAP_ANONYMOUS
+    if (!(flags & MAP_ANONYMOUS)) return 0;
+#endif
+    return 1;
+}
+
+/* Allocate a dual-mapped RWX region backed by an anonymous memfd:
+ *   - create + ftruncate the memfd to `len`
+ *   - map it once RW (the address returned to the JIT) and once RX (the mirror)
+ * On any failure, unwind cleanly and return MAP_FAILED so the caller falls back
+ * to the downgrade-to-RW path. */
+static void *mmap_rwx_dual(size_t len) {
+    long memfd;
+    void *rw, *rx;
+    size_t file_len;
+
+    memfd = raw_syscall6(SYS_memfd_create, (long)"wn-wx-jit", (long)MFD_CLOEXEC, 0, 0, 0, 0);
+    if (memfd < 0) return MAP_FAILED;
+
+    /* The kernel rounds mmap length up to a page, so the backing file must be at
+     * least that large or the tail page would fault with SIGBUS on access. */
+    file_len = (len + (size_t)g_page_size - 1) & ~((size_t)g_page_size - 1);
+    if (raw_syscall6(SYS_ftruncate, memfd, (long)file_len, 0, 0, 0, 0) != 0) {
+        close_memfd_if_any((int)memfd);
+        return MAP_FAILED;
+    }
+
+    if (!real_mmap) resolve_all();
+    if (!real_mmap) {
+        close_memfd_if_any((int)memfd);
+        return MAP_FAILED;
+    }
+
+    rw = real_mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, (int)memfd, 0);
+    if (rw == MAP_FAILED) {
+        close_memfd_if_any((int)memfd);
+        return MAP_FAILED;
+    }
+
+    rx = real_mmap(NULL, len, PROT_READ | PROT_EXEC, MAP_SHARED, (int)memfd, 0);
+    if (rx == MAP_FAILED) {
+        raw_syscall6(SYS_munmap, (long)rw, (long)len, 0, 0, 0, 0);
+        close_memfd_if_any((int)memfd);
+        return MAP_FAILED;
+    }
+
+    track_region_dual((uintptr_t)rw, len, (uintptr_t)rx, (int)memfd);
+    return rw;
+}
+
 int mprotect(void *addr, size_t len, int prot) {
     if (!real_mprotect) resolve_all();
     if (!real_mprotect) {
@@ -953,6 +1281,17 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset) {
 
     if (prot & PROT_EXEC) {
         if (prot & PROT_WRITE) {
+            /* RWX: prefer a memfd dual-map (RW view returned to the JIT, RX
+             * mirror for execution); fall back to downgrade-to-RW otherwise. */
+            if (can_dual_map(addr, flags, fd)) {
+                void *p = mmap_rwx_dual(len);
+                if (p != MAP_FAILED) {
+                    if (log_budget(&g_log_mmap_rwx, 16)) {
+                        LOGI("mmap RWX->dual addr=%p len=%zu", p, len);
+                    }
+                    return p;
+                }
+            }
             int rw = (prot & ~PROT_EXEC) | PROT_READ;
             void *p = real_mmap(addr, len, rw, flags, fd, offset);
             if (p != MAP_FAILED) {
@@ -984,6 +1323,17 @@ void *mmap64(void *addr, size_t len, int prot, int flags, int fd, off_t offset) 
 
     if (prot & PROT_EXEC) {
         if (prot & PROT_WRITE) {
+            /* RWX: prefer a memfd dual-map (RW view returned to the JIT, RX
+             * mirror for execution); fall back to downgrade-to-RW otherwise. */
+            if (can_dual_map(addr, flags, fd)) {
+                void *p = mmap_rwx_dual(len);
+                if (p != MAP_FAILED) {
+                    if (log_budget(&g_log_mmap_rwx, 16)) {
+                        LOGI("mmap64 RWX->dual addr=%p len=%zu", p, len);
+                    }
+                    return p;
+                }
+            }
             int rw = (prot & ~PROT_EXEC) | PROT_READ;
             void *p = real_mmap64(addr, len, rw, flags, fd, offset);
             if (p != MAP_FAILED) {

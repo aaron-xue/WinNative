@@ -1,6 +1,7 @@
 package com.winlator.cmod.runtime.display.environment.components;
 
 import android.content.Context;
+import android.os.Build;
 import android.util.Log;
 import com.winlator.cmod.runtime.display.connector.UnixSocketConfig;
 import com.winlator.cmod.runtime.display.environment.EnvironmentComponent;
@@ -10,10 +11,14 @@ import com.winlator.cmod.shared.io.FileUtils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * PulseAudio server management.
@@ -250,9 +255,85 @@ public class PulseAudioComponent extends EnvironmentComponent {
     }
   }
 
+  private static final String[] PULSE_LIBRARIES = {
+    "libpulse.so",
+    "libpulseaudio.so",
+    "libpulsecommon-13.0.so",
+    "libpulsecore-13.0.so",
+    "libsndfile.so",
+    "libltdl.so",
+    "libffi.so",
+    "libwayland-server.so"
+  };
+
+  /**
+   * Ensures the PulseAudio shared libraries exist as real files on disk and returns the directory
+   * holding them.
+   *
+   * <p>The daemon ({@code libpulseaudio.so}) is exec'd as a separate process and dlopens its
+   * dependencies by path, so it cannot load them straight out of the APK. With
+   * {@code extractNativeLibs=false} they are no longer decompressed into {@code
+   * nativeLibraryDir}; this copies them from {@code nativeLibraryDir} when still present, or
+   * extracts the {@code lib/<abi>/} entries from the APK into {@code files/pulseaudio/libs}
+   * otherwise.
+   */
+  private File ensurePulseLibraries() {
+    Context context = environment.getContext();
+    File workingDir = new File(context.getFilesDir(), "/pulseaudio");
+    File libsDir = new File(workingDir, "libs");
+    if (!libsDir.isDirectory() && !libsDir.mkdirs()) {
+      return new File(context.getApplicationInfo().nativeLibraryDir);
+    }
+
+    String nativeLibDir = context.getApplicationInfo().nativeLibraryDir;
+    long apkInstalledAt = new File(context.getApplicationInfo().sourceDir).lastModified();
+    String abi = Build.SUPPORTED_ABIS[0];
+
+    try (ZipFile apk = new ZipFile(context.getApplicationInfo().sourceDir)) {
+      for (String libraryName : PULSE_LIBRARIES) {
+        File destFile = new File(libsDir, libraryName);
+        File sourceFile = new File(nativeLibDir, libraryName);
+
+        if (sourceFile.exists()) {
+          if (!destFile.exists() || destFile.length() != sourceFile.length()) {
+            FileUtils.copy(sourceFile, destFile);
+            destFile.setExecutable(true, false);
+          }
+          continue;
+        }
+
+        if (destFile.exists()
+            && destFile.length() > 0
+            && destFile.lastModified() >= apkInstalledAt) {
+          continue;
+        }
+
+        String entryName = "lib/" + abi + "/" + libraryName;
+        ZipEntry entry = apk.getEntry(entryName);
+        if (entry == null) {
+          continue;
+        }
+
+        try (InputStream is = apk.getInputStream(entry);
+            FileOutputStream fos = new FileOutputStream(destFile)) {
+          byte[] buf = new byte[8192];
+          int len;
+          while ((len = is.read(buf)) != -1) {
+            fos.write(buf, 0, len);
+          }
+        }
+        destFile.setExecutable(true, false);
+      }
+    } catch (IOException e) {
+      return new File(context.getApplicationInfo().nativeLibraryDir);
+    }
+
+    return libsDir;
+  }
+
   private void startPulseAudio() {
     Context context = environment.getContext();
-    String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
+    File pulseLibDir = ensurePulseLibraries();
 
     File workingDir = new File(context.getFilesDir(), "/pulseaudio");
     if (!workingDir.isDirectory()) {
@@ -282,11 +363,11 @@ public class PulseAudioComponent extends EnvironmentComponent {
     File modulesDir = new File(workingDir, "modules");
 
     ArrayList<String> envVars = new ArrayList<>();
-    envVars.add("LD_LIBRARY_PATH=/system/lib64:" + nativeLibraryDir + ":" + modulesDir);
+    envVars.add("LD_LIBRARY_PATH=/system/lib64:" + pulseLibDir.getAbsolutePath() + ":" + modulesDir);
     envVars.add("HOME=" + workingDir);
     envVars.add("TMPDIR=" + environment.getTmpDir());
 
-    String command = nativeLibraryDir + "/libpulseaudio.so";
+    String command = pulseLibDir.getAbsolutePath() + "/libpulseaudio.so";
     command += " --system=false";
     command += " --disable-shm=true";
     command += " --fail=false";
@@ -300,7 +381,7 @@ public class PulseAudioComponent extends EnvironmentComponent {
 
   private String execPactlCommand(String command) {
     Context context = environment.getContext();
-    String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
+    File pulseLibDir = ensurePulseLibraries();
     File workingDir = new File(context.getFilesDir(), "/pulseaudio");
     if (!workingDir.isDirectory()) return "";
 
@@ -316,7 +397,7 @@ public class PulseAudioComponent extends EnvironmentComponent {
     try {
       String[] envp =
           new String[] {
-            "LD_LIBRARY_PATH=/system/lib64:" + nativeLibraryDir + ":" + modulesDir,
+            "LD_LIBRARY_PATH=/system/lib64:" + pulseLibDir.getAbsolutePath() + ":" + modulesDir,
             "HOME=" + workingDir,
             "PULSE_SERVER=" + socketConfig.path,
             "TMPDIR=" + environment.getTmpDir()

@@ -4,8 +4,20 @@ project(Winlator)
 
 include(FetchContent)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wno-unused-function -Wimplicit-function-declaration")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+# Warning hygiene that must stay on regardless of build type.
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-function -Wimplicit-function-declaration")
+
+# Optimization is build-type specific. Release favours speed + size via -O3,
+# ThinLTO and function/data section garbage collection; Debug keeps full symbols
+# and disables optimization so the native stack stays debuggable.
+set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}   -O3 -ffunction-sections -fdata-sections -flto=thin")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ffunction-sections -fdata-sections -flto=thin")
+set(CMAKE_C_FLAGS_DEBUG     "${CMAKE_C_FLAGS_DEBUG}     -O0 -g")
+set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG}   -O0 -g")
+
+# Linker-side ThinLTO + section GC only for Release. CMAKE_SHARED_LINKER_FLAGS is
+# supplied by AGP (16 KB page alignment) and is left untouched.
+set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -flto=thin -Wl,--gc-sections")
 
 # Zstandard is used by winlator/native_content_io.cpp. Keep this dependency in
 # the parent build instead of relying on the Steam client subproject to create it.

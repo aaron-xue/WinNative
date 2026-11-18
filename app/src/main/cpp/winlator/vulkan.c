@@ -54,8 +54,8 @@ static void destroy_probe_instance(void) {
   }
 }
 
-static char *get_native_library_dir(JNIEnv *env, jobject context) {
-  char *native_libdir = NULL;
+static char *get_adrenotools_hooks_dir(JNIEnv *env, jobject context) {
+  char *hooks_dir = NULL;
 
   if (context == NULL)
     return NULL;
@@ -67,30 +67,35 @@ static char *get_native_library_dir(JNIEnv *env, jobject context) {
     return NULL;
   }
 
-  jmethodID getNativeLibraryDir = (*env)->GetStaticMethodID(
-      env, class_, "getNativeLibDir",
+  /* With extractNativeLibs=false the adrenotools hook libraries (libhook_impl,
+   * libmain_hook, libfile_redirect_hook, libgsl_alloc_hook) are no longer
+   * decompressed into nativeLibraryDir, so hookLibDir must point at a writable
+   * directory where AppUtils.ensureAdrenotoolsHooks() extracted them from the
+   * APK at runtime. */
+  jmethodID getHooksDir = (*env)->GetStaticMethodID(
+      env, class_, "ensureAdrenotoolsHooks",
       "(Landroid/content/Context;)Ljava/lang/String;");
-  if (getNativeLibraryDir == NULL) {
+  if (getHooksDir == NULL) {
     (*env)->ExceptionClear(env);
     return NULL;
   }
 
-  jstring nativeLibDir = (jstring)(*env)->CallStaticObjectMethod(
-      env, class_, getNativeLibraryDir, context);
+  jstring hooksDir = (jstring)(*env)->CallStaticObjectMethod(
+      env, class_, getHooksDir, context);
   if ((*env)->ExceptionCheck(env)) {
     (*env)->ExceptionClear(env);
     return NULL;
   }
 
-  if (nativeLibDir) {
-    const char *utf = (*env)->GetStringUTFChars(env, nativeLibDir, NULL);
+  if (hooksDir) {
+    const char *utf = (*env)->GetStringUTFChars(env, hooksDir, NULL);
     if (utf) {
-      native_libdir = strdup(utf);
-      (*env)->ReleaseStringUTFChars(env, nativeLibDir, utf);
+      hooks_dir = strdup(utf);
+      (*env)->ReleaseStringUTFChars(env, hooksDir, utf);
     }
   }
 
-  return native_libdir;
+  return hooks_dir;
 }
 
 static char *get_driver_path(JNIEnv *env, jobject context,
@@ -254,20 +259,20 @@ void *winlator_open_vulkan(JNIEnv *env, jobject context, const char *driver_name
   }
 
   char *library_name = get_library_name(env, context, driver_name);
-  char *native_library_dir = get_native_library_dir(env, context);
+  char *hooks_dir = get_adrenotools_hooks_dir(env, context);
   char *tmpdir = NULL;
   void *handle = NULL;
-  if (library_name && native_library_dir) {
+  if (library_name && hooks_dir) {
     asprintf(&tmpdir, "%s%s", driver_path, "temp");
     mkdir(tmpdir, S_IRWXU | S_IRWXG);
     handle = adrenotools_open_libvulkan(
         RTLD_LOCAL | RTLD_NOW,
         ADRENOTOOLS_DRIVER_CUSTOM, tmpdir,
-        native_library_dir, driver_path, library_name, NULL,
+        hooks_dir, driver_path, library_name, NULL,
         NULL);
   }
   free(tmpdir);
-  free(native_library_dir);
+  free(hooks_dir);
   free(library_name);
   free(driver_path);
   if (!handle) return winlator_open_system_vulkan();

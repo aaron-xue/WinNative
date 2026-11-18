@@ -263,6 +263,7 @@ android {
         }
         release {
             minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
                           'proguard-rules.pro'
             signingConfig signingConfigs.release
@@ -315,10 +316,17 @@ android {
             excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
         }
         jniLibs {
-            // PulseAudio runs libpulseaudio.so directly from nativeLibraryDir and loads
-            // libpulse*/libltdl/libsndfile as its dependencies, so these must be packaged
-            // and extracted to disk (useLegacyPackaging) rather than excluded.
-            useLegacyPackaging = true
+            // Disable legacy packaging so the bulk of the native stack (libwinlator,
+            // the love engine, redirect shims, ...) is mmap'd straight out of the APK
+            // (extractNativeLibs=false) instead of being decompressed to nativeLibraryDir.
+            // This shrinks the on-disk footprint and speeds up cold start.
+            //
+            // The PulseAudio stack is the one exception: libpulseaudio.so is exec'd as a
+            // daemon and dlopens its dependencies by path, so it must exist as real files.
+            // PulseAudioComponent extracts those from the APK lib/ entries into a writable
+            // dir at runtime instead of relying on nativeLibraryDir (see
+            // PulseAudioComponent#ensurePulseLibraries).
+            useLegacyPackaging = false
         }
     }
 

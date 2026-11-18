@@ -31,13 +31,20 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.google.android.material.tabs.TabLayout;
 import com.winlator.cmod.R;
+import com.winlator.cmod.shared.io.FileUtils;
 import com.winlator.cmod.shared.util.Callback;
 import com.winlator.cmod.shared.util.StringUtils;
 import com.winlator.cmod.shared.util.UnitUtils;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public abstract class AppUtils {
   public static void keepScreenOn(Activity activity) {
@@ -372,6 +379,73 @@ public abstract class AppUtils {
 
   public static String getNativeLibDir(Context context) {
     return context.getApplicationInfo().nativeLibraryDir;
+  }
+
+  private static final String[] ADRENOTOOLS_HOOK_LIBRARIES = {
+    "libhook_impl.so",
+    "libmain_hook.so",
+    "libfile_redirect_hook.so",
+    "libgsl_alloc_hook.so"
+  };
+
+  /**
+   * Returns a writable directory holding the four adrenotools hook libraries.
+   *
+   * <p>With {@code extractNativeLibs=false} the hook libraries are never decompressed into
+   * {@code nativeLibraryDir}, so {@code adrenotools_open_libvulkan} (native) cannot find them
+   * there. This extracts the {@code lib/<abi>/} entries from the APK into {@code
+   * files/adrenotools-hooks} on demand and returns that directory's absolute path.
+   */
+  public static String ensureAdrenotoolsHooks(Context context) {
+    File hooksDir = new File(context.getFilesDir(), "adrenotools-hooks");
+    if (!hooksDir.isDirectory() && !hooksDir.mkdirs()) {
+      return context.getApplicationInfo().nativeLibraryDir;
+    }
+
+    String nativeLibDir = context.getApplicationInfo().nativeLibraryDir;
+    long apkInstalledAt = new File(context.getApplicationInfo().sourceDir).lastModified();
+    String abi = Build.SUPPORTED_ABIS[0];
+
+    try (ZipFile apk = new ZipFile(context.getApplicationInfo().sourceDir)) {
+      for (String libraryName : ADRENOTOOLS_HOOK_LIBRARIES) {
+        File destFile = new File(hooksDir, libraryName);
+        File sourceFile = new File(nativeLibDir, libraryName);
+
+        if (sourceFile.exists()) {
+          if (!destFile.exists() || destFile.length() != sourceFile.length()) {
+            FileUtils.copy(sourceFile, destFile);
+            destFile.setExecutable(true, false);
+          }
+          continue;
+        }
+
+        if (destFile.exists()
+            && destFile.length() > 0
+            && destFile.lastModified() >= apkInstalledAt) {
+          continue;
+        }
+
+        String entryName = "lib/" + abi + "/" + libraryName;
+        ZipEntry entry = apk.getEntry(entryName);
+        if (entry == null) {
+          continue;
+        }
+
+        try (InputStream is = apk.getInputStream(entry);
+            FileOutputStream fos = new FileOutputStream(destFile)) {
+          byte[] buf = new byte[8192];
+          int len;
+          while ((len = is.read(buf)) != -1) {
+            fos.write(buf, 0, len);
+          }
+        }
+        destFile.setExecutable(true, false);
+      }
+    } catch (IOException e) {
+      return context.getApplicationInfo().nativeLibraryDir;
+    }
+
+    return hooksDir.getAbsolutePath();
   }
 
   public static void runDelayed(Runnable callback, long delay) {
