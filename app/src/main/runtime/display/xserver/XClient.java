@@ -51,8 +51,9 @@ public class XClient implements XResourceManager.OnResourceLifecycleListener {
   public void sendEvent(Event event) {
     try {
       event.send(sequenceNumber, outputStream);
-    } catch (IOException e) {
-      e.printStackTrace();
+    } catch (IOException ignored) {
+      // Peer already disconnected (expected during teardown); the connection
+      // is cleaned up independently on the read path (EOF on read).
     }
   }
 

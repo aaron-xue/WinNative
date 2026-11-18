@@ -1,11 +1,7 @@
 package com.winlator.cmod.sharedmemory;
 
-import android.os.SharedMemory;
-import android.system.ErrnoException;
 import android.util.SparseArray;
 import com.winlator.cmod.runtime.display.connector.XConnectorEpoll;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 
 public class SysVSharedMemory {
@@ -92,19 +88,12 @@ public class SysVSharedMemory {
   }
 
   private static int createSharedMemory(String name, int size) {
-    try {
-      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
-        SharedMemory sharedMemory = SharedMemory.create(name, size);
-        try {
-          Method method = sharedMemory.getClass().getMethod("getFd");
-          Object ret = method.invoke(sharedMemory);
-          if (ret != null) return (int) ret;
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-        }
-      }
-    } catch (ErrnoException e) {
-    }
-    return -1;
+    // Use the native memfd_create() path instead of android.os.SharedMemory.
+    // SharedMemory owns its backing fd through a ParcelFileDescriptor
+    // (unique_fd), so returning the raw fd and later closing it with a plain
+    // close() trips fdsan on targetSdk 36. memfd_create() returns an unowned
+    // fd, which is safe to close directly.
+    return createMemoryFd(name, size);
   }
 
   public static native int createMemoryFd(String name, int size);

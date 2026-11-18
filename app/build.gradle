@@ -180,12 +180,6 @@ def appPullRequest = providers.gradleProperty("PR_NUMBER")
         .map { it.trim().replaceAll("[^0-9]", "") }
         .getOrElse("")
 
-def playUnreachableVersionCodeBase = 2100000000
-def brandedVersionCode = playUnreachableVersionCodeBase + appVersionCode
-if (brandedVersionCode < playUnreachableVersionCodeBase || brandedVersionCode > 2147483647) {
-    throw new GradleException("VERSION_CODE ${appVersionCode} pushes the branded versionCode past the 32-bit limit")
-}
-
 def coldClientVersionFile = rootProject.file("tools/gbe_fork.version")
 def coldClientVersion = coldClientVersionFile.exists() ? coldClientVersionFile.text.trim() : "unknown"
 
@@ -279,28 +273,10 @@ android {
 
     productFlavors {
         standard {
+            isDefault true
             dimension "branding"
             applicationId "com.winnative.cmod"
             buildConfigField "String", "BRANDING_FLAVOR", "\"standard\""
-        }
-        ludashi {
-            dimension "branding"
-            applicationId "com.ludashi.benchmark"
-            versionCode brandedVersionCode
-            buildConfigField "String", "BRANDING_FLAVOR", "\"ludashi\""
-        }
-        pubg {
-            isDefault true
-            dimension "branding"
-            applicationId "com.tencent.ig"
-            versionCode brandedVersionCode
-            buildConfigField "String", "BRANDING_FLAVOR", "\"pubg\""
-        }
-        antutu {
-            dimension "branding"
-            applicationId "com.antutu.ABenchMark"
-            versionCode brandedVersionCode
-            buildConfigField "String", "BRANDING_FLAVOR", "\"antutu\""
         }
 
         legacy {
