@@ -31,14 +31,11 @@ alongside them.
 Grab the latest APK from [Releases](https://github.com/WinNative-Emu/WinNative/releases), launch
 the app, allow the ImageFS to install, then add games manually or sync your library.
 
-All four variants are the same app with a different package name:
+The app ships under a single standard package name:
 
 | Variant | What it's for |
 | --- | --- |
 | `Vanilla` | Standard package name, for side-loading with other forks |
-| `Ludashi` | Forces max GPU **and** CPU clocks on some devices (performance-mode trigger) |
-| `Antutu` | Forces max GPU clocks on most devices (benchmark spoof) |
-| `Pubg` | PUBG package name, which unlocks some Game Booster advanced features |
 
 ---
 

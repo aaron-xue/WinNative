@@ -42,23 +42,18 @@ rustup target add aarch64-linux-android
 ./gradlew assembleStandardLegacyDebug
 ```
 
-On Windows use `.\gradlew.bat`. Substitute the flavor name for a branded build, for example
-`./gradlew assemblePubgLegacyDebug`.
+On Windows use `.\gradlew.bat`.
 
 ## Flavors
 
 Flavors come in two dimensions, so every variant is a `<branding><androidApi>` pair.
 
-The **branding** dimension chooses the application id. All four build the same app and differ only
-in application id, which is what lets a device's game booster or benchmark detection treat
-WinNative as a known title, and what lets several forks sit side by side.
+The **branding** dimension chooses the application id. The project builds a single standard
+package, which is what lets several forks sit side by side.
 
 | Flavor | Application id | Why |
 | --- | --- | --- |
 | `standard` | `com.winnative.cmod` | Standard package name for side-loading alongside other forks |
-| `ludashi` | `com.ludashi.benchmark` | Forces both max GPU and CPU clocks on some devices (performance-mode trigger) |
-| `antutu` | `com.antutu.ABenchMark` | Forces max GPU clocks on most devices (AnTuTu benchmark spoof) |
-| `pubg` | `com.tencent.ig` | PUBG package name, which unlocks some game-booster advanced features |
 
 The **androidApi** dimension chooses the Android 16 (W^X) strategy:
 
@@ -72,8 +67,8 @@ The **androidApi** dimension chooses the Android 16 (W^X) strategy:
 
 Gradle tasks follow the usual `assemble<Branding><AndroidApi><BuildType>` pattern, and output
 lands in `app/build/outputs/apk/<branding><androidApi>/<buildType>/`. The default (`legacy`)
-variant is what the CI release pipeline builds, e.g. `assemblePubgLegacyDebug` produces
-`app/build/outputs/apk/pubgLegacy/debug/pubgLegacy.apk`.
+variant is what the CI release pipeline builds, e.g. `assembleStandardLegacyDebug` produces
+`app/build/outputs/apk/standardLegacy/debug/standardLegacy.apk`.
 
 ## Retro console cores
 

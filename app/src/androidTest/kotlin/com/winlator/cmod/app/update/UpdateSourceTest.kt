@@ -65,12 +65,9 @@ class UpdateSourceTest {
         assertTrue(release.apkName, release.apkName.endsWith(".apk"))
         assertTrue(release.apkUrl, release.apkUrl.startsWith("https://"))
         assertTrue(release.apkSize > 0)
-        // Every flavour that CI publishes is reachable, each getting its own file.
+        // The single branding flavour CI publishes.
         val names = listOf(
             "WinNative-Debug-Standard-PR.769-59423.apk",
-            "WinNative-Debug-Ludashi-PR.769-59423.apk",
-            "WinNative-Debug-Pubg-PR.769-59423.apk",
-            "WinNative-Debug-Antutu-PR.769-59423.apk",
         )
         for (wanted in UpdateRelease.KNOWN_VARIANTS) {
             val picked = UpdateRelease.matchApkAsset(names, wanted)

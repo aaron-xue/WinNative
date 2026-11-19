@@ -30,18 +30,6 @@ jobs:
             artifactName: apk-standard
             gradleTask: assembleStandardLegacyDebug
             apkPath: app/build/outputs/apk/standardLegacy/debug/standardLegacy.apk
-          - name: Ludashi
-            artifactName: apk-ludashi
-            gradleTask: assembleLudashiLegacyDebug
-            apkPath: app/build/outputs/apk/ludashiLegacy/debug/ludashiLegacy.apk
-          - name: Pubg
-            artifactName: apk-pubg
-            gradleTask: assemblePubgLegacyDebug
-            apkPath: app/build/outputs/apk/pubgLegacy/debug/pubgLegacy.apk
-          - name: Antutu
-            artifactName: apk-antutu
-            gradleTask: assembleAntutuLegacyDebug
-            apkPath: app/build/outputs/apk/antutuLegacy/debug/antutuLegacy.apk
 
     steps:
     - name: Clone repository

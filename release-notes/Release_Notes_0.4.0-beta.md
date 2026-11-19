@@ -64,7 +64,7 @@
  - Fixed graphics driver selection on Polish and Hindi locales, where stale translated arrays silently saved the wrong driver and the wrapper was never extracted at launch.
  - Removed the hairline of surface left on screen by the closed drawer sheet.
  - Fixed custom mapping drive containers.
- - App source files have been reorganized for readability, and the Antutu flavor has been added and fixed.
+ - App source files have been reorganized for readability.
  - Build plumbing: LibretroDroid moved out of the main repo and is fetched during configuration, so a fresh clone resolves in the IDE without a manual build.
 
 ### Contributors
