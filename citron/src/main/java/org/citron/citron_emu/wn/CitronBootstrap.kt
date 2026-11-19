@@ -140,19 +140,26 @@ object CitronBootstrap {
             NativeInput.reloadInputDevices()
             Log.i(TAG, "reloadInputDevices done")
         }.onFailure { Log.w(TAG, "reloadInputDevices failed (expected before GPU init)", it) }
-        // 6. GPU driver. Pass the native library dir so adrenotools can find its
-        //    hook .so files. A custom (Turnip) driver is selected in the host
+        // 6. GPU driver. Pass the directory that actually holds the adrenotools hook
+        //    .so files as hookLibDir — the extracted bundle jniLibs dir, NOT
+        //    nativeLibraryDir. The 12 Citron .so are System.load()ed from
+        //    <filesDir>/retro/bundle/data/citron/jniLibs, so they are absent from
+        //    nativeLibraryDir; hook_android_dlopen_ext reloads "libhook_impl.so" by
+        //    soname inside a driver namespace whose search path is hookLibDir, and a
+        //    miss there fails silently, leaving the system vulkan.canoe.so unloaded
+        //    (0 physical devices). A custom (Turnip) driver is selected in the host
         //    settings UI and stored as resolved paths in the "CITRON" prefs; nulls
         //    => use the system Vulkan driver.
-        val nativeLibDir = appCtx.applicationInfo.nativeLibraryDir
+        val hookLibDir = findNativeLibDir(appCtx)?.absolutePath
+            ?: appCtx.applicationInfo.nativeLibraryDir
         val driverPrefs = appCtx.getSharedPreferences("CITRON", Context.MODE_PRIVATE)
         val driverDir = driverPrefs.getString("wn.switch.driverDir", "") ?: ""
         val driverName = driverPrefs.getString("wn.switch.driverName", "") ?: ""
         val driverRedirect = driverPrefs.getString("wn.switch.driverRedirect", "") ?: ""
         if (driverDir.isNotEmpty() && driverName.isNotEmpty()) {
-            NativeLibrary.initializeGpuDriver(nativeLibDir, driverDir, driverName, driverRedirect)
+            NativeLibrary.initializeGpuDriver(hookLibDir, driverDir, driverName, driverRedirect)
         } else {
-            NativeLibrary.initializeGpuDriver(nativeLibDir, null, null, null)
+            NativeLibrary.initializeGpuDriver(hookLibDir, null, null, null)
         }
     }
 
