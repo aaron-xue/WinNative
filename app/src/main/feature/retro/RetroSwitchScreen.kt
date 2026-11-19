@@ -218,7 +218,10 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
                     val citronPrefs = remember { context.getSharedPreferences("CITRON", android.content.Context.MODE_PRIVATE) }
                     val driverIds = remember(switchDrivers) { listOf("") + switchDrivers.map { it.id } }
                     val driverLabels = listOf(stringResource(R.string.retro_gpu_driver_system)) + switchDrivers.map { it.name }
-                    val curDriver = citronPrefs.getString("wn.switch.driver", "") ?: ""
+                    // Mirror the region/language pickers: keep the choice in Compose state
+                    // so it echoes immediately; refresh++ + pref re-read didn't recompose
+                    // this LazyColumn item until the screen was re-entered.
+                    var curDriver by remember { mutableStateOf(citronPrefs.getString("wn.switch.driver", "") ?: "") }
                     RetroSettingDropdown(
                         stringResource(R.string.retro_gpu_driver),
                         driverLabels,
@@ -242,7 +245,7 @@ internal fun RetroSwitchScreen(onBack: () -> Unit) {
                                     .apply()
                             }
                         }
-                        refresh++
+                        curDriver = id
                     }
                     if (switchDrivers.isEmpty()) {
                         Text(
