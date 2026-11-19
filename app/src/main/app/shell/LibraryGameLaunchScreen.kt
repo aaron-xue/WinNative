@@ -145,7 +145,6 @@ internal data class LaunchStoreOption(
 @Composable
 internal fun LibraryGameLaunchScreen(
     appName: String,
-    isBuiltin: Boolean = false,
     subtitle: String,
     sourceLabel: String,
     heroImageUrl: Any?,
@@ -361,7 +360,7 @@ internal fun LibraryGameLaunchScreen(
             }
             SourceTag(
                 sourceLabel = sourceLabel,
-                clickable = !isBuiltin,
+                clickable = true,
                 storeOptions = storeOptions,
                 selectedStoreId = selectedStoreId,
                 onSelectStore = onSelectStore,
@@ -489,61 +488,59 @@ internal fun LibraryGameLaunchScreen(
                         onClick = onPlay,
                     )
 
-                    if (!isBuiltin) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(actionIconSpacing),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(actionIconSpacing),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LaunchIconActionButton(
+                            icon = Icons.Outlined.Settings,
+                            contentDescription = stringResource(R.string.common_ui_settings),
+                            size = actionIconSize,
+                            onClick = onSettings,
+                        )
+                        if (saveTransferVisible) {
                             LaunchIconActionButton(
-                                icon = Icons.Outlined.Settings,
-                                contentDescription = stringResource(R.string.common_ui_settings),
+                                icon = Icons.Outlined.SaveAlt,
+                                contentDescription = stringResource(R.string.retro_save_transfer_title),
                                 size = actionIconSize,
-                                onClick = onSettings,
+                                onClick = { onSaveTransfer?.invoke() },
                             )
-                            if (saveTransferVisible) {
-                                LaunchIconActionButton(
-                                    icon = Icons.Outlined.SaveAlt,
-                                    contentDescription = stringResource(R.string.retro_save_transfer_title),
-                                    size = actionIconSize,
-                                    onClick = { onSaveTransfer?.invoke() },
-                                )
-                            }
+                        }
+                        LaunchIconActionButton(
+                            icon = Icons.Outlined.CloudSync,
+                            contentDescription = stringResource(R.string.cloud_saves_title),
+                            size = actionIconSize,
+                            onClick = onCloudSaves,
+                        )
+                        if (bootVisible) {
                             LaunchIconActionButton(
-                                icon = Icons.Outlined.CloudSync,
-                                contentDescription = stringResource(R.string.cloud_saves_title),
+                                icon = Icons.Outlined.DesktopWindows,
+                                contentDescription = stringResource(R.string.hero_boot_to_desktop_title),
                                 size = actionIconSize,
-                                onClick = onCloudSaves,
+                                onClick = onBootToDesktop,
                             )
-                            if (bootVisible) {
-                                LaunchIconActionButton(
-                                    icon = Icons.Outlined.DesktopWindows,
-                                    contentDescription = stringResource(R.string.hero_boot_to_desktop_title),
-                                    size = actionIconSize,
-                                    onClick = onBootToDesktop,
-                                )
-                            }
-                            Box {
-                                LaunchIconActionButton(
-                                    icon = Icons.Outlined.Delete,
-                                    contentDescription =
-                                        stringResource(
-                                            if (removalKeepsFiles) R.string.common_ui_remove else R.string.common_ui_uninstall,
-                                        ),
-                                    size = actionIconSize,
-                                    onClick = { uninstallMenuOpen = true },
-                                    tint = LaunchDanger,
-                                )
-                                LaunchUninstallMenu(
-                                    expanded = uninstallMenuOpen,
-                                    appName = appName,
-                                    removalKeepsFiles = removalKeepsFiles,
-                                    onDismissRequest = { uninstallMenuOpen = false },
-                                    onConfirm = {
-                                        uninstallMenuOpen = false
-                                        onUninstall()
-                                    },
-                                )
-                            }
+                        }
+                        Box {
+                            LaunchIconActionButton(
+                                icon = Icons.Outlined.Delete,
+                                contentDescription =
+                                    stringResource(
+                                        if (removalKeepsFiles) R.string.common_ui_remove else R.string.common_ui_uninstall,
+                                    ),
+                                size = actionIconSize,
+                                onClick = { uninstallMenuOpen = true },
+                                tint = LaunchDanger,
+                            )
+                            LaunchUninstallMenu(
+                                expanded = uninstallMenuOpen,
+                                appName = appName,
+                                removalKeepsFiles = removalKeepsFiles,
+                                onDismissRequest = { uninstallMenuOpen = false },
+                                onConfirm = {
+                                    uninstallMenuOpen = false
+                                    onUninstall()
+                                },
+                            )
                         }
                     }
                 }

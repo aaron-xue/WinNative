@@ -5,6 +5,3 @@
 	path = app/src/main/cpp/vkbasalt
 	url = https://github.com/WinNative-Emu/vkBasalt.git
 	branch = Test
-[submodule "brotato/brotato_repo"]
-	path = brotato/brotato_repo
-	url = https://github.com/aaron-xue/brotato.git

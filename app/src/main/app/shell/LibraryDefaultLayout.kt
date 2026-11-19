@@ -69,7 +69,6 @@ import com.winlator.cmod.feature.stores.epic.data.EpicGame
 import com.winlator.cmod.feature.stores.gog.data.GOGGame
 import com.winlator.cmod.feature.stores.steam.data.SteamApp
 import com.winlator.cmod.runtime.container.ContainerManager
-import com.winlator.cmod.feature.builtin.BuiltinGames
 import com.winlator.cmod.runtime.input.ControllerHelper
 import com.winlator.cmod.shared.ui.focus.controllerFocusGlow
 import androidx.compose.foundation.layout.FlowRow
@@ -166,8 +165,6 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
             focusedGogGame != null -> focusedGogGame.developer
             focusedApp?.id != null && focusedApp.id < 0 ->
                 stringResource(R.string.library_games_custom_game)
-            focusedApp?.let { BuiltinGames.isBuiltin(it.id) } == true ->
-                stringResource(R.string.library_games_builtin_game)
             focusedEpicGame != null -> focusedEpicGame.developer ?: ""
             else ->
                 listOfNotNull(
@@ -182,7 +179,6 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
             focusedApp?.let { app ->
                 when {
                     app.id < 0 -> "custom_${app.id}"
-                    BuiltinGames.isBuiltin(app.id) -> BuiltinGames.playtimeKey()
                     app.id >= 2000000000 -> app.name
                     else -> app.name.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
                 }
@@ -225,10 +221,6 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
         gogGame: GOGGame?,
         epicGame: EpicGame?,
     ) {
-        if (BuiltinGames.isBrotato(app.id)) {
-            BuiltinGames.launchWithTracking(context)
-            return
-        }
         val containerManager = ContainerManager(context)
         when {
             app.id < 0 -> launchCustomGame(context, containerManager, app.name)
@@ -382,12 +374,10 @@ internal fun UnifiedActivity.LibraryDefaultLayout(
                             icon = Icons.Outlined.Info,
                             label = stringResource(R.string.library_games_details),
                         ) { onDetails(safeIndex, focusedApp) }
-                        if (focusedApp == null || !BuiltinGames.isBuiltin(focusedApp.id)) {
-                            DefaultActionPill(
-                                icon = Icons.Outlined.Settings,
-                                label = stringResource(R.string.common_ui_settings),
-                            ) { onSettings(safeIndex, focusedApp) }
-                        }
+                        DefaultActionPill(
+                            icon = Icons.Outlined.Settings,
+                            label = stringResource(R.string.common_ui_settings),
+                        ) { onSettings(safeIndex, focusedApp) }
                     }
                 }
             }
@@ -692,7 +682,6 @@ private fun defaultPlaytimeLabel(
     val key =
         when {
             app.id < 0 -> "custom_${app.id}"
-            BuiltinGames.isBuiltin(app.id) -> BuiltinGames.playtimeKey()
             app.id >= 2000000000 -> app.name
             else -> app.name.replace(LIBRARY_NAME_SANITIZE_REGEX, "")
         }

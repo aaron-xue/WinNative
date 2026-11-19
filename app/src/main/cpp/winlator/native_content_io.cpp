@@ -283,7 +283,7 @@ public:
             0660);
         if (fd >= 0) file_ = ::fdopen(fd, "wb");
         if (file_) {
-            std::setvbuf(file_, nullptr, _IOFBF, 0);
+            std::setvbuf(file_, nullptr, _IOFBF, kBufferSize);
         } else if (fd >= 0) {
             ::close(fd);
         }

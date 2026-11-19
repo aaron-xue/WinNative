@@ -262,8 +262,7 @@ public class PulseAudioComponent extends EnvironmentComponent {
     "libpulsecore-13.0.so",
     "libsndfile.so",
     "libltdl.so",
-    "libffi.so",
-    "libwayland-server.so"
+    "libffi.so"
   };
 
   /**
