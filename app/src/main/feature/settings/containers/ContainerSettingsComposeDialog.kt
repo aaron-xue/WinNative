@@ -735,10 +735,6 @@ class ContainerSettingsComposeDialog @JvmOverloads constructor(
         // Wine version list depends on content profile enumeration.
         val versions = mutableListOf<String>()
         val identifiers = mutableListOf<String>()
-        for (ver in context.resources.getStringArray(R.array.wine_entries)) {
-            versions.add(ver)
-            identifiers.add(ver)
-        }
         for (profile in contentsManager.getProfiles(ContentProfile.ContentType.CONTENT_TYPE_WINE)) {
             val name = ContentsManager.getEntryName(profile)
             versions.add(name)

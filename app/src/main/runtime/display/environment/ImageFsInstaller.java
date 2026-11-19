@@ -24,7 +24,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class ImageFsInstaller {
@@ -32,8 +31,6 @@ public abstract class ImageFsInstaller {
   private static final String IMAGEFS_ARCHIVE = "imagefs.tzst";
   private static final TarCompressorUtils.Type IMAGEFS_ARCHIVE_TYPE = TarCompressorUtils.Type.ZSTD;
   private static final long IMAGEFS_EXTRACTED_BYTES = 869024992L;
-  private static final int XZ_PROGRESS_COMPRESSION_RATIO = 22;
-  private static final long DEFAULT_WINE_EXTRACTED_BYTES = 100000000L;
   private static final long DEFAULT_GUEST_EXTRAS_EXTRACTED_BYTES = 30000000L;
   private static final long DRIVER_INSTALL_PROGRESS_BYTES = 25000000L;
   private static final long FINALIZE_PROGRESS_BYTES = 5000000L;
@@ -64,25 +61,6 @@ public abstract class ImageFsInstaller {
       container.putExtra("imgVersion", null);
       container.saveData();
     }
-  }
-
-  public static void installWineFromAssets(final android.app.Activity activity) {
-    installWineFromAssetsAsync(activity, null);
-  }
-
-  private static boolean installWineFromAssetsAsync(
-      final android.app.Activity activity, OnExtractFileListener listener) {
-    String[] versions = activity.getResources().getStringArray(R.array.wine_entries);
-    File rootDir = ImageFs.find(activity).getRootDir();
-    List<Future<Boolean>> futures = new ArrayList<>();
-    for (String version : versions) {
-      File outFile = new File(rootDir, "/opt/" + version);
-      outFile.mkdirs();
-      futures.add(
-          TarCompressorUtils.extractAsync(
-              TarCompressorUtils.Type.XZ, activity, version + ".txz", outFile, listener));
-    }
-    return waitForExtractions(futures);
   }
 
   private static final class InstallProgressTracker {
@@ -159,12 +137,6 @@ public abstract class ImageFsInstaller {
     }
   }
 
-  private static long estimateXzExtractedBytes(Context context, String assetFile, long fallback) {
-    long compressedSize = FileUtils.getSize(context, assetFile);
-    if (compressedSize <= 0) return fallback;
-    return Math.max(1L, (compressedSize * 100L) / XZ_PROGRESS_COMPRESSION_RATIO);
-  }
-
   private static long estimateZstdExtractedBytes(Context context, String assetFile, long fallback) {
     long compressedSize = FileUtils.getSize(context, assetFile);
     if (compressedSize <= 0) return fallback;
@@ -177,15 +149,6 @@ public abstract class ImageFsInstaller {
         : 0L;
   }
 
-  private static long estimateWineAssetsExtractedBytes(Context context) {
-    long total = 0L;
-    String[] versions = context.getResources().getStringArray(R.array.wine_entries);
-    for (String version : versions) {
-      total += estimateXzExtractedBytes(context, version + ".txz", DEFAULT_WINE_EXTRACTED_BYTES);
-    }
-    return total;
-  }
-
   private static long estimateGuestExtrasExtractedBytes(Context context) {
     return estimateOptionalZstdExtractedBytes(context, "redirect.tzst")
         + estimateZstdExtractedBytes(context, "extras.tzst", DEFAULT_GUEST_EXTRAS_EXTRACTED_BYTES);
@@ -193,7 +156,6 @@ public abstract class ImageFsInstaller {
 
   private static long estimateInstallWorkBytes(Context context, boolean includeDrivers) {
     return IMAGEFS_EXTRACTED_BYTES
-        + estimateWineAssetsExtractedBytes(context)
         + estimateGuestExtrasExtractedBytes(context)
         + (includeDrivers ? DRIVER_INSTALL_PROGRESS_BYTES : 0L)
         + FINALIZE_PROGRESS_BYTES;
@@ -253,19 +215,8 @@ public abstract class ImageFsInstaller {
                   extractImageFs(activity, rootDir, progressTracker.asExtractListener());
 
               if (success) {
-                ExecutorService pool = Executors.newFixedThreadPool(3);
-                CountDownLatch latch = new CountDownLatch(3);
-                AtomicBoolean postInstallSuccess = new AtomicBoolean(true);
-                pool.execute(
-                    () -> {
-                      try {
-                        postInstallSuccess.compareAndSet(
-                            true,
-                            installWineFromAssetsAsync(activity, progressTracker.asExtractListener()));
-                      } finally {
-                        latch.countDown();
-                      }
-                    });
+                ExecutorService pool = Executors.newFixedThreadPool(2);
+                CountDownLatch latch = new CountDownLatch(2);
                 pool.execute(
                     () -> {
                       try {
@@ -288,14 +239,11 @@ public abstract class ImageFsInstaller {
                 } catch (InterruptedException ignored) {
                 }
                 pool.shutdown();
-                success = postInstallSuccess.get();
-                if (success) {
-                  clearSteamDllMarkers(activity);
-                  imageFs.createImgVersionFile(LATEST_VERSION);
-                  resetContainerImgVersions(activity);
-                  progressTracker.addWork(FINALIZE_PROGRESS_BYTES);
-                  progressTracker.finish();
-                }
+                clearSteamDllMarkers(activity);
+                imageFs.createImgVersionFile(LATEST_VERSION);
+                resetContainerImgVersions(activity);
+                progressTracker.addWork(FINALIZE_PROGRESS_BYTES);
+                progressTracker.finish();
               } else {
                 activity.runOnUiThread(
                     () -> WinToast.show(activity, R.string.setup_wizard_unable_to_install_system_files));
