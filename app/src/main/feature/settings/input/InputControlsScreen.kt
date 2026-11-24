@@ -210,14 +210,6 @@ sealed interface InputControlsDialogUiState {
         val options: List<String>,
         val selectedIndex: Int,
     ) : InputControlsDialogUiState
-
-    data class MultiChoice(
-        val title: String,
-        val options: List<String>,
-        val selectedIndices: Set<Int> = emptySet(),
-        val disabledIndices: Set<Int> = emptySet(),
-        val confirmLabel: String,
-    ) : InputControlsDialogUiState
 }
 
 enum class InputDialogTone {
@@ -256,7 +248,6 @@ data class InputControlsScreenActions(
     val onConfirmDialog: () -> Unit,
     val onPromptDialogConfirm: (String) -> Unit,
     val onChoiceDialogSelect: (Int) -> Unit,
-    val onMultiChoiceDialogConfirm: (Set<Int>) -> Unit,
     val onOverlayOpacityChanged: (Int) -> Unit,
     val onAutoHideTouchOnControllerChanged: (Boolean) -> Unit,
     val onGyroscopeEnabledChanged: (Boolean) -> Unit,
@@ -288,7 +279,6 @@ data class InputControlsScreenActions(
     val onTriggerTypeSelected: (Int) -> Unit,
     val onTriggerCardExpandedChanged: (Boolean) -> Unit,
     val onImportProfile: () -> Unit,
-    val onDownloadProfile: () -> Unit,
     val onExportProfile: () -> Unit,
     val onControllerExpandedToggle: (String) -> Unit,
     val onRemoveController: (String) -> Unit,
@@ -344,11 +334,6 @@ fun InputControlsScreen(
                     icon = Icons.Outlined.FileDownload,
                     title = stringResource(R.string.input_controls_editor_import_profile),
                     onClick = actions.onImportProfile,
-                )
-                ActionCard(
-                    icon = Icons.Outlined.Download,
-                    title = stringResource(R.string.common_ui_download),
-                    onClick = actions.onDownloadProfile,
                 )
                 ActionCard(
                     icon = Icons.Outlined.FileUpload,
@@ -432,18 +417,6 @@ fun InputControlsScreen(
                     selectedIndex = dialog.selectedIndex,
                     onDismiss = actions.onDismissDialog,
                     onSelected = actions.onChoiceDialogSelect,
-                )
-            }
-
-            is InputControlsDialogUiState.MultiChoice -> {
-                InputMultiChoiceDialog(
-                    title = dialog.title,
-                    options = dialog.options,
-                    selectedIndices = dialog.selectedIndices,
-                    disabledIndices = dialog.disabledIndices,
-                    confirmLabel = dialog.confirmLabel,
-                    onDismiss = actions.onDismissDialog,
-                    onConfirm = actions.onMultiChoiceDialogConfirm,
                 )
             }
         }
@@ -1196,157 +1169,6 @@ private fun InputChoiceDialog(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                }
-            }
-            if (options.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.common_ui_no_items_to_display),
-                    color = InputTextSecondary,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun InputMultiChoiceDialog(
-    title: String,
-    options: List<String>,
-    selectedIndices: Set<Int>,
-    disabledIndices: Set<Int>,
-    confirmLabel: String,
-    onDismiss: () -> Unit,
-    onConfirm: (Set<Int>) -> Unit,
-) {
-    var currentSelection by remember(title, options, selectedIndices) {
-        mutableStateOf(selectedIndices - disabledIndices)
-    }
-    val hasSelection = currentSelection.isNotEmpty()
-
-    InputFixedFooterDialogShell(
-        onDismiss = onDismiss,
-        title = title,
-        maxWidth = 430.dp,
-        footer = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
-            ) {
-                InputDialogButton(
-                    label = stringResource(R.string.common_ui_cancel),
-                    primary = false,
-                    textColor = InputTextPrimary,
-                    onClick = onDismiss,
-                )
-                InputDialogButton(
-                    label = confirmLabel,
-                    primary = true,
-                    textColor = InputAccent,
-                    backgroundColor = InputAccent.copy(alpha = 0.12f),
-                    borderColor = InputAccent.copy(alpha = 0.3f),
-                    enabled = hasSelection,
-                    onClick = { onConfirm(currentSelection) },
-                )
-            }
-        },
-    ) {
-        val focusTarget = options.indices.firstOrNull { it !in disabledIndices } ?: -1
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            options.forEachIndexed { index, option ->
-                val selected = index in currentSelection
-                val disabled = index in disabledIndices
-                val rowModifier =
-                    if (disabled) {
-                        Modifier
-                    } else {
-                        Modifier.paneNavItem(
-                            cornerRadius = 12.dp,
-                            onActivate = {
-                                currentSelection =
-                                    if (selected) {
-                                        currentSelection - index
-                                    } else {
-                                        currentSelection + index
-                                    }
-                            },
-                            highlightColor = InputNavHighlight,
-                            tapToSelect = true,
-                            isEntry = index == focusTarget,
-                        )
-                    }
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                when {
-                                    disabled -> InputField.copy(alpha = 0.55f)
-                                    selected -> InputAccent.copy(alpha = 0.08f)
-                                    else -> InputField
-                                },
-                            ).border(
-                                1.dp,
-                                when {
-                                    disabled -> InputOutline.copy(alpha = 0.6f)
-                                    selected -> InputAccent.copy(alpha = 0.24f)
-                                    else -> InputOutline
-                                },
-                                RoundedCornerShape(12.dp),
-                            ).then(rowModifier)
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (!disabled) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(18.dp)
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .border(
-                                        1.4.dp,
-                                        if (selected) InputAccent else InputOutline,
-                                        RoundedCornerShape(5.dp),
-                                    ).background(
-                                        if (selected) InputAccent.copy(alpha = 0.12f) else Color.Transparent,
-                                    ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (selected) {
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .size(8.dp)
-                                            .clip(RoundedCornerShape(3.dp))
-                                            .background(InputAccent),
-                                )
-                            }
-                        }
-                        Spacer(Modifier.width(12.dp))
-                    }
-                    Text(
-                        text = option,
-                        color = if (disabled) InputTextSecondary else InputTextPrimary,
-                        fontSize = 13.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (disabled) {
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            text = stringResource(R.string.common_ui_installed),
-                            color = InputTextSecondary,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
                 }
             }
             if (options.isEmpty()) {
