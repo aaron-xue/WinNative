@@ -219,7 +219,7 @@ private fun PlayerCard(
             },
         )
 
-        val toggleConnect = {
+        val toggleConnect: () -> Unit = {
             connected = !connected
             runCatching {
                 NativeInput.connectControllers(playerIndex, connected)
