@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
+import com.winlator.cmod.shared.ui.nav.paneNavItem
 import org.citron.citron_emu.features.input.NativeInput
 import org.citron.citron_emu.wn.CitronBootstrap
 import org.citron.citron_emu.wn.InputDialogFragment
@@ -135,7 +136,10 @@ fun SwitchControllerSettingsScreen(onBack: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(modifier = Modifier.weight(1f))
-                    OutlinedButton(onClick = onBack) { Text("返回", color = PageText) }
+                    OutlinedButton(
+                        onClick = onBack,
+                        modifier = Modifier.paneNavItem(cornerRadius = 8.dp, onActivate = onBack),
+                    ) { Text("返回", color = PageText) }
                 }
 
                 LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -215,21 +219,23 @@ private fun PlayerCard(
             },
         )
 
+        val toggleConnect = {
+            connected = !connected
+            runCatching {
+                NativeInput.connectControllers(playerIndex, connected)
+                NativeConfig.saveGlobalConfig()
+                NativeInput.reloadInputDevices()
+            }.onFailure { Log.e(TAG, "connect player $playerIndex failed", it) }
+        }
+
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    connected = !connected
-                    runCatching {
-                        NativeInput.connectControllers(playerIndex, connected)
-                        NativeConfig.saveGlobalConfig()
-                        NativeInput.reloadInputDevices()
-                    }.onFailure { Log.e(TAG, "connect player $playerIndex failed", it) }
-                },
+                modifier = Modifier.weight(1f).paneNavItem(cornerRadius = 8.dp, onActivate = toggleConnect),
+                onClick = toggleConnect,
             ) { Text(if (connected) "断开" else "连接", color = PageText) }
 
             Button(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).paneNavItem(cornerRadius = 8.dp, onActivate = onConfigure),
                 onClick = onConfigure,
             ) { Text("配置按键") }
         }
@@ -249,7 +255,10 @@ private fun PlayerBindScreen(playerIndex: Int, onBack: () -> Unit) {
             ) {
                 Text("玩家 ${playerIndex + 1} 按键绑定", color = PageText, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.weight(1f))
-                OutlinedButton(onClick = onBack) { Text("完成", color = PageText) }
+                OutlinedButton(
+                    onClick = onBack,
+                    modifier = Modifier.paneNavItem(cornerRadius = 8.dp, onActivate = onBack),
+                ) { Text("完成", color = PageText) }
             }
 
             LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -333,6 +342,7 @@ private fun BindRow(label: String, summary: String, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
             .background(CardBg, RoundedCornerShape(8.dp))
             .clickable { onClick() }
+            .paneNavItem(cornerRadius = 8.dp, onActivate = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

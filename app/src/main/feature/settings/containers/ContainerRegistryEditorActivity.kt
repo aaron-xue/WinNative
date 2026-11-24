@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.PopupProperties
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -60,6 +61,10 @@ import com.winlator.cmod.runtime.wine.WineRegistryEditor
 import com.winlator.cmod.shared.android.DirectoryPickerDialog
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import com.winlator.cmod.shared.ui.dialog.PopupDialog
+import com.winlator.cmod.shared.ui.nav.LocalPaneNav
+import com.winlator.cmod.shared.ui.nav.PaneNavRegistry
+import com.winlator.cmod.shared.ui.nav.bindPaneNav
+import com.winlator.cmod.shared.ui.nav.paneNavItem
 import com.winlator.cmod.shared.ui.toast.WinToast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -152,6 +157,9 @@ private val PRESET_INTEL = CpuSpoofPreset(
 
 class ContainerRegistryEditorActivity : ComponentActivity() {
 
+    private val navRegistry = PaneNavRegistry()
+    private var restoreNav: (() -> Unit)? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -186,16 +194,29 @@ class ContainerRegistryEditorActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = RegBg,
                 ) {
-                    RegistryEditorScreen(
-                        containerRootDir = rootDir,
-                        wineVersion = wineVersion,
-                        wineArch = wineArch,
-                        containerName = container.name,
-                        onBack = { finish() },
-                    )
+                    CompositionLocalProvider(LocalPaneNav provides navRegistry) {
+                        RegistryEditorScreen(
+                            containerRootDir = rootDir,
+                            wineVersion = wineVersion,
+                            wineArch = wineArch,
+                            containerName = container.name,
+                            onBack = { finish() },
+                        )
+                    }
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        restoreNav = window.bindPaneNav(navRegistry, onDismiss = { finish() })
+    }
+
+    override fun onPause() {
+        restoreNav?.invoke()
+        restoreNav = null
+        super.onPause()
     }
 }
 
@@ -584,6 +605,7 @@ private fun RegistryEditorScreen(
                                         indication = null,
                                         onClick = { backToComputer() },
                                     )
+                                    .paneNavItem(cornerRadius = 6.dp, onActivate = { backToComputer() })
                                     .padding(4.dp),
                             )
                             pathParts.forEachIndexed { index, part ->
@@ -605,6 +627,7 @@ private fun RegistryEditorScreen(
                                             indication = null,
                                             onClick = { currentPath = targetPath },
                                         )
+                                        .paneNavItem(cornerRadius = 6.dp, onActivate = { currentPath = targetPath })
                                         .padding(4.dp),
                                 )
                             }
@@ -726,6 +749,16 @@ private fun RegistryEditorScreen(
                                             scope.launch { expandPathTo(keyPath) }
                                         },
                                     )
+                                    .paneNavItem(
+                                        cornerRadius = 10.dp,
+                                        onActivate = {
+                                            searchResults = null
+                                            searchQuery = ""
+                                            currentPath = keyPath
+                                            pendingScrollPath = keyPath
+                                            scope.launch { expandPathTo(keyPath) }
+                                        },
+                                    )
                                     .padding(horizontal = 10.dp, vertical = 8.dp),
                                 contentAlignment = Alignment.CenterStart,
                             ) {
@@ -839,6 +872,11 @@ private fun RegistryEditorScreen(
                                     },
                                     onLongClick = { copyToClipboard(nodePath) },
                                 )
+                                .paneNavItem(
+                                    cornerRadius = 8.dp,
+                                    onActivate = { currentPath = nodePath },
+                                    onSecondary = { copyToClipboard(nodePath) },
+                                )
                                 .padding(start = (4 + depth * 14).dp, end = 4.dp, top = 3.dp, bottom = 3.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -853,7 +891,8 @@ private fun RegistryEditorScreen(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null,
                                             onClick = { toggleNode(nodePath) },
-                                        ),
+                                        )
+                                        .paneNavItem(cornerRadius = 6.dp, onActivate = { toggleNode(nodePath) }),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
@@ -974,6 +1013,13 @@ private fun RegistryEditorScreen(
                                                 copyToClipboard("${value.name ?: "(Default)"} = ${value.value}")
                                             },
                                         )
+                                        .paneNavItem(
+                                            cornerRadius = 10.dp,
+                                            onActivate = { editingValue = value },
+                                            onSecondary = {
+                                                copyToClipboard("${value.name ?: "(Default)"} = ${value.value}")
+                                            },
+                                        )
                                         .padding(horizontal = 10.dp, vertical = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
@@ -1060,6 +1106,20 @@ private fun RegistryEditorScreen(
         var valueType by remember(existing) { mutableStateOf(existing?.type?.takeIf { it in REG_VALUE_TYPES } ?: "String") }
         var valueText by remember(existing) { mutableStateOf(existing?.value ?: "") }
         var typeExpanded by remember { mutableStateOf(false) }
+
+        val parentNav = LocalPaneNav.current
+        val optionRegistry = remember { PaneNavRegistry() }
+        LaunchedEffect(typeExpanded) {
+            if (typeExpanded) {
+                optionRegistry.reset()
+                optionRegistry.controllerActive = true
+                parentNav?.overlay = optionRegistry
+                parentNav?.overlayClose = { typeExpanded = false }
+            } else if (parentNav?.overlay === optionRegistry) {
+                parentNav.overlay = null
+                parentNav.overlayClose = null
+            }
+        }
 
         RegEditorOverlay(onDismiss = { addingValue = false; editingValue = null }) {
             PopupDialog(
@@ -1152,6 +1212,7 @@ private fun RegistryEditorScreen(
                                         indication = null,
                                         onClick = { typeExpanded = true },
                                     )
+                                    .paneNavItem(cornerRadius = 8.dp, onActivate = { typeExpanded = true })
                                     .padding(horizontal = 12.dp, vertical = 10.dp),
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1167,13 +1228,22 @@ private fun RegistryEditorScreen(
                             DropdownMenu(
                                 expanded = typeExpanded,
                                 onDismissRequest = { typeExpanded = false },
+                                shape = RoundedCornerShape(8.dp),
                                 containerColor = RegCard,
+                                properties = PopupProperties(focusable = false),
                             ) {
-                                REG_VALUE_TYPES.forEach { type ->
-                                    DropdownMenuItem(
-                                        text = { Text(type, color = RegTextPrimary) },
-                                        onClick = { valueType = type; typeExpanded = false },
-                                    )
+                                CompositionLocalProvider(LocalPaneNav provides optionRegistry) {
+                                    REG_VALUE_TYPES.forEach { type ->
+                                        DropdownMenuItem(
+                                            text = { Text(type, color = RegTextPrimary) },
+                                            onClick = { valueType = type; typeExpanded = false },
+                                            modifier = Modifier.paneNavItem(
+                                                cornerRadius = 6.dp,
+                                                onActivate = { valueType = type; typeExpanded = false },
+                                                isEntry = type == valueType,
+                                            ),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1421,6 +1491,7 @@ private fun HiveCard(
                 indication = null,
                 onClick = onClick,
             )
+            .paneNavItem(cornerRadius = 12.dp, onActivate = onClick)
             .padding(horizontal = 10.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1534,7 +1605,8 @@ private fun RegEditorIconButton(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
-            ),
+            )
+            .paneNavItem(cornerRadius = 8.dp, onActivate = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -1562,7 +1634,8 @@ private fun RegEditorSmallIconButton(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
-            ),
+            )
+            .paneNavItem(cornerRadius = 6.dp, onActivate = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -1600,6 +1673,7 @@ private fun RegEditorActionButton(
                 enabled = enabled,
                 onClick = onClick,
             )
+            .paneNavItem(cornerRadius = 9.dp, onActivate = { if (enabled) onClick() })
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -1744,6 +1818,7 @@ private fun RegEditorSmallButton(
                 indication = null,
                 onClick = onClick,
             )
+            .paneNavItem(cornerRadius = 6.dp, onActivate = onClick)
             .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -1770,6 +1845,7 @@ private fun RegEditorTextAction(
                 indication = null,
                 onClick = onClick,
             )
+            .paneNavItem(cornerRadius = 8.dp, onActivate = onClick)
             .padding(horizontal = 10.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -1799,6 +1875,7 @@ private fun RegEditorPresetChip(
                 indication = null,
                 onClick = onClick,
             )
+            .paneNavItem(cornerRadius = 16.dp, onActivate = onClick)
             .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -1817,6 +1894,22 @@ private fun RegEditorOverlay(
     onDismiss: () -> Unit,
     content: @Composable () -> Unit,
 ) {
+    val mainNav = LocalPaneNav.current
+    val dialogNav = remember { PaneNavRegistry() }
+    LaunchedEffect(mainNav, dialogNav) {
+        dialogNav.reset()
+        dialogNav.controllerActive = true
+        mainNav?.overlay = dialogNav
+        mainNav?.overlayClose = onDismiss
+    }
+    DisposableEffect(mainNav, dialogNav) {
+        onDispose {
+            if (mainNav?.overlay === dialogNav) {
+                mainNav.overlay = null
+                mainNav.overlayClose = null
+            }
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1838,7 +1931,9 @@ private fun RegEditorOverlay(
                     onClick = {},
                 ),
         ) {
-            content()
+            CompositionLocalProvider(LocalPaneNav provides dialogNav) {
+                content()
+            }
         }
     }
 }

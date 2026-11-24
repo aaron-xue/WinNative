@@ -264,6 +264,7 @@ private fun ConfirmFooter(
             label = confirmLabel,
             textColor = confirmButtonColor,
             onClick = onConfirm,
+            isEntry = true,
         )
     }
 }

@@ -61,6 +61,8 @@ import com.winlator.cmod.shared.theme.WinNativeSurface
 import com.winlator.cmod.shared.theme.WinNativeTextPrimary
 import com.winlator.cmod.shared.theme.WinNativeTextSecondary
 import com.winlator.cmod.shared.theme.WinNativeTheme
+import com.winlator.cmod.shared.ui.nav.LocalPaneNav
+import com.winlator.cmod.shared.ui.nav.paneNavItem
 import com.winlator.cmod.shared.util.Callback
 import androidx.compose.ui.window.Dialog as ComposeDialog
 
@@ -383,6 +385,17 @@ fun WinNativeDialogButton(
     backgroundColor: Color = WinNativePanel,
     borderColor: Color = WinNativeOutline,
 ) {
+    val nav = LocalPaneNav.current
+    val clickModifier =
+        if (nav != null) {
+            Modifier.paneNavItem(cornerRadius = 10.dp, onActivate = onClick, tapToSelect = true)
+        } else {
+            Modifier.clickable(
+                interactionSource = MutableInteractionSource(),
+                indication = null,
+                onClick = onClick,
+            )
+        }
     Box(
         modifier =
             Modifier
@@ -390,11 +403,8 @@ fun WinNativeDialogButton(
                 .clip(RoundedCornerShape(10.dp))
                 .background(backgroundColor)
                 .border(1.dp, borderColor, RoundedCornerShape(10.dp))
-                .clickable(
-                    interactionSource = MutableInteractionSource(),
-                    indication = null,
-                    onClick = onClick,
-                ).padding(horizontal = 18.dp, vertical = 11.dp),
+                .then(clickModifier)
+                .padding(horizontal = 18.dp, vertical = 11.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(

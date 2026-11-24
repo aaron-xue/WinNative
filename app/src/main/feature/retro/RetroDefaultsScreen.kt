@@ -47,7 +47,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.winlator.cmod.R
 import com.winlator.cmod.feature.settings.SettingsNavBridge
 import com.winlator.cmod.shared.ui.focus.rememberSettingsContentNav
+import com.winlator.cmod.shared.ui.nav.DialogPaneNav
 import com.winlator.cmod.shared.ui.nav.LocalPaneNav
+import com.winlator.cmod.shared.ui.nav.PaneNavRegistry
 import com.winlator.cmod.shared.ui.nav.paneNavItem
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -82,7 +84,9 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
     val contentNav = rememberSettingsContentNav(bridge)
 
     if (showControllerSettings) {
-        SwitchControllerSettingsScreen(onBack = { showControllerSettings = false })
+        CompositionLocalProvider(LocalPaneNav provides contentNav) {
+            SwitchControllerSettingsScreen(onBack = { showControllerSettings = false })
+        }
         return
     }
 
@@ -950,32 +954,36 @@ onConfirm: () -> Unit,
 onDismiss: () -> Unit,
 ) {
     val accent = Color(0xFF1A9FFF)
-    com.winlator.cmod.shared.ui.dialog.WinNativeDialogShell(
-    onDismiss = onDismiss,
-    title = stringResource(R.string.retro_scr_enable_hardcore_title),
-    ) {
-        Text(
-        stringResource(R.string.retro_scr_enable_hardcore_body),
-        color = com.winlator.cmod.shared.theme.WinNativeTextSecondary,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        )
-        Spacer(Modifier.height(16.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(com.winlator.cmod.shared.theme.WinNativeOutline))
-        Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End)) {
-            com.winlator.cmod.shared.ui.dialog.WinNativeDialogButton(
-            label = stringResource(R.string.retro_scr_cancel),
-            textColor = com.winlator.cmod.shared.theme.WinNativeTextPrimary,
-            onClick = onDismiss,
+    val nav = remember { PaneNavRegistry() }
+    CompositionLocalProvider(LocalPaneNav provides nav) {
+        DialogPaneNav(nav, onDismiss = onDismiss)
+        com.winlator.cmod.shared.ui.dialog.WinNativeDialogShell(
+        onDismiss = onDismiss,
+        title = stringResource(R.string.retro_scr_enable_hardcore_title),
+        ) {
+            Text(
+            stringResource(R.string.retro_scr_enable_hardcore_body),
+            color = com.winlator.cmod.shared.theme.WinNativeTextSecondary,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
             )
-            com.winlator.cmod.shared.ui.dialog.WinNativeDialogButton(
-            label = stringResource(R.string.retro_scr_enable),
-            textColor = accent,
-            backgroundColor = accent.copy(alpha = 0.12f),
-            borderColor = accent.copy(alpha = 0.3f),
-            onClick = onConfirm,
-            )
+            Spacer(Modifier.height(16.dp))
+            Box(Modifier.fillMaxWidth().height(1.dp).background(com.winlator.cmod.shared.theme.WinNativeOutline))
+            Spacer(Modifier.height(16.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End)) {
+                com.winlator.cmod.shared.ui.dialog.WinNativeDialogButton(
+                label = stringResource(R.string.retro_scr_cancel),
+                textColor = com.winlator.cmod.shared.theme.WinNativeTextPrimary,
+                onClick = onDismiss,
+                )
+                com.winlator.cmod.shared.ui.dialog.WinNativeDialogButton(
+                label = stringResource(R.string.retro_scr_enable),
+                textColor = accent,
+                backgroundColor = accent.copy(alpha = 0.12f),
+                borderColor = accent.copy(alpha = 0.3f),
+                onClick = onConfirm,
+                )
+            }
         }
     }
 }

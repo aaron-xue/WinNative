@@ -54,6 +54,8 @@ import androidx.compose.material.icons.outlined.TextSnippet
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,6 +92,10 @@ import com.winlator.cmod.runtime.wine.PeIconExtractor
 import com.winlator.cmod.shared.io.FileUtils
 import com.winlator.cmod.shared.util.StringUtils
 import com.winlator.cmod.shared.ui.dialog.PopupDialog
+import com.winlator.cmod.shared.ui.nav.LocalPaneNav
+import com.winlator.cmod.shared.ui.nav.PaneNavRegistry
+import com.winlator.cmod.shared.ui.nav.bindPaneNav
+import com.winlator.cmod.shared.ui.nav.paneNavItem
 import java.io.File
 import java.util.Stack
 import java.util.Locale
@@ -108,6 +114,9 @@ private val FileManagerTextSecondary = Color(0xFF7A8FA8)
 private val FileManagerDanger = Color(0xFFFF7A88)
 
 class ContainerFileManagerActivity : ComponentActivity() {
+
+    private val navRegistry = PaneNavRegistry()
+    private var restoreNav: (() -> Unit)? = null
 
     private lateinit var container: Container
     private lateinit var manager: ContainerManager
@@ -231,7 +240,9 @@ class ContainerFileManagerActivity : ComponentActivity() {
                 onDismissSelectedRenameDialog = { showSelectedRenameDialog = null },
                 onDismissSelectedInfoDialog = { showSelectedInfoDialog = null },
             )
-            ContainerFileManagerScreen(state = state, callbacks = callbacks)
+            CompositionLocalProvider(LocalPaneNav provides navRegistry) {
+                ContainerFileManagerScreen(state = state, callbacks = callbacks)
+            }
         }
     }
 
@@ -497,6 +508,17 @@ class ContainerFileManagerActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        restoreNav = window.bindPaneNav(navRegistry, onDismiss = { navigateBack() })
+    }
+
+    override fun onPause() {
+        restoreNav?.invoke()
+        restoreNav = null
+        super.onPause()
+    }
+
     override fun onBackPressed() {
         navigateBack()
     }
@@ -595,6 +617,7 @@ private fun ContainerFileManagerScreen(
                 image = Icons.AutoMirrored.Outlined.ArrowBack,
                 tint = FileManagerAccent,
                 onClick = callbacks.onBack,
+                isEntry = true,
             )
             Spacer(Modifier.width(8.dp))
             FileManagerIconButton(
@@ -857,6 +880,7 @@ private fun ContainerFileManagerScreen(
                             indication = null,
                             onClick = callbacks.onPaste,
                         )
+                        .paneNavItem(cornerRadius = 16.dp, onActivate = callbacks.onPaste)
                         .padding(horizontal = 20.dp, vertical = 14.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -1121,6 +1145,7 @@ private fun FileItemCard(
                 onClick = onOpen,
                 onLongClick = if (!isMultiSelectMode) onLongPress else null,
             )
+            .paneNavItem(cornerRadius = 12.dp, onActivate = onOpen, onSecondary = onLongPress)
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1167,6 +1192,7 @@ private fun FileManagerIconButton(
     image: ImageVector,
     tint: Color,
     onClick: () -> Unit,
+    isEntry: Boolean = false,
 ) {
     Box(
         modifier = Modifier
@@ -1178,7 +1204,8 @@ private fun FileManagerIconButton(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
-            ),
+            )
+            .paneNavItem(cornerRadius = 8.dp, onActivate = onClick, isEntry = isEntry),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -1206,7 +1233,8 @@ private fun FileManagerSmallIconButton(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
-            ),
+            )
+            .paneNavItem(cornerRadius = 6.dp, onActivate = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -1235,7 +1263,8 @@ private fun FileManagerActionButton(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
-            ),
+            )
+            .paneNavItem(cornerRadius = 9.dp, onActivate = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -1263,6 +1292,7 @@ private fun FileManagerSmallButton(
                 indication = null,
                 onClick = onClick,
             )
+            .paneNavItem(cornerRadius = 6.dp, onActivate = onClick)
             .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -1281,6 +1311,22 @@ private fun DialogOverlay(
     onDismiss: () -> Unit,
     content: @Composable () -> Unit,
 ) {
+    val mainNav = LocalPaneNav.current
+    val dialogNav = remember { PaneNavRegistry() }
+    LaunchedEffect(mainNav, dialogNav) {
+        dialogNav.reset()
+        dialogNav.controllerActive = true
+        mainNav?.overlay = dialogNav
+        mainNav?.overlayClose = onDismiss
+    }
+    DisposableEffect(mainNav, dialogNav) {
+        onDispose {
+            if (mainNav?.overlay === dialogNav) {
+                mainNav.overlay = null
+                mainNav.overlayClose = null
+            }
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1301,7 +1347,9 @@ private fun DialogOverlay(
                     onClick = {},
                 ),
         ) {
-            content()
+            CompositionLocalProvider(LocalPaneNav provides dialogNav) {
+                content()
+            }
         }
     }
 }
