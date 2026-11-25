@@ -288,6 +288,7 @@ data class InputControlsScreenActions(
     val onBindingNoteChanged: (String, Int, String) -> Unit,
     val onBindingNoteCommit: (String, Int) -> Unit,
     val onRemoveBinding: (String, Int) -> Unit,
+    val onControllerBindingsConfirm: (String) -> Unit,
     val onOpenControllerTest: (String) -> Unit,
     val onSteamControllerEnabledChanged: (Boolean) -> Unit,
     val onSteamTrackpadModeSelected: (Int) -> Unit,
@@ -2649,6 +2650,32 @@ private fun ControllerCard(
                         fontSize = InputSecondaryTextSize,
                     )
                 }
+                if (state.showBindings) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .heightIn(min = 30.dp)
+                                .clip(RoundedCornerShape(InputFieldCorner))
+                                .background(InputSubcard)
+                                .border(1.dp, InputOutline, RoundedCornerShape(InputFieldCorner))
+                                .paneNavItem(
+                                    cornerRadius = InputFieldCorner,
+                                    onActivate = { actions.onControllerExpandedToggle(state.controllerId) },
+                                    highlightColor = InputNavHighlight,
+                                    tapToSelect = true,
+                                ).padding(horizontal = 12.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.session_gamepad_control_bindings),
+                            color = InputAccent,
+                            fontSize = InputSecondaryTextSize,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                }
                 Box(
                     modifier =
                         Modifier
@@ -2730,41 +2757,69 @@ private fun ControllerCard(
                 }
             }
 
-            if (state.showBindings) {
-                Spacer(Modifier.height(InputCompactGap))
-                Subcard(
-                    title = stringResource(R.string.session_gamepad_control_bindings),
-                    expanded = state.expanded,
-                    onToggleExpanded = {
-                        actions.onControllerExpandedToggle(state.controllerId)
-                    },
-                ) {
-                    Spacer(Modifier.height(InputCompactGap))
-                    if (state.bindings.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.session_gamepad_press_any_button),
-                            color = InputTextSecondary,
-                            fontSize = InputPrimaryTextSize,
-                            textAlign = TextAlign.Center,
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 6.dp),
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(3.dp),
-                        ) {
-                            state.bindings.forEach { binding ->
-                                BindingRow(
-                                    controllerId = state.controllerId,
-                                    state = binding,
-                                    actions = actions,
-                                )
-                            }
-                        }
-                    }
+            if (state.showBindings && state.expanded) {
+                ControllerBindingsDialog(
+                    state = state,
+                    actions = actions,
+                    onDismiss = { actions.onControllerExpandedToggle(state.controllerId) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ControllerBindingsDialog(
+    state: InputControllerCardState,
+    actions: InputControlsScreenActions,
+    onDismiss: () -> Unit,
+) {
+    InputFixedFooterDialogShell(
+        onDismiss = onDismiss,
+        title = state.name,
+        maxWidth = 560.dp,
+        footer = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+            ) {
+                InputDialogButton(
+                    label = stringResource(R.string.common_ui_cancel),
+                    primary = false,
+                    textColor = InputTextPrimary,
+                    onClick = onDismiss,
+                )
+                InputDialogButton(
+                    label = stringResource(R.string.common_ui_done),
+                    primary = true,
+                    textColor = InputTextPrimary,
+                    onClick = { actions.onControllerBindingsConfirm(state.controllerId) },
+                )
+            }
+        },
+    ) {
+        if (state.bindings.isEmpty()) {
+            Text(
+                text = stringResource(R.string.session_gamepad_press_any_button),
+                color = InputTextSecondary,
+                fontSize = InputPrimaryTextSize,
+                textAlign = TextAlign.Center,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+            )
+        } else {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                state.bindings.forEach { binding ->
+                    BindingRow(
+                        controllerId = state.controllerId,
+                        state = binding,
+                        actions = actions,
+                    )
                 }
             }
         }

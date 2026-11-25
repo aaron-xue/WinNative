@@ -22,6 +22,7 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
   private boolean elementsLoaded = false;
   private boolean controllersLoaded = false;
   private boolean virtualGamepad = false;
+  private int cachedElementCount = -1;
   private final Context context;
   private GamepadState gamepadState;
 
@@ -214,20 +215,24 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
   }
 
   public int getElementCountFromFile() {
+    if (cachedElementCount >= 0) return cachedElementCount;
     File file = getProfileFile(context, id);
+    int count = 0;
     if (file.isFile()) {
       try {
         String jsonStr = FileUtils.readString(file);
-        if (jsonStr == null) return 0;
-        JSONObject obj = new JSONObject(jsonStr);
-        if (obj.has("elements")) {
-          return obj.getJSONArray("elements").length();
+        if (jsonStr != null) {
+          JSONObject obj = new JSONObject(jsonStr);
+          if (obj.has("elements")) {
+            count = obj.getJSONArray("elements").length();
+          }
         }
       } catch (JSONException e) {
         e.printStackTrace();
       }
     }
-    return 0;
+    cachedElementCount = count;
+    return count;
   }
 
   public boolean isTemplate() {
@@ -237,6 +242,7 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
   public ArrayList<ExternalController> loadControllers() {
     controllers.clear();
     controllersLoaded = false;
+    cachedElementCount = -1;
 
     File file = getProfileFile(context, id);
     if (!file.isFile()) return controllers;
@@ -278,6 +284,7 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
   }
 
   public void loadElements(InputControlsView inputControlsView) {
+    cachedElementCount = -1;
     File file = getProfileFile(context, id);
     if (!file.isFile()) {
       elements = new ArrayList<>();

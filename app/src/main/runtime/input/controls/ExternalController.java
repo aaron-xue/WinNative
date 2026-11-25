@@ -309,6 +309,10 @@ public class ExternalController {
     return this.controllerBindings.size();
   }
 
+  public void clearControllerBindings() {
+    this.controllerBindings.clear();
+  }
+
   public JSONObject toJSONObject() throws JSONException {
     try {
       if (this.controllerBindings.isEmpty()) {

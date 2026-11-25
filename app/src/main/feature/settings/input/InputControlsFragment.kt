@@ -76,6 +76,8 @@ class InputControlsFragment : Fragment() {
     private var triggerTypeExpanded = false
     private var gyroscopeExpanded = false
     private val expandedControllerIds = mutableSetOf<String>()
+    private val editingBindings = mutableListOf<ExternalControllerBinding>()
+    private var cachedTriggerDescription: String? = null
     private val visibleControllers = mutableListOf<ExternalController>()
 
     private var activeBindingController: ExternalController? = null
@@ -238,6 +240,7 @@ class InputControlsFragment : Fragment() {
                                 onBindingNoteChanged = ::updateBindingNote,
                                 onBindingNoteCommit = ::commitBindingNote,
                                 onRemoveBinding = ::removeBinding,
+                                onControllerBindingsConfirm = ::commitControllerBindings,
                                 onOpenControllerTest = { controllerId ->
                                     val controller = findVisibleController(controllerId)
                                     testControllerName = controller?.name
@@ -425,12 +428,14 @@ class InputControlsFragment : Fragment() {
         val profile = currentProfile
         val bindingTypeEntries = resources.getStringArray(R.array.binding_type_entries)
         val triggerDescription =
-            HtmlCompat
-                .fromHtml(
-                    getString(R.string.session_gamepad_help_trigger_mode).trim(),
-                    HtmlCompat.FROM_HTML_MODE_LEGACY,
-                ).toString()
-                .trim()
+            cachedTriggerDescription
+                ?: HtmlCompat
+                    .fromHtml(
+                        getString(R.string.session_gamepad_help_trigger_mode).trim(),
+                        HtmlCompat.FROM_HTML_MODE_LEGACY,
+                    ).toString()
+                    .trim()
+                    .also { cachedTriggerDescription = it }
 
         screenState =
             InputControlsScreenState(
@@ -476,7 +481,7 @@ class InputControlsFragment : Fragment() {
                             showBindings = profile != null,
                             bindings =
                                 if (profile != null && controller.id in expandedControllerIds) {
-                                    buildBindingState(controller, bindingTypeEntries)
+                                    buildBindingState(controller, editingBindings, bindingTypeEntries)
                                 } else {
                                     emptyList()
                                 },
@@ -505,11 +510,11 @@ class InputControlsFragment : Fragment() {
 
     private fun buildBindingState(
         controller: ExternalController,
+        bindings: List<ExternalControllerBinding>,
         bindingTypeEntries: Array<String>,
     ): List<InputControllerBindingState> =
         buildList {
-            for (index in 0 until controller.controllerBindingCount) {
-                val binding = controller.getControllerBindingAt(index)
+            for (binding in bindings) {
                 val rawLabel = binding.toString()
                 val isPlayStation =
                     controller.deviceId >= 0 && ControllerHelper.isPlayStationControllerById(controller.deviceId)
@@ -1222,6 +1227,7 @@ class InputControlsFragment : Fragment() {
         val controller = findVisibleController(controllerId) ?: return
         if (controllerId in expandedControllerIds) {
             expandedControllerIds.remove(controllerId)
+            editingBindings.clear()
             if (activeBindingController?.id == controllerId) stopControllerInputCapture()
         } else {
             expandedControllerIds.clear()
@@ -1229,8 +1235,42 @@ class InputControlsFragment : Fragment() {
             expandedControllerIds.add(controllerId)
             profile.putController(controller)
             startControllerInputCapture(controller)
+            editingBindings.clear()
+            for (index in 0 until controller.controllerBindingCount) {
+                val binding = controller.getControllerBindingAt(index)
+                editingBindings.add(
+                    ExternalControllerBinding().apply {
+                        setKeyCode(binding.getKeyCodeForAxis())
+                        setBinding(binding.getBinding())
+                        setNote(binding.getNote())
+                    },
+                )
+            }
         }
         publishUiState()
+    }
+
+    private fun commitControllerBindings(controllerId: String) {
+        val profile = currentProfile ?: return
+        val controller = findVisibleController(controllerId) ?: return
+        if (controllerId !in expandedControllerIds) return
+
+        controller.clearControllerBindings()
+        for (binding in editingBindings) {
+            controller.addControllerBinding(binding)
+        }
+        profile.putController(controller)
+
+        expandedControllerIds.remove(controllerId)
+        if (activeBindingController?.id == controllerId) stopControllerInputCapture()
+        editingBindings.clear()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            profile.save()
+            launch(Dispatchers.Main) {
+                publishUiState()
+            }
+        }
     }
 
     private fun removeController(controllerId: String) {
@@ -1267,23 +1307,17 @@ class InputControlsFragment : Fragment() {
         keyCode: Int,
     ) {
         if (keyCode == KeyEvent.KEYCODE_UNKNOWN) return
-        val profile = currentProfile ?: return
+        if (controller.id !in expandedControllerIds) return
 
-        var binding = controller.getControllerBinding(keyCode)
-        if (binding == null) {
-            binding =
+        val existing = editingBindings.firstOrNull { it.keyCodeForAxis == keyCode }
+        if (existing == null) {
+            editingBindings.add(
                 ExternalControllerBinding().apply {
                     setKeyCode(keyCode)
                     setBinding(Binding.NONE)
-                }
-            controller.addControllerBinding(binding)
-            profile.putController(controller)
-            lifecycleScope.launch(Dispatchers.IO) {
-                profile.save()
-                launch(Dispatchers.Main) {
-                    publishUiState()
-                }
-            }
+                },
+            )
+            publishUiState()
         }
     }
 
@@ -1292,31 +1326,23 @@ class InputControlsFragment : Fragment() {
         keyCode: Int,
         note: String,
     ) {
-        val (controller, binding) = findBinding(controllerId, keyCode) ?: return
+        val binding = findEditingBinding(controllerId, keyCode) ?: return
         if (binding.note == note) return
         binding.note = note
-        currentProfile?.putController(controller)
     }
 
     private fun commitBindingNote(
         controllerId: String,
         keyCode: Int,
     ) {
-        val (controller, _) = findBinding(controllerId, keyCode) ?: return
-        currentProfile?.putController(controller)
-        lifecycleScope.launch(Dispatchers.IO) {
-            currentProfile?.save()
-            launch(Dispatchers.Main) {
-                publishUiState()
-            }
-        }
+        findEditingBinding(controllerId, keyCode) ?: return
     }
 
     private fun showBindingTypePicker(
         controllerId: String,
         keyCode: Int,
     ) {
-        val (controller, binding) = findBinding(controllerId, keyCode) ?: return
+        val binding = findEditingBinding(controllerId, keyCode) ?: return
         val entries = resources.getStringArray(R.array.binding_type_entries)
         showSingleChoiceDialog(
             title = getString(R.string.input_controls_editor_type),
@@ -1330,13 +1356,7 @@ class InputControlsFragment : Fragment() {
                     2 -> Binding.gamepadBindingValues().getOrNull(1) ?: Binding.NONE
                     else -> Binding.NONE
                 }
-            currentProfile?.putController(controller)
-            lifecycleScope.launch(Dispatchers.IO) {
-                currentProfile?.save()
-                launch(Dispatchers.Main) {
-                    publishUiState()
-                }
-            }
+            publishUiState()
         }
     }
 
@@ -1344,7 +1364,7 @@ class InputControlsFragment : Fragment() {
         controllerId: String,
         keyCode: Int,
     ) {
-        val (controller, binding) = findBinding(controllerId, keyCode) ?: return
+        val binding = findEditingBinding(controllerId, keyCode) ?: return
         val entries =
             when {
                 binding.binding.isKeyboard -> Binding.keyboardBindingLabels()
@@ -1366,13 +1386,7 @@ class InputControlsFragment : Fragment() {
             checkedIndex = checkedIndex,
         ) { which ->
             binding.binding = values[which]
-            currentProfile?.putController(controller)
-            lifecycleScope.launch(Dispatchers.IO) {
-                currentProfile?.save()
-                launch(Dispatchers.Main) {
-                    publishUiState()
-                }
-            }
+            publishUiState()
         }
     }
 
@@ -1380,26 +1394,19 @@ class InputControlsFragment : Fragment() {
         controllerId: String,
         keyCode: Int,
     ) {
-        val (controller, binding) = findBinding(controllerId, keyCode) ?: return
-        controller.removeControllerBinding(binding)
-        currentProfile?.putController(controller)
-        lifecycleScope.launch(Dispatchers.IO) {
-            currentProfile?.save()
-            launch(Dispatchers.Main) {
-                publishUiState()
-            }
-        }
+        val binding = findEditingBinding(controllerId, keyCode) ?: return
+        editingBindings.remove(binding)
+        publishUiState()
     }
 
     private fun findVisibleController(controllerId: String): ExternalController? = visibleControllers.firstOrNull { it.id == controllerId }
 
-    private fun findBinding(
+    private fun findEditingBinding(
         controllerId: String,
         keyCode: Int,
-    ): Pair<ExternalController, ExternalControllerBinding>? {
-        val controller = findVisibleController(controllerId) ?: return null
-        val binding = controller.getControllerBinding(keyCode) ?: return null
-        return controller to binding
+    ): ExternalControllerBinding? {
+        if (controllerId !in expandedControllerIds) return null
+        return editingBindings.firstOrNull { it.keyCodeForAxis == keyCode }
     }
 
     private fun bindingTypeIndex(binding: ExternalControllerBinding): Int =
