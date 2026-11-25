@@ -173,7 +173,12 @@ internal fun DialogPaneNav(
 internal fun DialogPaneNav(handlers: PaneNavWindowHandlers) {
     val view = LocalView.current
     DisposableEffect(view, handlers) {
-        val window = (view.parent as? DialogWindowProvider)?.window
+        // Compose's Dialog { } composes its content inside a DialogLayout that is itself the
+        // DialogWindowProvider, so resolve the window from the view first and fall back to the
+        // parent for a ComposeView hosted inside a platform dialog.
+        val window =
+            (view as? DialogWindowProvider)?.window
+                ?: (view.parent as? DialogWindowProvider)?.window
         val restore = window?.bindPaneNav(handlers)
         onDispose { restore?.invoke() }
     }

@@ -1,6 +1,7 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.winlator.cmod.feature.settings
+import android.view.WindowManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -77,6 +78,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -94,6 +96,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -106,6 +109,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import com.winlator.cmod.R
 import com.winlator.cmod.runtime.input.controls.Binding
 import com.winlator.cmod.runtime.input.ui.DragAction
@@ -781,6 +785,7 @@ private fun InputFixedFooterDialogShell(
     title: String? = null,
     maxWidth: Dp = 440.dp,
     maxBodyHeight: Dp = 320.dp,
+    focusable: Boolean = true,
     footer: @Composable () -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -793,6 +798,15 @@ private fun InputFixedFooterDialogShell(
                 decorFitsSystemWindows = false,
             ),
     ) {
+        if (!focusable) {
+            val view = LocalView.current
+            SideEffect {
+                val window =
+                    (view as? DialogWindowProvider)?.window
+                        ?: (view.parent as? DialogWindowProvider)?.window
+                window?.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+            }
+        }
         DialogPaneNav(registry, onDismiss = onDismiss)
         CompositionLocalProvider(LocalPaneNav provides registry) {
             BoxWithConstraints(
@@ -2778,6 +2792,7 @@ private fun ControllerBindingsDialog(
         onDismiss = onDismiss,
         title = state.name,
         maxWidth = 560.dp,
+        focusable = false,
         footer = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
