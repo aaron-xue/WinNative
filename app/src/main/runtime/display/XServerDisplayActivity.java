@@ -6333,7 +6333,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
                     @Override
                     public void onControllerManagerClick() {
-                        if (drawerStateHolder != null) drawerStateHolder.closeDrawer();
                         ControllerAssignmentDialog.show(XServerDisplayActivity.this, winHandler);
                     }
 
@@ -7030,7 +7029,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 break;
             case R.id.main_menu_controller_manager:
                 ControllerAssignmentDialog.show(this, winHandler);
-                closeDrawerMenu();
                 break;
             case R.id.main_menu_fps_monitor:
                 if (frameRating == null) {
