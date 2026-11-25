@@ -250,15 +250,6 @@ class InputControlsFragment : Fragment() {
                     if (showControllerTest) {
                         ControllerTestDialog(
                             onDismiss = { showControllerTest = false },
-                            profile = currentProfile,
-                            allProfiles = manager.profiles.toList(),
-                            onSelectProfile = { selectProfile(it) },
-                            onCreateProfile = { createProfileNamed(it) },
-                            onRenameProfile = ::editProfile,
-                            onBindingsChanged = {
-                                refreshVisibleControllers()
-                                publishUiState()
-                            },
                         )
                     }
                 }

@@ -44,7 +44,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.winlator.cmod.R
-import com.winlator.cmod.runtime.input.controls.ControlsProfile
 import com.winlator.cmod.runtime.input.controls.ExternalController
 import com.winlator.cmod.shared.theme.WinNativeAccent
 import com.winlator.cmod.shared.theme.WinNativeOutline
@@ -53,24 +52,20 @@ import com.winlator.cmod.shared.theme.WinNativeTextPrimary
 import com.winlator.cmod.shared.theme.WinNativeTextSecondary
 import kotlin.math.min
 
+private enum class ControllerTestTab {
+    TEST,
+    VIBRATION,
+    GYRO,
+}
+
 @Composable
 fun ControllerTestDialog(
     onDismiss: () -> Unit,
-    profile: ControlsProfile?,
-    allProfiles: List<ControlsProfile>,
-    onSelectProfile: (ControlsProfile) -> Unit,
-    onCreateProfile: (String) -> Unit,
-    onRenameProfile: (() -> Unit)?,
-    onBindingsChanged: () -> Unit,
-    onOpenAllBindings: (() -> Unit)? = null,
-    onDeleteProfile: (() -> Unit)? = null,
-    startInBind: Boolean = false,
 ) {
     val snap by ControllerTestBus.snapshot.collectAsState()
     var manualArt by remember { mutableStateOf<PadArt?>(null) }
-    var bindMode by remember { mutableStateOf(startInBind) }
+    var activeTab by remember { mutableStateOf(ControllerTestTab.TEST) }
     val padName = remember { ExternalController.getControllers().firstOrNull()?.name }
-    val padDescriptor = remember { ExternalController.getControllers().firstOrNull()?.id }
 
     DisposableEffect(Unit) {
         ControllerTestBus.setDialogOpen(true)
@@ -81,7 +76,7 @@ fun ControllerTestDialog(
 
     BackHandler { onDismiss() }
 
-    key(bindMode) {
+    key(activeTab) {
         Dialog(
             onDismissRequest = onDismiss,
             properties =
@@ -92,7 +87,7 @@ fun ControllerTestDialog(
                 ),
         ) {
             val window = (LocalView.current.parent as? DialogWindowProvider)?.window
-            val testMode = !bindMode
+            val testMode = activeTab == ControllerTestTab.TEST
             SideEffect {
                 ControllerTestBus.setDialogOpen(true)
                 ControllerTestBus.setActive(testMode)
@@ -128,43 +123,34 @@ fun ControllerTestDialog(
                 ) {
                     Column(Modifier.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            TestBindToggle(bindMode) { bindMode = it }
+                            TestTabBar(activeTab) { activeTab = it }
                             Spacer(Modifier.weight(1f))
                             TextButton(onClick = onDismiss) {
                                 Text(stringResource(R.string.common_ui_close))
                             }
                         }
                         Spacer(Modifier.height(8.dp))
-                        if (bindMode) {
-                            VisualControllerBinder(
-                                profile = profile,
-                                art = padArtOf(snap, padName),
-                                snapshot = snap,
-                                controllerId = snap?.deviceDescriptor?.takeIf { it.isNotEmpty() } ?: padDescriptor,
-                            controllerName = snap?.deviceName?.takeIf { it.isNotEmpty() } ?: padName,
-                                allProfiles = allProfiles,
-                                onSelectProfile = onSelectProfile,
-                                onCreateProfile = onCreateProfile,
-                                onRenameProfile = onRenameProfile,
-                                onSaved = onBindingsChanged,
-                                onOpenAllBindings = onOpenAllBindings,
-                                onDeleteProfile = onDeleteProfile,
-                                modifier = Modifier.fillMaxWidth().heightIn(max = panelMax),
-                            )
-                        } else {
-                            ControllerTestPanel(
-                                snapshot = snap,
-                                title = stringResource(R.string.controller_test_title),
-                                subtitle = snap?.deviceName?.takeIf { it.isNotEmpty() } ?: padName ?: "",
-                                resetKey = Unit,
-                                manualArt = manualArt,
-                                onArtChange = { manualArt = it },
-                                identifyEnabled = snap?.hasVibrator == true,
-                                onIdentify = { ControllerTestBus.onIdentify?.run() },
-                                onDone = null,
-                                modifier = Modifier.fillMaxWidth().heightIn(max = panelMax),
-                                nameHint = padName,
-                            )
+                        when (activeTab) {
+                            ControllerTestTab.TEST ->
+                                ControllerTestPanel(
+                                    snapshot = snap,
+                                    title = stringResource(R.string.controller_test_title),
+                                    subtitle = snap?.deviceName?.takeIf { it.isNotEmpty() } ?: padName ?: "",
+                                    resetKey = Unit,
+                                    manualArt = manualArt,
+                                    onArtChange = { manualArt = it },
+                                    identifyEnabled = snap?.hasVibrator == true,
+                                    onIdentify = { ControllerTestBus.onIdentify?.run() },
+                                    onDone = null,
+                                    modifier = Modifier.fillMaxWidth().heightIn(max = panelMax),
+                                    nameHint = padName,
+                                )
+
+                            ControllerTestTab.VIBRATION ->
+                                EmptyTabPanel(modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = panelMax))
+
+                            ControllerTestTab.GYRO ->
+                                EmptyTabPanel(modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = panelMax))
                         }
                     }
                 }
@@ -174,18 +160,24 @@ fun ControllerTestDialog(
 }
 
 @Composable
-private fun TestBindToggle(
-    bind: Boolean,
-    onChange: (Boolean) -> Unit,
+private fun TestTabBar(
+    selected: ControllerTestTab,
+    onSelect: (ControllerTestTab) -> Unit,
 ) {
     Row(
         Modifier
             .clip(RoundedCornerShape(10.dp))
             .border(1.dp, WinNativeOutline, RoundedCornerShape(10.dp)),
     ) {
-        SegItem(stringResource(R.string.controller_test_mode_test), !bind) { onChange(false) }
-        SegItem(stringResource(R.string.controller_test_mode_bind), bind) { onChange(true) }
+        SegItem(stringResource(R.string.controller_test_mode_test), selected == ControllerTestTab.TEST) { onSelect(ControllerTestTab.TEST) }
+        SegItem(stringResource(R.string.session_gamepad_vibrate), selected == ControllerTestTab.VIBRATION) { onSelect(ControllerTestTab.VIBRATION) }
+        SegItem(stringResource(R.string.session_gyroscope_title), selected == ControllerTestTab.GYRO) { onSelect(ControllerTestTab.GYRO) }
     }
+}
+
+@Composable
+private fun EmptyTabPanel(modifier: Modifier = Modifier) {
+    Box(modifier)
 }
 
 @Composable

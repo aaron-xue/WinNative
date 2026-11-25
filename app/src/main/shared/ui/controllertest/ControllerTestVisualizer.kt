@@ -6,7 +6,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,7 +47,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
@@ -69,7 +67,6 @@ private val TestLive = Color(0xFF57C777)
 private val TestTile = Color(0xFF14141E)
 private val TestMenuCard = Color(0xFF1C1C2A)
 private val TestNub = Color(0xFF12161D)
-internal val BIND_BLUE = Color(0xFF7AA0FF)
 
 enum class PadArt {
     XBOX_360,
@@ -102,16 +99,6 @@ fun padArtLabel(a: PadArt): String =
     }
 
 private fun padArtSafe(ordinal: Int): PadArt = PadArt.entries.getOrElse(ordinal) { PadArt.GENERIC }
-
-internal fun padArtOf(
-    snapshot: ControllerTestSnapshot?,
-    nameHint: String?,
-): PadArt =
-    when {
-        snapshot != null -> padArtSafe(snapshot.padArt)
-        nameHint != null -> classifyPadArtByName(nameHint)
-        else -> PadArt.GENERIC
-    }
 
 fun classifyPadArt(device: InputDevice?): PadArt {
     if (device == null) return PadArt.GENERIC
@@ -508,61 +495,11 @@ private fun highlightManifest(
     return cands.firstOrNull { ref.el.containsKey(it) }
 }
 
-internal fun manifestToBindId(manifestId: String): String? =
-    when (manifestId) {
-        "a", "b", "x", "y", "lt", "rt", "l3", "r3", "lb", "rb", "start", "back", "guide", "qam", "l4", "l5", "r4", "r5", "lpad", "rpad" -> manifestId
-        "dpad_up" -> "dup"
-        "dpad_down" -> "ddown"
-        "dpad_left" -> "dleft"
-        "dpad_right" -> "dright"
-        "l" -> "lb"
-        "r" -> "rb"
-        "lstick" -> "l3"
-        "rstick" -> "r3"
-        "cstick" -> "r3"
-        "home" -> "guide"
-        "options" -> "start"
-        "plus" -> "start"
-        "menu" -> "start"
-        "select" -> "back"
-        "share" -> "back"
-        "minus" -> "back"
-        "view" -> "back"
-        else -> null
-    }
-
-private fun bindToManifest(
-    ref: PadArtRef,
-    bindId: String,
-): String? {
-    val cands =
-        when (bindId) {
-            "a", "b", "x", "y", "lt", "rt", "l3", "r3" -> listOf(bindId)
-            "lb" -> listOf("lb", "l")
-            "rb" -> listOf("rb", "r")
-            "dup" -> listOf("dpad_up")
-            "ddown" -> listOf("dpad_down")
-            "dleft" -> listOf("dpad_left")
-            "dright" -> listOf("dpad_right")
-            "back" -> listOf("back", "select", "share", "minus", "view")
-            "start" -> listOf("start", "options", "plus", "menu")
-            "guide" -> listOf("guide", "home")
-            "qam", "l4", "l5", "r4", "r5", "lpad", "rpad" -> listOf(bindId)
-            "lsu", "lsd", "lsl", "lsr" -> listOf("lstick")
-            "rsu", "rsd", "rsl", "rsr" -> listOf("rstick", "cstick")
-            else -> emptyList()
-        }
-    return cands.firstOrNull { ref.el.containsKey(it) }
-}
-
 @Composable
 internal fun PadArtView(
     art: PadArt,
     snapshot: ControllerTestSnapshot?,
     modifier: Modifier = Modifier,
-    boundBindIds: Set<String> = emptySet(),
-    selectedBindId: String? = null,
-    onTapBind: ((String) -> Unit)? = null,
 ) {
     val ref = PAD_REFS[art] ?: PAD_REFS[PadArt.GENERIC]!!
     val accent = WinNativeAccent
@@ -572,13 +509,6 @@ internal fun PadArtView(
             for (p in pressedSet(snapshot)) highlightManifest(ref, p)?.let { out.add(it) }
             out
         }
-    val boundManifest =
-        remember(boundBindIds, art) {
-            val out = HashSet<String>()
-            for (bid in boundBindIds) bindToManifest(ref, bid)?.let { out.add(it) }
-            out
-        }
-    val selectedManifest = selectedBindId?.let { bindToManifest(ref, it) }
 
     Box(
         modifier
@@ -592,63 +522,15 @@ internal fun PadArtView(
             modifier = Modifier.matchParentSize(),
             contentScale = ContentScale.Fit,
         )
-        Canvas(
-            Modifier.matchParentSize().then(
-                if (onTapBind != null) {
-                    Modifier.pointerInput(art) {
-                        detectTapGestures { pos ->
-                            val sx = size.width / ref.vbW
-                            val sy = size.height / ref.vbH
-                            val sr = maxOf(sx, sy)
-                            var best: String? = null
-                            var bestD = Float.MAX_VALUE
-                            for ((id, t) in ref.el) {
-                                val cx = t.first * sx
-                                val cy = t.second * sy
-                                val rr = t.third * sr
-                                val dx = pos.x - cx
-                                val dy = pos.y - cy
-                                val d = dx * dx + dy * dy
-                                if (d <= rr * rr && d < bestD) {
-                                    bestD = d
-                                    best = id
-                                }
-                            }
-                            best?.let { manifestToBindId(it) }?.let { onTapBind(it) }
-                        }
-                    }
-                } else {
-                    Modifier
-                },
-            ),
-        ) {
+        Canvas(Modifier.matchParentSize()) {
             val sx = size.width / ref.vbW
             val sy = size.height / ref.vbH
             val sr = maxOf(sx, sy)
-            for (mid in boundManifest) {
-                val t = ref.el[mid] ?: continue
-                drawCircle(
-                    BIND_BLUE,
-                    4f,
-                    Offset(t.first * sx + t.third * sr * 0.6f, t.second * sy - t.third * sr * 0.6f),
-                )
-            }
             for (mid in pressedManifest) {
                 val t = ref.el[mid] ?: continue
                 val rr = t.third * sr
                 drawCircle(accent.copy(alpha = 0.30f), rr * 1.5f, Offset(t.first * sx, t.second * sy))
                 drawCircle(accent, rr, Offset(t.first * sx, t.second * sy), style = Stroke(width = 2f))
-            }
-            selectedManifest?.let { mid ->
-                val t = ref.el[mid]
-                if (t != null) {
-                    drawCircle(
-                        accent,
-                        t.third * sr * 1.25f,
-                        Offset(t.first * sx, t.second * sy),
-                        style = Stroke(width = 2.5f),
-                    )
-                }
             }
             snapshot?.let { s ->
                 if (s.leftTouch) drawStickNub(ref, "lpad", s.leftTouchX * 2 - 1, s.leftTouchY * 2 - 1, sx, sy, sr, accent, true)
