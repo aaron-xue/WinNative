@@ -49,9 +49,17 @@ object ControllerTestBus {
     @Volatile
     private var dialogOpen: Boolean = false
 
+    @Volatile
+    private var targetDeviceId: Int = Int.MIN_VALUE
+
     @JvmField
     @Volatile
     var onIdentify: Runnable? = null
+
+    @JvmStatic
+    fun setTargetDevice(deviceId: Int) {
+        targetDeviceId = deviceId
+    }
 
     @JvmStatic
     fun isActive(): Boolean = active
@@ -69,6 +77,7 @@ object ControllerTestBus {
         dialogOpen = value
         if (!value) {
             active = false
+            targetDeviceId = Int.MIN_VALUE
             _snapshot.value = null
         }
     }
@@ -102,6 +111,7 @@ object ControllerTestBus {
         guideDown: Boolean,
     ) {
         if (!dialogOpen) return
+        if (targetDeviceId != Int.MIN_VALUE && controller.deviceId != targetDeviceId) return
         val state = controller.state
         _snapshot.value =
             ControllerTestSnapshot(
@@ -133,6 +143,7 @@ object ControllerTestBus {
         quickAccessDown: Boolean,
     ) {
         if (!dialogOpen) return
+        if (targetDeviceId != Int.MIN_VALUE && pad.deviceId != targetDeviceId) return
         val state = pad.state
         _snapshot.value =
             ControllerTestSnapshot(

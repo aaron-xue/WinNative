@@ -88,6 +88,8 @@ class InputControlsFragment : Fragment() {
         restartSteamBackend()
     }
     private var showControllerTest by mutableStateOf(false)
+    private var testControllerName: String? = null
+    private var testTargetDeviceId: Int = Int.MIN_VALUE
     private val testController = ExternalController()
     private var testGuideDown = false
 
@@ -236,7 +238,11 @@ class InputControlsFragment : Fragment() {
                                 onBindingNoteChanged = ::updateBindingNote,
                                 onBindingNoteCommit = ::commitBindingNote,
                                 onRemoveBinding = ::removeBinding,
-                                onOpenControllerTest = {
+                                onOpenControllerTest = { controllerId ->
+                                    val controller = findVisibleController(controllerId)
+                                    testControllerName = controller?.name
+                                    testTargetDeviceId = controller?.deviceId ?: Int.MIN_VALUE
+                                    ControllerTestBus.setTargetDevice(testTargetDeviceId)
                                     ControllerTestBus.onIdentify = Runnable { identifyController() }
                                     showControllerTest = true
                                     ControllerTestBus.setDialogOpen(true)
@@ -249,6 +255,7 @@ class InputControlsFragment : Fragment() {
                     )
                     if (showControllerTest) {
                         ControllerTestDialog(
+                            padName = testControllerName,
                             onDismiss = { showControllerTest = false },
                         )
                     }
@@ -282,6 +289,8 @@ class InputControlsFragment : Fragment() {
         unregisterInputDeviceListener()
         stopSteamBackend()
         showControllerTest = false
+        testControllerName = null
+        testTargetDeviceId = Int.MIN_VALUE
         detachGyroPreview()
         stopControllerInputCapture()
         ControllerTestBus.setDialogOpen(false)
@@ -331,6 +340,7 @@ class InputControlsFragment : Fragment() {
         if (showControllerTest) {
             val device = event.device
             if (ExternalController.isGameController(device)) {
+                if (testTargetDeviceId != Int.MIN_VALUE && event.deviceId != testTargetDeviceId) return false
                 if (event.repeatCount == 0) {
                     prepareTestController(device)
                     if (event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
@@ -356,6 +366,7 @@ class InputControlsFragment : Fragment() {
         if (showControllerTest) {
             val device = event.device
             if (ExternalController.isGameController(device)) {
+                if (testTargetDeviceId != Int.MIN_VALUE && event.deviceId != testTargetDeviceId) return false
                 prepareTestController(device)
                 if (testController.updateStateFromMotionEvent(event)) {
                     ControllerTestBus.publish(testController, device, testGuideDown)

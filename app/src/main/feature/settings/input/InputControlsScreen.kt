@@ -288,7 +288,7 @@ data class InputControlsScreenActions(
     val onBindingNoteChanged: (String, Int, String) -> Unit,
     val onBindingNoteCommit: (String, Int) -> Unit,
     val onRemoveBinding: (String, Int) -> Unit,
-    val onOpenControllerTest: () -> Unit,
+    val onOpenControllerTest: (String) -> Unit,
     val onSteamControllerEnabledChanged: (Boolean) -> Unit,
     val onSteamTrackpadModeSelected: (Int) -> Unit,
     val onSteamPaddleClick: (Int) -> Unit,
@@ -362,12 +362,6 @@ fun InputControlsScreen(
                     icon = Icons.Outlined.FileUpload,
                     title = stringResource(R.string.gesture_profile_export),
                     onClick = actions.onExportGestureProfile,
-                )
-                SectionLabel(stringResource(R.string.controller_test_title))
-                ActionCard(
-                    icon = Icons.Outlined.SportsEsports,
-                    title = stringResource(R.string.controller_test_card_title),
-                    onClick = actions.onOpenControllerTest,
                 )
                 SectionLabel(stringResource(R.string.steam_controller_section))
                 SteamControllerCard(state, actions)
@@ -2656,6 +2650,30 @@ private fun ControllerCard(
                         fontSize = InputSecondaryTextSize,
                     )
                 }
+                Box(
+                    modifier =
+                        Modifier
+                            .heightIn(min = 30.dp)
+                            .clip(RoundedCornerShape(InputFieldCorner))
+                            .background(InputSubcard)
+                            .border(1.dp, InputOutline, RoundedCornerShape(InputFieldCorner))
+                            .paneNavItem(
+                                cornerRadius = InputFieldCorner,
+                                onActivate = { actions.onOpenControllerTest(state.controllerId) },
+                                highlightColor = InputNavHighlight,
+                                tapToSelect = true,
+                            ).padding(horizontal = 12.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.controller_test_title),
+                        color = InputAccent,
+                        fontSize = InputSecondaryTextSize,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
                 if (state.showBindings && state.bindingCount > 0) {
                     IconActionButton(
                         image = Icons.Outlined.Delete,

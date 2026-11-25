@@ -44,7 +44,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.winlator.cmod.R
-import com.winlator.cmod.runtime.input.controls.ExternalController
 import com.winlator.cmod.shared.theme.WinNativeAccent
 import com.winlator.cmod.shared.theme.WinNativeOutline
 import com.winlator.cmod.shared.theme.WinNativeSurface
@@ -60,12 +59,12 @@ private enum class ControllerTestTab {
 
 @Composable
 fun ControllerTestDialog(
+    padName: String?,
     onDismiss: () -> Unit,
 ) {
     val snap by ControllerTestBus.snapshot.collectAsState()
     var manualArt by remember { mutableStateOf<PadArt?>(null) }
     var activeTab by remember { mutableStateOf(ControllerTestTab.TEST) }
-    val padName = remember { ExternalController.getControllers().firstOrNull()?.name }
 
     DisposableEffect(Unit) {
         ControllerTestBus.setDialogOpen(true)
