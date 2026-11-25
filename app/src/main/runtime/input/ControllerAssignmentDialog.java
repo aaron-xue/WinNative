@@ -5,7 +5,6 @@ import android.content.Context;
 import android.hardware.input.InputManager;
 import android.view.InputDevice;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -71,11 +70,6 @@ public class ControllerAssignmentDialog {
     initializeViews();
 
     restartRequiredView = dialog.getContentView().findViewById(R.id.TVRestartRequired);
-
-    // Apply white text to the whole content
-    View root = dialog.getContentView();
-    if (root != null && root instanceof ViewGroup)
-      setTextColorForDialog((ViewGroup) root, 0xFFFFFFFF);
 
     populateView();
     setupListeners();
@@ -272,16 +266,5 @@ public class ControllerAssignmentDialog {
     }
 
     dialog.setOnConfirmCallback(() -> controllerManager.saveAssignments());
-  }
-
-  private void setTextColorForDialog(ViewGroup viewGroup, int color) {
-    for (int i = 0; i < viewGroup.getChildCount(); i++) {
-      View child = viewGroup.getChildAt(i);
-      if (child instanceof ViewGroup) {
-        setTextColorForDialog((ViewGroup) child, color);
-      } else if (child instanceof TextView || child instanceof Button) {
-        ((TextView) child).setTextColor(color);
-      }
-    }
   }
 }
