@@ -3628,8 +3628,6 @@ Installed path:
     <string name="networking_mac_invalid">Enter 12 hex digits (for example 3c:5a:b4:12:34:56). The first byte must be unicast and globally administered, so bits 0 and 1 clear; many games reject locally administered addresses such as 02:….</string>
 
     <string name="controller_test_title">Controller test</string>
-    <string name="controller_test_card_title">Controller test</string>
-    <string name="controller_test_card_summary">Check every input on the pad picture</string>
     <string name="controller_test_mode_test">Test</string>
     <string name="controller_test_live_input">Live input</string>
     <string name="controller_test_waiting">Press a button on the pad…</string>

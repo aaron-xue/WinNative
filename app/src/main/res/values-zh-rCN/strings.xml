@@ -3458,8 +3458,6 @@
     <string name="itch_store_update_none">已是最新</string>
     <string name="itch_store_update_available">有可用更新 — %1$s</string>
     <string name="controller_test_title">控制器测试</string>
-    <string name="controller_test_card_title">控制器测试</string>
-    <string name="controller_test_card_summary">在手柄图示上检查每个输入</string>
     <string name="controller_test_mode_test">测试</string>
     <string name="controller_test_live_input">实时输入</string>
     <string name="controller_test_waiting">请按手柄上的任意按钮…</string>

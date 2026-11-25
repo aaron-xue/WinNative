@@ -329,6 +329,7 @@ fun InputControlsScreen(
                 SectionLabel(stringResource(R.string.input_controls_auto_hide_section))
                 AutoHideTouchCard(state, actions)
                 ProfileCard(state, actions)
+                OverlayOpacityCard(state, actions)
                 SectionLabel(stringResource(R.string.input_controls_editor_input_profiles_section))
                 ActionCard(
                     icon = Icons.Outlined.FileDownload,
@@ -340,8 +341,6 @@ fun InputControlsScreen(
                     title = stringResource(R.string.input_controls_editor_export_profile),
                     onClick = actions.onExportProfile,
                 )
-                SectionLabel(stringResource(R.string.input_controls_editor_overlay_opacity))
-                OverlayOpacityCard(state, actions)
                 SectionLabel(stringResource(R.string.session_gamepad_trigger_type))
                 TriggerTypeCard(state, actions)
                 SectionLabel(stringResource(R.string.session_gyroscope_title))
