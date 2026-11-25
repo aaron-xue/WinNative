@@ -361,9 +361,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
     private WinHandler winHandler;
     private com.winlator.cmod.runtime.input.controls.SteamControllerBackend steamControllerBackend;
     private boolean steamControllerSessionReady;
-    private ComposeView controllerTestComposeView;
-    private final ExternalController controllerTestController = new ExternalController();
-    private boolean controllerTestGuideDown = false;
     private boolean steamInputForeground = false;
     private WineRequestHandler wineRequestHandler;
     private float globalCursorSpeed = 1.0f;
@@ -5157,7 +5154,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         releaseDirectCompositionLayer();
         com.winlator.cmod.runtime.display.composition.SurfaceCompositor.closeDiagnosticFile();
         stopSteamControllerSupport();
-        hideControllerTestDialog();
         stopSystemFrameGenPolling();
         if (systemFrameGenMonitor != null) {
             systemFrameGenMonitor.stop();
@@ -6336,9 +6332,9 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                     }
 
                     @Override
-                    public void onControllerTestClick() {
+                    public void onControllerManagerClick() {
                         if (drawerStateHolder != null) drawerStateHolder.closeDrawer();
-                        showControllerTestDialog();
+                        ControllerAssignmentDialog.show(XServerDisplayActivity.this, winHandler);
                     }
 
                     @Override
@@ -8851,7 +8847,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         }
 
         winHandler.start();
-        com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.setDialogOpen(false);
         runOnUiThread(() -> {
             steamControllerSessionReady = true;
             startSteamControllerSupport();
@@ -10173,10 +10168,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             return true;
         }
         if (isSteamControllerShadowEvent(event.getDevice())) return true;
-        if (controllerTestComposeView != null
-                && consumeControllerTestMotionEvent(event)) {
-            return true;
-        }
 
         boolean handledByWinHandler = false;
         boolean handledByTouchpadView = false;
@@ -10221,10 +10212,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         boolean freshKey = event.getKeyCode() != KeyEvent.KEYCODE_BUTTON_MODE || event.getRepeatCount() == 0;
         if (ExternalController.isGameController(event.getDevice())
                 && handleControllerMenuKey(event.getKeyCode(), event.getAction() == KeyEvent.ACTION_DOWN && freshKey, event.getEventTime())) return true;
-        if (controllerTestComposeView != null
-                && consumeControllerTestKeyEvent(event)) {
-            return true;
-        }
         if (ExternalController.isGameController(event.getDevice())) {
             cancelMousePointerTimeout();
             if (touchpadView != null) {
@@ -10347,7 +10334,7 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         for (int keyCode : pressedKeyCodes) pressed.add(keyCode);
         java.util.Set<Integer> previous = steamMenuKeys.put(pad.getDeviceId(), pressed);
         if (previous == null) previous = java.util.Collections.emptySet();
-        if (!steamInputForeground || controllerTestComposeView != null) return;
+        if (!steamInputForeground) return;
         boolean menuOpen = drawerStateHolder != null && (drawerStateHolder.isDrawerOpen() || drawerStateHolder.isPaneOpen());
         if (menuOpen) {
             for (int keyCode : pressed) {
@@ -10378,110 +10365,8 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         }
     }
 
-    public InputControlsManager getControllerTestProfileManager() {
-        return inputControlsManager;
-    }
-
-    public void applyControllerTestProfile(ControlsProfile profile) {
-        if (profile == null) return;
-        showInputControls(profile);
-        renderDrawerMenu();
-    }
-
-    public void reloadControllerTestBindings() {
-        if (inputControlsView == null) return;
-        ControlsProfile profile = inputControlsView.getProfile();
-        if (profile != null) showInputControls(profile);
-        refreshSteamControllerInput();
-    }
-
-    private void showControllerTestDialog() {
-        if (controllerTestComposeView != null) return;
-        android.view.ViewGroup root = findViewById(android.R.id.content);
-        if (root == null) return;
-        ComposeView view = new ComposeView(this);
-        com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.onIdentify =
-                this::identifyControllerTestPad;
-        ControllerTestHost.attach(view, this, this::hideControllerTestDialog);
-        root.addView(
-                view,
-                new android.view.ViewGroup.LayoutParams(
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT));
-        controllerTestComposeView = view;
-        com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.setDialogOpen(true);
-        refreshSteamControllerInput();
-    }
-
-    private void hideControllerTestDialog() {
-        com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.setDialogOpen(false);
-        com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.onIdentify = null;
-        if (controllerTestComposeView == null) return;
-        android.view.ViewParent parent = controllerTestComposeView.getParent();
-        if (parent instanceof android.view.ViewGroup) {
-            ((android.view.ViewGroup) parent).removeView(controllerTestComposeView);
-        }
-        controllerTestComposeView = null;
-        refreshSteamControllerInput();
-    }
-
-    private void publishControllerTestSnapshot(android.view.InputDevice device) {
-        com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.publish(
-                controllerTestController, device, controllerTestGuideDown);
-    }
-
-    private boolean consumeControllerTestKeyEvent(KeyEvent event) {
-        android.view.InputDevice device = event.getDevice();
-        if (!ExternalController.isGameController(device)) return false;
-        if (event.getRepeatCount() == 0) {
-            prepareControllerTestController(device);
-            if (event.getKeyCode() == KeyEvent.KEYCODE_BUTTON_MODE) {
-                controllerTestGuideDown = event.getAction() == KeyEvent.ACTION_DOWN;
-            }
-            controllerTestController.updateStateFromKeyEvent(event);
-            publishControllerTestSnapshot(device);
-        }
-        return true;
-    }
-
-    private boolean consumeControllerTestMotionEvent(MotionEvent event) {
-        android.view.InputDevice device = event.getDevice();
-        if (!ExternalController.isGameController(device)) return false;
-        prepareControllerTestController(device);
-        if (controllerTestController.updateStateFromMotionEvent(event)) {
-            publishControllerTestSnapshot(device);
-        }
-        return true;
-    }
-
-    private void identifyControllerTestPad() {
-        int deviceId = com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.currentDeviceId();
-        if (deviceId == Integer.MIN_VALUE) deviceId = controllerTestController.getDeviceId();
-        if (steamControllerBackend != null
-                && deviceId <= com.winlator.cmod.runtime.input.controls.SteamControllerBackend.DEVICE_ID_BASE) {
-            steamControllerBackend.rumble(deviceId, 0xFFFF, 0xFFFF, 320);
-            return;
-        }
-        android.view.InputDevice device = android.view.InputDevice.getDevice(deviceId);
-        android.os.Vibrator vibrator = device != null ? device.getVibrator() : null;
-        if (vibrator == null || !vibrator.hasVibrator()) return;
-        vibrator.vibrate(
-                android.os.VibrationEffect.createOneShot(
-                        320L, android.os.VibrationEffect.DEFAULT_AMPLITUDE));
-    }
-
-    private void prepareControllerTestController(android.view.InputDevice device) {
-        if (device == null || controllerTestController.getDeviceId() == device.getId()) return;
-        controllerTestController.state.clear();
-        controllerTestController.setDeviceId(device.getId());
-        controllerTestController.setId(device.getDescriptor());
-        controllerTestController.setName(device.getName());
-        controllerTestController.setTriggerType(ExternalController.TRIGGER_IS_BOTH);
-        controllerTestGuideDown = false;
-    }
-
     private boolean isSteamControllerInputEnabled() {
-        return steamInputForeground && !isInputSuspended() && controllerTestComposeView == null
+        return steamInputForeground && !isInputSuspended()
                 && !activityDestroyed.get() && (drawerStateHolder == null
                 || (!drawerStateHolder.isDrawerOpen() && !drawerStateHolder.isPaneOpen()));
     }
@@ -10534,7 +10419,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
                 }
                 drawerStickHandler.removeCallbacks(drawerStickRepeat);
                 drawerStickDir = 0;
-                com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.disconnect(pad.getDeviceId());
                 if (inputControlsView != null) inputControlsView.onSteamPadDisconnected(pad);
                 if (winHandler != null) winHandler.onSdlPadDisconnected(pad);
             }
@@ -10542,8 +10426,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
             @Override
             public void onSteamPadState(ExternalController pad, boolean guideDown,
                                         boolean quickAccessDown, int[] pressedKeyCodes) {
-                com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.publishSteamPad(
-                        pad, guideDown, quickAccessDown);
                 handleSteamMenuInput(pad, pressedKeyCodes);
                 if (!isSteamControllerInputEnabled()) return;
                 if (inputControlsView != null
@@ -10553,7 +10435,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
 
             @Override
             public void onSteamPadGyro(ExternalController pad, float x, float y, float z, long timestampNanos) {
-                com.winlator.cmod.shared.ui.controllertest.ControllerTestBus.publishSteamGyro(pad, x, y, z);
                 if (winHandler != null && isSteamControllerInputEnabled()) {
                     winHandler.updateSteamGyroData(pad, x, y, timestampNanos);
                 }

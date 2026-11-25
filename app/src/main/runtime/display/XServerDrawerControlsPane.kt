@@ -217,7 +217,7 @@ internal fun InputControlsPaneContent(
                         onProfileSelected = listener::onInputControlsProfileSelected,
                         onEditClick = listener::onInputControlsEditClick,
                     )
-                    ControllerTestRow(onClick = listener::onControllerTestClick)
+                    ControllerManagerRow(onClick = listener::onControllerManagerClick)
                 }
 
                 if (state.inputControlsStyleNames.isNotEmpty()) {
@@ -557,7 +557,7 @@ internal fun InputControlsProfileSelector(
 }
 
 @Composable
-private fun ControllerTestRow(onClick: () -> Unit) {
+private fun ControllerManagerRow(onClick: () -> Unit) {
     val paneScale = LocalPaneScale.current
     val cornerRadius = (12f * paneScale).dp
     val shape = RoundedCornerShape(cornerRadius)
@@ -581,7 +581,7 @@ private fun ControllerTestRow(onClick: () -> Unit) {
         )
         Spacer(Modifier.width((10f * paneScale).dp))
         Text(
-            text = stringResource(R.string.controller_test_card_title),
+            text = stringResource(R.string.session_gamepad_controller_manager),
             color = DrawerTextPrimary,
             fontSize = (13f * paneScale).sp,
             fontWeight = FontWeight.Bold,
