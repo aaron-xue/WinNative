@@ -35,6 +35,7 @@ import com.winlator.cmod.runtime.input.ControllerHelper
 import com.winlator.cmod.runtime.input.ControlsEditorActivity
 import com.winlator.cmod.runtime.input.controls.Binding
 import com.winlator.cmod.runtime.input.controls.ControlElement
+import com.winlator.cmod.runtime.input.controls.ControllerManager
 import com.winlator.cmod.runtime.input.controls.ControlsProfile
 import com.winlator.cmod.runtime.input.controls.ExternalController
 import com.winlator.cmod.runtime.input.controls.ExternalControllerBinding
@@ -247,8 +248,12 @@ class InputControlsFragment : Fragment() {
                                     testTargetDeviceId = controller?.deviceId ?: Int.MIN_VALUE
                                     ControllerTestBus.setTargetDevice(testTargetDeviceId)
                                     ControllerTestBus.onIdentify = Runnable { identifyController() }
+                                    ControllerTestBus.setVibrationRedirectEnabled(
+                                        preferences.getBoolean(ControllerManager.PREF_VIBRATION_GLOBAL, true)
+                                    )
                                     showControllerTest = true
                                     ControllerTestBus.setDialogOpen(true)
+                                    publishTestControllerCapabilities()
                                     publishSteamState()
                                 },
                                 onSteamControllerEnabledChanged = ::setSteamControllerEnabled,
@@ -660,6 +665,15 @@ class InputControlsFragment : Fragment() {
             testController.triggerType = ExternalController.TRIGGER_IS_BOTH
             testGuideDown = false
         }
+    }
+
+    private fun publishTestControllerCapabilities() {
+        if (testTargetDeviceId == Int.MIN_VALUE) return
+        val device = android.view.InputDevice.getDevice(testTargetDeviceId) ?: return
+        if (!ExternalController.isGameController(device)) return
+        prepareTestController(device)
+        testController.state.clear()
+        ControllerTestBus.publish(testController, device, false)
     }
 
     private var sharedSteamListener: SteamControllerBackend.Listener? = null

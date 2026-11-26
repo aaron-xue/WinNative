@@ -3668,6 +3668,14 @@ Installed path:
     <string name="steam_controller_left_pad_click">Left pad click</string>
     <string name="steam_controller_right_pad_click">Right pad click</string>
     <string name="controller_test_generic">Generic</string>
+    <string name="controller_test_vibration_supported">Vibration support</string>
+    <string name="controller_test_vibration_supported_yes">Supported</string>
+    <string name="controller_test_vibration_supported_no">Not supported</string>
+    <string name="controller_test_vibration_motors">Vibration motors</string>
+    <string name="controller_test_vibration_motors_count">%1$d motors</string>
+    <string name="controller_test_vibration_redirect">Local vibration redirection</string>
+    <string name="controller_test_vibration_redirect_on">On</string>
+    <string name="controller_test_vibration_redirect_off">Off</string>
 
     <!-- Graphics Driver Settings -->
     <string name="settings_help_graphics_driver_title">Graphics Driver Settings Reference</string>

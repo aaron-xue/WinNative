@@ -63,6 +63,7 @@ fun ControllerTestDialog(
     onDismiss: () -> Unit,
 ) {
     val snap by ControllerTestBus.snapshot.collectAsState()
+    val vibrationRedirectEnabled by ControllerTestBus.vibrationRedirectEnabled.collectAsState()
     var manualArt by remember { mutableStateOf<PadArt?>(null) }
     var activeTab by remember { mutableStateOf(ControllerTestTab.TEST) }
 
@@ -146,7 +147,11 @@ fun ControllerTestDialog(
                                 )
 
                             ControllerTestTab.VIBRATION ->
-                                EmptyTabPanel(modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = panelMax))
+                                VibrationTestPanel(
+                                    snapshot = snap,
+                                    vibrationRedirectEnabled = vibrationRedirectEnabled,
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = panelMax),
+                                )
 
                             ControllerTestTab.GYRO ->
                                 EmptyTabPanel(modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = panelMax))

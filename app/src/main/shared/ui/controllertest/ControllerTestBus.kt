@@ -2,6 +2,7 @@ package com.winlator.cmod.shared.ui.controllertest
 
 import android.view.InputDevice
 import com.winlator.cmod.runtime.input.controls.ExternalController
+import com.winlator.cmod.runtime.input.controls.SteamControllerBackend
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -23,9 +24,12 @@ data class ControllerTestSnapshot
         val deviceId: Int,
         val deviceName: String,
         val deviceDescriptor: String,
+        val vendorId: Int = -1,
+        val productId: Int = -1,
         val padArt: Int,
         val batteryPct: Int,
         val hasVibrator: Boolean,
+        val vibratorCount: Int = 0,
         val quickAccess: Boolean = false,
         val steamButtons: Int = 0,
         val touchpadCount: Int = 0,
@@ -42,6 +46,9 @@ data class ControllerTestSnapshot
 object ControllerTestBus {
     private val _snapshot = MutableStateFlow<ControllerTestSnapshot?>(null)
     val snapshot: StateFlow<ControllerTestSnapshot?> = _snapshot
+
+    private val _vibrationRedirectEnabled = MutableStateFlow(true)
+    val vibrationRedirectEnabled: StateFlow<Boolean> = _vibrationRedirectEnabled
 
     @Volatile
     private var active: Boolean = false
@@ -80,6 +87,21 @@ object ControllerTestBus {
             targetDeviceId = Int.MIN_VALUE
             _snapshot.value = null
         }
+    }
+
+    @JvmStatic
+    fun setVibrationRedirectEnabled(value: Boolean) {
+        _vibrationRedirectEnabled.value = value
+    }
+
+    @JvmStatic
+    fun vibratorMotorCount(device: InputDevice?): Int {
+        if (device == null) return 0
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val ids = device.vibratorManager?.vibratorIds
+            if (ids != null && ids.isNotEmpty()) return ids.size
+        }
+        return if (device.vibrator?.hasVibrator() == true) 1 else 0
     }
 
     @JvmStatic
@@ -130,9 +152,12 @@ object ControllerTestBus {
                 deviceId = controller.deviceId,
                 deviceName = device?.name ?: controller.name ?: "",
                 deviceDescriptor = device?.descriptor ?: controller.id ?: "",
+                vendorId = device?.vendorId ?: -1,
+                productId = device?.productId ?: -1,
                 padArt = classifyPadArt(device).ordinal,
                 batteryPct = batteryPercent(device),
                 hasVibrator = device?.vibrator?.hasVibrator() == true,
+                vibratorCount = vibratorMotorCount(device),
             )
     }
 
@@ -162,9 +187,12 @@ object ControllerTestBus {
                 deviceId = pad.deviceId,
                 deviceName = pad.name ?: "Steam Controller",
                 deviceDescriptor = pad.id ?: "",
+                vendorId = SteamControllerBackend.VALVE_VENDOR_ID,
+                productId = pad.steamProductId,
                 padArt = PadArt.STEAM.ordinal,
                 batteryPct = -1,
                 hasVibrator = pad.steamHasRumble,
+                vibratorCount = if (pad.steamHasRumble) 2 else 0,
                 quickAccess = quickAccessDown,
                 steamButtons = pad.steamButtons,
                 touchpadCount = pad.steamTouchpadCount,

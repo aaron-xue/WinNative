@@ -3517,6 +3517,14 @@
     <string name="steam_controller_left_pad_click">左触控板按下</string>
     <string name="steam_controller_right_pad_click">右触控板按下</string>
     <string name="controller_test_generic">通用</string>
+    <string name="controller_test_vibration_supported">振动支持</string>
+    <string name="controller_test_vibration_supported_yes">支持</string>
+    <string name="controller_test_vibration_supported_no">不支持</string>
+    <string name="controller_test_vibration_motors">振动马达</string>
+    <string name="controller_test_vibration_motors_count">%1$d 个马达</string>
+    <string name="controller_test_vibration_redirect">本机振动重定向</string>
+    <string name="controller_test_vibration_redirect_on">开启</string>
+    <string name="controller_test_vibration_redirect_off">关闭</string>
     <string name="container_display_server">显示服务器</string>
     <string name="settings_content_badge_online">联机</string>
     <string name="settings_drivers_android">Android</string>

@@ -220,6 +220,11 @@ private fun fmt2(v: Float): String {
 
 private fun pct(v: Float): String = "${(v.coerceIn(0f, 1f) * 100).roundToInt()}%"
 
+private fun vidPidLabel(vendorId: Int, productId: Int): String? {
+    if (vendorId <= 0 || productId <= 0) return null
+    return String.format(Locale.US, "VID 0x%04X · PID 0x%04X", vendorId, productId)
+}
+
 @Composable
 internal fun Modifier.testMenuCard(): Modifier {
     val shape = RoundedCornerShape(10.dp)
@@ -280,13 +285,25 @@ fun ControllerTestPanel(
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.weight(1f)) {
                     Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = WinNativeTextPrimary)
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = WinNativeTextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = WinNativeTextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        vidPidLabel(snapshot?.vendorId ?: -1, snapshot?.productId ?: -1)?.let { label ->
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                label,
+                                fontSize = 11.sp,
+                                color = WinNativeTextSecondary,
+                                maxLines = 1,
+                            )
+                        }
+                    }
                 }
                 ArtSelector(art, manualArt, onArtChange)
             }
