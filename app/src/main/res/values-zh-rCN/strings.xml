@@ -2321,7 +2321,6 @@
     <string name="retro_gs_swap_stereo">交换立体声声道</string>
     <string name="retro_gs_sound">声音</string>
     <string name="retro_scr_retro_defaults">复古默认设置</string>
-    <string name="retro_scr_retro_defaults_desc">除非在游戏自身设置中覆盖，否则将应用到各主机的游戏。</string>
     <string name="retro_scr_retroachievements">RETROACHIEVEMENTS</string>
     <string name="retro_scr_account">账户</string>
     <string name="retro_scr_signed_in">已登录</string>
@@ -2349,7 +2348,9 @@
     <string name="retro_scr_box_art_desc">导入时自动从 thumbnails.libretro.com 获取；自定义图片始终会覆盖它。</string>
 
     <string name="retro_scr_console_defaults">主机默认设置</string>
-    <string name="retro_scr_console_defaults_desc">点按主机以设置其默认设置。</string>
+    <string name="retro_scr_manufacturer_nintendo">任天堂</string>
+    <string name="retro_scr_manufacturer_sony">索尼</string>
+    <string name="retro_scr_manufacturer_sega">世嘉</string>
     <string name="retro_scr_renderer">渲染器</string>
     <string name="retro_scr_upscale_resolution">放大分辨率</string>
     <string name="retro_scr_aspect_ratio">宽高比</string>

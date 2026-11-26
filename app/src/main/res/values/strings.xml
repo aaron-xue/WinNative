@@ -2552,7 +2552,6 @@ Installed path:
     <string name="retro_gs_sound">Sound</string>
     <!-- Retro defaults / cheats / achievements screens -->
     <string name="retro_scr_retro_defaults">RETRO DEFAULTS</string>
-    <string name="retro_scr_retro_defaults_desc">Defaults applied to each console\'s games unless overridden in a game\'s own settings.</string>
     <string name="retro_bundle_required">Download the console cores first — Settings › Retro</string>
     <string name="retro_scr_switch_runtime_missing">The installed console cores are missing the Switch runtime. Reinstall the console cores and try again.</string>
     <string name="retro_scr_consoles_group">Console Cores</string>
@@ -2606,7 +2605,9 @@ Installed path:
     <string name="retro_scr_box_art_desc">Fetched automatically from thumbnails.libretro.com on import; a custom image always overrides it.</string>
 
     <string name="retro_scr_console_defaults">CONSOLE DEFAULTS</string>
-    <string name="retro_scr_console_defaults_desc">Tap a console to set its default settings.</string>
+    <string name="retro_scr_manufacturer_nintendo">Nintendo</string>
+    <string name="retro_scr_manufacturer_sony">Sony</string>
+    <string name="retro_scr_manufacturer_sega">Sega</string>
     <string name="retro_scr_renderer">Renderer</string>
     <string name="retro_scr_upscale_resolution">Upscale resolution</string>
     <string name="retro_scr_aspect_ratio">Aspect Ratio</string>

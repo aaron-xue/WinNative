@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -63,6 +64,18 @@ internal val PageSub = Color(0xFF93A6BC)
 
 private val SHADER_KEYS = listOf("default", "crt", "lcd", "sharp")
 private val UPSCALE_KEYS = listOf("2x", "4x", "native")
+
+// Consoles grouped by manufacturer so the long flat list becomes scannable.
+private val CONSOLE_MANUFACTURERS =
+    listOf(
+        R.string.retro_scr_manufacturer_nintendo to
+            listOf(
+                RetroSystems.NES, RetroSystems.SNES, RetroSystems.GAMEBOY, RetroSystems.GAMEBOY_COLOR,
+                RetroSystems.GBA, RetroSystems.N64, RetroSystems.GAMECUBE, RetroSystems.WII, RetroSystems.SWITCH,
+            ),
+        R.string.retro_scr_manufacturer_sony to listOf(RetroSystems.PSX, RetroSystems.PS2, RetroSystems.PSP),
+        R.string.retro_scr_manufacturer_sega to listOf(RetroSystems.GENESIS, RetroSystems.MASTER_SYSTEM, RetroSystems.GAME_GEAR),
+    )
 
 // Drill-down navigation for RetroDefaultsScreen: the landing MENU shows a short
 // category list; selecting a category reveals only that category's settings.
@@ -178,17 +191,11 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                         if (currentScreen == RetroMenuScreen.MENU && selectedConsole == null) {
                             Text(
                             stringResource(R.string.retro_scr_retro_defaults),
-                            color = PageSub,
-                            fontSize = 11.sp,
+                            color = PageText,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp,
                             )
-                            Text(
-                            stringResource(R.string.retro_scr_retro_defaults_desc),
-                            color = PageSub,
-                            style = MaterialTheme.typography.bodySmall,
-                            )
-                            Spacer(Modifier.height(12.dp))
                             RetroConsoleBundleGroup(refreshKey = refresh, onChanged = { refresh++ })
                             Spacer(Modifier.height(12.dp))
                             val hudOn = remember(refresh) { RetroDefaults.hud(context, "") }
@@ -306,35 +313,11 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                 item {
                     Text(
                     stringResource(R.string.retro_scr_console_defaults),
-                    color = PageSub,
-                    fontSize = 11.sp,
+                    color = PageText,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
                     modifier = Modifier.padding(top = 4.dp),
-                    )
-                    Text(
-                    stringResource(R.string.retro_scr_console_defaults_desc),
-                    color = PageSub,
-                    style = MaterialTheme.typography.labelMedium,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    RetroMenuRow(
-                    label = stringResource(R.string.retro_scr_cat_switch),
-                    onClick = {
-                        selectedConsole = null
-                        // Gate on the core bundle being installed AND the Switch native
-                        // runtime actually being present in it — otherwise the Switch
-                        // screen could not run anything.
-                        when {
-                            !RetroBundle.isInstalled(context) -> {
-                                Toast.makeText(context, R.string.retro_bundle_required, Toast.LENGTH_LONG).show()
-                            }
-                            !org.citron.citron_emu.wn.CitronBootstrap.areSwitchLibsAvailable(context) -> {
-                                Toast.makeText(context, R.string.retro_scr_switch_runtime_missing, Toast.LENGTH_LONG).show()
-                            }
-                            else -> currentScreen = RetroMenuScreen.SWITCH
-                        }
-                    },
                     )
                 }
             }
@@ -342,16 +325,81 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
             if (currentScreen == RetroMenuScreen.MENU) {
                 val allConsoles = RetroSystems.ALL.sortedBy { it.displayName }
                 if (selectedConsole == null) {
-                    allConsoles.forEach { console ->
-                        val sys = console.id
-                        item(key = "console_header_$sys") {
-                            RetroMenuRow(
-                            label = console.displayName,
-                            onClick = { selectedConsole = sys },
-                            )
+                    CONSOLE_MANUFACTURERS.forEach { (labelRes, consoles) ->
+                        val visible = consoles.sortedBy { it.displayName }
+                        stickyHeader(key = "console_group_$labelRes") {
+                            Row(
+                            modifier =
+                            Modifier
+                            .fillMaxWidth()
+                            .background(PageBg)
+                            .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(
+                                modifier =
+                                Modifier
+                                .width(3.dp)
+                                .height(12.dp)
+                                .background(Color(0xFF4FC3F7), RoundedCornerShape(2.dp)),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                stringResource(labelRes),
+                                color = PageSub,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 1.sp,
+                                )
+                            }
+                        }
+                        item(key = "console_group_cards_$labelRes") {
+                            val cardSpacing = 10.dp
+                            val minCardWidth = 200.dp
+                            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                val columns =
+                                maxOf(1, ((maxWidth + cardSpacing) / (minCardWidth + cardSpacing)).toInt())
+                                Column(verticalArrangement = Arrangement.spacedBy(cardSpacing)) {
+                                    visible.chunked(columns).forEach { rowConsoles ->
+                                        Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(cardSpacing),
+                                        ) {
+                                            rowConsoles.forEach { console ->
+                                                RetroConsoleCard(
+                                                badge = console.badgeLabel,
+                                                label = console.displayName,
+                                                modifier = Modifier.weight(1f),
+                                                onClick = {
+                                                    if (console.id == RetroSystems.SWITCH.id) {
+                                                        selectedConsole = null
+                                                        // Gate on the core bundle being installed AND the Switch native
+                                                        // runtime actually being present in it — otherwise the Switch
+                                                        // screen could not run anything.
+                                                        when {
+                                                            !RetroBundle.isInstalled(context) -> {
+                                                                Toast.makeText(context, R.string.retro_bundle_required, Toast.LENGTH_LONG).show()
+                                                            }
+                                                            !org.citron.citron_emu.wn.CitronBootstrap.areSwitchLibsAvailable(context) -> {
+                                                                Toast.makeText(context, R.string.retro_scr_switch_runtime_missing, Toast.LENGTH_LONG).show()
+                                                            }
+                                                            else -> currentScreen = RetroMenuScreen.SWITCH
+                                                        }
+                                                    } else {
+                                                        selectedConsole = console.id
+                                                    }
+                                                },
+                                                )
+                                            }
+                                            repeat(columns - rowConsoles.size) {
+                                                Spacer(Modifier.weight(1f))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-
                 } else {
                     val console = allConsoles.firstOrNull { it.id == selectedConsole }
                     if (console != null) {
@@ -1256,6 +1304,46 @@ onChanged: () -> Unit,
     }
 
 private val RetroMenuCardBg = Color(0xFF1A1F2E)
+
+@Composable
+private fun RetroConsoleCard(
+badge: String,
+label: String,
+modifier: Modifier = Modifier,
+onClick: () -> Unit,
+) {
+    Box(
+    modifier =
+    modifier
+    .background(RetroMenuCardBg, RoundedCornerShape(12.dp))
+    .clickable { onClick() }
+    .paneNavItem(
+    cornerRadius = 12.dp,
+    onActivate = onClick,
+    highlightColor = Color(0xFF4FC3F7),
+    tapToSelect = true,
+    )
+    .padding(horizontal = 12.dp, vertical = 12.dp),
+    ) {
+        Column {
+            Text(
+            badge,
+            color = Color(0xFF4FC3F7),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+            label,
+            color = PageText,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            lineHeight = 18.sp,
+            )
+        }
+    }
+}
 
 @Composable
 private fun RetroMenuRow(
