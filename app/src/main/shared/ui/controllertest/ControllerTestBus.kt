@@ -63,6 +63,10 @@ object ControllerTestBus {
     @Volatile
     var onIdentify: Runnable? = null
 
+    @JvmField
+    @Volatile
+    var onRumble: ((Int) -> Unit)? = null
+
     @JvmStatic
     fun setTargetDevice(deviceId: Int) {
         targetDeviceId = deviceId

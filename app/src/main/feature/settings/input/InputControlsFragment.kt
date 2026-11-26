@@ -248,6 +248,7 @@ class InputControlsFragment : Fragment() {
                                     testTargetDeviceId = controller?.deviceId ?: Int.MIN_VALUE
                                     ControllerTestBus.setTargetDevice(testTargetDeviceId)
                                     ControllerTestBus.onIdentify = Runnable { identifyController() }
+                                    ControllerTestBus.onRumble = { motorIndex -> rumbleTest(motorIndex) }
                                     ControllerTestBus.setVibrationRedirectEnabled(
                                         preferences.getBoolean(ControllerManager.PREF_VIBRATION_GLOBAL, true)
                                     )
@@ -653,6 +654,46 @@ class InputControlsFragment : Fragment() {
         vibrator.vibrate(
             android.os.VibrationEffect.createOneShot(320L, android.os.VibrationEffect.DEFAULT_AMPLITUDE),
         )
+    }
+
+    private fun rumbleTest(motorIndex: Int) {
+        val deviceId = ControllerTestBus.currentDeviceId()
+        if (deviceId == Int.MIN_VALUE) return
+
+        if (deviceId <= SteamControllerBackend.DEVICE_ID_BASE) {
+            val host = activity
+            if (host is UnifiedActivity) host.identifySteamInput(deviceId)
+            else steamBackend?.rumble(deviceId, 0xFFFF, 0xFFFF, 600)
+            return
+        }
+
+        val device = android.view.InputDevice.getDevice(deviceId) ?: return
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val manager = device.vibratorManager
+            val ids = manager?.vibratorIds
+            if (manager != null && ids != null && ids.isNotEmpty()) {
+                val targets =
+                    if (motorIndex < 0) ids.indices.toList()
+                    else if (motorIndex < ids.size) listOf(motorIndex)
+                    else return
+                for (i in targets) {
+                    val vibrator = manager.getVibrator(ids[i])
+                    if (vibrator.hasVibrator()) {
+                        vibrator.vibrate(
+                            android.os.VibrationEffect.createOneShot(600L, android.os.VibrationEffect.DEFAULT_AMPLITUDE),
+                        )
+                    }
+                }
+                return
+            }
+        }
+
+        val vibrator = device.vibrator
+        if (vibrator != null && vibrator.hasVibrator()) {
+            vibrator.vibrate(
+                android.os.VibrationEffect.createOneShot(600L, android.os.VibrationEffect.DEFAULT_AMPLITUDE),
+            )
+        }
     }
 
     private fun prepareTestController(device: android.view.InputDevice?) {

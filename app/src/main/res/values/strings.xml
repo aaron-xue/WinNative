@@ -3676,6 +3676,9 @@ Installed path:
     <string name="controller_test_vibration_redirect">Local vibration redirection</string>
     <string name="controller_test_vibration_redirect_on">On</string>
     <string name="controller_test_vibration_redirect_off">Off</string>
+    <string name="controller_test_vibration_test_title">Vibration test</string>
+    <string name="controller_test_vibration_test_all">Test all motors</string>
+    <string name="controller_test_vibration_test_motor">Motor %1$d</string>
 
     <!-- Graphics Driver Settings -->
     <string name="settings_help_graphics_driver_title">Graphics Driver Settings Reference</string>

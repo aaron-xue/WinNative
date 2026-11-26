@@ -1,17 +1,22 @@
 package com.winlator.cmod.shared.ui.controllertest
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.winlator.cmod.R
+import com.winlator.cmod.shared.theme.WinNativeAccent
 import com.winlator.cmod.shared.theme.WinNativeTextPrimary
 import com.winlator.cmod.shared.theme.WinNativeTextSecondary
 
@@ -36,14 +42,17 @@ fun VibrationTestPanel(
 ) {
     val supported = snapshot?.hasVibrator
     val motorCount = snapshot?.vibratorCount ?: 0
+    val canTest = supported == true && motorCount > 0
 
-    Column(
+    Row(
         modifier
             .verticalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
     ) {
         Column(
             Modifier
-                .fillMaxWidth()
+                .weight(1f)
                 .testMenuCard()
                 .padding(horizontal = 12.dp, vertical = 4.dp),
         ) {
@@ -83,6 +92,45 @@ fun VibrationTestPanel(
                     },
                 status = if (vibrationRedirectEnabled) VibrationLive else WinNativeTextSecondary,
             )
+        }
+
+        Column(
+            Modifier
+                .weight(1f)
+                .testMenuCard()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Text(
+                stringResource(R.string.controller_test_vibration_test_title),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = WinNativeTextPrimary,
+            )
+            Spacer(Modifier.height(10.dp))
+            Button(
+                onClick = { ControllerTestBus.onRumble?.invoke(-1) },
+                enabled = canTest,
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = WinNativeAccent),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.controller_test_vibration_test_all), fontSize = 12.sp)
+            }
+            if (canTest) {
+                Spacer(Modifier.height(8.dp))
+                for (i in 0 until motorCount) {
+                    OutlinedButton(
+                        onClick = { ControllerTestBus.onRumble?.invoke(i) },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.controller_test_vibration_test_motor, i + 1), fontSize = 12.sp)
+                    }
+                    if (i != motorCount - 1) {
+                        Spacer(Modifier.height(8.dp))
+                    }
+                }
+            }
         }
     }
 }
