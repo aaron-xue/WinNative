@@ -91,8 +91,14 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
     var currentScreen by remember { mutableStateOf(RetroMenuScreen.MENU) }
     var showControllerSettings by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    var menuScrollIndex by remember { mutableIntStateOf(0) }
+    var menuScrollOffset by remember { mutableIntStateOf(0) }
     LaunchedEffect(currentScreen, selectedConsole) {
-        listState.scrollToItem(0)
+        if (selectedConsole != null || currentScreen != RetroMenuScreen.MENU) {
+            listState.scrollToItem(0)
+        } else {
+            listState.scrollToItem(menuScrollIndex, menuScrollOffset)
+        }
     }
     val contentNav = rememberSettingsContentNav(bridge)
 
@@ -305,23 +311,6 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                 }
             }
 
-
-
-
-
-            if (currentScreen == RetroMenuScreen.MENU && selectedConsole == null) {
-                item {
-                    Text(
-                    stringResource(R.string.retro_scr_console_defaults),
-                    color = PageText,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
-            }
-
             if (currentScreen == RetroMenuScreen.MENU) {
                 val allConsoles = RetroSystems.ALL.sortedBy { it.displayName }
                 if (selectedConsole == null) {
@@ -371,6 +360,8 @@ fun RetroDefaultsScreen(bridge: SettingsNavBridge? = null) {
                                                 label = console.displayName,
                                                 modifier = Modifier.weight(1f),
                                                 onClick = {
+                                                    menuScrollIndex = listState.firstVisibleItemIndex
+                                                    menuScrollOffset = listState.firstVisibleItemScrollOffset
                                                     if (console.id == RetroSystems.SWITCH.id) {
                                                         selectedConsole = null
                                                         // Gate on the core bundle being installed AND the Switch native

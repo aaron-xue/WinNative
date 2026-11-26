@@ -1285,7 +1285,7 @@
     <string name="session_gyroscope_activator">激活器</string>
     <string name="settings_general_check_for_updates">检查更新</string>
     <string name="settings_general_check_for_updates_summary">在启动时和定期自动检查新版本。</string>
-    <string name="setup_wizard_containers">复古游戏主机</string>
+    <string name="setup_wizard_containers">主机游戏</string>
     <string name="setup_wizard_retro_bios_group">主机 BIOS</string>
     <string name="setup_wizard_retro_bios_hint">PS1/PS2 核心需要对应区域的 BIOS 才能启动游戏。</string>
     <string name="setup_wizard_retro_switch_group">Switch 主机</string>
@@ -1809,7 +1809,7 @@
     <string name="fg_keep_alive_notification_content_store_service_active">：服务运行中</string>
     <string name="fg_keep_alive_notification_content_store_services_active">：服务运行中</string>
     <string name="general_and">和</string>
-    <string name="settings_retro_title">复古</string>
+    <string name="settings_retro_title">主机游戏</string>
     <string name="retro_save_transfer_title">传输存档</string>
     <string name="retro_save_transfer_message">为此游戏导入本地存档，或导出当前存档。</string>
     <string name="retro_save_transfer_import">导入存档</string>
@@ -1984,7 +1984,7 @@
     <string name="retro_ps2_exit">退出</string>
     <string name="retro_lr_bios_imported">已导入 BIOS：%1$s</string>
     <string name="retro_lr_invalid_bios_file">无效的 BIOS 文件</string>
-    <string name="retro_lr_invalid_retro_game">无效的复古游戏</string>
+    <string name="retro_lr_invalid_retro_game">无效的主机游戏</string>
     <string name="retro_lr_rom_not_found">未找到 ROM：%1$s</string>
     <string name="retro_lr_could_not_read_rom_archive">无法读取此压缩包内的 ROM</string>
     <string name="retro_lr_core_not_installed">核心未安装：%1$s</string>
@@ -1993,7 +1993,6 @@
     <string name="retro_lr_restore_failed">恢复失败</string>
     <string name="retro_lr_cloud_conflict_message">%1$s 存在更新的云存档。是否要同步？您希望保留哪个云存档？</string>
     <string name="retro_lr_cloud_save">云存档</string>
-    <string name="retro_lr_renderer_default">复古</string>
     <string name="retro_lr_failed_load_core">加载模拟器核心失败</string>
     <string name="retro_lr_failed_load_rom">加载 ROM 失败</string>
     <string name="retro_lr_graphics_not_supported">此核心不支持图形显示</string>
@@ -2320,7 +2319,7 @@
     <string name="retro_gs_mute">静音</string>
     <string name="retro_gs_swap_stereo">交换立体声声道</string>
     <string name="retro_gs_sound">声音</string>
-    <string name="retro_scr_retro_defaults">复古默认设置</string>
+    <string name="retro_scr_retro_defaults">主机默认设置</string>
     <string name="retro_scr_retroachievements">RETROACHIEVEMENTS</string>
     <string name="retro_scr_account">账户</string>
     <string name="retro_scr_signed_in">已登录</string>
@@ -2343,11 +2342,10 @@
     <string name="retro_scr_ps2_bios_removed">已移除 PS2 BIOS</string>
     <string name="retro_scr_remove_ps2_bios">移除 PS2 BIOS</string>
     <string name="retro_scr_library_artwork">库封面</string>
-    <string name="retro_scr_retro_case_art">复古外壳图（卡带 / CD 盒）</string>
+    <string name="retro_scr_retro_case_art">主机游戏外壳图（卡带 / CD 盒）</string>
     <string name="retro_scr_box_art">封面图</string>
     <string name="retro_scr_box_art_desc">导入时自动从 thumbnails.libretro.com 获取；自定义图片始终会覆盖它。</string>
 
-    <string name="retro_scr_console_defaults">主机默认设置</string>
     <string name="retro_scr_manufacturer_nintendo">任天堂</string>
     <string name="retro_scr_manufacturer_sony">索尼</string>
     <string name="retro_scr_manufacturer_sega">世嘉</string>
@@ -2955,7 +2953,7 @@
     <string name="retro_co_widescreen_mode_hack_ar">宽屏模式 Hack 宽高比</string>
     <string name="retro_co_console_region">主机区域（重新加载核心）</string>
     <string name="retro_ach_brand">RETROACHIEVEMENTS</string>
-    <string name="retro_ach_login_intro">使用您的 RetroAchievements 账户登录，以获取并追踪复古游戏的成就。</string>
+    <string name="retro_ach_login_intro">使用您的 RetroAchievements 账户登录，以获取并追踪主机游戏的成就。</string>
     <string name="retro_ach_username">用户名</string>
     <string name="retro_ach_password">密码</string>
     <string name="retro_ach_enter_credentials">请输入您的用户名和密码</string>
@@ -2989,7 +2987,7 @@
     <string name="retro_scr_no_switch_firmware">未安装</string>
     <string name="retro_scr_switch_firmware_installed">已安装 %1$d 个系统模块</string>
     <string name="retro_scr_switch_firmware_keys_warning">固件已导入，但 Switch 密钥尚未安装。请先安装 prod.keys，固件才能被解密。</string>
-    <string name="retro_scr_switch_keys_required">导入 Switch 游戏前必须先安装 Switch 密钥 (prod.keys/title.keys)。请前往 设置 → Retro 导入密钥。</string>
+    <string name="retro_scr_switch_keys_required">导入 Switch 游戏前必须先安装 Switch 密钥 (prod.keys/title.keys)。请前往 设置 → 主机游戏 导入密钥。</string>
     <string name="retro_scr_cat_achievements">账户与成就</string>
     <string name="retro_scr_cat_playstation">PlayStation</string>
     <string name="retro_scr_cat_switch">Nintendo Switch</string>
@@ -3324,7 +3322,7 @@
     <string name="cloud_saves_history_delete_confirm_title">删除云存档</string>
     <string name="cloud_saves_history_delete_failed">无法删除云存档</string>
     <string name="cloud_saves_history_delete_success">云存档已删除</string>
-    <string name="retro_bundle_required">请先下载主机核心 — 设置 › 复古</string>
+    <string name="retro_bundle_required">请先下载主机核心 — 设置 › 主机游戏</string>
     <string name="retro_scr_switch_runtime_missing">已安装的主机核心缺少 Switch 运行库，请重新安装主机核心后重试。</string>
     <string name="retro_ps2_device_unsupported">此设备无法运行 PS2 模拟 — 需要 OpenGL ES 3.1 或更高版本。</string>
     <string name="retro_scr_consoles_check">检查更新</string>
@@ -3339,7 +3337,7 @@
     <string name="retro_scr_consoles_installed_no_check">已安装 — 版本 %1$s（检查更新失败）</string>
     <string name="retro_scr_consoles_installed_pinned">已安装 — 版本 %1$s（已固定发行版）</string>
     <string name="retro_scr_consoles_installing">正在安装…</string>
-    <string name="retro_scr_consoles_missing">未安装 — 下载后即可畅玩复古游戏</string>
+    <string name="retro_scr_consoles_missing">未安装 — 下载后即可畅玩主机游戏</string>
     <string name="retro_scr_consoles_reinstall">重新安装所选发行版</string>
     <string name="retro_scr_consoles_release">发行版</string>
     <string name="retro_scr_consoles_release_latest">最新</string>

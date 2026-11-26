@@ -1426,7 +1426,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="settings_debug_no_channels_available">No channels available</string>
     <string name="settings_debug_channel_toggle_hint">Tap to toggle channels. Enabled channels are included in Wine debug output.</string>
     <string name="settings_debug_remove_channel_desc">Remove %1$s</string>
-    <string name="settings_retro_title">Retro</string>
+    <string name="settings_retro_title">Console Games</string>
     <string name="retro_save_transfer_title">Transfer Save</string>
     <string name="retro_save_transfer_message">Import a local save file to this game, or export this game\'s current save.</string>
     <string name="retro_save_transfer_import">Import Save</string>
@@ -1564,7 +1564,7 @@ Installed path:
     <string name="setup_wizard_loading_components">Loading components…</string>
     <string name="setup_wizard_no_components_available">No components available for this category.</string>
     <string name="setup_wizard_default_settings">Default Settings</string>
-    <string name="setup_wizard_containers">Retro consoles</string>
+    <string name="setup_wizard_containers">Console games</string>
     <string name="setup_wizard_retro_bios_group">Console BIOS</string>
     <string name="setup_wizard_retro_bios_hint">PS1/PS2 cores need a matching region BIOS to boot games.</string>
     <string name="setup_wizard_retro_switch_group">Nintendo Switch</string>
@@ -2139,7 +2139,7 @@ Installed path:
     <!-- Libretro in-game menu -->
     <string name="retro_lr_bios_imported">BIOS imported: %1$s</string>
     <string name="retro_lr_invalid_bios_file">Invalid BIOS file</string>
-    <string name="retro_lr_invalid_retro_game">Invalid retro game</string>
+    <string name="retro_lr_invalid_retro_game">Invalid console game</string>
     <string name="retro_lr_rom_not_found">ROM not found: %1$s</string>
     <string name="retro_lr_could_not_read_rom_archive">Could not read the ROM inside this archive</string>
     <string name="retro_lr_core_not_installed">Core not installed: %1$s</string>
@@ -2149,7 +2149,6 @@ Installed path:
     <string name="retro_lr_cloud_conflict_message">A newer cloud save exists for %1$s. Do you wish to sync, and which cloud save would you prefer to keep?</string>
     <string name="retro_lr_cloud_save">Cloud save</string>
     <string name="retro_lr_use_cloud_save">Use Cloud Save</string>
-    <string name="retro_lr_renderer_default">Retro</string>
     <string name="retro_lr_failed_load_core">Failed to load emulator core</string>
     <string name="retro_lr_failed_load_rom">Failed to load ROM</string>
     <string name="retro_lr_graphics_not_supported">Graphics not supported for this core</string>
@@ -2551,14 +2550,14 @@ Installed path:
     <string name="retro_gs_swap_stereo">Swap Stereo Channels</string>
     <string name="retro_gs_sound">Sound</string>
     <!-- Retro defaults / cheats / achievements screens -->
-    <string name="retro_scr_retro_defaults">RETRO DEFAULTS</string>
-    <string name="retro_bundle_required">Download the console cores first — Settings › Retro</string>
+    <string name="retro_scr_retro_defaults">CONSOLE DEFAULTS</string>
+    <string name="retro_bundle_required">Download the console cores first — Settings › Console Games</string>
     <string name="retro_scr_switch_runtime_missing">The installed console cores are missing the Switch runtime. Reinstall the console cores and try again.</string>
     <string name="retro_scr_consoles_group">Console Cores</string>
     <string name="retro_scr_consoles_state">Status</string>
     <string name="retro_scr_consoles_installed">Installed — build %1$s</string>
     <string name="retro_scr_consoles_installed_no_check">Installed — build %1$s (update check failed)</string>
-    <string name="retro_scr_consoles_missing">Not installed — download to play retro games</string>
+    <string name="retro_scr_consoles_missing">Not installed — download to play console games</string>
     <string name="retro_scr_consoles_update_available">Update available — build %1$s (%2$d MB)</string>
     <string name="retro_scr_consoles_checking">Checking for updates…</string>
     <string name="retro_scr_consoles_working">Working…</string>
@@ -2600,11 +2599,10 @@ Installed path:
     <string name="retro_scr_ps2_bios_removed">PS2 BIOS removed</string>
     <string name="retro_scr_remove_ps2_bios">Remove PS2 BIOS</string>
     <string name="retro_scr_library_artwork">LIBRARY ARTWORK</string>
-    <string name="retro_scr_retro_case_art">Retro case art (cartridge / CD case)</string>
+    <string name="retro_scr_retro_case_art">Console game case art (cartridge / CD case)</string>
     <string name="retro_scr_box_art">Box art</string>
     <string name="retro_scr_box_art_desc">Fetched automatically from thumbnails.libretro.com on import; a custom image always overrides it.</string>
 
-    <string name="retro_scr_console_defaults">CONSOLE DEFAULTS</string>
     <string name="retro_scr_manufacturer_nintendo">Nintendo</string>
     <string name="retro_scr_manufacturer_sony">Sony</string>
     <string name="retro_scr_manufacturer_sega">Sega</string>
@@ -3260,7 +3258,7 @@ Installed path:
     <string name="retro_co_widescreen_mode_hack_ar">Widescreen Mode Hack Aspect Ratio</string>
     <!-- Retro achievements / cheats activities -->
     <string name="retro_ach_brand">RETROACHIEVEMENTS</string>
-    <string name="retro_ach_login_intro">Sign in with your RetroAchievements account to earn and track achievements for retro games.</string>
+    <string name="retro_ach_login_intro">Sign in with your RetroAchievements account to earn and track achievements for console games.</string>
     <string name="retro_ach_username">Username</string>
     <string name="retro_ach_password">Password</string>
     <string name="retro_ach_enter_credentials">Enter your username and password</string>
@@ -3296,7 +3294,7 @@ Installed path:
     <string name="retro_scr_no_switch_firmware">Not installed</string>
     <string name="retro_scr_switch_firmware_installed">Installed %1$d system modules</string>
     <string name="retro_scr_switch_firmware_keys_warning">Firmware imported, but Switch keys are not installed yet. Install prod.keys for the firmware to decrypt.</string>
-    <string name="retro_scr_switch_keys_required">Switch keys (prod.keys/title.keys) must be installed before importing Switch games. Go to Settings → Retro to import them.</string>
+    <string name="retro_scr_switch_keys_required">Switch keys (prod.keys/title.keys) must be installed before importing Switch games. Go to Settings → Console Games to import them.</string>
     <string name="retro_scr_cat_achievements">Account &amp; Achievements</string>
     <string name="retro_scr_cat_playstation">PlayStation</string>
     <string name="retro_scr_cat_switch">Nintendo Switch</string>
