@@ -257,9 +257,9 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
         JSONObject controllerJSONObject = controllersJSONArray.getJSONObject(i);
         String id = controllerJSONObject.getString("id");
         ExternalController controller = new ExternalController();
-        controller.setContext(context);
         controller.setId(id);
         controller.setName(controllerJSONObject.getString("name"));
+        controller.setContext(context);
 
         JSONArray controllerBindingsJSONArray =
             controllerJSONObject.getJSONArray("controllerBindings");
@@ -273,6 +273,32 @@ public class ControlsProfile implements Comparable<ControlsProfile> {
             controllerBinding.setNote(controllerBindingJSONObject.getString("note"));
           }
           controller.addControllerBinding(controllerBinding);
+        }
+
+        // Per-profile trigger/Steam settings override the prefs-derived defaults. Only an
+        // explicitly chosen trigger type is applied; otherwise the auto-detected default
+        // established in setContext() is kept.
+        if (controllerJSONObject.optBoolean("triggerTypeExplicit", false)) {
+          controller.setTriggerType((byte) controllerJSONObject.getInt("triggerType"));
+        }
+        if (controllerJSONObject.has("steamTrackpadMode")) {
+          controller.setSteamTrackpadMode(controllerJSONObject.getInt("steamTrackpadMode"));
+        }
+        if (controllerJSONObject.has("steamPaddleBindings")) {
+          JSONArray steamPaddleBindingsJSONArray =
+              controllerJSONObject.getJSONArray("steamPaddleBindings");
+          for (int k = 0; k < steamPaddleBindingsJSONArray.length(); k++) {
+            Object value = steamPaddleBindingsJSONArray.opt(k);
+            Binding binding = Binding.NONE;
+            if (value != null && !JSONObject.NULL.equals(value)) {
+              try {
+                binding = Binding.fromString(value.toString());
+              } catch (IllegalArgumentException e) {
+                binding = Binding.NONE;
+              }
+            }
+            controller.setSteamPaddleBinding(k, binding);
+          }
         }
         controllers.add(controller);
       }

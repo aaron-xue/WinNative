@@ -10372,10 +10372,10 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (!steamControllerSessionReady || !steamInputForeground) return;
         if (steamControllerBackend != null || winHandler == null) return;
         if (isFinishing() || isDestroyed() || activityDestroyed.get()) return;
-        int trackpadMode =
-                com.winlator.cmod.runtime.input.controls.SteamControllerPrefs.getTrackpadMouseMode(this);
-        com.winlator.cmod.runtime.input.controls.Binding[] paddles =
-                com.winlator.cmod.runtime.input.controls.SteamControllerPrefs.getPaddleBindings(this);
+        // Per-pad Steam settings live in the .icp profile and are applied at input time, so the
+        // backend is seeded with the built-in defaults only.
+        int trackpadMode = com.winlator.cmod.runtime.input.controls.SteamControllerBackend.TRACKPAD_MOUSE_RIGHT;
+        com.winlator.cmod.runtime.input.controls.Binding[] paddles = null;
         com.winlator.cmod.runtime.input.controls.SteamControllerBackend backend =
                 new com.winlator.cmod.runtime.input.controls.SteamControllerBackend(
                         this, trackpadMode, paddles,

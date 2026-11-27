@@ -4,7 +4,6 @@ import com.winlator.cmod.runtime.input.controls.SteamControllerBackend
 import com.winlator.cmod.runtime.input.controls.SteamControllerPointer
 import com.winlator.cmod.runtime.input.controls.SteamControllerNavigation
 import com.winlator.cmod.runtime.input.controls.SteamControllerInputRouter
-import com.winlator.cmod.runtime.input.controls.SteamControllerPrefs
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
@@ -538,7 +537,7 @@ class UnifiedActivity :
 
     private fun startSteamMenuInput() {
         if (!steamMenuListener.foreground || steamMenuBackend != null || isFinishing || isDestroyed) return
-        val mode = SteamControllerPrefs.getTrackpadMouseMode(this)
+        val mode = SteamControllerBackend.TRACKPAD_MOUSE_RIGHT
         steamMenuListener.leftTrackpadScroll = mode != SteamControllerBackend.TRACKPAD_MOUSE_LEFT &&
             mode != SteamControllerBackend.TRACKPAD_MOUSE_BOTH
         val backend = SteamControllerBackend(this, mode, null, steamMenuListener)

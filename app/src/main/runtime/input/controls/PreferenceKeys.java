@@ -10,8 +10,5 @@ public class PreferenceKeys {
   public static final String INVERT_RIGHT_X = "invert_right_x";
   public static final String INVERT_RIGHT_Y = "invert_right_y";
   public static final String SQUARE_DEADZONE_LEFT = "square_deadzone_left";
-  public static final String TRIGGER_TYPE = "trigger_type";
   public static final String USE_REAL_IDENTITY = "use_real_id";
-  public static final String STEAM_TRACKPAD_MODE = "steam_pad_trackpad_mode";
-  public static final String STEAM_PADDLE_BINDING = "steam_pad_paddle_binding";
 }

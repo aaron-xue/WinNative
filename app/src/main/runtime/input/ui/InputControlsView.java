@@ -46,6 +46,7 @@ import com.winlator.cmod.runtime.input.controls.ExternalController;
 import com.winlator.cmod.runtime.input.controls.ExternalControllerBinding;
 import com.winlator.cmod.runtime.input.controls.GamepadState;
 import com.winlator.cmod.runtime.input.controls.InputControlsManager;
+import com.winlator.cmod.runtime.input.controls.SteamControllerBackend;
 import com.winlator.cmod.runtime.input.controls.VisualStyle;
 import com.winlator.cmod.shared.math.Mathf;
 import java.io.IOException;
@@ -1152,6 +1153,14 @@ public class InputControlsView extends View {
 
   public boolean onSteamPadState(ExternalController sdlPad, int[] pressedKeyCodes) {
     ExternalController controller = profile != null ? profile.getController(sdlPad.getId()) : null;
+    if (controller != null) {
+      // Keep the live pad in sync with the per-profile Steam settings (trackpad mode and
+      // paddle bindings), so edits persisted via the settings dialog take effect at runtime.
+      sdlPad.setSteamTrackpadMode(controller.getSteamTrackpadMode());
+      for (int i = 0; i < SteamControllerBackend.PADDLE_COUNT; i++) {
+        sdlPad.setSteamPaddleBinding(i, controller.getSteamPaddleBinding(i));
+      }
+    }
     if (editMode || controller == null || controller.getControllerBindingCount() == 0) {
       onSteamPadDisconnected(sdlPad);
       return false;

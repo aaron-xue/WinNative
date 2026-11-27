@@ -510,21 +510,28 @@ class InputControlsFragment : Fragment() {
         }
     }
 
-    // Per-pad trigger type override, persisted under a controller-id-suffixed key.
+    // Per-pad trigger type override, persisted in the .icp profile.
     // Index 0 = auto-detect, 1 = button, 2 = axis.
     private fun setControllerTriggerType(
         controllerId: String,
         triggerTypeIndex: Int,
     ) {
         val controller = findVisibleController(controllerId) ?: return
-        val activity = activity ?: return
         when (triggerTypeIndex) {
             0 -> controller.resetTriggerType()
             1 -> controller.setTriggerType(ExternalController.TRIGGER_IS_BUTTON)
             else -> controller.setTriggerType(ExternalController.TRIGGER_IS_AXIS)
         }
-        controller.savePreferences(activity)
+        persistControllerSettings(controller)
         publishUiState()
+    }
+
+    // Writes the controller's current trigger/Steam settings into the active .icp profile,
+    // the same persistence path used by controller bindings.
+    private fun persistControllerSettings(controller: ExternalController) {
+        val profile = currentProfile ?: return
+        profile.putController(controller)
+        lifecycleScope.launch(Dispatchers.IO) { profile.save() }
     }
 
     private fun buildBindingState(
@@ -561,33 +568,43 @@ class InputControlsFragment : Fragment() {
         val liveControllers = ExternalController.getControllers()
             .filterNot { steamPads.isNotEmpty() && android.view.InputDevice.getDevice(it.deviceId)?.vendorId == SteamControllerBackend.VALVE_VENDOR_ID }
             .plus(steamPads.values)
+        // Prefs still supply the base defaults (auto-detected trigger, legacy global Steam).
+        liveControllers.forEach { controller -> controller.loadPreferences(activity) }
+
         val profile = currentProfile
         if (profile != null) {
             val profileControllers = profile.loadControllers()
-            
+
             for (pController in profileControllers) {
                 val liveMatch = liveControllers.find { it.id == pController.id }
                 if (liveMatch != null) {
                     for (i in 0 until pController.controllerBindingCount) {
                         liveMatch.addControllerBinding(pController.getControllerBindingAt(i))
                     }
-                    liveMatch.setUseRealIdentity(pController.isUseRealIdentity());
+                    liveMatch.setUseRealIdentity(pController.isUseRealIdentity())
+                    liveMatch.applyProfileConfig(pController)
                     visibleControllers.add(liveMatch)
                 } else {
                     visibleControllers.add(pController)
                 }
             }
-            
+
+            var added = false
             for (controller in liveControllers) {
                 if (visibleControllers.none { it.id == controller.id }) {
+                    // Newly connected controller: persist its current (default) settings so
+                    // trigger/Steam values round-trip through the .icp profile like bindings.
+                    profile.putController(controller)
                     visibleControllers.add(controller)
+                    added = true
                 }
+            }
+            if (added) {
+                lifecycleScope.launch(Dispatchers.IO) { profile.save() }
             }
         } else {
             visibleControllers.addAll(liveControllers)
         }
-
-        visibleControllers.forEach { controller -> controller.loadPreferences(activity) }
 
         activeBindingController =
             activeId?.let { id ->
@@ -820,7 +837,7 @@ class InputControlsFragment : Fragment() {
     ) {
         val controller = findVisibleController(controllerId) ?: return
         controller.setSteamTrackpadMode(mode)
-        controller.savePreferences(requireContext())
+        persistControllerSettings(controller)
         publishSteamState()
         publishUiState()
     }
@@ -840,7 +857,7 @@ class InputControlsFragment : Fragment() {
             checkedIndex = checked,
         ) { which ->
             controller.setSteamPaddleBinding(index, values[which])
-            controller.savePreferences(requireContext())
+            persistControllerSettings(controller)
             publishUiState()
         }
     }
