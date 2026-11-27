@@ -50,7 +50,6 @@ import com.winlator.cmod.shared.math.Mathf
 import com.winlator.cmod.shared.ui.dialog.ContentDialog
 import com.winlator.cmod.shared.theme.WinNativeTheme
 import com.winlator.cmod.runtime.input.controls.SteamControllerBackend
-import com.winlator.cmod.runtime.input.controls.SteamControllerPrefs
 import com.winlator.cmod.shared.ui.controllertest.ControllerTestBus
 import com.winlator.cmod.shared.ui.controllertest.ControllerTestDialog
 import org.json.JSONObject
@@ -88,6 +87,7 @@ class InputControlsFragment : Fragment() {
     private val bluetoothPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         restartSteamBackend()
     }
+    private var bluetoothPermissionPrompted = false
     private var showControllerTest by mutableStateOf(false)
     private var testControllerName: String? = null
     private var testTargetDeviceId: Int = Int.MIN_VALUE
@@ -258,7 +258,6 @@ class InputControlsFragment : Fragment() {
                                     publishTestControllerCapabilities()
                                     publishSteamState()
                                 },
-                                onSteamControllerEnabledChanged = ::setSteamControllerEnabled,
                                 onSteamTrackpadModeSelected = ::setSteamTrackpadMode,
                                 onSteamPaddleClick = ::pickSteamPaddleBinding,
                             ),
@@ -283,6 +282,7 @@ class InputControlsFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        requestSteamBluetoothPermission()
         startSteamBackend()
         refreshVisibleControllers()
         publishUiState()
@@ -459,12 +459,6 @@ class InputControlsFragment : Fragment() {
                 selectedGestureProfileName = selectedGestureProfile().name,
                 gestureEditorExpanded = gestureEditorExpanded,
                 selectedGestureConfig = TouchGestureConfig.fromJson(selectedGestureProfile().configJson),
-                steamControllerEnabled = SteamControllerPrefs.isEnabled(ctx),
-                steamTrackpadModeIndex = SteamControllerPrefs.getTrackpadMouseMode(ctx),
-                steamPaddleLabels =
-                    (0 until SteamControllerBackend.PADDLE_COUNT).map { index ->
-                        SteamControllerPrefs.getPaddleBinding(ctx, index).toString()
-                    },
                 controllerCards =
                     visibleControllers.map { controller ->
                         InputControllerCardState(
@@ -487,6 +481,12 @@ class InputControlsFragment : Fragment() {
                                     !controller.isTriggerTypeExplicit -> 0
                                     controller.triggerType == ExternalController.TRIGGER_IS_BUTTON -> 1
                                     else -> 2
+                                },
+                            isSteamController = steamPads.containsKey(controller.id),
+                            steamTrackpadModeIndex = controller.getSteamTrackpadMode(),
+                            steamPaddleLabels =
+                                (0 until SteamControllerBackend.PADDLE_COUNT).map { index ->
+                                    controller.getSteamPaddleBinding(index).toString()
                                 },
                         )
                     },
@@ -734,7 +734,7 @@ class InputControlsFragment : Fragment() {
 
     private fun startSteamBackend() {
         val host = activity ?: return
-        if (steamBackend != null || sharedSteamListener != null || !SteamControllerPrefs.isEnabled(host)) return
+        if (steamBackend != null || sharedSteamListener != null) return
         val listener = object : SteamControllerBackend.Listener {
             override fun onSteamPadConnected(pad: ExternalController) {
                 steamPads[pad.id] = pad
@@ -806,32 +806,41 @@ class InputControlsFragment : Fragment() {
         }
     }
 
-    private fun setSteamControllerEnabled(enabled: Boolean) {
-        SteamControllerPrefs.setEnabled(requireContext(), enabled)
-        if (enabled && android.os.Build.VERSION.SDK_INT >= 31 && !SteamControllerBackend.hasBluetoothPermission(requireContext())) {
-            bluetoothPermission.launch(android.Manifest.permission.BLUETOOTH_CONNECT)
-        }
-        restartSteamBackend()
+    private fun requestSteamBluetoothPermission() {
+        if (bluetoothPermissionPrompted) return
+        bluetoothPermissionPrompted = true
+        if (android.os.Build.VERSION.SDK_INT < 31) return
+        if (SteamControllerBackend.hasBluetoothPermission(requireContext())) return
+        bluetoothPermission.launch(android.Manifest.permission.BLUETOOTH_CONNECT)
+    }
+
+    private fun setSteamTrackpadMode(
+        controllerId: String,
+        mode: Int,
+    ) {
+        val controller = findVisibleController(controllerId) ?: return
+        controller.setSteamTrackpadMode(mode)
+        controller.savePreferences(requireContext())
+        publishSteamState()
         publishUiState()
     }
 
-    private fun setSteamTrackpadMode(mode: Int) {
-        SteamControllerPrefs.setTrackpadMouseMode(requireContext(), mode)
-        (activity as? UnifiedActivity)?.updateSteamTrackpadMode(mode)
-        publishUiState()
-    }
-
-    private fun pickSteamPaddleBinding(index: Int) {
+    private fun pickSteamPaddleBinding(
+        controllerId: String,
+        index: Int,
+    ) {
+        val controller = findVisibleController(controllerId) ?: return
         val values = steamPaddleBindingValues()
         val labels = values.map { it.toString() }.toTypedArray()
-        val current = SteamControllerPrefs.getPaddleBinding(requireContext(), index)
+        val current = controller.getSteamPaddleBinding(index)
         val checked = values.indexOf(current).let { if (it >= 0) it else 0 }
         showChoiceDialog(
             title = getString(R.string.steam_controller_extra_buttons),
             items = labels,
             checkedIndex = checked,
         ) { which ->
-            SteamControllerPrefs.setPaddleBinding(requireContext(), index, values[which])
+            controller.setSteamPaddleBinding(index, values[which])
+            controller.savePreferences(requireContext())
             publishUiState()
         }
     }

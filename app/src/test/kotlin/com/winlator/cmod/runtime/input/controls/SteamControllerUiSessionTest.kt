@@ -19,7 +19,6 @@ class SteamControllerUiSessionTest {
         `when`(backend.start()).thenReturn(true)
         var creations = 0
         val session = SteamControllerUiSession(activity) { creations++; backend }
-        SteamControllerPrefs.setEnabled(activity, true)
         try {
             session.resume()
             session.pause()
@@ -32,12 +31,5 @@ class SteamControllerUiSessionTest {
             session.resume()
             assertEquals(2, creations)
         } finally { session.stop(); activity.finish() }
-    }
-
-    @Test fun disabledControllerSupportDoesNotStartSignInBackend() {
-        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
-        SteamControllerPrefs.setEnabled(activity, false)
-        val session = SteamControllerUiSession(activity) { error("Backend must stay disabled") }
-        try { session.resume(); session.pause() } finally { session.stop(); activity.finish() }
     }
 }

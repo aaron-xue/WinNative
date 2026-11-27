@@ -538,7 +538,6 @@ class UnifiedActivity :
 
     private fun startSteamMenuInput() {
         if (!steamMenuListener.foreground || steamMenuBackend != null || isFinishing || isDestroyed) return
-        if (!SteamControllerPrefs.isEnabled(this)) return
         val mode = SteamControllerPrefs.getTrackpadMouseMode(this)
         steamMenuListener.leftTrackpadScroll = mode != SteamControllerBackend.TRACKPAD_MOUSE_LEFT &&
             mode != SteamControllerBackend.TRACKPAD_MOUSE_BOTH

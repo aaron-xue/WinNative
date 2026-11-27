@@ -10372,7 +10372,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (!steamControllerSessionReady || !steamInputForeground) return;
         if (steamControllerBackend != null || winHandler == null) return;
         if (isFinishing() || isDestroyed() || activityDestroyed.get()) return;
-        if (!com.winlator.cmod.runtime.input.controls.SteamControllerPrefs.isEnabled(this)) return;
         int trackpadMode =
                 com.winlator.cmod.runtime.input.controls.SteamControllerPrefs.getTrackpadMouseMode(this);
         com.winlator.cmod.runtime.input.controls.Binding[] paddles =

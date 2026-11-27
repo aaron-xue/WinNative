@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -188,9 +189,6 @@ data class InputControlsScreenState(
     val gestureEditorExpanded: Boolean = false,
     val selectedGestureConfig: TouchGestureConfig = TouchGestureConfig(),
     val controllerCards: List<InputControllerCardState> = emptyList(),
-    val steamControllerEnabled: Boolean = false,
-    val steamTrackpadModeIndex: Int = 1,
-    val steamPaddleLabels: List<String> = emptyList(),
     val dialog: InputControlsDialogUiState = InputControlsDialogUiState.None,
 )
 
@@ -232,6 +230,9 @@ data class InputControllerCardState(
     val reportRealIdentity: Boolean = false,
     val settingsExpanded: Boolean = false,
     val triggerTypeIndex: Int = 0,
+    val isSteamController: Boolean = false,
+    val steamTrackpadModeIndex: Int = 1,
+    val steamPaddleLabels: List<String> = emptyList(),
 )
 
 data class InputControllerBindingState(
@@ -297,9 +298,8 @@ data class InputControlsScreenActions(
     val onOpenControllerSettings: (String) -> Unit,
     val onDismissControllerSettings: () -> Unit,
     val onControllerTriggerTypeChanged: (String, Int) -> Unit,
-    val onSteamControllerEnabledChanged: (Boolean) -> Unit,
-    val onSteamTrackpadModeSelected: (Int) -> Unit,
-    val onSteamPaddleClick: (Int) -> Unit,
+    val onSteamTrackpadModeSelected: (String, Int) -> Unit,
+    val onSteamPaddleClick: (String, Int) -> Unit,
 )
 
 @Composable
@@ -368,8 +368,6 @@ fun InputControlsScreen(
                     title = stringResource(R.string.gesture_profile_export),
                     onClick = actions.onExportGestureProfile,
                 )
-                SectionLabel(stringResource(R.string.steam_controller_section))
-                SteamControllerCard(state, actions)
                 SectionLabel(stringResource(R.string.session_gamepad_external_controllers))
                 if (state.controllerCards.isEmpty()) {
                     EmptyStateCard(stringResource(R.string.common_ui_no_items_to_display))
@@ -786,6 +784,7 @@ private fun InputFixedFooterDialogShell(
     title: String? = null,
     maxWidth: Dp = 440.dp,
     maxBodyHeight: Dp = 320.dp,
+    maxHeightFraction: Float? = null,
     focusable: Boolean = true,
     showCloseButton: Boolean = false,
     footer: (@Composable () -> Unit)? = null,
@@ -820,24 +819,36 @@ private fun InputFixedFooterDialogShell(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
+                val fixedHeight = maxHeightFraction?.let { maxHeight * it }
                 val responsiveBodyMaxHeight =
-                    minOf(
-                        maxBodyHeight,
-                        (maxHeight - 176.dp).coerceAtLeast(140.dp),
-                    )
+                    if (fixedHeight == null) {
+                        minOf(maxBodyHeight, (maxHeight - 176.dp).coerceAtLeast(140.dp))
+                    } else {
+                        Dp.Unspecified
+                    }
 
                 Box(
                     modifier =
                         Modifier
                             .widthIn(max = maxWidth)
                             .fillMaxWidth()
-                            .heightIn(max = maxHeight)
+                            .then(
+                                if (fixedHeight != null) Modifier.height(fixedHeight)
+                                else Modifier.heightIn(max = maxHeight),
+                            )
                             .clip(RoundedCornerShape(16.dp))
                             .background(InputCard)
                             .border(1.dp, InputOutline, RoundedCornerShape(16.dp))
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                 ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .then(
+                                    if (fixedHeight != null) Modifier.fillMaxHeight() else Modifier,
+                                ),
+                    ) {
                         if (title != null) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -895,7 +906,10 @@ private fun InputFixedFooterDialogShell(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .heightIn(max = responsiveBodyMaxHeight)
+                                    .then(
+                                        if (fixedHeight != null) Modifier.weight(1f)
+                                        else Modifier.heightIn(max = responsiveBodyMaxHeight),
+                                    )
                                     .onGloballyPositioned {
                                         viewportTop = it.positionInWindow().y
                                         viewportHeight = it.size.height
@@ -2489,123 +2503,6 @@ private fun GyroscopeCard(
 }
 
 @Composable
-private fun SteamControllerCard(
-    state: InputControlsScreenState,
-    actions: InputControlsScreenActions,
-) {
-    CardShell {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .paneNavItem(
-                            cornerRadius = InputCardCorner,
-                            onActivate = {
-                                actions.onSteamControllerEnabledChanged(!state.steamControllerEnabled)
-                            },
-                            highlightColor = InputNavHighlight,
-                        ),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconBox(
-                    image = Icons.Outlined.SportsEsports,
-                    tint = if (state.steamControllerEnabled) InputAccent else InputTextSecondary,
-                )
-                Spacer(Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.steam_controller_enable),
-                        color = InputTextPrimary,
-                        fontSize = InputPrimaryTextSize,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Spacer(Modifier.height(1.dp))
-                    Text(
-                        text = stringResource(R.string.steam_controller_enable_summary),
-                        color = InputTextSecondary,
-                        fontSize = InputSecondaryTextSize,
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-                AppSwitch(
-                    checked = state.steamControllerEnabled,
-                    onCheckedChange = actions.onSteamControllerEnabledChanged,
-                )
-            }
-            AnimatedVisibility(
-                visible = state.steamControllerEnabled,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Spacer(Modifier.height(InputItemGap))
-                    Text(
-                        text = stringResource(R.string.steam_controller_trackpad_mode),
-                        color = InputTextSecondary,
-                        fontSize = InputSectionTextSize,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Spacer(Modifier.height(InputCompactGap))
-                    ChipRow(
-                        options =
-                            listOf(
-                                stringResource(R.string.steam_controller_trackpad_off),
-                                stringResource(R.string.steam_controller_trackpad_right),
-                                stringResource(R.string.steam_controller_trackpad_left),
-                                stringResource(R.string.steam_controller_trackpad_both),
-                            ),
-                        selectedIndex = state.steamTrackpadModeIndex,
-                        onSelected = actions.onSteamTrackpadModeSelected,
-                    )
-                    Spacer(Modifier.height(InputItemGap))
-                    Text(
-                        text = stringResource(R.string.steam_controller_extra_buttons),
-                        color = InputTextSecondary,
-                        fontSize = InputSectionTextSize,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Spacer(Modifier.height(InputCompactGap))
-                    val paddleTitles =
-                        listOf(
-                            stringResource(R.string.steam_controller_paddle_l4),
-                            stringResource(R.string.steam_controller_paddle_l5),
-                            stringResource(R.string.steam_controller_paddle_r4),
-                            stringResource(R.string.steam_controller_paddle_r5),
-                            stringResource(R.string.steam_controller_button_qam),
-                        )
-                    paddleTitles.forEachIndexed { index, title ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = title,
-                                color = InputTextPrimary,
-                                fontSize = InputSecondaryTextSize,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            SelectionPill(
-                                text = state.steamPaddleLabels.getOrNull(index) ?: "",
-                                modifier = Modifier.weight(1f, fill = false),
-                                onClick = { actions.onSteamPaddleClick(index) },
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(InputCompactGap))
-                    Text(
-                        text = stringResource(R.string.steam_controller_restart_required),
-                        color = InputTextSecondary,
-                        fontSize = InputSecondaryTextSize,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun ControllerCard(
     state: InputControllerCardState,
     actions: InputControlsScreenActions,
@@ -2857,6 +2754,7 @@ private fun ControllerSettingsDialog(
         onDismiss = onDismiss,
         title = stringResource(R.string.common_ui_settings),
         maxWidth = 560.dp,
+        maxHeightFraction = 0.85f,
         showCloseButton = true,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -2925,6 +2823,76 @@ private fun ControllerSettingsDialog(
                 selectedIndex = state.triggerTypeIndex,
                 onSelected = { actions.onControllerTriggerTypeChanged(state.controllerId, it) },
             )
+
+            if (state.isSteamController) {
+                Spacer(Modifier.height(InputItemGap))
+                Text(
+                    text = stringResource(R.string.steam_controller_settings),
+                    color = InputTextPrimary,
+                    fontSize = InputPrimaryTextSize,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(InputItemGap))
+                Text(
+                    text = stringResource(R.string.steam_controller_trackpad_mode),
+                    color = InputTextSecondary,
+                    fontSize = InputSectionTextSize,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(InputCompactGap))
+                ChipRow(
+                    options =
+                        listOf(
+                            stringResource(R.string.steam_controller_trackpad_off),
+                            stringResource(R.string.steam_controller_trackpad_right),
+                            stringResource(R.string.steam_controller_trackpad_left),
+                            stringResource(R.string.steam_controller_trackpad_both),
+                        ),
+                    selectedIndex = state.steamTrackpadModeIndex,
+                    onSelected = { actions.onSteamTrackpadModeSelected(state.controllerId, it) },
+                )
+                Spacer(Modifier.height(InputItemGap))
+                Text(
+                    text = stringResource(R.string.steam_controller_extra_buttons),
+                    color = InputTextSecondary,
+                    fontSize = InputSectionTextSize,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(InputCompactGap))
+                val paddleTitles =
+                    listOf(
+                        stringResource(R.string.steam_controller_paddle_l4),
+                        stringResource(R.string.steam_controller_paddle_l5),
+                        stringResource(R.string.steam_controller_paddle_r4),
+                        stringResource(R.string.steam_controller_paddle_r5),
+                        stringResource(R.string.steam_controller_button_qam),
+                    )
+                paddleTitles.forEachIndexed { index, title ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = title,
+                            color = InputTextPrimary,
+                            fontSize = InputSecondaryTextSize,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        SelectionPill(
+                            text = state.steamPaddleLabels.getOrNull(index) ?: "",
+                            modifier = Modifier.weight(1f, fill = false),
+                            onClick = { actions.onSteamPaddleClick(state.controllerId, index) },
+                        )
+                    }
+                }
+                Spacer(Modifier.height(InputCompactGap))
+                Text(
+                    text = stringResource(R.string.steam_controller_restart_required),
+                    color = InputTextSecondary,
+                    fontSize = InputSecondaryTextSize,
+                )
+            }
         }
     }
 }

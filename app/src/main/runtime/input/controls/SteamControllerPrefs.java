@@ -5,7 +5,6 @@ import android.content.SharedPreferences;
 import androidx.preference.PreferenceManager;
 
 public final class SteamControllerPrefs {
-  public static final String KEY_ENABLED = "steam_controller_sdl_enabled";
   public static final String KEY_TRACKPAD_MODE = "steam_controller_trackpad_mode";
 
   private static final String[] KEY_PADDLES = {
@@ -17,17 +16,6 @@ public final class SteamControllerPrefs {
   };
 
   private SteamControllerPrefs() {}
-
-  public static boolean isEnabled(Context context) {
-    return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(KEY_ENABLED, false);
-  }
-
-  public static void setEnabled(Context context, boolean enabled) {
-    PreferenceManager.getDefaultSharedPreferences(context)
-        .edit()
-        .putBoolean(KEY_ENABLED, enabled)
-        .apply();
-  }
 
   public static int getTrackpadMouseMode(Context context) {
     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);

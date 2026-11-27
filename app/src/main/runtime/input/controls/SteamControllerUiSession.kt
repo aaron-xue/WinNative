@@ -21,7 +21,7 @@ internal class SteamControllerUiSession(
 
     fun resume() {
         router.foreground = true
-        if (backend == null && SteamControllerPrefs.isEnabled(activity)) {
+        if (backend == null) {
             createBackend(router).let { if (it.start()) backend = it }
         }
         backend?.publishCurrentState()

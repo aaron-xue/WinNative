@@ -775,7 +775,7 @@
     <string name="session_gamepad_as_button">按钮模式</string>
     <string name="session_gamepad_as_axis">轴模式</string>
     <string name="session_gamepad_trigger_auto">自动</string>
-    <string name="session_gamepad_trigger_type">类型</string>
+    <string name="session_gamepad_trigger_type">扳机类型</string>
     <string name="session_gamepad_help_trigger_mode">取决于您的&lt;b&gt;物理控制器&lt;/b&gt;：&lt;br/&gt;&lt;br/&gt;&#x2022; &lt;b&gt;轴模式&lt;/b&gt; — 扳机具有线性运动范围&lt;br/&gt;&#x2022; &lt;b&gt;按钮模式&lt;/b&gt; — 扳机作为简单开关&lt;br/&gt;&lt;br/&gt;&lt;i&gt;注意：对线性扳机使用按钮模式会丢失模拟数据。&lt;/i&gt;
     </string>
     <string name="session_gamepad_button_a">A 键</string>
@@ -3481,9 +3481,7 @@
     <string name="controller_test_element_dpad_right">十字键 右</string>
     <string name="controller_test_element_guide">主页键</string>
     <string name="controller_test_element_quick_access">…（快速访问）</string>
-    <string name="steam_controller_section">Steam Controller</string>
-    <string name="steam_controller_enable">Steam Controller 支持</string>
-    <string name="steam_controller_enable_summary">通过 Bluetooth LE 或 USB 读取已配对的 Steam Controller。默认关闭；关闭时不会影响常规控制器通路。</string>
+    <string name="steam_controller_settings">Steam Controller 设置</string>
     <string name="steam_controller_trackpad_mode">触摸板鼠标</string>
     <string name="steam_controller_trackpad_off">关</string>
     <string name="steam_controller_trackpad_right">右触摸板</string>

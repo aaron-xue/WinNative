@@ -1205,7 +1205,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="session_gamepad_as_button">Is Button</string>
     <string name="session_gamepad_as_axis">Is Axis</string>
     <string name="session_gamepad_trigger_auto">Auto</string>
-    <string name="session_gamepad_trigger_type">Type</string>
+    <string name="session_gamepad_trigger_type">Trigger type</string>
     <string name="session_gamepad_help_trigger_mode">Depends on your &lt;b&gt;Physical Controller&lt;/b&gt;:&lt;br/&gt;&lt;br/&gt;&#x2022; &lt;b&gt;Is Axis&lt;/b&gt; — trigger has a linear range of motion&lt;br/&gt;&#x2022; &lt;b&gt;Is Button&lt;/b&gt; — trigger acts as a simple switch&lt;br/&gt;&lt;br/&gt;&lt;i&gt;Note: using Is Button with a linear trigger loses analog data.&lt;/i&gt;
     </string>
     <string name="session_gamepad_button_a">Button A</string>
@@ -3651,9 +3651,7 @@ Installed path:
     <string name="controller_test_element_dpad_right">D-pad right</string>
     <string name="controller_test_element_guide">Guide</string>
     <string name="controller_test_element_quick_access">… (Quick Access)</string>
-    <string name="steam_controller_section">Steam Controller</string>
-    <string name="steam_controller_enable">Steam Controller support</string>
-    <string name="steam_controller_enable_summary">Read a paired Steam Controller over Bluetooth LE or USB. Off by default; the normal controller path is untouched while it is off.</string>
+    <string name="steam_controller_settings">Steam Controller settings</string>
     <string name="steam_controller_trackpad_mode">Trackpad mouse</string>
     <string name="steam_controller_trackpad_off">Off</string>
     <string name="steam_controller_trackpad_right">Right pad</string>

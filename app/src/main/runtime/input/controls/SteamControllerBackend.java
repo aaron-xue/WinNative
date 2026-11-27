@@ -326,7 +326,11 @@ public final class SteamControllerBackend {
     requireMainThread();
     int next = mode >= TRACKPAD_MOUSE_OFF && mode <= TRACKPAD_MOUSE_BOTH ? mode : TRACKPAD_MOUSE_RIGHT;
     if (trackpadMode == next) return;
-    for (int i = 0; i < pads.size(); i++) releaseTrackpads(pads.valueAt(i));
+    for (int i = 0; i < pads.size(); i++) {
+      Pad pad = pads.valueAt(i);
+      releaseTrackpads(pad);
+      pad.controller.setSteamTrackpadMode(next);
+    }
     trackpadMode = next;
   }
 
@@ -501,6 +505,9 @@ public final class SteamControllerBackend {
       boolean connected = pad == null;
       if (connected) {
         pad = new Pad(createController(id, names[p], paths[p]));
+        pad.controller.setSteamTrackpadMode(trackpadMode);
+        for (int i = 0; i < PADDLE_COUNT; i++) pad.controller.setSteamPaddleBinding(i, paddleBindings[i]);
+        pad.controller.loadPreferences(activity);
         pads.put(id, pad);
         com.winlator.cmod.runtime.input.ControllerHelper.setSteamControllerConnected(true);
       }
@@ -530,6 +537,7 @@ public final class SteamControllerBackend {
 
   private void applyPad(Pad pad, int buttons, float[] floats, int base) {
     ExternalController controller = pad.controller;
+    int mode = controller.getSteamTrackpadMode();
     boolean changed = buttons != pad.buttons
         || controller.steamLeftTouch != (floats[base + F_LPAD_DOWN] > 0.5f)
         || controller.steamRightTouch != (floats[base + F_RPAD_DOWN] > 0.5f)
@@ -558,7 +566,7 @@ public final class SteamControllerBackend {
       for (int i = 0; inputEnabled && i < PADDLE_COUNT; i++) {
         boolean down = bit(buttons, PADDLE_BITS[i])
             && !listener.hasSteamPadBinding(pad.controller, PADDLE_KEYS[i]);
-        Binding target = paddleBindings[i];
+        Binding target = controller.getSteamPaddleBinding(i);
         if (target == Binding.NONE) {
           pad.paddleDown[i] = down;
           continue;
@@ -601,16 +609,16 @@ public final class SteamControllerBackend {
       listener.onSteamPadState(
           pad.controller, bit(effective, B_GUIDE), bit(buttons, B_QAM), pressedKeyCodes(effective));
     }
-    if (inputEnabled && (trackpadMode == TRACKPAD_MOUSE_RIGHT || trackpadMode == TRACKPAD_MOUSE_BOTH))
+    if (inputEnabled && (mode == TRACKPAD_MOUSE_RIGHT || mode == TRACKPAD_MOUSE_BOTH))
       applyTrackpad(pad.right, floats, base + F_RPAD_DOWN,
           bit(buttons, B_RPAD_CLICK) && !listener.hasSteamPadBinding(pad.controller, KeyEvent.KEYCODE_BUTTON_7), false);
-    if (inputEnabled && (trackpadMode == TRACKPAD_MOUSE_LEFT || trackpadMode == TRACKPAD_MOUSE_BOTH))
+    if (inputEnabled && (mode == TRACKPAD_MOUSE_LEFT || mode == TRACKPAD_MOUSE_BOTH))
       applyTrackpad(
           pad.left,
           floats,
           base + F_LPAD_DOWN,
           bit(buttons, B_LPAD_CLICK) && !listener.hasSteamPadBinding(pad.controller, KeyEvent.KEYCODE_BUTTON_6),
-          trackpadMode == TRACKPAD_MOUSE_BOTH);
+          mode == TRACKPAD_MOUSE_BOTH);
   }
 
   private static int gamepadTargetBits(Binding target) {
@@ -711,14 +719,14 @@ public final class SteamControllerBackend {
     }
     if (pad.left.clickDown) {
       pad.left.clickDown = false;
-      setMouseButtonDown(trackpadMode == TRACKPAD_MOUSE_BOTH, false);
+      setMouseButtonDown(pad.controller.getSteamTrackpadMode() == TRACKPAD_MOUSE_BOTH, false);
     }
   }
 
   private void releaseHeld(Pad pad) {
     releaseTrackpads(pad);
     for (int i = 0; i < PADDLE_COUNT; i++) {
-      Binding target = paddleBindings[i];
+      Binding target = pad.controller.getSteamPaddleBinding(i);
       if (pad.paddleDown[i] && target != Binding.NONE && !target.isGamepad())
         setBindingDown(target, false);
       pad.paddleDown[i] = false;

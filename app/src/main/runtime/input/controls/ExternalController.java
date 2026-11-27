@@ -68,6 +68,10 @@ public class ExternalController {
   private boolean invertRightY = false;
   private boolean useSquareDeadzoneLeft = false;
 
+  // Per-device Steam Controller settings (stored under controller-id-suffixed keys).
+  private int steamTrackpadMode = SteamControllerBackend.TRACKPAD_MOUSE_RIGHT;
+  private final Binding[] steamPaddleBindings = new Binding[SteamControllerBackend.PADDLE_COUNT];
+
   private SharedPreferences.OnSharedPreferenceChangeListener prefChangeListener =
       new SharedPreferences.OnSharedPreferenceChangeListener() {
         @Override
@@ -133,6 +137,11 @@ public class ExternalController {
       SharedPreferences.Editor prefs = PreferenceManager.getDefaultSharedPreferences(context).edit();
       prefs.putBoolean(PreferenceKeys.USE_REAL_IDENTITY + this.id, this.useRealIdentity);
       prefs.putInt(PreferenceKeys.TRIGGER_TYPE + this.id, this.triggerTypeExplicit ? this.triggerType : TRIGGER_TYPE_UNSET);
+      prefs.putInt(PreferenceKeys.STEAM_TRACKPAD_MODE + this.id, this.steamTrackpadMode);
+      for (int i = 0; i < SteamControllerBackend.PADDLE_COUNT; i++) {
+        Binding binding = steamPaddleBindings[i];
+        prefs.putString(PreferenceKeys.STEAM_PADDLE_BINDING + this.id + "_" + i, binding == null || binding == Binding.NONE ? null : binding.name());
+      }
       prefs.apply();
     }
   }
@@ -160,6 +169,26 @@ public class ExternalController {
     int triggerTypePref = prefs.getInt(PreferenceKeys.TRIGGER_TYPE + this.id, TRIGGER_TYPE_UNSET);
     this.triggerTypeExplicit = triggerTypePref != TRIGGER_TYPE_UNSET;
     this.triggerType = triggerTypeExplicit ? (byte) triggerTypePref : autoTriggerType();
+
+    // Steam per-device settings fall back to the legacy global defaults when unset,
+    // so existing global trackpad/paddle choices are preserved for every pad.
+    this.steamTrackpadMode = prefs.getInt(
+        PreferenceKeys.STEAM_TRACKPAD_MODE + this.id,
+        SteamControllerPrefs.getTrackpadMouseMode(context));
+    Binding[] legacyPaddles = SteamControllerPrefs.getPaddleBindings(context);
+    for (int i = 0; i < SteamControllerBackend.PADDLE_COUNT; i++) {
+      String stored = prefs.getString(PreferenceKeys.STEAM_PADDLE_BINDING + this.id + "_" + i, null);
+      this.steamPaddleBindings[i] = stored == null ? legacyPaddles[i] : parseSteamBinding(stored);
+    }
+  }
+
+  private static Binding parseSteamBinding(String name) {
+    if (name == null || name.isEmpty()) return Binding.NONE;
+    try {
+      return Binding.fromString(name);
+    } catch (IllegalArgumentException e) {
+      return Binding.NONE;
+    }
   }
 
   /** Default trigger mode (no explicit choice): derived from capability. */
@@ -222,6 +251,25 @@ public class ExternalController {
   public boolean isUseRealIdentity() { return useRealIdentity; }
 
   public void setUseRealIdentity(boolean useRealIdentity) { this.useRealIdentity = useRealIdentity; }
+
+  public int getSteamTrackpadMode() {
+    return steamTrackpadMode;
+  }
+
+  public void setSteamTrackpadMode(int steamTrackpadMode) {
+    this.steamTrackpadMode = steamTrackpadMode;
+  }
+
+  public Binding getSteamPaddleBinding(int index) {
+    if (index < 0 || index >= SteamControllerBackend.PADDLE_COUNT) return Binding.NONE;
+    Binding binding = steamPaddleBindings[index];
+    return binding == null ? Binding.NONE : binding;
+  }
+
+  public void setSteamPaddleBinding(int index, Binding binding) {
+    if (index < 0 || index >= SteamControllerBackend.PADDLE_COUNT) return;
+    steamPaddleBindings[index] = binding == null ? Binding.NONE : binding;
+  }
 
   public void setContext(Context context) {
     this.context = context;
