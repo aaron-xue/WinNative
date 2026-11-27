@@ -787,7 +787,8 @@ private fun InputFixedFooterDialogShell(
     maxWidth: Dp = 440.dp,
     maxBodyHeight: Dp = 320.dp,
     focusable: Boolean = true,
-    footer: @Composable () -> Unit,
+    showCloseButton: Boolean = false,
+    footer: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val registry = remember { PaneNavRegistry() }
@@ -834,17 +835,35 @@ private fun InputFixedFooterDialogShell(
                             .clip(RoundedCornerShape(16.dp))
                             .background(InputCard)
                             .border(1.dp, InputOutline, RoundedCornerShape(16.dp))
-                            .padding(horizontal = 18.dp, vertical = 16.dp),
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         if (title != null) {
-                            Text(
-                                text = title,
-                                color = InputTextPrimary,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Spacer(Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = title,
+                                    color = InputTextPrimary,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (showCloseButton) {
+                                    Text(
+                                        text = stringResource(R.string.common_ui_close),
+                                        color = InputAccent,
+                                        fontSize = InputPrimaryTextSize,
+                                        modifier =
+                                            Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .clickable(onClick = onDismiss)
+                                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
                             Box(
                                 modifier =
                                     Modifier
@@ -852,7 +871,7 @@ private fun InputFixedFooterDialogShell(
                                         .height(1.dp)
                                         .background(InputOutline),
                             )
-                            Spacer(Modifier.height(14.dp))
+                            Spacer(Modifier.height(10.dp))
                         }
 
                         val scrollState = rememberScrollState()
@@ -886,16 +905,18 @@ private fun InputFixedFooterDialogShell(
                             content()
                         }
 
-                        Spacer(Modifier.height(14.dp))
-                        Box(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(1.dp)
-                                    .background(InputOutline),
-                        )
-                        Spacer(Modifier.height(14.dp))
-                        footer()
+                        if (footer != null) {
+                            Spacer(Modifier.height(10.dp))
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(1.dp)
+                                        .background(InputOutline),
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            footer()
+                        }
                     }
                 }
             }
@@ -2836,19 +2857,7 @@ private fun ControllerSettingsDialog(
         onDismiss = onDismiss,
         title = stringResource(R.string.common_ui_settings),
         maxWidth = 560.dp,
-        footer = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
-            ) {
-                InputDialogButton(
-                    label = stringResource(R.string.common_ui_done),
-                    primary = true,
-                    textColor = InputTextPrimary,
-                    onClick = onDismiss,
-                )
-            }
-        },
+        showCloseButton = true,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             var showTriggerHelp by remember { mutableStateOf(false) }
