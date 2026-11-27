@@ -1204,6 +1204,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="session_gamepad_game_controller">Game Controller</string>
     <string name="session_gamepad_as_button">Is Button</string>
     <string name="session_gamepad_as_axis">Is Axis</string>
+    <string name="session_gamepad_trigger_auto">Auto</string>
     <string name="session_gamepad_trigger_type">Type</string>
     <string name="session_gamepad_help_trigger_mode">Depends on your &lt;b&gt;Physical Controller&lt;/b&gt;:&lt;br/&gt;&lt;br/&gt;&#x2022; &lt;b&gt;Is Axis&lt;/b&gt; — trigger has a linear range of motion&lt;br/&gt;&#x2022; &lt;b&gt;Is Button&lt;/b&gt; — trigger acts as a simple switch&lt;br/&gt;&lt;br/&gt;&lt;i&gt;Note: using Is Button with a linear trigger loses analog data.&lt;/i&gt;
     </string>

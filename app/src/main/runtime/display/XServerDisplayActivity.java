@@ -1935,16 +1935,6 @@ public class XServerDisplayActivity extends FixedFontScaleAppCompatActivity
         if (isOpenWithAndroidBrowser || isShareAndroidClipboard)
             wineRequestHandler = new WineRequestHandler(this);
 
-        if (controller != null) {
-            // Only force a type when explicitly chosen; else keep the auto-detected value.
-            int triggerType = preferences.getInt("trigger_type", -1);
-            if (triggerType != -1) {
-                controller.setTriggerType((byte) triggerType);
-            }
-        }
-
-
-
         boolean xinputDisabledFromShortcut = false;
 
 

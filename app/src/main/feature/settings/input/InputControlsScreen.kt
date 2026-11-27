@@ -46,6 +46,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -110,6 +111,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.text.HtmlCompat
 import com.winlator.cmod.R
 import com.winlator.cmod.runtime.input.controls.Binding
 import com.winlator.cmod.runtime.input.ui.DragAction
@@ -140,6 +142,7 @@ private val InputNavHighlight = Color(0xFF4FC3F7)
 private val InputTextPrimary = Color(0xFFF0F4FF)
 private val InputTextSecondary = Color(0xFF7A8FA8)
 private val InputDanger = Color(0xFFFF7A88)
+private val InputSuccess = Color(0xFF4CAF50)
 private val InputTickHidden = Color.Transparent
 
 private val InputCardCorner = 10.dp
@@ -184,9 +187,6 @@ data class InputControlsScreenState(
     val selectedGestureProfileName: String? = null,
     val gestureEditorExpanded: Boolean = false,
     val selectedGestureConfig: TouchGestureConfig = TouchGestureConfig(),
-    val triggerTypeIndex: Int = 1,
-    val triggerCardExpanded: Boolean = false,
-    val triggerDescription: String = "",
     val controllerCards: List<InputControllerCardState> = emptyList(),
     val steamControllerEnabled: Boolean = false,
     val steamTrackpadModeIndex: Int = 1,
@@ -230,6 +230,8 @@ data class InputControllerCardState(
     val showBindings: Boolean,
     val bindings: List<InputControllerBindingState> = emptyList(),
     val reportRealIdentity: Boolean = false,
+    val settingsExpanded: Boolean = false,
+    val triggerTypeIndex: Int = 0,
 )
 
 data class InputControllerBindingState(
@@ -280,8 +282,6 @@ data class InputControlsScreenActions(
     val onDeleteGestureProfile: () -> Unit,
     val onImportGestureProfile: () -> Unit,
     val onExportGestureProfile: () -> Unit,
-    val onTriggerTypeSelected: (Int) -> Unit,
-    val onTriggerCardExpandedChanged: (Boolean) -> Unit,
     val onImportProfile: () -> Unit,
     val onExportProfile: () -> Unit,
     val onControllerExpandedToggle: (String) -> Unit,
@@ -294,6 +294,9 @@ data class InputControlsScreenActions(
     val onRemoveBinding: (String, Int) -> Unit,
     val onControllerBindingsConfirm: (String) -> Unit,
     val onOpenControllerTest: (String) -> Unit,
+    val onOpenControllerSettings: (String) -> Unit,
+    val onDismissControllerSettings: () -> Unit,
+    val onControllerTriggerTypeChanged: (String, Int) -> Unit,
     val onSteamControllerEnabledChanged: (Boolean) -> Unit,
     val onSteamTrackpadModeSelected: (Int) -> Unit,
     val onSteamPaddleClick: (Int) -> Unit,
@@ -346,8 +349,6 @@ fun InputControlsScreen(
                     title = stringResource(R.string.input_controls_editor_export_profile),
                     onClick = actions.onExportProfile,
                 )
-                SectionLabel(stringResource(R.string.session_gamepad_trigger_type))
-                TriggerTypeCard(state, actions)
                 SectionLabel(stringResource(R.string.session_gyroscope_title))
                 GyroscopeCard(state, actions)
                 SectionLabel(stringResource(R.string.session_gesture_profile_section))
@@ -1566,28 +1567,29 @@ private fun OverlayOpacityCard(
                         fontSize = InputSecondaryTextSize,
                     )
                 }
+                Spacer(Modifier.width(10.dp))
+                Slider(
+                    value = state.overlayOpacity.toFloat(),
+                    onValueChange = {
+                        actions.onOverlayOpacityChanged(snapToStep(it, 5, 10, 100))
+                    },
+                    valueRange = 10f..100f,
+                    steps = 17,
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .height(InputSliderHeight)
+                            .paneNavItem(
+                                cornerRadius = InputFieldCorner,
+                                onAdjust = { dir ->
+                                    actions.onOverlayOpacityChanged((state.overlayOpacity + dir * 5).coerceIn(10, 100))
+                                },
+                                highlightColor = InputNavHighlight,
+                            ),
+                    colors = sliderColors(),
+                    track = { InputSliderTrack(it) },
+                )
             }
-            Spacer(Modifier.height(InputCompactGap))
-            Slider(
-                value = state.overlayOpacity.toFloat(),
-                onValueChange = {
-                    actions.onOverlayOpacityChanged(snapToStep(it, 5, 10, 100))
-                },
-                valueRange = 10f..100f,
-                steps = 17,
-                modifier =
-                    Modifier
-                        .height(InputSliderHeight)
-                        .paneNavItem(
-                            cornerRadius = InputFieldCorner,
-                            onAdjust = { dir ->
-                                actions.onOverlayOpacityChanged((state.overlayOpacity + dir * 5).coerceIn(10, 100))
-                            },
-                            highlightColor = InputNavHighlight,
-                        ),
-                colors = sliderColors(),
-                track = { InputSliderTrack(it) },
-            )
         }
     }
 }
@@ -2583,56 +2585,6 @@ private fun SteamControllerCard(
 }
 
 @Composable
-private fun TriggerTypeCard(
-    state: InputControlsScreenState,
-    actions: InputControlsScreenActions,
-) {
-    CardShell {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconBox(Icons.Outlined.Tune, InputTextSecondary)
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.session_gamepad_trigger_type),
-                    color = InputTextPrimary,
-                    fontSize = InputPrimaryTextSize,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            Spacer(Modifier.height(InputItemGap))
-            ChipRow(
-                options =
-                    listOf(
-                        stringResource(R.string.session_gamepad_as_button),
-                        stringResource(R.string.session_gamepad_as_axis),
-                    ),
-                selectedIndex = state.triggerTypeIndex,
-                onSelected = actions.onTriggerTypeSelected,
-            )
-            Spacer(Modifier.height(InputCompactGap))
-            Subcard(
-                title = stringResource(R.string.session_gamepad_trigger_type),
-                expanded = state.triggerCardExpanded,
-                onToggleExpanded = {
-                    actions.onTriggerCardExpandedChanged(!state.triggerCardExpanded)
-                },
-            ) {
-                Spacer(Modifier.height(InputCompactGap))
-                Text(
-                    text = state.triggerDescription,
-                    color = InputTextSecondary,
-                    fontSize = InputSecondaryTextSize,
-                    lineHeight = 16.sp,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun ControllerCard(
     state: InputControllerCardState,
     actions: InputControlsScreenActions,
@@ -2645,7 +2597,7 @@ private fun ControllerCard(
             ) {
                 IconBox(
                     image = Icons.Outlined.SportsEsports,
-                    tint = if (state.connected) InputAccent else InputDanger,
+                    tint = if (state.connected) InputSuccess else InputDanger,
                 )
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -2664,6 +2616,7 @@ private fun ControllerCard(
                         fontSize = InputSecondaryTextSize,
                     )
                 }
+                
                 if (state.showBindings) {
                     Box(
                         modifier =
@@ -2690,6 +2643,30 @@ private fun ControllerCard(
                     }
                     Spacer(Modifier.width(12.dp))
                 }
+                Box(
+                    modifier =
+                        Modifier
+                            .heightIn(min = 30.dp)
+                            .clip(RoundedCornerShape(InputFieldCorner))
+                            .background(InputSubcard)
+                            .border(1.dp, InputOutline, RoundedCornerShape(InputFieldCorner))
+                            .paneNavItem(
+                                cornerRadius = InputFieldCorner,
+                                onActivate = { actions.onOpenControllerSettings(state.controllerId) },
+                                highlightColor = InputNavHighlight,
+                                tapToSelect = true,
+                            ).padding(horizontal = 12.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.common_ui_settings),
+                        color = InputAccent,
+                        fontSize = InputSecondaryTextSize,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
                 Box(
                     modifier =
                         Modifier
@@ -2778,6 +2755,14 @@ private fun ControllerCard(
                     onDismiss = { actions.onControllerExpandedToggle(state.controllerId) },
                 )
             }
+
+            if (state.settingsExpanded) {
+                ControllerSettingsDialog(
+                    state = state,
+                    actions = actions,
+                    onDismiss = { actions.onDismissControllerSettings() },
+                )
+            }
         }
     }
 }
@@ -2837,6 +2822,100 @@ private fun ControllerBindingsDialog(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ControllerSettingsDialog(
+    state: InputControllerCardState,
+    actions: InputControlsScreenActions,
+    onDismiss: () -> Unit,
+) {
+    InputFixedFooterDialogShell(
+        onDismiss = onDismiss,
+        title = stringResource(R.string.common_ui_settings),
+        maxWidth = 560.dp,
+        footer = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+            ) {
+                InputDialogButton(
+                    label = stringResource(R.string.common_ui_done),
+                    primary = true,
+                    textColor = InputTextPrimary,
+                    onClick = onDismiss,
+                )
+            }
+        },
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            var showTriggerHelp by remember { mutableStateOf(false) }
+            val triggerHelpText =
+                HtmlCompat
+                    .fromHtml(
+                        stringResource(R.string.session_gamepad_help_trigger_mode).trim(),
+                        HtmlCompat.FROM_HTML_MODE_LEGACY,
+                    ).toString()
+                    .trim()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.session_gamepad_trigger_type),
+                    color = InputTextPrimary,
+                    fontSize = InputPrimaryTextSize,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.width(InputCompactGap))
+                Box {
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(18.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(InputSubcard)
+                                .border(1.dp, InputOutline, RoundedCornerShape(9.dp))
+                                .paneNavItem(
+                                    cornerRadius = 9.dp,
+                                    onActivate = { showTriggerHelp = !showTriggerHelp },
+                                    highlightColor = InputNavHighlight,
+                                )
+                                .clickable { showTriggerHelp = !showTriggerHelp },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
+                            contentDescription = null,
+                            tint = InputTextSecondary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showTriggerHelp,
+                        onDismissRequest = { showTriggerHelp = false },
+                        containerColor = InputCard,
+                        modifier = Modifier.padding(10.dp).width(300.dp),
+                    ) {
+                        Text(
+                            text = triggerHelpText,
+                            color = InputTextSecondary,
+                            fontSize = InputSecondaryTextSize,
+                            lineHeight = 15.sp,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(InputCompactGap))
+            ChipRow(
+                options =
+                    listOf(
+                        stringResource(R.string.session_gamepad_trigger_auto),
+                        stringResource(R.string.session_gamepad_as_button),
+                        stringResource(R.string.session_gamepad_as_axis),
+                    ),
+                selectedIndex = state.triggerTypeIndex,
+                onSelected = { actions.onControllerTriggerTypeChanged(state.controllerId, it) },
+            )
         }
     }
 }

@@ -774,6 +774,7 @@
     <string name="session_gamepad_game_controller">游戏控制器</string>
     <string name="session_gamepad_as_button">按钮模式</string>
     <string name="session_gamepad_as_axis">轴模式</string>
+    <string name="session_gamepad_trigger_auto">自动</string>
     <string name="session_gamepad_trigger_type">类型</string>
     <string name="session_gamepad_help_trigger_mode">取决于您的&lt;b&gt;物理控制器&lt;/b&gt;：&lt;br/&gt;&lt;br/&gt;&#x2022; &lt;b&gt;轴模式&lt;/b&gt; — 扳机具有线性运动范围&lt;br/&gt;&#x2022; &lt;b&gt;按钮模式&lt;/b&gt; — 扳机作为简单开关&lt;br/&gt;&lt;br/&gt;&lt;i&gt;注意：对线性扳机使用按钮模式会丢失模拟数据。&lt;/i&gt;
     </string>

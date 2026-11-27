@@ -43,6 +43,8 @@ public class ExternalController {
   private int deviceId = -1;
   private boolean useRealIdentity = false;
   private byte triggerType = TRIGGER_IS_AXIS;
+  // Whether the user picked an explicit trigger type; false = auto-detect.
+  private boolean triggerTypeExplicit = false;
   // Device exposes an analog trigger axis; gates the analog path so a stale "as button"
   // pref can't kill an analog pad's triggers. Default true = historical behavior.
   private boolean hasAnalogTriggerAxis = true;
@@ -102,13 +104,6 @@ public class ExternalController {
               useSquareDeadzoneLeft =
                   sharedPreferences.getBoolean(PreferenceKeys.SQUARE_DEADZONE_LEFT, false);
               break;
-            case PreferenceKeys.TRIGGER_TYPE:
-              {
-                int pref =
-                    sharedPreferences.getInt(PreferenceKeys.TRIGGER_TYPE, TRIGGER_TYPE_UNSET);
-                triggerType = pref == TRIGGER_TYPE_UNSET ? autoTriggerType() : (byte) pref;
-              }
-              break;
           }
         }
       };
@@ -137,6 +132,7 @@ public class ExternalController {
       // Save input device specific preferences (for now just the device id)
       SharedPreferences.Editor prefs = PreferenceManager.getDefaultSharedPreferences(context).edit();
       prefs.putBoolean(PreferenceKeys.USE_REAL_IDENTITY + this.id, this.useRealIdentity);
+      prefs.putInt(PreferenceKeys.TRIGGER_TYPE + this.id, this.triggerTypeExplicit ? this.triggerType : TRIGGER_TYPE_UNSET);
       prefs.apply();
     }
   }
@@ -161,8 +157,9 @@ public class ExternalController {
     this.useSquareDeadzoneLeft = prefs.getBoolean(PreferenceKeys.SQUARE_DEADZONE_LEFT, false);
     // Honor an explicit choice; else auto-detect. Runs per instance via setContext.
     this.hasAnalogTriggerAxis = deviceHasAnalogTriggerAxis();
-    int triggerTypePref = prefs.getInt(PreferenceKeys.TRIGGER_TYPE, TRIGGER_TYPE_UNSET);
-    this.triggerType = triggerTypePref == TRIGGER_TYPE_UNSET ? autoTriggerType() : (byte) triggerTypePref;
+    int triggerTypePref = prefs.getInt(PreferenceKeys.TRIGGER_TYPE + this.id, TRIGGER_TYPE_UNSET);
+    this.triggerTypeExplicit = triggerTypePref != TRIGGER_TYPE_UNSET;
+    this.triggerType = triggerTypeExplicit ? (byte) triggerTypePref : autoTriggerType();
   }
 
   /** Default trigger mode (no explicit choice): derived from capability. */
@@ -207,8 +204,19 @@ public class ExternalController {
     return triggerType;
   }
 
+  public boolean isTriggerTypeExplicit() {
+    return triggerTypeExplicit;
+  }
+
   public void setTriggerType(byte mode) {
     this.triggerType = mode;
+    this.triggerTypeExplicit = true;
+  }
+
+  public void resetTriggerType() {
+    this.triggerTypeExplicit = false;
+    this.hasAnalogTriggerAxis = deviceHasAnalogTriggerAxis();
+    this.triggerType = autoTriggerType();
   }
 
   public boolean isUseRealIdentity() { return useRealIdentity; }

@@ -24,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.core.text.HtmlCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
@@ -74,11 +73,10 @@ class InputControlsFragment : Fragment() {
     private var currentProfile: ControlsProfile? = null
     private var selectedGestureProfileId = -1
     private var gestureEditorExpanded = false
-    private var triggerTypeExpanded = false
     private var gyroscopeExpanded = false
     private val expandedControllerIds = mutableSetOf<String>()
     private val editingBindings = mutableListOf<ExternalControllerBinding>()
-    private var cachedTriggerDescription: String? = null
+    private var controllerSettingsControllerId: String? = null
     private val visibleControllers = mutableListOf<ExternalController>()
 
     private var activeBindingController: ExternalController? = null
@@ -223,13 +221,16 @@ class InputControlsFragment : Fragment() {
                                 onDeleteGestureProfile = ::removeSelectedGestureProfile,
                                 onImportGestureProfile = ::promptImportGestureProfile,
                                 onExportGestureProfile = ::exportSelectedGestureProfile,
-                                onTriggerTypeSelected = { index ->
-                                    preferences.edit().putInt("trigger_type", index).apply()
+                                onOpenControllerSettings = { controllerId ->
+                                    controllerSettingsControllerId = controllerId
                                     publishUiState()
                                 },
-                                onTriggerCardExpandedChanged = { expanded ->
-                                    triggerTypeExpanded = expanded
+                                onDismissControllerSettings = {
+                                    controllerSettingsControllerId = null
                                     publishUiState()
+                                },
+                                onControllerTriggerTypeChanged = { controllerId, index ->
+                                    setControllerTriggerType(controllerId, index)
                                 },
                                 onImportProfile = { promptImportProfile() },
                                 onExportProfile = ::exportProfile,
@@ -433,15 +434,6 @@ class InputControlsFragment : Fragment() {
         val ctx = context ?: return
         val profile = currentProfile
         val bindingTypeEntries = resources.getStringArray(R.array.binding_type_entries)
-        val triggerDescription =
-            cachedTriggerDescription
-                ?: HtmlCompat
-                    .fromHtml(
-                        getString(R.string.session_gamepad_help_trigger_mode).trim(),
-                        HtmlCompat.FROM_HTML_MODE_LEGACY,
-                    ).toString()
-                    .trim()
-                    .also { cachedTriggerDescription = it }
 
         screenState =
             InputControlsScreenState(
@@ -467,9 +459,6 @@ class InputControlsFragment : Fragment() {
                 selectedGestureProfileName = selectedGestureProfile().name,
                 gestureEditorExpanded = gestureEditorExpanded,
                 selectedGestureConfig = TouchGestureConfig.fromJson(selectedGestureProfile().configJson),
-                triggerTypeIndex = preferences.getInt("trigger_type", ExternalController.TRIGGER_IS_AXIS.toInt()),
-                triggerCardExpanded = triggerTypeExpanded,
-                triggerDescription = triggerDescription,
                 steamControllerEnabled = SteamControllerPrefs.isEnabled(ctx),
                 steamTrackpadModeIndex = SteamControllerPrefs.getTrackpadMouseMode(ctx),
                 steamPaddleLabels =
@@ -492,6 +481,13 @@ class InputControlsFragment : Fragment() {
                                     emptyList()
                                 },
                             reportRealIdentity = controller.isUseRealIdentity,
+                            settingsExpanded = controller.id == controllerSettingsControllerId,
+                            triggerTypeIndex =
+                                when {
+                                    !controller.isTriggerTypeExplicit -> 0
+                                    controller.triggerType == ExternalController.TRIGGER_IS_BUTTON -> 1
+                                    else -> 2
+                                },
                         )
                     },
                 dialog = dialogState,
@@ -512,6 +508,23 @@ class InputControlsFragment : Fragment() {
                 publishUiState()
             }
         }
+    }
+
+    // Per-pad trigger type override, persisted under a controller-id-suffixed key.
+    // Index 0 = auto-detect, 1 = button, 2 = axis.
+    private fun setControllerTriggerType(
+        controllerId: String,
+        triggerTypeIndex: Int,
+    ) {
+        val controller = findVisibleController(controllerId) ?: return
+        val activity = activity ?: return
+        when (triggerTypeIndex) {
+            0 -> controller.resetTriggerType()
+            1 -> controller.setTriggerType(ExternalController.TRIGGER_IS_BUTTON)
+            else -> controller.setTriggerType(ExternalController.TRIGGER_IS_AXIS)
+        }
+        controller.savePreferences(activity)
+        publishUiState()
     }
 
     private fun buildBindingState(
